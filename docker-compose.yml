@@ -1,0 +1,47 @@
+version: '3.6'
+
+services:
+
+  pg:
+    image: postgres:10.5
+    environment:
+      - POSTGRES_DB=$POSTGRES_DB
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+    ports:
+      - $POSTGRES_LOCAL_PORT:5432
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - './swpt_accounts:/usr/src/app/swpt_accounts'
+    ports:
+      - $PORT:$PORT
+      - 1$PORT:5555
+    env_file: .env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONBREAKPOINT=web_pdb.set_trace
+      - SQLALCHEMY_DATABASE_URI=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@pg:5432/${POSTGRES_DB}
+    command: develop
+    depends_on:
+      - pg
+
+  tasks:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - './swpt_accounts:/usr/src/app/swpt_accounts'
+    ports:
+      - 2$PORT:5555
+    env_file: .env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONBREAKPOINT=web_pdb.set_trace
+      - SQLALCHEMY_DATABASE_URI=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@pg:5432/${POSTGRES_DB}
+    command: tasks --watch '/usr/src/app/swpt_accounts' tasks:broker
+    depends_on:
+      - pg
