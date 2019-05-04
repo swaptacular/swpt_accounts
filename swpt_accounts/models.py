@@ -77,8 +77,7 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=1,
-        comment='Incremented on every change in `balance` or `concession_interest_rate`. '
-                'Zero indicates a stale account.',
+        comment='Incremented on every change in `balance` or `concession_interest_rate`.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
