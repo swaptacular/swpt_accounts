@@ -89,7 +89,7 @@ class Account(db.Model):
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=BEGINNING_OF_TIME,
-        comment='Updated on every account activity. This is useful to remove stale accounts.',
+        comment='Updated on every account activity. Can be used to remove stale accounts.',
     )
 
     debtor_policy = db.relationship(
