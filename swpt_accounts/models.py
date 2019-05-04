@@ -15,17 +15,13 @@ def get_now_utc():
 
 class DebtorPolicy(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
-    demurrage_rate = db.Column(db.REAL, nullable=False, default=0.0)
-    demurrage_rate_ceiling = db.Column(db.REAL, nullable=False, default=0.0)
+    interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
+    interest_rate_floor = db.Column(db.REAL, nullable=False, default=0.0)
     last_change_seqnum = db.Column(
         db.BigInteger,
         nullable=False,
         default=1,
         comment='This is incremented on every change. Zero indicates a deactivated debtor.',
-    )
-    __table_args__ = (
-        db.CheckConstraint(demurrage_rate >= 0),
-        db.CheckConstraint(demurrage_rate_ceiling >= 0),
     )
 
 
@@ -59,7 +55,7 @@ class Signal(db.Model):
 class Account(db.Model):
     debtor_id = db.Column(db.BigInteger, db.ForeignKey('debtor_policy.debtor_id'), primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    discount_demurrage_rate = db.Column(db.REAL, nullable=False, default=math.inf)
+    concession_interest_rate = db.Column(db.REAL, nullable=False, default=math.inf)
     balance = db.Column(
         db.BigInteger,
         nullable=False,
@@ -71,9 +67,9 @@ class Account(db.Model):
         nullable=False,
         default=0,
         comment='This is the amount of negative interest accumulated on the account. '
-                'Demurrage accumulates at an annual rate (in percents) that is equal to '
-                'the minimum of the following values: `account.discount_demurrage_rate`, '
-                '`debtor_policy.demurrage_rate`, `debtor_policy.demurrage_rate_ceiling`.',
+                'Interest accumulates at an annual rate (in percents) that is equal to '
+                'the maximum of the following values: `account.concession_interest_rate`, '
+                '`debtor_policy.interest_rate`, `debtor_policy.interest_rate_floor`.',
     )
     avl_balance = db.Column(
         db.BigInteger,
@@ -81,7 +77,7 @@ class Account(db.Model):
         default=0,
         comment='The total owed amount, minus demurrage, minus pending transfer locks',
     )
-    last_transfer_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     last_change_seqnum = db.Column(
         db.BigInteger,
         nullable=False,
@@ -90,7 +86,6 @@ class Account(db.Model):
     )
     __table_args__ = (
         db.CheckConstraint(demurrage >= 0),
-        db.CheckConstraint(discount_demurrage_rate >= 0),
     )
 
     debtor_policy = db.relationship('DebtorPolicy')
@@ -158,8 +153,8 @@ class RejectedDirectTransferSignal(Signal):
 class DebtorAccountsPolicyUpdateSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     last_change_seqnum = db.Column(db.BigInteger, primary_key=True)
-    demurrage_rate = db.Column(db.REAL, nullable=False)
-    demurrage_rate_ceiling = db.Column(db.REAL, nullable=False)
+    interest_rate = db.Column(db.REAL, nullable=False)
+    interest_rate_floor = db.Column(db.REAL, nullable=False)
 
 
 class AccountUpdateSignal(Signal):
@@ -167,7 +162,7 @@ class AccountUpdateSignal(Signal):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     last_change_seqnum = db.Column(db.BigInteger, primary_key=True)
     balance = db.Column(db.BigInteger, nullable=False)
-    discount_demurrage_rate = db.Column(db.REAL, nullable=False)
+    concession_interest_rate = db.Column(db.REAL, nullable=False)
 
 
 class CommittedTransferSignal(Signal):
