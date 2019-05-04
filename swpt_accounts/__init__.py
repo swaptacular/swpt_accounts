@@ -35,6 +35,7 @@ class Configuration(metaclass=MetaFlaskEnv):
 def create_app(config_dict={}):
     from flask import Flask
     from .extensions import db, migrate, broker
+    from . import models  # noqa
 
     app = Flask(__name__)
     app.config.from_object(Configuration)
