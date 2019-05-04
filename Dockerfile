@@ -32,9 +32,9 @@ RUN apk add --no-cache \
     postgresql-libs \
     supervisor
 
-ENV APP_ROOT_DIR=/usr/src/app
-ENV APP_LOGGING_CONFIG_FILE="$APP_ROOT_DIR/swpt_accounts/logging.conf"
 ENV FLASK_APP=$FLASK_APP
+ENV APP_ROOT_DIR=/usr/src/app
+ENV APP_LOGGING_CONFIG_FILE="$APP_ROOT_DIR/$FLASK_APP/logging.conf"
 ENV PYTHONPATH="$APP_ROOT_DIR"
 ENV PATH="/opt/venv/bin:$PATH"
 
