@@ -88,7 +88,10 @@ class Account(db.Model):
         db.CheckConstraint(demurrage >= 0),
     )
 
-    debtor_policy = db.relationship('DebtorPolicy')
+    debtor_policy = db.relationship(
+        'DebtorPolicy',
+        backref=db.backref('account_list'),
+    )
 
 
 class PreparedTransfer(db.Model):
