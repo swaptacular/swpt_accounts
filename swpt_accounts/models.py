@@ -33,7 +33,7 @@ class Debtor(db.Model):
             assert 0 < self.debtor_id < modulo
 
 
-class DebtorModel(db.Model):
+class Model(db.Model):
     __abstract__ = True
 
     @declared_attr
@@ -45,7 +45,7 @@ class DebtorModel(db.Model):
         )
 
 
-class SignalModel(db.Model):
+class Signal(db.Model):
     __abstract__ = True
 
     queue_name = None
@@ -72,7 +72,7 @@ class SignalModel(db.Model):
         actors.broker.publish_message(message, exchange=exchange_name)
 
 
-class Account(DebtorModel):
+class Account(Model):
     debtor_id = db.Column(db.BigInteger, db.ForeignKey('debtor.debtor_id'), primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     discount_demurrage_rate = db.Column(db.REAL, nullable=False, default=math.inf)
@@ -110,7 +110,7 @@ class Account(DebtorModel):
     )
 
 
-class PreparedTransfer(DebtorModel):
+class PreparedTransfer(Model):
     TYPE_CIRCULAR = 1
     TYPE_DIRECT = 2
     TYPE_THIRD_PARTY = 3
@@ -156,11 +156,35 @@ class PreparedTransfer(DebtorModel):
     )
 
 
-class TransactionSignal(SignalModel):
+class PreparedDirectTransferSignal(Signal):
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
+    sender_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
+    prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+
+
+class RejectedDirectTransferSignal(Signal):
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
+    sender_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
+    details = db.Column(pg.JSONB, nullable=False, default={})
+
+
+class AccountUpdateSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    prepared_transfer_seqnum = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    last_change_seqnum = db.Column(db.BigInteger, primary_key=True)
+    balance = db.Column(db.BigInteger, nullable=False)
+    discount_demurrage_rate = db.Column(db.REAL, nullable=False)
+
+
+class CommittedTransferSignal(Signal):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    prepared_transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
+    transfer_type = db.Column(db.SmallInteger, nullable=False)
+    transfer_info = db.Column(pg.JSONB, nullable=False, default={})
     amount = db.Column(db.BigInteger, nullable=False)
-    transaction_info = db.Column(pg.JSONB, nullable=False, default={})
-    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    sender_locked_amount = db.Column(db.BigInteger, nullable=False)
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
