@@ -1,9 +1,6 @@
-import os
-import struct
 import datetime
 import math
 import dramatiq
-from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.dialects import postgresql as pg
 from flask import current_app
 from .extensions import db
@@ -16,33 +13,20 @@ def get_now_utc():
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
 
-class Debtor(db.Model):
+class DebtorPolicy(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     demurrage_rate = db.Column(db.REAL, nullable=False, default=0.0)
     demurrage_rate_ceiling = db.Column(db.REAL, nullable=False, default=0.0)
+    last_change_seqnum = db.Column(
+        db.BigInteger,
+        nullable=False,
+        default=1,
+        comment='This is incremented on every change. Zero indicates a deactivated debtor.',
+    )
     __table_args__ = (
         db.CheckConstraint(demurrage_rate >= 0),
         db.CheckConstraint(demurrage_rate_ceiling >= 0),
     )
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if 'debtor_id' not in kwargs:
-            modulo = 1 << 63
-            self.debtor_id = struct.unpack('>q', os.urandom(8))[0] % modulo or 1
-            assert 0 < self.debtor_id < modulo
-
-
-class Model(db.Model):
-    __abstract__ = True
-
-    @declared_attr
-    def debtor(cls):
-        return db.relationship(
-            Debtor,
-            primaryjoin=Debtor.debtor_id == db.foreign(cls.debtor_id),
-            backref=db.backref(cls.__tablename__ + '_list'),
-        )
 
 
 class Signal(db.Model):
@@ -72,8 +56,8 @@ class Signal(db.Model):
         actors.broker.publish_message(message, exchange=exchange_name)
 
 
-class Account(Model):
-    debtor_id = db.Column(db.BigInteger, db.ForeignKey('debtor.debtor_id'), primary_key=True)
+class Account(db.Model):
+    debtor_id = db.Column(db.BigInteger, db.ForeignKey('debtor_policy.debtor_id'), primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     discount_demurrage_rate = db.Column(db.REAL, nullable=False, default=math.inf)
     balance = db.Column(
@@ -89,7 +73,7 @@ class Account(Model):
         comment='This is the amount of negative interest accumulated on the account. '
                 'Demurrage accumulates at an annual rate (in percents) that is equal to '
                 'the minimum of the following values: `account.discount_demurrage_rate`, '
-                '`debtor.demurrage_rate`, `debtor.demurrage_rate_ceiling`.',
+                '`debtor_policy.demurrage_rate`, `debtor_policy.demurrage_rate_ceiling`.',
     )
     avl_balance = db.Column(
         db.BigInteger,
@@ -109,8 +93,10 @@ class Account(Model):
         db.CheckConstraint(discount_demurrage_rate >= 0),
     )
 
+    debtor_policy = db.relationship('DebtorPolicy')
 
-class PreparedTransfer(Model):
+
+class PreparedTransfer(db.Model):
     TYPE_CIRCULAR = 1
     TYPE_DIRECT = 2
     TYPE_THIRD_PARTY = 3
@@ -167,6 +153,13 @@ class RejectedDirectTransferSignal(Signal):
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
     sender_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
     details = db.Column(pg.JSONB, nullable=False, default={})
+
+
+class DebtorAccountsPolicyUpdateSignal(Signal):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    last_change_seqnum = db.Column(db.BigInteger, primary_key=True)
+    demurrage_rate = db.Column(db.REAL, nullable=False)
+    demurrage_rate_ceiling = db.Column(db.REAL, nullable=False)
 
 
 class AccountUpdateSignal(Signal):
