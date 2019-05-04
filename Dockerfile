@@ -20,8 +20,8 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry config settings.virtualenvs.create false \
   && poetry install --no-dev --no-interaction
 
-# This is the second and final image. It copies the created virtual
-# environment over, starting from a clean alpine image.
+# This is the second and final image. Starting from a clean alpine
+# image, it copies over the previously created virtual environment.
 FROM python:3.7.3-alpine3.9 AS runtime-image
 WORKDIR /usr/src/app
 ARG FLASK_APP=swpt_accounts
