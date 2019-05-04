@@ -62,11 +62,11 @@ class Account(db.Model):
         default=0,
         comment='The total owed amount',
     )
-    demurrage = db.Column(
+    interest = db.Column(
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='This is the amount of negative interest accumulated on the account. '
+        comment='The amount of interest accumulated on the account. Can be negative. '
                 'Interest accumulates at an annual rate (in percents) that is equal to '
                 'the maximum of the following values: `account.concession_interest_rate`, '
                 '`debtor_policy.interest_rate`, `debtor_policy.interest_rate_floor`.',
@@ -75,17 +75,19 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='The total owed amount, minus demurrage, minus pending transfer locks',
+        comment='The `balance`, plus `interest`, minus pending transfer locks',
     )
-    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_change_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=BEGINNING_OF_TIME,
+        comment='This is updated on every change.',
+    )
     last_change_seqnum = db.Column(
         db.BigInteger,
         nullable=False,
         default=1,
         comment='This is incremented on every change. Zero indicates a deactivated account.',
-    )
-    __table_args__ = (
-        db.CheckConstraint(demurrage >= 0),
     )
 
     debtor_policy = db.relationship(
