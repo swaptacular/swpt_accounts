@@ -32,9 +32,7 @@ RUN apk add --no-cache \
     postgresql-libs \
     supervisor
 
-# Gunicorn's default number of workers.
 ENV WEB_CONCURRENCY=2
-
 ENV APP_ROOT_DIR=/usr/src/app
 ENV APP_LOGGING_CONFIG_FILE="$APP_ROOT_DIR/swpt_accounts/logging.conf"
 ENV FLASK_APP=$FLASK_APP
