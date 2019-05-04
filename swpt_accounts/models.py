@@ -150,7 +150,7 @@ class RejectedDirectTransferSignal(Signal):
     details = db.Column(pg.JSONB, nullable=False, default={})
 
 
-class DebtorAccountsPolicyUpdateSignal(Signal):
+class DebtorPolicyUpdateSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     last_change_seqnum = db.Column(db.BigInteger, primary_key=True)
     interest_rate = db.Column(db.REAL, nullable=False)
