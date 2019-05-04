@@ -17,12 +17,8 @@ class DebtorPolicy(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     interest_rate_floor = db.Column(db.REAL, nullable=False, default=0.0)
-    last_change_seqnum = db.Column(
-        db.BigInteger,
-        nullable=False,
-        default=1,
-        comment='This is incremented on every change. Zero indicates a deactivated debtor.',
-    )
+    last_change_seqnum = db.Column(db.BigInteger, nullable=False, default=1)
+    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
 
 
 class Signal(db.Model):
@@ -77,17 +73,24 @@ class Account(db.Model):
         default=0,
         comment='The `balance`, plus `interest`, minus pending transfer locks',
     )
-    last_change_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=BEGINNING_OF_TIME,
-        comment='This is updated on every change.',
-    )
     last_change_seqnum = db.Column(
         db.BigInteger,
         nullable=False,
         default=1,
-        comment='This is incremented on every change. Zero indicates a deactivated account.',
+        comment='Incremented on every change in `balance` or `concession_interest_rate`. '
+                'Zero indicates a stale account.',
+    )
+    last_change_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=BEGINNING_OF_TIME,
+        comment='Updated on every change in `balance` or `concession_interest_rate`',
+    )
+    last_activity_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=BEGINNING_OF_TIME,
+        comment='Updated on every account activity. This is useful to remove stale accounts.',
     )
 
     debtor_policy = db.relationship(
@@ -155,17 +158,19 @@ class RejectedDirectTransferSignal(Signal):
     details = db.Column(pg.JSONB, nullable=False, default={})
 
 
-class DebtorPolicyUpdateSignal(Signal):
+class DebtorPolicyChangeSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    last_change_seqnum = db.Column(db.BigInteger, primary_key=True)
+    change_seqnum = db.Column(db.BigInteger, primary_key=True)
+    change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
     interest_rate_floor = db.Column(db.REAL, nullable=False)
 
 
-class AccountUpdateSignal(Signal):
+class AccountChangeSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    last_change_seqnum = db.Column(db.BigInteger, primary_key=True)
+    change_seqnum = db.Column(db.BigInteger, primary_key=True)
+    change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     balance = db.Column(db.BigInteger, nullable=False)
     concession_interest_rate = db.Column(db.REAL, nullable=False)
 
