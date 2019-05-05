@@ -3,7 +3,6 @@ import math
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import and_
-from flask import current_app
 from .extensions import db, broker
 
 ROOT_CREDITOR_ID = -2**63
@@ -25,16 +24,18 @@ class Signal(db.Model):
 
     queue_name = None
 
+    @property
+    def event_name(self):
+        model = type(self)
+        return f'on_{model.__tablename__}'
+
     def send_signalbus_message(self):
         model = type(self)
         if model.queue_name is None:
             assert not hasattr(model, 'actor_name'), \
-                'SignalModel.queue_name is not set, but SignalModel.actor_model is set'
-            exchange_name = current_app.config.get('RABBITMQ_EVENT_EXCHANGE', '')
-            actor_prefix = f'on_{exchange_name}_' if exchange_name else 'on_'
-            actor_name = actor_prefix + model.__tablename__
+                'SignalModel.actor_name is set, but SignalModel.queue_name is not'
+            actor_name = self.event_name
         else:
-            exchange_name = ''
             actor_name = model.actor_name
         data = model.__marshmallow_schema__.dump(self)
         message = dramatiq.Message(
@@ -44,7 +45,7 @@ class Signal(db.Model):
             kwargs=data,
             options={},
         )
-        broker.publish_message(message, exchange=exchange_name)
+        broker.publish_message(message, exchange='')
 
 
 class Account(db.Model):
@@ -63,7 +64,7 @@ class Account(db.Model):
         default=0,
         comment='The amount of interest accumulated on the account. Can be negative. '
                 'Interest accumulates at an annual rate (in percents) that is equal to '
-                'the maximum of the following values: `account.concession_interest_rate`, '
+                'the maximum of the following values: `concession_interest_rate`, '
                 '`debtor_policy.interest_rate`, `debtor_policy.interest_rate_floor`.',
     )
     avl_balance = db.Column(
@@ -99,21 +100,15 @@ class Account(db.Model):
 
 
 class PreparedTransfer(db.Model):
-    TYPE_DIRECT = 1
-    TYPE_COORDINATED = 2
-
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     prepared_transfer_seqnum = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    coordinator_type = db.Column(
+        db.String(30),
+        nullable=False,
+        comment='Must be a valid python identifier.',
+    )
     sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    transfer_type = db.Column(
-        db.SmallInteger,
-        nullable=False,
-        comment=(
-            f'{TYPE_DIRECT} -- direct transfer, '
-            f'{TYPE_COORDINATED} -- coordinated transfer '
-        ),
-    )
     transfer_info = db.Column(pg.JSONB, nullable=False, default={})
     amount = db.Column(db.BigInteger, nullable=False)
     sender_locked_amount = db.Column(
@@ -142,32 +137,28 @@ class PreparedTransfer(db.Model):
     )
 
 
-class PreparedDirectTransferSignal(Signal):
-    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
-    sender_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
-    prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    amount = db.Column(db.BigInteger, nullable=False)
-
-
-class PreparedCoordinatedTransferSignal(Signal):
+class PreparedTransferSignal(Signal):
+    coordinator_type = db.Column(db.String(30), primary_key=True)
     coordinator_id = db.Column(db.BigInteger, primary_key=True)
     coordinator_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
     prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     amount = db.Column(db.BigInteger, nullable=False)
 
-
-class RejectedDirectTransferSignal(Signal):
-    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
-    sender_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
-    details = db.Column(pg.JSONB, nullable=False, default={})
+    @property
+    def event_name(self):
+        return f'on_prepared_{self.coordinator_type}_transfer_signal'
 
 
-class RejectedCoordinatedTransferSignal(Signal):
+class RejectedTransferSignal(Signal):
+    coordinator_type = db.Column(db.String(30), primary_key=True)
     coordinator_id = db.Column(db.BigInteger, primary_key=True)
     coordinator_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
     details = db.Column(pg.JSONB, nullable=False, default={})
+
+    @property
+    def event_name(self):
+        return f'on_rejected_{self.coordinator_type}_transfer_signal'
 
 
 class AccountChangeSignal(Signal):
@@ -184,9 +175,9 @@ class AccountChangeSignal(Signal):
 class CommittedTransferSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     prepared_transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
     sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    transfer_type = db.Column(db.SmallInteger, nullable=False)
     transfer_info = db.Column(pg.JSONB, nullable=False, default={})
     amount = db.Column(db.BigInteger, nullable=False)
     sender_locked_amount = db.Column(db.BigInteger, nullable=False)

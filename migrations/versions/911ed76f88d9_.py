@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c238c3179fb2
+Revision ID: 911ed76f88d9
 Revises: 
-Create Date: 2019-05-05 18:14:21.102090
+Create Date: 2019-05-05 21:08:45.863249
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'c238c3179fb2'
+revision = '911ed76f88d9'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -32,9 +32,9 @@ def upgrade():
     op.create_table('committed_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_type', sa.SmallInteger(), nullable=False),
     sa.Column('transfer_info', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False),
@@ -50,40 +50,28 @@ def upgrade():
     sa.Column('interest_rate_floor', sa.REAL(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id')
     )
-    op.create_table('prepared_coordinated_transfer_signal',
+    op.create_table('prepared_transfer_signal',
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_transfer_request_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
-    sa.PrimaryKeyConstraint('coordinator_id', 'coordinator_transfer_request_id')
+    sa.PrimaryKeyConstraint('coordinator_type', 'coordinator_id', 'coordinator_transfer_request_id')
     )
-    op.create_table('prepared_direct_transfer_signal',
-    sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('sender_transfer_request_id', sa.BigInteger(), nullable=False),
-    sa.Column('prepared_transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('amount', sa.BigInteger(), nullable=False),
-    sa.PrimaryKeyConstraint('sender_creditor_id', 'sender_transfer_request_id')
-    )
-    op.create_table('rejected_coordinated_transfer_signal',
+    op.create_table('rejected_transfer_signal',
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_transfer_request_id', sa.BigInteger(), nullable=False),
     sa.Column('details', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.PrimaryKeyConstraint('coordinator_id', 'coordinator_transfer_request_id')
-    )
-    op.create_table('rejected_direct_transfer_signal',
-    sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('sender_transfer_request_id', sa.BigInteger(), nullable=False),
-    sa.Column('details', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-    sa.PrimaryKeyConstraint('sender_creditor_id', 'sender_transfer_request_id')
+    sa.PrimaryKeyConstraint('coordinator_type', 'coordinator_id', 'coordinator_transfer_request_id')
     )
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('concession_interest_rate', sa.REAL(), nullable=False),
     sa.Column('balance', sa.BigInteger(), nullable=False, comment='The total owed amount'),
-    sa.Column('interest', sa.BigInteger(), nullable=False, comment='The amount of interest accumulated on the account. Can be negative. Interest accumulates at an annual rate (in percents) that is equal to the maximum of the following values: `account.concession_interest_rate`, `debtor_policy.interest_rate`, `debtor_policy.interest_rate_floor`.'),
+    sa.Column('interest', sa.BigInteger(), nullable=False, comment='The amount of interest accumulated on the account. Can be negative. Interest accumulates at an annual rate (in percents) that is equal to the maximum of the following values: `concession_interest_rate`, `debtor_policy.interest_rate`, `debtor_policy.interest_rate_floor`.'),
     sa.Column('avl_balance', sa.BigInteger(), nullable=False, comment='The `balance`, plus `interest`, minus pending transfer locks'),
     sa.Column('last_change_seqnum', sa.BigInteger(), nullable=False, comment='Incremented on every change in `balance`, `concession_interest_rate`, `debtor_policy.interest_rate`, or `debtor_policy.interest_rate_floor`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`.'),
@@ -94,9 +82,9 @@ def upgrade():
     op.create_table('prepared_transfer',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_transfer_seqnum', sa.BigInteger(), autoincrement=True, nullable=False),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Must be a valid python identifier.'),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_type', sa.SmallInteger(), nullable=False, comment='1 -- direct transfer, 2 -- coordinated transfer '),
     sa.Column('transfer_info', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False),
@@ -115,10 +103,8 @@ def downgrade():
     op.drop_index('idx_prepared_transfer_sender_creditor_id', table_name='prepared_transfer')
     op.drop_table('prepared_transfer')
     op.drop_table('account')
-    op.drop_table('rejected_direct_transfer_signal')
-    op.drop_table('rejected_coordinated_transfer_signal')
-    op.drop_table('prepared_direct_transfer_signal')
-    op.drop_table('prepared_coordinated_transfer_signal')
+    op.drop_table('rejected_transfer_signal')
+    op.drop_table('prepared_transfer_signal')
     op.drop_table('debtor_policy')
     op.drop_table('committed_transfer_signal')
     op.drop_table('account_change_signal')
