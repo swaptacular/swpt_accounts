@@ -24,7 +24,7 @@ def prepare_direct_transfer(
 
     """
 
-    assert ROOT_CREDITOR_ID < 0
+    assert ROOT_CREDITOR_ID <= 0
 
 
 @broker.actor(queue_name='swpt_accounts')
