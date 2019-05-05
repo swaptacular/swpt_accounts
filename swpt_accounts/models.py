@@ -2,6 +2,7 @@ import datetime
 import math
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
+from sqlalchemy.sql.expression import and_
 from flask import current_app
 from .extensions import db
 from . import actors
@@ -194,5 +195,5 @@ class CommittedTransferSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
 
     __table_args__ = (
-        db.CheckConstraint(committed_amount > 0),
+        db.CheckConstraint(and_(committed_amount > 0, committed_amount <= amount)),
     )
