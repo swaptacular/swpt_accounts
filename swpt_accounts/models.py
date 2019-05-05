@@ -150,9 +150,22 @@ class PreparedDirectTransferSignal(Signal):
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
 
+class PreparedCircularTransferSignal(Signal):
+    coordinator_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
+    prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+
+
 class RejectedDirectTransferSignal(Signal):
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
     sender_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
+    details = db.Column(pg.JSONB, nullable=False, default={})
+
+
+class RejectedCircularTransferSignal(Signal):
+    coordinator_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
     details = db.Column(pg.JSONB, nullable=False, default={})
 
 
