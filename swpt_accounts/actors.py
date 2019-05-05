@@ -17,7 +17,7 @@ def prepare_direct_transfer(
 def close_prepared_transfer(
         debtor_id,
         prepared_transfer_seqnum,
-        amount,
+        committed_amount,
 ):
-    # To rollback the transfer, `amount` should be `0`.
+    # To rollback the transfer, `committed_amount` should be `0`.
     pass
