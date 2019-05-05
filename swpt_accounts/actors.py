@@ -1,5 +1,5 @@
 from .extensions import broker
-from . import models
+from .models import ROOT_CREDITOR_ID
 
 
 @broker.actor(queue_name='swpt_accounts')
@@ -17,14 +17,14 @@ def prepare_direct_transfer(
     """Try to greedily secure an amount between `min_amount` and
     `max_amount` for a direct transfer.
 
-    When `recipient_creditor_id` equals `models.ROOT_CREDITOR_ID`,
-    this is a withdrawal. For withdrawals the interest accumulated on
-    the account (positive or negative) should not be added to the
+    When `recipient_creditor_id` equals `ROOT_CREDITOR_ID`, this is a
+    withdrawal. For withdrawals the interest accumulated on the
+    account (positive or negative) should not be added to the
     available balance.
 
     """
 
-    assert models.ROOT_CREDITOR_ID < 0
+    assert ROOT_CREDITOR_ID < 0
 
 
 @broker.actor(queue_name='swpt_accounts')

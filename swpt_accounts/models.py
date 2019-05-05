@@ -4,8 +4,7 @@ import dramatiq
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import and_
 from flask import current_app
-from .extensions import db
-from . import actors
+from .extensions import db, broker
 
 ROOT_CREDITOR_ID = -2**63
 BEGINNING_OF_TIME = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=datetime.timezone.utc)
@@ -45,7 +44,7 @@ class Signal(db.Model):
             kwargs=data,
             options={},
         )
-        actors.broker.publish_message(message, exchange=exchange_name)
+        broker.publish_message(message, exchange=exchange_name)
 
 
 class Account(db.Model):
