@@ -28,13 +28,13 @@ def prepare_transfer(
 
 
 @broker.actor(queue_name='swpt_accounts')
-def close_prepared_transfer(
+def execute_prepared_transfer(
         *,
         debtor_id,
         prepared_transfer_seqnum,
         committed_amount,
 ):
-    """Closes a prepared transfer.
+    """Execute a prepared transfer.
 
     To dismiss the transfer, `committed_amount` should be `0`.
 
