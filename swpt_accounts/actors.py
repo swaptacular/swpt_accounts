@@ -14,16 +14,10 @@ def prepare_direct_transfer(
 
 
 @broker.actor(queue_name='swpt_accounts')
-def commit_prepared_transfer(
+def close_prepared_transfer(
         debtor_id,
         prepared_transfer_seqnum,
+        amount,
 ):
-    pass
-
-
-@broker.actor(queue_name='swpt_accounts')
-def rollback_prepared_transfer(
-        debtor_id,
-        prepared_transfer_seqnum,
-):
+    # To rollback the transfer, `amount` should be `0`.
     pass
