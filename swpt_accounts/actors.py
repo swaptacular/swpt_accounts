@@ -3,14 +3,14 @@ from .extensions import broker
 
 @broker.actor(queue_name='swpt_accounts')
 def prepare_direct_transfer(
-        sender_creditor_id,
         sender_transfer_request_id,
         debtor_id,
+        sender_creditor_id,
         recipient_creditor_id,
         amount,
         transfer_info,
 ):
-    """Try to secure the requested `amount`."""
+    """Try to secure the requested `amount` for a direct transfer."""
 
 
 @broker.actor(queue_name='swpt_accounts')
@@ -23,7 +23,7 @@ def prepare_circular_transfer(
         amount,
         transfer_info,
 ):
-    """Secure the requested `amount` or less.
+    """Secure the requested `amount` or less for a circular transfer.
 
     The secured (prepared) amount can be smaller than the requested
     amount if the available balance is insufficient. If the available
