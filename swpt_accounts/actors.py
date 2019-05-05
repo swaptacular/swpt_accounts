@@ -10,7 +10,7 @@ def prepare_direct_transfer(
         amount,
         transfer_info,
 ):
-    pass
+    """Try to secure the requested `amount`."""
 
 
 @broker.actor(queue_name='swpt_accounts')
@@ -23,7 +23,12 @@ def prepare_circular_transfer(
         amount,
         transfer_info,
 ):
-    pass
+    """Secure the requested `amount` or less.
+
+    The secured (prepared) amount can be smaller than the requested
+    amount if the available balance is insufficient.
+
+    """
 
 
 @broker.actor(queue_name='swpt_accounts')
@@ -32,5 +37,8 @@ def close_prepared_transfer(
         prepared_transfer_seqnum,
         committed_amount,
 ):
-    # To rollback the transfer, `committed_amount` should be `0`.
-    pass
+    """Closes a prepared transfer.
+
+    To dismiss the transfer, `committed_amount` should be `0`.
+
+    """
