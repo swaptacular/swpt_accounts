@@ -7,6 +7,7 @@ from flask import current_app
 from .extensions import db
 from . import actors
 
+ROOT_CREDITOR_ID = -2**63
 BEGINNING_OF_TIME = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=datetime.timezone.utc)
 
 
@@ -99,9 +100,8 @@ class Account(db.Model):
 
 
 class PreparedTransfer(db.Model):
-    TYPE_CIRCULAR = 1
-    TYPE_DIRECT = 2
-    TYPE_THIRD_PARTY = 3
+    TYPE_DIRECT = 1
+    TYPE_COORDINATED = 2
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     prepared_transfer_seqnum = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
@@ -111,9 +111,8 @@ class PreparedTransfer(db.Model):
         db.SmallInteger,
         nullable=False,
         comment=(
-            f'{TYPE_CIRCULAR} -- circular transfer, '
             f'{TYPE_DIRECT} -- direct transfer, '
-            f'{TYPE_THIRD_PARTY} -- third party transfer '
+            f'{TYPE_COORDINATED} -- coordinated transfer '
         ),
     )
     transfer_info = db.Column(pg.JSONB, nullable=False, default={})
@@ -149,6 +148,15 @@ class PreparedDirectTransferSignal(Signal):
     sender_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
     prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    amount = db.Column(db.BigInteger, nullable=False)
+
+
+class PreparedCoordinatedTransferSignal(Signal):
+    coordinator_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
+    prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    amount = db.Column(db.BigInteger, nullable=False)
 
 
 class RejectedDirectTransferSignal(Signal):
@@ -157,16 +165,10 @@ class RejectedDirectTransferSignal(Signal):
     details = db.Column(pg.JSONB, nullable=False, default={})
 
 
-class PreparedCircularTransferSignal(Signal):
+class RejectedCoordinatedTransferSignal(Signal):
     coordinator_id = db.Column(db.BigInteger, primary_key=True)
     coordinator_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
-    prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    prepared_amount = db.Column(db.BigInteger, nullable=False)
-
-    __table_args__ = (
-        db.CheckConstraint(prepared_amount >= 0),
-    )
+    details = db.Column(pg.JSONB, nullable=False, default={})
 
 
 class AccountChangeSignal(Signal):

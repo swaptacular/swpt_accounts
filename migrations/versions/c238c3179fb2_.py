@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3282f7e100aa
+Revision ID: c238c3179fb2
 Revises: 
-Create Date: 2019-05-05 16:09:09.081129
+Create Date: 2019-05-05 18:14:21.102090
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '3282f7e100aa'
+revision = 'c238c3179fb2'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -50,11 +50,12 @@ def upgrade():
     sa.Column('interest_rate_floor', sa.REAL(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id')
     )
-    op.create_table('prepared_circular_transfer_signal',
+    op.create_table('prepared_coordinated_transfer_signal',
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_transfer_request_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.PrimaryKeyConstraint('coordinator_id', 'coordinator_transfer_request_id')
     )
     op.create_table('prepared_direct_transfer_signal',
@@ -62,9 +63,10 @@ def upgrade():
     sa.Column('sender_transfer_request_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.PrimaryKeyConstraint('sender_creditor_id', 'sender_transfer_request_id')
     )
-    op.create_table('rejected_circular_transfer_signal',
+    op.create_table('rejected_coordinated_transfer_signal',
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_transfer_request_id', sa.BigInteger(), nullable=False),
     sa.Column('details', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
@@ -94,7 +96,7 @@ def upgrade():
     sa.Column('prepared_transfer_seqnum', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_type', sa.SmallInteger(), nullable=False, comment='1 -- circular transfer, 2 -- direct transfer, 3 -- third party transfer '),
+    sa.Column('transfer_type', sa.SmallInteger(), nullable=False, comment='1 -- direct transfer, 2 -- coordinated transfer '),
     sa.Column('transfer_info', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False),
@@ -114,9 +116,9 @@ def downgrade():
     op.drop_table('prepared_transfer')
     op.drop_table('account')
     op.drop_table('rejected_direct_transfer_signal')
-    op.drop_table('rejected_circular_transfer_signal')
+    op.drop_table('rejected_coordinated_transfer_signal')
     op.drop_table('prepared_direct_transfer_signal')
-    op.drop_table('prepared_circular_transfer_signal')
+    op.drop_table('prepared_coordinated_transfer_signal')
     op.drop_table('debtor_policy')
     op.drop_table('committed_transfer_signal')
     op.drop_table('account_change_signal')
