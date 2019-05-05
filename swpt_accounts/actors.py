@@ -26,7 +26,8 @@ def prepare_circular_transfer(
     """Secure the requested `amount` or less.
 
     The secured (prepared) amount can be smaller than the requested
-    amount if the available balance is insufficient.
+    amount if the available balance is insufficient. If the available
+    balance is zero, the prepared amount will also be zero.
 
     """
 
