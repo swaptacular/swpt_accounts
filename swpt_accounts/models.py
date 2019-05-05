@@ -178,8 +178,8 @@ class CommittedTransferSignal(Signal):
     sender_locked_amount = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    commited_amount = db.Column(db.BigInteger, nullable=False)
+    committed_amount = db.Column(db.BigInteger, nullable=False)
 
     __table_args__ = (
-        db.CheckConstraint(commited_amount > 0),
+        db.CheckConstraint(committed_amount > 0),
     )
