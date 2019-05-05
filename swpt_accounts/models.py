@@ -105,7 +105,7 @@ class PreparedTransfer(db.Model):
     coordinator_type = db.Column(
         db.String(30),
         nullable=False,
-        comment='Must be a valid python identifier.',
+        comment='Must be a valid python identifier. Example: direct, circular.',
     )
     sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
