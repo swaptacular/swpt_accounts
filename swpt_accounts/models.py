@@ -17,8 +17,6 @@ class DebtorPolicy(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     interest_rate_floor = db.Column(db.REAL, nullable=False, default=0.0)
-    last_change_seqnum = db.Column(db.BigInteger, nullable=False, default=1)
-    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
 
 
 class Signal(db.Model):
@@ -77,13 +75,14 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=1,
-        comment='Incremented on every change in `balance` or `concession_interest_rate`.',
+        comment='Incremented on every change in `balance`, `concession_interest_rate`, '
+                '`debtor_policy.interest_rate`, or `debtor_policy.interest_rate_floor`.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=BEGINNING_OF_TIME,
-        comment='Updated on every change in `balance` or `concession_interest_rate`',
+        comment='Updated on every increment of `last_change_seqnum`.',
     )
     last_activity_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -157,14 +156,6 @@ class RejectedDirectTransferSignal(Signal):
     details = db.Column(pg.JSONB, nullable=False, default={})
 
 
-class DebtorPolicyChangeSignal(Signal):
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    change_seqnum = db.Column(db.BigInteger, primary_key=True)
-    change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    interest_rate = db.Column(db.REAL, nullable=False)
-    interest_rate_floor = db.Column(db.REAL, nullable=False)
-
-
 class AccountChangeSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -172,6 +163,8 @@ class AccountChangeSignal(Signal):
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     balance = db.Column(db.BigInteger, nullable=False)
     concession_interest_rate = db.Column(db.REAL, nullable=False)
+    interest_rate = db.Column(db.REAL, nullable=False)
+    interest_rate_floor = db.Column(db.REAL, nullable=False)
 
 
 class CommittedTransferSignal(Signal):
