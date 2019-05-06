@@ -183,8 +183,8 @@ class AccountChangeSignal(Signal):
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     balance = db.Column(db.BigInteger, nullable=False)
     concession_interest_rate = db.Column(db.REAL, nullable=False)
-    standard_interest_rate = db.Column(db.REAL, nullable=False)
     interest = db.Column(db.BigInteger, nullable=False)
+    standard_interest_rate = db.Column(db.REAL, nullable=False)
 
 
 class CommittedTransferSignal(Signal):
