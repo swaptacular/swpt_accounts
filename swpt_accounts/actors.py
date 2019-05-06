@@ -14,7 +14,7 @@ def prepare_transfer(
         sender_creditor_id,
         recipient_creditor_id,
         check_avl_balance=True,
-        lock_ratio=1.0,
+        sender_lock_amount=True,
 ):
     """Try to greedily secure an amount between `min_amount` and `max_amount`.
 
