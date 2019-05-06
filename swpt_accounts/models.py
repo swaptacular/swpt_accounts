@@ -102,10 +102,7 @@ class Account(db.Model):
         comment='Updated on every account activity. Can be used to remove stale accounts.',
     )
 
-    debtor_policy = db.relationship(
-        'DebtorPolicy',
-        backref=db.backref('account_list'),
-    )
+    debtor_policy = db.relationship('DebtorPolicy')
 
 
 class PreparedTransfer(db.Model):
