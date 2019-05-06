@@ -13,12 +13,6 @@ def get_now_utc():
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
 
-class DebtorPolicy(db.Model):
-    debtor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
-    interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
-    interest_rate_floor = db.Column(db.REAL, nullable=False, default=0.0)
-
-
 class Signal(db.Model):
     __abstract__ = True
 
@@ -48,15 +42,27 @@ class Signal(db.Model):
         broker.publish_message(message, exchange='')
 
 
+class DebtorPolicy(db.Model):
+    debtor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
+    interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
+    interest_rate_floor = db.Column(db.REAL, nullable=False, default=0.0)
+
+
 class Account(db.Model):
     debtor_id = db.Column(db.BigInteger, db.ForeignKey('debtor_policy.debtor_id'), primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    concession_interest_rate = db.Column(db.REAL, nullable=False, default=math.inf)
     balance = db.Column(
         db.BigInteger,
         nullable=False,
         default=0,
         comment='The total owed amount',
+    )
+    concession_interest_rate = db.Column(
+        db.REAL,
+        nullable=False,
+        default=math.inf,
+        comment='An interest rate exclusive for this account, presumably more '
+                'advantageous for the account owner than the standard one.',
     )
     interest = db.Column(
         db.BigInteger,
