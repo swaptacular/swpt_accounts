@@ -142,19 +142,11 @@ class PreparedTransfer(db.Model):
             ['debtor_id', 'sender_creditor_id'],
             ['account.debtor_id', 'account.creditor_id'],
         ),
-        db.Index(
-            'idx_prepared_transfer_sender_creditor_id',
-            debtor_id,
-            sender_creditor_id,
-        ),
         db.CheckConstraint(amount >= 0),
         db.CheckConstraint(sender_locked_amount >= 0),
     )
 
-    sender_account = db.relationship(
-        'Account',
-        backref=db.backref('prepared_transfer_list'),
-    )
+    sender_account = db.relationship('Account')
 
 
 class PreparedTransferSignal(Signal):
