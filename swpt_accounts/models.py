@@ -45,7 +45,12 @@ class Signal(db.Model):
 class DebtorPolicy(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
-    interest_rate_floor = db.Column(db.REAL, nullable=False, default=0.0)
+    last_interest_rate_change_seqnum = db.Column(db.BigInteger, nullable=False, default=1)
+    last_interest_rate_change_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=BEGINNING_OF_TIME,
+    )
 
 
 class Account(db.Model):
@@ -70,8 +75,7 @@ class Account(db.Model):
         default=0,
         comment='The amount of interest accumulated on the account. Can be negative. '
                 'Interest accumulates at an annual rate (in percents) that is equal to '
-                'the maximum of the following values: `concession_interest_rate`, '
-                '`debtor_policy.interest_rate`, `debtor_policy.interest_rate_floor`.',
+                'the maximum of `concession_interest_rate` and `debtor_policy.interest_rate`.',
     )
     avl_balance = db.Column(
         db.BigInteger,
@@ -84,7 +88,7 @@ class Account(db.Model):
         nullable=False,
         default=1,
         comment='Incremented on every change in `balance`, `concession_interest_rate`, '
-                '`debtor_policy.interest_rate`, or `debtor_policy.interest_rate_floor`.',
+                'or `debtor_policy.interest_rate`.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -180,8 +184,7 @@ class AccountChangeSignal(Signal):
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     balance = db.Column(db.BigInteger, nullable=False)
     concession_interest_rate = db.Column(db.REAL, nullable=False)
-    interest_rate = db.Column(db.REAL, nullable=False)
-    interest_rate_floor = db.Column(db.REAL, nullable=False)
+    standard_interest_rate = db.Column(db.REAL, nullable=False)
 
 
 class CommittedTransferSignal(Signal):

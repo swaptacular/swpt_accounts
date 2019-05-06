@@ -49,3 +49,12 @@ def set_account_concession_interest_rate(
         concession_interest_rate,
 ):
     """Set an interest rate exclusive for the given account."""
+
+
+@broker.actor(queue_name='swpt_accounts')
+def on_debtor_interest_rate_change_signal(
+        *,
+        debtor_id,
+        interest_rate,
+):
+    """Update `DebtorPolicy.interest_rate`."""
