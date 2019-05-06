@@ -46,7 +46,6 @@ class DebtorPolicy(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     last_interest_rate_change_seqnum = db.Column(db.BigInteger, nullable=False, default=0)
-    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True))
 
 
 class Account(db.Model):
