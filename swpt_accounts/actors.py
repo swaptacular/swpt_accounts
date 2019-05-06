@@ -19,7 +19,10 @@ def prepare_transfer(
     When `coordinator_type` is 'direct', and `recipient_creditor_id`
     is `ROOT_CREDITOR_ID`, this is a withdrawal. For withdrawals the
     interest accumulated on the account (positive or negative) should
-    not be added to the available balance.
+    not be added to the available balance. Otherwise, when calculating
+    the interest, we should not forget to include (in addition to the
+    value of the `interest` field) the interest accumulated for the
+    time passed between `last_change_ts` and the current moment.
 
     """
 

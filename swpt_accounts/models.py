@@ -63,21 +63,24 @@ class Account(db.Model):
         nullable=False,
         default=math.inf,
         comment='An interest rate exclusive for this account, presumably more '
-                'advantageous for the account owner than the standard one.',
+                'advantageous for the account owner than the standard one. '
+                'Interest accumulates at an annual rate (in percents) that is '
+                'equal to the maximum of `concession_interest_rate` and '
+                '`debtor_policy.interest_rate`.',
     )
     interest = db.Column(
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='The amount of interest accumulated on the account. Can be negative. '
-                'Interest accumulates at an annual rate (in percents) that is equal to '
-                'the maximum of `concession_interest_rate` and `debtor_policy.interest_rate`.',
+        comment='The amount of interest accumulated on the account before `last_change_ts`, '
+                'but not added to the `balance` yet. Can be a negative number. `interest`'
+                'gets zeroed and added to the ballance one in while (like once per year).',
     )
     avl_balance = db.Column(
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='The `balance`, plus `interest`, minus pending transfer locks',
+        comment='The `balance` minus pending transfer locks',
     )
     last_change_seqnum = db.Column(
         db.BigInteger,
