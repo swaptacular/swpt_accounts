@@ -8,6 +8,7 @@ def prepare_transfer(
         coordinator_type,
         coordinator_id,
         coordinator_transfer_request_id,
+        check_avl_balance,
         min_amount,
         max_amount,
         debtor_id,
@@ -15,6 +16,9 @@ def prepare_transfer(
         recipient_creditor_id,
 ):
     """Try to greedily secure an amount between `min_amount` and `max_amount`.
+
+    When `check_avl_balance` is `False`, no check is done to determine
+    whether the amount is available or not.
 
     When `coordinator_type` is 'direct', and `recipient_creditor_id`
     is `ROOT_CREDITOR_ID`, this is a withdrawal. For withdrawals the
