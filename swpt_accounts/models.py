@@ -162,6 +162,7 @@ class PreparedTransferSignal(Signal):
     prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     amount = db.Column(db.BigInteger, nullable=False)
+    sender_locked_amount = db.Column(db.BigInteger, nullable=False)
 
     @property
     def event_name(self):
@@ -198,13 +199,7 @@ class CommittedTransferSignal(Signal):
     coordinator_type = db.Column(db.String(30), nullable=False)
     sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    amount = db.Column(db.BigInteger, nullable=False)
-    sender_locked_amount = db.Column(db.BigInteger, nullable=False)
 
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_info = db.Column(pg.JSON, nullable=False, default={})
-
-    __table_args__ = (
-        db.CheckConstraint(and_(committed_amount > 0, committed_amount <= amount)),
-    )
