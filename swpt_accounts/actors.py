@@ -39,3 +39,13 @@ def execute_prepared_transfer(
     To dismiss the transfer, `committed_amount` should be `0`.
 
     """
+
+
+@broker.actor(queue_name='swpt_accounts')
+def set_account_concession_interest_rate(
+        *,
+        debtor_id,
+        creditor_id,
+        concession_interest_rate,
+):
+    """Set an interest rate exclusive for the given account."""
