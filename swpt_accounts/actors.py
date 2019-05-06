@@ -7,7 +7,7 @@ def prepare_transfer(
         *,
         coordinator_type,
         coordinator_id,
-        coordinator_transfer_request_id,
+        coordinator_request_id,
         check_avl_balance,
         min_amount,
         max_amount,

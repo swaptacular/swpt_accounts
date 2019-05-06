@@ -155,7 +155,7 @@ class PreparedTransfer(db.Model):
 class PreparedTransferSignal(Signal):
     coordinator_type = db.Column(db.String(30), primary_key=True)
     coordinator_id = db.Column(db.BigInteger, primary_key=True)
-    coordinator_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_request_id = db.Column(db.BigInteger, primary_key=True)
     prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     amount = db.Column(db.BigInteger, nullable=False)
@@ -168,7 +168,7 @@ class PreparedTransferSignal(Signal):
 class RejectedTransferSignal(Signal):
     coordinator_type = db.Column(db.String(30), primary_key=True)
     coordinator_id = db.Column(db.BigInteger, primary_key=True)
-    coordinator_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_request_id = db.Column(db.BigInteger, primary_key=True)
     details = db.Column(pg.JSON, nullable=False, default={})
 
     @property

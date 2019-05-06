@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7f404147b60f
+Revision ID: 02002f85eb64
 Revises: 
-Create Date: 2019-05-06 16:46:43.479860
+Create Date: 2019-05-06 19:06:19.852374
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '7f404147b60f'
+revision = '02002f85eb64'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,6 +26,7 @@ def upgrade():
     sa.Column('balance', sa.BigInteger(), nullable=False),
     sa.Column('concession_interest_rate', sa.REAL(), nullable=False),
     sa.Column('standard_interest_rate', sa.REAL(), nullable=False),
+    sa.Column('interest', sa.BigInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_seqnum')
     )
     op.create_table('committed_transfer_signal',
@@ -47,32 +48,31 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), autoincrement=False, nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.Column('last_interest_rate_change_seqnum', sa.BigInteger(), nullable=False),
-    sa.Column('last_interest_rate_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('debtor_id')
     )
     op.create_table('prepared_transfer_signal',
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
-    sa.Column('coordinator_transfer_request_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
-    sa.PrimaryKeyConstraint('coordinator_type', 'coordinator_id', 'coordinator_transfer_request_id')
+    sa.PrimaryKeyConstraint('coordinator_type', 'coordinator_id', 'coordinator_request_id')
     )
     op.create_table('rejected_transfer_signal',
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
-    sa.Column('coordinator_transfer_request_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('details', postgresql.JSON(astext_type=sa.Text()), nullable=False),
-    sa.PrimaryKeyConstraint('coordinator_type', 'coordinator_id', 'coordinator_transfer_request_id')
+    sa.PrimaryKeyConstraint('coordinator_type', 'coordinator_id', 'coordinator_request_id')
     )
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('balance', sa.BigInteger(), nullable=False, comment='The total owed amount'),
-    sa.Column('concession_interest_rate', sa.REAL(), nullable=False, comment='An interest rate exclusive for this account, presumably more advantageous for the account owner than the standard one.'),
-    sa.Column('interest', sa.BigInteger(), nullable=False, comment='The amount of interest accumulated on the account. Can be negative. Interest accumulates at an annual rate (in percents) that is equal to the maximum of `concession_interest_rate` and `debtor_policy.interest_rate`.'),
-    sa.Column('avl_balance', sa.BigInteger(), nullable=False, comment='The `balance`, plus `interest`, minus pending transfer locks'),
+    sa.Column('concession_interest_rate', sa.REAL(), nullable=False, comment='An interest rate exclusive for this account, presumably more advantageous for the account owner than the standard one. Interest accumulates at an annual rate (in percents) that is equal to the maximum of `concession_interest_rate` and `debtor_policy.interest_rate`.'),
+    sa.Column('interest', sa.BigInteger(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `balance` yet. Can be a negative number. `interest`gets zeroed and added to the ballance one in while (like once per year).'),
+    sa.Column('avl_balance', sa.BigInteger(), nullable=False, comment='The `balance` minus pending transfer locks'),
     sa.Column('last_change_seqnum', sa.BigInteger(), nullable=False, comment='Incremented on every change in `balance`, `concession_interest_rate`, or `debtor_policy.interest_rate`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`.'),
     sa.Column('last_activity_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every account activity. Can be used to remove stale accounts.'),
