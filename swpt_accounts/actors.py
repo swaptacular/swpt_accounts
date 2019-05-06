@@ -59,5 +59,7 @@ def on_debtor_interest_rate_change_signal(
         *,
         debtor_id,
         interest_rate,
+        change_seqnum,
+        change_ts,
 ):
     """Update `DebtorPolicy.interest_rate`."""
