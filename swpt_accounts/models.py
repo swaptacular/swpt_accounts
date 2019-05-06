@@ -156,6 +156,9 @@ class PreparedTransferSignal(Signal):
     coordinator_type = db.Column(db.String(30), primary_key=True)
     coordinator_id = db.Column(db.BigInteger, primary_key=True)
     coordinator_request_id = db.Column(db.BigInteger, primary_key=True)
+
+    # These fields are taken from `PreparedTransfer`.
+    debtor_id = db.Column(db.BigInteger, nullable=False)
     prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     amount = db.Column(db.BigInteger, nullable=False)
