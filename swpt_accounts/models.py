@@ -135,7 +135,7 @@ class PreparedTransfer(db.Model):
         db.BigInteger,
         nullable=False,
         default=lambda context: context.get_current_parameters()['amount'],
-        comment='This amount that has been subtracted from the available account balance.',
+        comment='This amount has been subtracted from the available account balance.',
     )
     __table_args__ = (
         db.ForeignKeyConstraint(
