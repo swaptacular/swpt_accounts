@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 911ed76f88d9
+Revision ID: cd93dad7733d
 Revises: 
-Create Date: 2019-05-05 21:08:45.863249
+Create Date: 2019-05-06 14:39:19.883197
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '911ed76f88d9'
+revision = 'cd93dad7733d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -35,12 +35,12 @@ def upgrade():
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_info', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.CheckConstraint('committed_amount > 0 AND committed_amount <= amount'),
     sa.PrimaryKeyConstraint('debtor_id', 'prepared_transfer_seqnum')
     )
@@ -63,7 +63,7 @@ def upgrade():
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_transfer_request_id', sa.BigInteger(), nullable=False),
-    sa.Column('details', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+    sa.Column('details', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.PrimaryKeyConstraint('coordinator_type', 'coordinator_id', 'coordinator_transfer_request_id')
     )
     op.create_table('account',
@@ -82,10 +82,9 @@ def upgrade():
     op.create_table('prepared_transfer',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_transfer_seqnum', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Must be a valid python identifier.'),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Must be a valid python identifier. Example: direct, circular.'),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_info', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),

@@ -109,7 +109,6 @@ class PreparedTransfer(db.Model):
     )
     sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    transfer_info = db.Column(pg.JSONB, nullable=False, default={})
     amount = db.Column(db.BigInteger, nullable=False)
     sender_locked_amount = db.Column(
         db.BigInteger,
@@ -154,7 +153,7 @@ class RejectedTransferSignal(Signal):
     coordinator_type = db.Column(db.String(30), primary_key=True)
     coordinator_id = db.Column(db.BigInteger, primary_key=True)
     coordinator_transfer_request_id = db.Column(db.BigInteger, primary_key=True)
-    details = db.Column(pg.JSONB, nullable=False, default={})
+    details = db.Column(pg.JSON, nullable=False, default={})
 
     @property
     def event_name(self):
@@ -178,12 +177,12 @@ class CommittedTransferSignal(Signal):
     coordinator_type = db.Column(db.String(30), nullable=False)
     sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    transfer_info = db.Column(pg.JSONB, nullable=False, default={})
     amount = db.Column(db.BigInteger, nullable=False)
     sender_locked_amount = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
+    transfer_info = db.Column(pg.JSON, nullable=False, default={})
 
     __table_args__ = (
         db.CheckConstraint(and_(committed_amount > 0, committed_amount <= amount)),

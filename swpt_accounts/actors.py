@@ -13,7 +13,6 @@ def prepare_transfer(
         debtor_id,
         sender_creditor_id,
         recipient_creditor_id,
-        transfer_info,
 ):
     """Try to greedily secure an amount between `min_amount` and `max_amount`.
 
@@ -33,6 +32,7 @@ def execute_prepared_transfer(
         debtor_id,
         prepared_transfer_seqnum,
         committed_amount,
+        transfer_info,
 ):
     """Execute a prepared transfer.
 
