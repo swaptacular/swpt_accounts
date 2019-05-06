@@ -108,20 +108,35 @@ class Account(db.Model):
 class PreparedTransfer(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     prepared_transfer_seqnum = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     coordinator_type = db.Column(
         db.String(30),
         nullable=False,
-        comment='Must be a valid python identifier. Example: direct, circular.',
+        comment='Indicates which subsystem has initiated the transfer and is responsible for '
+                'finalizing it. The value must be a valid python identifier, all lowercase, '
+                'no double underscores. Example: direct, circular.',
     )
-    sender_creditor_id = db.Column(db.BigInteger, nullable=False)
-    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    amount = db.Column(db.BigInteger, nullable=False)
+    sender_creditor_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The payer',
+    )
+    recipient_creditor_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The payee',
+    )
+    amount = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The actual transferred (committed) amount may not exceed this number.',
+    )
     sender_locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
         default=lambda context: context.get_current_parameters()['amount'],
+        comment='This amount that has been subtracted from the available account balance.',
     )
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['debtor_id', 'sender_creditor_id'],
@@ -180,12 +195,12 @@ class AccountChangeSignal(Signal):
 class CommittedTransferSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     prepared_transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     coordinator_type = db.Column(db.String(30), nullable=False)
     sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     amount = db.Column(db.BigInteger, nullable=False)
     sender_locked_amount = db.Column(db.BigInteger, nullable=False)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_info = db.Column(pg.JSON, nullable=False, default={})
