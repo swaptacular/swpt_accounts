@@ -2,11 +2,10 @@ import datetime
 import math
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import and_
 from .extensions import db, broker
 
 MIN_INT64 = -1 << 63
-ROOT_CREDITOR_ID = MIN_INT64
+ISSUER_CREDITOR_ID = MIN_INT64
 BEGINNING_OF_TIME = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=datetime.timezone.utc)
 
 

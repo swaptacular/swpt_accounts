@@ -1,5 +1,5 @@
 from .extensions import broker
-from .models import ROOT_CREDITOR_ID
+from .models import ISSUER_CREDITOR_ID
 
 
 @broker.actor(queue_name='swpt_accounts')
@@ -22,7 +22,7 @@ def prepare_transfer(
     whether the amount is available or not.
 
     When `coordinator_type` is 'direct', and `recipient_creditor_id`
-    is `ROOT_CREDITOR_ID`, this is a withdrawal. For withdrawals the
+    is `ISSUER_CREDITOR_ID`, this is a withdrawal. For withdrawals the
     interest accumulated on the account (positive or negative) should
     not be added to the available balance. Otherwise, when calculating
     the interest, we should not forget to include (in addition to the
@@ -31,7 +31,7 @@ def prepare_transfer(
 
     """
 
-    assert ROOT_CREDITOR_ID <= 0
+    assert ISSUER_CREDITOR_ID <= 0
 
 
 @broker.actor(queue_name='swpt_accounts')
