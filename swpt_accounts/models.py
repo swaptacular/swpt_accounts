@@ -154,7 +154,10 @@ class PreparedTransfer(db.Model):
         db.CheckConstraint(sender_locked_amount >= 0),
     )
 
-    sender_account = db.relationship('Account')
+    sender_account = db.relationship(
+        'Account',
+        backref=db.backref('prepared_transfers'),
+    )
 
 
 class PreparedTransferSignal(Signal):
