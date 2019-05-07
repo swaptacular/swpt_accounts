@@ -115,6 +115,7 @@ class PreparedTransfer(db.Model):
         db.BigInteger,
         primary_key=True,
         autoincrement=True,
+        comment='Along with `debtor_id` and `sender_creditor_id` uniquely identifies a transfer',
     )
     coordinator_type = db.Column(
         db.String(30),
