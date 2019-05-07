@@ -38,7 +38,8 @@ def prepare_transfer(
 def execute_prepared_transfer(
         *,
         debtor_id,
-        prepared_transfer_seqnum,
+        sender_creditor_id,
+        transfer_seqnum,
         committed_amount,
         transfer_info,
 ):

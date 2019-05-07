@@ -106,19 +106,22 @@ class Account(db.Model):
 
 class PreparedTransfer(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    prepared_transfer_seqnum = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    sender_creditor_id = db.Column(
+        db.BigInteger,
+        primary_key=True,
+        comment='The payer',
+    )
+    transfer_seqnum = db.Column(
+        db.BigInteger,
+        primary_key=True,
+        autoincrement=True,
+    )
     coordinator_type = db.Column(
         db.String(30),
         nullable=False,
         comment='Indicates which subsystem has initiated the transfer and is responsible for '
                 'finalizing it. The value must be a valid python identifier, all lowercase, '
                 'no double underscores. Example: direct, circular.',
-    )
-    sender_creditor_id = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The payer',
     )
     recipient_creditor_id = db.Column(
         db.BigInteger,
@@ -136,10 +139,16 @@ class PreparedTransfer(db.Model):
         default=lambda context: context.get_current_parameters()['amount'],
         comment='This amount has been subtracted from the available account balance.',
     )
+    prepared_at_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=get_now_utc,
+    )
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['debtor_id', 'sender_creditor_id'],
             ['account.debtor_id', 'account.creditor_id'],
+            ondelete='CASCADE',
         ),
         db.CheckConstraint(amount >= 0),
         db.CheckConstraint(sender_locked_amount >= 0),
@@ -155,10 +164,12 @@ class PreparedTransferSignal(Signal):
 
     # These fields are taken from `PreparedTransfer`.
     debtor_id = db.Column(db.BigInteger, nullable=False)
-    prepared_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    sender_creditor_id = db.Column(db.BigInteger, nullable=False)
+    transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     amount = db.Column(db.BigInteger, nullable=False)
     sender_locked_amount = db.Column(db.BigInteger, nullable=False)
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     @property
     def event_name(self):
@@ -190,11 +201,11 @@ class AccountChangeSignal(Signal):
 class CommittedTransferSignal(Signal):
     # These fields are taken from `PreparedTransfer`.
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    prepared_transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
-    sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)

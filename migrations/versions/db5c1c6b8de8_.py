@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7c108f4ef670
+Revision ID: db5c1c6b8de8
 Revises: 
-Create Date: 2019-05-06 20:52:33.623466
+Create Date: 2019-05-07 14:26:23.269227
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '7c108f4ef670'
+revision = 'db5c1c6b8de8'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -31,15 +31,15 @@ def upgrade():
     )
     op.create_table('committed_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('prepared_transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'prepared_transfer_seqnum')
+    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_seqnum')
     )
     op.create_table('debtor_policy',
     sa.Column('debtor_id', sa.BigInteger(), autoincrement=False, nullable=False),
@@ -52,10 +52,12 @@ def upgrade():
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('prepared_transfer_seqnum', sa.BigInteger(), nullable=False),
-    sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False),
+    sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('coordinator_type', 'coordinator_id', 'coordinator_request_id')
     )
     op.create_table('rejected_transfer_signal',
@@ -80,17 +82,17 @@ def upgrade():
     )
     op.create_table('prepared_transfer',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('prepared_transfer_seqnum', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, circular.'),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False, comment='The payer'),
+    sa.Column('transfer_seqnum', sa.BigInteger(), autoincrement=True, nullable=False),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, circular.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False, comment='The payee'),
     sa.Column('amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment='This amount has been subtracted from the available account balance.'),
+    sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('amount >= 0'),
     sa.CheckConstraint('sender_locked_amount >= 0'),
-    sa.ForeignKeyConstraint(['debtor_id', 'sender_creditor_id'], ['account.debtor_id', 'account.creditor_id'], ),
-    sa.PrimaryKeyConstraint('debtor_id', 'prepared_transfer_seqnum')
+    sa.ForeignKeyConstraint(['debtor_id', 'sender_creditor_id'], ['account.debtor_id', 'account.creditor_id'], ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_seqnum')
     )
     # ### end Alembic commands ###
 
