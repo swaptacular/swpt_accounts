@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1e84a69d5e80
+Revision ID: 5eec6603babd
 Revises: 
-Create Date: 2019-05-07 15:48:25.588203
+Create Date: 2019-05-08 13:47:13.240510
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '1e84a69d5e80'
+revision = '5eec6603babd'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -48,24 +48,26 @@ def upgrade():
     sa.PrimaryKeyConstraint('debtor_id')
     )
     op.create_table('prepared_transfer_signal',
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
-    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('coordinator_type', 'coordinator_id', 'coordinator_request_id')
+    sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
+    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id')
     )
     op.create_table('rejected_transfer_signal',
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('details', postgresql.JSON(astext_type=sa.Text()), nullable=False),
-    sa.PrimaryKeyConstraint('coordinator_type', 'coordinator_id', 'coordinator_request_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'signal_id')
     )
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -83,7 +85,7 @@ def upgrade():
     op.create_table('prepared_transfer',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False, comment='The payer'),
-    sa.Column('transfer_id', sa.BigInteger(), autoincrement=True, nullable=False),
+    sa.Column('transfer_id', sa.BigInteger(), autoincrement=True, nullable=False, comment='Along with `debtor_id` and `sender_creditor_id` uniquely identifies a transfer'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, circular.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False, comment='The payee'),
     sa.Column('amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),

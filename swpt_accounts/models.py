@@ -162,18 +162,18 @@ class PreparedTransfer(db.Model):
 
 
 class PreparedTransferSignal(Signal):
-    coordinator_type = db.Column(db.String(30), primary_key=True)
-    coordinator_id = db.Column(db.BigInteger, primary_key=True)
-    coordinator_request_id = db.Column(db.BigInteger, primary_key=True)
-
     # These fields are taken from `PreparedTransfer`.
-    debtor_id = db.Column(db.BigInteger, nullable=False)
-    sender_creditor_id = db.Column(db.BigInteger, nullable=False)
-    transfer_id = db.Column(db.BigInteger, nullable=False)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     amount = db.Column(db.BigInteger, nullable=False)
     sender_locked_amount = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+
+    coordinator_id = db.Column(db.BigInteger, nullable=False)
+    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
 
     @property
     def event_name(self):
@@ -181,9 +181,11 @@ class PreparedTransferSignal(Signal):
 
 
 class RejectedTransferSignal(Signal):
-    coordinator_type = db.Column(db.String(30), primary_key=True)
-    coordinator_id = db.Column(db.BigInteger, primary_key=True)
-    coordinator_request_id = db.Column(db.BigInteger, primary_key=True)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    coordinator_id = db.Column(db.BigInteger, nullable=False)
+    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     details = db.Column(pg.JSON, nullable=False, default={})
 
     @property
