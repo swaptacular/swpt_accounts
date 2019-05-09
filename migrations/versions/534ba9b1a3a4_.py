@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5eec6603babd
+Revision ID: 534ba9b1a3a4
 Revises: 
-Create Date: 2019-05-08 13:47:13.240510
+Create Date: 2019-05-09 15:02:17.306328
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '5eec6603babd'
+revision = '534ba9b1a3a4'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -45,6 +45,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), autoincrement=False, nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.Column('last_interest_rate_change_seqnum', sa.BigInteger(), nullable=True),
+    sa.CheckConstraint('interest_rate > -100.0'),
     sa.PrimaryKeyConstraint('debtor_id')
     )
     op.create_table('prepared_transfer_signal',
@@ -79,6 +80,7 @@ def upgrade():
     sa.Column('last_change_seqnum', sa.BigInteger(), nullable=False, comment='Incremented on every change in `balance`, `concession_interest_rate`, or `debtor_policy.interest_rate`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`.'),
     sa.Column('last_activity_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every account activity. Can be used to remove stale accounts.'),
+    sa.CheckConstraint('concession_interest_rate > -100.0'),
     sa.ForeignKeyConstraint(['debtor_id'], ['debtor_policy.debtor_id'], ),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id')
     )
