@@ -5,6 +5,7 @@ from sqlalchemy.dialects import postgresql as pg
 from .extensions import db, broker
 
 MIN_INT64 = -1 << 63
+MAX_INT64 = (1 << 63) - 1
 ISSUER_CREDITOR_ID = MIN_INT64
 BEGINNING_OF_TIME = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=datetime.timezone.utc)
 
