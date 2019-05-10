@@ -134,18 +134,16 @@ def _change_account_balance(account, delta, current_ts):
     ))
 
 
-def _prepare_account_transfer(account, coordinator_type, recipient_creditor_id, amount, locked_amount=None):
+def _prepare_account_transfer(account, coordinator_type, recipient_creditor_id, amount, sender_locked_amount):
     assert amount >= 0
-    if locked_amount is None:
-        locked_amount = amount
-    account = _get_account(account)
-    account.avl_balance -= locked_amount
+    account = Account.get_instance(account)
+    account.avl_balance -= sender_locked_amount
     prepared_transfer = PreparedTransfer(
         sender_account=account,
         coordinator_type=coordinator_type,
         recipient_creditor_id=recipient_creditor_id,
         amount=amount,
-        sender_locked_amount=locked_amount,
+        sender_locked_amount=sender_locked_amount,
     )
     db.session.add(prepared_transfer)
     return prepared_transfer
