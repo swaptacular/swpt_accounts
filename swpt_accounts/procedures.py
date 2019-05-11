@@ -149,16 +149,8 @@ def _prepare_account_transfer(account, coordinator_type, recipient_creditor_id, 
     return prepared_transfer
 
 
-def _delete_prepared_transfer(pt):
-    pt = PreparedTransfer.get_instance(pt, db.joinedload('sender_account', innerjoin=True))
-    if pt:
-        sender_account = pt.sender_account
-        sender_account.avl_balance += pt.sender_locked_amount
-        db.session.delete(pt)
-
-
 def _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info):
-    pt = PreparedTransfer.get_instance(pt, db.joinedload('sender_account', innerjoin=True))
+    pt = PreparedTransfer.get_instance(pt)
     db.session.add(CommittedTransferSignal(
         debtor_id=pt.debtor_id,
         sender_creditor_id=pt.sender_creditor_id,
@@ -170,6 +162,14 @@ def _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, tra
         committed_amount=committed_amount,
         transfer_info=transfer_info,
     ))
+
+
+def _delete_prepared_transfer(pt):
+    pt = PreparedTransfer.get_instance(pt, db.joinedload('sender_account', innerjoin=True))
+    if pt:
+        sender_account = pt.sender_account
+        sender_account.avl_balance += pt.sender_locked_amount
+        db.session.delete(pt)
 
 
 def _commit_prepared_transfer(pt, committed_amount, transfer_info):
