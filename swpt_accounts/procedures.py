@@ -73,12 +73,12 @@ def prepare_transfer(
 
 
 @db.atomic
-def execute_prepared_transfer(prepared_transfer, committed_amount, transfer_info):
+def execute_prepared_transfer(pt, committed_amount, transfer_info):
     assert committed_amount >= 0
     if committed_amount == 0:
-        _delete_prepared_transfer(prepared_transfer)
+        _delete_prepared_transfer(pt)
     else:
-        _commit_prepared_transfer(prepared_transfer, committed_amount, transfer_info)
+        _commit_prepared_transfer(pt, committed_amount, transfer_info)
 
 
 def _get_account(account):
@@ -135,18 +135,17 @@ def _change_account_balance(account, delta, current_ts):
 
 
 def _prepare_account_transfer(account, coordinator_type, recipient_creditor_id, amount, sender_locked_amount):
-    assert amount >= 0
     account = Account.get_instance(account)
     account.avl_balance -= sender_locked_amount
-    prepared_transfer = PreparedTransfer(
+    pt = PreparedTransfer(
         sender_account=account,
         coordinator_type=coordinator_type,
         recipient_creditor_id=recipient_creditor_id,
         amount=amount,
         sender_locked_amount=sender_locked_amount,
     )
-    db.session.add(prepared_transfer)
-    return prepared_transfer
+    db.session.add(pt)
+    return pt
 
 
 def _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info):
