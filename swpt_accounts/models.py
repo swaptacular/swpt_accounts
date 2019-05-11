@@ -106,6 +106,7 @@ class Account(db.Model):
     )
     __table_args__ = (
         db.CheckConstraint(concession_interest_rate > -100.0),
+        db.CheckConstraint(avl_balance <= balance),
     )
 
     debtor_policy = db.relationship('DebtorPolicy', lazy='joined', innerjoin=True)

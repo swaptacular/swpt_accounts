@@ -109,7 +109,6 @@ def _get_account_current_avl_balance(account, current_ts, ignore_interest=False)
         return account.avl_balance
     current_principal = _recalc_account_current_principal(account, current_ts)
     locked_amount = account.balance - account.avl_balance
-    assert locked_amount >= 0
     return current_principal - locked_amount
 
 
