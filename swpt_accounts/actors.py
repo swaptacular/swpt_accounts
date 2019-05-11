@@ -1,5 +1,6 @@
 from .extensions import broker, APP_QUEUE_NAME
 from .models import ISSUER_CREDITOR_ID
+from . import procedures
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
@@ -13,8 +14,8 @@ def prepare_transfer(
         debtor_id,
         sender_creditor_id,
         recipient_creditor_id,
-        check_avl_balance=True,
-        sender_lock_amount=True,
+        avl_balance_check_mode=procedures.AVL_BALANCE_WITH_INTEREST,
+        lock_amount=True,
 ):
     """Try to greedily secure an amount between `min_amount` and `max_amount`.
 
@@ -31,7 +32,19 @@ def prepare_transfer(
 
     """
 
+    # TODO: handle withdrawals.
     assert ISSUER_CREDITOR_ID <= 0
+    prepare_transfer(
+        coordinator_type,
+        coordinator_id,
+        coordinator_request_id,
+        (debtor_id, sender_creditor_id),
+        min_amount,
+        max_amount,
+        recipient_creditor_id,
+        avl_balance_check_mode,
+        lock_amount,
+    )
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
@@ -48,6 +61,12 @@ def execute_prepared_transfer(
     To dismiss the transfer, `committed_amount` should be `0`.
 
     """
+
+    procedures.execute_prepared_transfer(
+        (debtor_id, sender_creditor_id, transfer_id),
+        committed_amount,
+        transfer_info,
+    )
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
