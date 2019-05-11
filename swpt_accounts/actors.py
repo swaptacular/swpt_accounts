@@ -1,8 +1,8 @@
-from .extensions import broker
+from .extensions import broker, APP_QUEUE_NAME
 from .models import ISSUER_CREDITOR_ID
 
 
-@broker.actor(queue_name='swpt_accounts')
+@broker.actor(queue_name=APP_QUEUE_NAME)
 def prepare_transfer(
         *,
         coordinator_type,
@@ -34,7 +34,7 @@ def prepare_transfer(
     assert ISSUER_CREDITOR_ID <= 0
 
 
-@broker.actor(queue_name='swpt_accounts')
+@broker.actor(queue_name=APP_QUEUE_NAME)
 def execute_prepared_transfer(
         *,
         debtor_id,
@@ -50,7 +50,7 @@ def execute_prepared_transfer(
     """
 
 
-@broker.actor(queue_name='swpt_accounts')
+@broker.actor(queue_name=APP_QUEUE_NAME)
 def set_account_concession_interest_rate(
         *,
         debtor_id,
@@ -60,7 +60,7 @@ def set_account_concession_interest_rate(
     """Set an interest rate exclusive for the given account."""
 
 
-@broker.actor(queue_name='swpt_accounts')
+@broker.actor(queue_name=APP_QUEUE_NAME)
 def on_debtor_interest_rate_change_signal(
         *,
         debtor_id,
