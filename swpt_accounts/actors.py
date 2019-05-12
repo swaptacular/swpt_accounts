@@ -78,6 +78,8 @@ def set_account_concession_interest_rate(
 ):
     """Set an interest rate exclusive for the given account."""
 
+    procedures.set_account_concession_interest_rate((debtor_id, creditor_id), concession_interest_rate)
+
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def on_debtor_interest_rate_change_signal(

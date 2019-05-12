@@ -78,6 +78,14 @@ def execute_prepared_transfer(pt, committed_amount, transfer_info):
             _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_info)
 
 
+@db.atomic
+def set_account_concession_interest_rate(account, concession_interest_rate):
+    account = _get_account(account)
+    current_ts = datetime.datetime.now(tz=datetime.timezone.utc)
+    _change_account_balance(account, 0, current_ts)  # triggers interest recalculation
+    account.concession_interest_rate = concession_interest_rate
+
+
 def _get_account(account):
     instance = Account.get_instance(account)
     if instance is None:
