@@ -2,7 +2,7 @@ import datetime
 import math
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, MAX_INT64, \
-    AccountChangeSignal, CommittedTransferSignal
+    AccountChangeSignal, CommittedTransferSignal, DebtorPolicy
 
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
@@ -79,11 +79,24 @@ def execute_prepared_transfer(pt, committed_amount, transfer_info):
 
 
 @db.atomic
-def set_account_concession_interest_rate(account, concession_interest_rate):
+def update_account_interest(account, concession_interest_rate=None):
     account = _get_account(account)
     current_ts = datetime.datetime.now(tz=datetime.timezone.utc)
     _change_account_balance(account, 0, current_ts)  # triggers interest recalculation
-    account.concession_interest_rate = concession_interest_rate
+    if concession_interest_rate is not None:
+        account.concession_interest_rate = concession_interest_rate
+
+
+@db.atomic
+def set_debtor_policy_interest_rate(debtor_policy, interest_rate, change_seqnum):
+    # TODO: check if debtor_policy exists.
+    debtor_policy = DebtorPolicy.get_instance(debtor_policy)
+    if change_seqnum > debtor_policy.last_interest_rate_change_seqnum:
+        # TODO: implement sign flip?
+        debtor_policy.interest_rate = interest_rate
+        debtor_policy.last_interest_rate_change_seqnum = change_seqnum
+        return Account.query(Account.creditor_id).filter_by(debtor_id=debtor_policy.debtor_id).all()
+    return []
 
 
 def _get_account(account):
@@ -119,7 +132,6 @@ def _change_account_balance(account, delta, current_ts):
     account.balance += delta
     account.last_change_seqnum += 1
     account.last_change_ts = current_ts
-    account.last_activity_ts = current_ts
     db.session.add(AccountChangeSignal(
         debtor_id=account.debtor_id,
         creditor_id=account.creditor_id,
@@ -170,5 +182,8 @@ def _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_in
     recipient_account = _get_account((pt.debtor_id, pt.recipient_creditor_id))
     _change_account_balance(sender_account, -committed_amount, committed_at_ts)
     _change_account_balance(recipient_account, committed_amount, committed_at_ts)
+    if pt.coordinator_type != 'interest':
+        sender_account.last_activity_ts = committed_at_ts
+        recipient_account.last_activity_ts = committed_at_ts
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
     _delete_prepared_transfer(pt)
