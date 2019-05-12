@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: a91d81189da5
+Revision ID: 1190fdab999c
 Revises: 
-Create Date: 2019-05-11 17:59:39.933371
+Create Date: 2019-05-12 22:12:17.755742
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'a91d81189da5'
+revision = '1190fdab999c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -76,12 +76,12 @@ def upgrade():
     sa.Column('balance', sa.BigInteger(), nullable=False, comment='The total owed amount'),
     sa.Column('concession_interest_rate', sa.REAL(), nullable=False, comment='An interest rate exclusive for this account, presumably more advantageous for the account owner than the standard one. Interest accumulates at an annual rate (in percents) that is equal to the maximum of `concession_interest_rate` and `debtor_policy.interest_rate`.'),
     sa.Column('interest', sa.BigInteger(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `balance` yet. Can be a negative number. `interest`gets zeroed and added to the ballance one in while (like once per year).'),
-    sa.Column('avl_balance', sa.BigInteger(), nullable=False, comment='The `balance` minus pending transfer locks'),
+    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks'),
     sa.Column('last_change_seqnum', sa.BigInteger(), nullable=False, comment='Incremented on every change in `balance`, `concession_interest_rate`, or `debtor_policy.interest_rate`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`.'),
     sa.Column('last_activity_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every account activity. Can be used to remove stale accounts.'),
-    sa.CheckConstraint('avl_balance <= balance'),
     sa.CheckConstraint('concession_interest_rate > -100.0'),
+    sa.CheckConstraint('locked_amount >= 0'),
     sa.ForeignKeyConstraint(['debtor_id'], ['debtor_policy.debtor_id'], ),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id')
     )

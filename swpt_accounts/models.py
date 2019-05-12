@@ -79,11 +79,11 @@ class Account(db.Model):
                 'but not added to the `balance` yet. Can be a negative number. `interest`'
                 'gets zeroed and added to the ballance one in while (like once per year).',
     )
-    avl_balance = db.Column(
+    locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='The `balance` minus pending transfer locks',
+        comment='The total sum of all pending transfer locks',
     )
     last_change_seqnum = db.Column(
         db.BigInteger,
@@ -106,7 +106,7 @@ class Account(db.Model):
     )
     __table_args__ = (
         db.CheckConstraint(concession_interest_rate > -100.0),
-        db.CheckConstraint(avl_balance <= balance),
+        db.CheckConstraint(locked_amount >= 0),
     )
 
     debtor_policy = db.relationship('DebtorPolicy', lazy='joined', innerjoin=True)

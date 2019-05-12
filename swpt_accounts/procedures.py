@@ -106,10 +106,9 @@ def _recalc_account_current_principal(account, current_ts):
 def _get_account_current_avl_balance(account, current_ts, ignore_interest=False):
     account = Account.get_instance(account)
     if ignore_interest:
-        return account.avl_balance
+        return account.balance - account.locked_amount
     current_principal = _recalc_account_current_principal(account, current_ts)
-    locked_amount = account.balance - account.avl_balance
-    return current_principal - locked_amount
+    return current_principal - account.locked_amount
 
 
 def _change_account_balance(account, delta, current_ts):
@@ -117,7 +116,6 @@ def _change_account_balance(account, delta, current_ts):
     current_principal = _recalc_account_current_principal(account, current_ts)
     account.interest = current_principal - account.balance
     account.balance += delta
-    account.avl_balance += delta
     account.last_change_seqnum += 1
     account.last_change_ts = current_ts
     account.last_activity_ts = current_ts
@@ -135,7 +133,7 @@ def _change_account_balance(account, delta, current_ts):
 
 def _prepare_account_transfer(account, coordinator_type, recipient_creditor_id, amount, sender_locked_amount):
     account = Account.get_instance(account)
-    account.avl_balance -= sender_locked_amount
+    account.locked_amount += sender_locked_amount
     pt = PreparedTransfer(
         sender_account=account,
         coordinator_type=coordinator_type,
@@ -166,7 +164,7 @@ def _delete_prepared_transfer(pt):
     pt = PreparedTransfer.get_instance(pt, db.joinedload('sender_account', innerjoin=True))
     if pt:
         sender_account = pt.sender_account
-        sender_account.avl_balance += pt.sender_locked_amount
+        sender_account.locked_amount -= pt.sender_locked_amount
         db.session.delete(pt)
 
 
