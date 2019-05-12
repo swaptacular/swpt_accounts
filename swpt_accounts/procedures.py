@@ -12,14 +12,6 @@ AVL_BALANCE_ONLY = 1
 AVL_BALANCE_WITH_INTEREST = 2
 
 
-class InsufficientFunds(Exception):
-    """The required amount is not available at the moment."""
-
-
-class InvalidPreparedTransfer(Exception):
-    """The specified prepared transfer does not exist."""
-
-
 @db.atomic
 def prepare_transfer(
         coordinator_type,
@@ -29,9 +21,11 @@ def prepare_transfer(
         min_amount,
         max_amount,
         recipient_creditor_id,
-        avl_balance_check_mode=AVL_BALANCE_WITH_INTEREST,
-        lock_amount=True,
+        avl_balance_check_mode,
+        lock_amount,
 ):
+    assert min_amount >= 0
+    assert max_amount >= 0
     account = _get_account(account)
     current_ts = datetime.datetime.now(tz=datetime.timezone.utc)
     if avl_balance_check_mode == AVL_BALANCE_IGNORE:
@@ -80,7 +74,8 @@ def execute_prepared_transfer(pt, committed_amount, transfer_info):
         if committed_amount == 0:
             _delete_prepared_transfer(pt)
         else:
-            _commit_prepared_transfer(pt, committed_amount, transfer_info)
+            committed_at_ts = datetime.datetime.now(tz=datetime.timezone.utc)
+            _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_info)
 
 
 def _get_account(account):
@@ -162,8 +157,7 @@ def _delete_prepared_transfer(pt):
     db.session.delete(pt)
 
 
-def _commit_prepared_transfer(pt, committed_amount, transfer_info):
-    committed_at_ts = datetime.datetime.now(tz=datetime.timezone.utc)
+def _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_info):
     sender_account = pt.sender_account
     recipient_account = _get_account((pt.debtor_id, pt.recipient_creditor_id))
     _change_account_balance(sender_account, -committed_amount, committed_at_ts)
