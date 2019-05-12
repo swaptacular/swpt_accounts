@@ -45,7 +45,7 @@ def prepare_transfer(
     if avl_balance >= min_amount:
         amount = min(avl_balance, max_amount)
         locked_amount = amount if lock_amount else 0
-        pt = _prepare_account_transfer(account, coordinator_type, recipient_creditor_id, amount, locked_amount)
+        pt = _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, locked_amount)
         db.session.add(PreparedTransferSignal(
             debtor_id=pt.debtor_id,
             sender_creditor_id=pt.sender_creditor_id,
@@ -75,10 +75,12 @@ def prepare_transfer(
 @db.atomic
 def execute_prepared_transfer(pt, committed_amount, transfer_info):
     assert committed_amount >= 0
-    if committed_amount == 0:
-        _delete_prepared_transfer(pt)
-    else:
-        _commit_prepared_transfer(pt, committed_amount, transfer_info)
+    pt = PreparedTransfer.get_instance(pt, db.joinedload('sender_account', innerjoin=True))
+    if pt:
+        if committed_amount == 0:
+            _delete_prepared_transfer(pt)
+        else:
+            _commit_prepared_transfer(pt, committed_amount, transfer_info)
 
 
 def _get_account(account):
@@ -92,7 +94,6 @@ def _get_account(account):
 
 
 def _recalc_account_current_principal(account, current_ts):
-    account = Account.get_instance(account)
     passed_seconds = max(0.0, (current_ts - account.last_change_ts).total_seconds())
     interest_rate = max(account.concession_interest_rate, account.debtor_policy.interest_rate)
     try:
@@ -104,15 +105,12 @@ def _recalc_account_current_principal(account, current_ts):
 
 
 def _get_account_current_avl_balance(account, current_ts, ignore_interest=False):
-    account = Account.get_instance(account)
     if ignore_interest:
         return account.balance - account.locked_amount
-    current_principal = _recalc_account_current_principal(account, current_ts)
-    return current_principal - account.locked_amount
+    return _recalc_account_current_principal(account, current_ts) - account.locked_amount
 
 
 def _change_account_balance(account, delta, current_ts):
-    account = Account.get_instance(account)
     current_principal = _recalc_account_current_principal(account, current_ts)
     account.interest = current_principal - account.balance
     account.balance += delta
@@ -131,22 +129,7 @@ def _change_account_balance(account, delta, current_ts):
     ))
 
 
-def _prepare_account_transfer(account, coordinator_type, recipient_creditor_id, amount, sender_locked_amount):
-    account = Account.get_instance(account)
-    account.locked_amount += sender_locked_amount
-    pt = PreparedTransfer(
-        sender_account=account,
-        coordinator_type=coordinator_type,
-        recipient_creditor_id=recipient_creditor_id,
-        amount=amount,
-        sender_locked_amount=sender_locked_amount,
-    )
-    db.session.add(pt)
-    return pt
-
-
 def _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info):
-    pt = PreparedTransfer.get_instance(pt)
     db.session.add(CommittedTransferSignal(
         debtor_id=pt.debtor_id,
         sender_creditor_id=pt.sender_creditor_id,
@@ -160,21 +143,30 @@ def _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, tra
     ))
 
 
+def _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, sender_locked_amount):
+    account.locked_amount += sender_locked_amount
+    pt = PreparedTransfer(
+        sender_account=account,
+        coordinator_type=coordinator_type,
+        recipient_creditor_id=recipient_creditor_id,
+        amount=amount,
+        sender_locked_amount=sender_locked_amount,
+    )
+    db.session.add(pt)
+    return pt
+
+
 def _delete_prepared_transfer(pt):
-    pt = PreparedTransfer.get_instance(pt, db.joinedload('sender_account', innerjoin=True))
-    if pt:
-        sender_account = pt.sender_account
-        sender_account.locked_amount -= pt.sender_locked_amount
-        db.session.delete(pt)
+    sender_account = pt.sender_account
+    sender_account.locked_amount -= pt.sender_locked_amount
+    db.session.delete(pt)
 
 
 def _commit_prepared_transfer(pt, committed_amount, transfer_info):
-    pt = PreparedTransfer.get_instance(pt, db.joinedload('sender_account', innerjoin=True))
-    if pt:
-        committed_at_ts = datetime.datetime.now(tz=datetime.timezone.utc)
-        sender_account = pt.sender_account
-        recipient_account = _get_account((pt.debtor_id, pt.recipient_creditor_id))
-        _change_account_balance(sender_account, -committed_amount, committed_at_ts)
-        _change_account_balance(recipient_account, committed_amount, committed_at_ts)
-        _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
-        _delete_prepared_transfer(pt)
+    committed_at_ts = datetime.datetime.now(tz=datetime.timezone.utc)
+    sender_account = pt.sender_account
+    recipient_account = _get_account((pt.debtor_id, pt.recipient_creditor_id))
+    _change_account_balance(sender_account, -committed_amount, committed_at_ts)
+    _change_account_balance(recipient_account, committed_amount, committed_at_ts)
+    _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
+    _delete_prepared_transfer(pt)
