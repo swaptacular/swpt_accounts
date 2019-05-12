@@ -89,8 +89,7 @@ def update_account_interest(account, concession_interest_rate=None):
 
 @db.atomic
 def set_debtor_policy_interest_rate(debtor_policy, interest_rate, change_seqnum):
-    # TODO: check if debtor_policy exists.
-    debtor_policy = DebtorPolicy.get_instance(debtor_policy)
+    debtor_policy = _get_debtor_policy(debtor_policy)
     if change_seqnum > debtor_policy.last_interest_rate_change_seqnum:
         # TODO: implement sign flip?
         debtor_policy.interest_rate = interest_rate
@@ -99,11 +98,21 @@ def set_debtor_policy_interest_rate(debtor_policy, interest_rate, change_seqnum)
     return []
 
 
+def _get_debtor_policy(debtor_policy):
+    instance = DebtorPolicy.get_instance(debtor_policy)
+    if instance is None:
+        debtor_id, = DebtorPolicy.get_pk_values(debtor_policy)
+        instance = DebtorPolicy(debtor_id=debtor_id)
+        with db.retry_on_integrity_error():
+            db.session.add(instance)
+    return instance
+
+
 def _get_account(account):
     instance = Account.get_instance(account)
     if instance is None:
         debtor_id, creditor_id = Account.get_pk_values(account)
-        instance = Account(debtor_id=debtor_id, creditor_id=creditor_id)
+        instance = Account(debtor_policy=_get_debtor_policy(debtor_id), creditor_id=creditor_id)
         with db.retry_on_integrity_error():
             db.session.add(instance)
     return instance
