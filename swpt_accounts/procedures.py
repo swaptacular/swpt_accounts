@@ -181,6 +181,7 @@ def _delete_prepared_transfer(pt):
 
 
 def _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_info):
+    assert committed_amount <= pt.amount
     sender_account = pt.sender_account
     recipient_account = _get_account((pt.debtor_id, pt.recipient_creditor_id))
     _change_account_balance(sender_account, -committed_amount, committed_at_ts)
