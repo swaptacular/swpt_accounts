@@ -145,7 +145,7 @@ class PreparedTransfer(db.Model):
         nullable=False,
         comment='Indicates which subsystem has initiated the transfer and is responsible for '
                 'finalizing it. The value must be a valid python identifier, all lowercase, '
-                'no double underscores. Example: direct, circular.',
+                'no double underscores. Example: direct, interest, circular.',
     )
     recipient_creditor_id = db.Column(
         db.BigInteger,
@@ -161,7 +161,7 @@ class PreparedTransfer(db.Model):
         db.BigInteger,
         nullable=False,
         default=lambda context: context.get_current_parameters()['amount'],
-        comment='This amount has been added to `sender_account.locked_amount`.',
+        comment="This amount has been added to sender's `account.locked_amount`.",
     )
     prepared_at_ts = db.Column(
         db.TIMESTAMP(timezone=True),

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 4ec1e2162731
+Revision ID: 051fb2ac62bd
 Revises: 
-Create Date: 2019-05-13 17:15:27.835418
+Create Date: 2019-05-14 02:27:08.597341
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '4ec1e2162731'
+revision = '051fb2ac62bd'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -95,10 +95,10 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False, comment='The payer'),
     sa.Column('transfer_id', sa.BigInteger(), autoincrement=True, nullable=False, comment='Along with `debtor_id` and `sender_creditor_id` uniquely identifies a transfer'),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, circular.'),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, interest, circular.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False, comment='The payee'),
     sa.Column('amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
-    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment='This amount has been added to `account.locked_amount`.'),
+    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment="This amount has been added to sender's `account.locked_amount`."),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('amount >= 0'),
     sa.CheckConstraint('sender_locked_amount >= 0'),
