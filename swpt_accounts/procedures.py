@@ -92,8 +92,8 @@ def update_account_interest_rate(account, concession_interest_rate=None):
 @db.atomic
 def set_debtor_policy_interest_rate(debtor_policy, interest_rate, change_seqnum):
     debtor_policy = _get_debtor_policy(debtor_policy)
-    if change_seqnum > debtor_policy.last_interest_rate_change_seqnum:
-        # TODO: debtor_policy.last_interest_rate_change_seqnum can be None
+    last_change_seqnum = debtor_policy.last_interest_rate_change_seqnum
+    if last_change_seqnum is None or last_change_seqnum < change_seqnum:
         # TODO: implement sign flip?
         debtor_policy.interest_rate = interest_rate
         debtor_policy.last_interest_rate_change_seqnum = change_seqnum
