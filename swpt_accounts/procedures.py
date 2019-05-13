@@ -93,8 +93,12 @@ def update_account_interest_rate(account, concession_interest_rate=None):
 def set_debtor_policy_interest_rate(debtor_policy, interest_rate, change_seqnum):
     debtor_policy = _get_debtor_policy(debtor_policy)
     last_change_seqnum = debtor_policy.last_interest_rate_change_seqnum
-    if last_change_seqnum is None or last_change_seqnum < change_seqnum:
-        # TODO: implement sign flip?
+    should_perform_update = (
+        last_change_seqnum is None
+        or (change_seqnum > last_change_seqnum)
+        or (change_seqnum < 0 and last_change_seqnum >= 0)  # negative seqnum reset
+    )
+    if should_perform_update:
         debtor_policy.interest_rate = interest_rate
         debtor_policy.last_interest_rate_change_seqnum = change_seqnum
         return Account.query(Account.creditor_id).filter_by(debtor_id=debtor_policy.debtor_id).all()
