@@ -92,21 +92,24 @@ def update_account_interest_rate(account, concession_interest_rate=None):
 @db.atomic
 def set_debtor_policy_interest_rate(debtor_policy, interest_rate, change_seqnum):
     debtor_policy = _get_debtor_policy(debtor_policy)
-    prev_change_seqnum = debtor_policy.last_interest_rate_change_seqnum
-    is_later_seqnum = (
-        prev_change_seqnum is None
-        or (change_seqnum > prev_change_seqnum)
-        or (change_seqnum < 0 and prev_change_seqnum >= 0)  # negative seqnum reset
-    )
-    if is_later_seqnum:
+    if _is_later_seqnum(change_seqnum, debtor_policy.last_interest_rate_change_seqnum):
         debtor_policy.interest_rate = interest_rate
         debtor_policy.last_interest_rate_change_seqnum = change_seqnum
-    return is_later_seqnum
+        return True
+    return False
 
 
 @db.atomic
 def get_debtor_creditor_ids(debtor_id):
     return Account.query(Account.creditor_id).filter_by(debtor_id=debtor_id).all()
+
+
+def _is_later_seqnum(seqnum, previous):
+    return (
+        previous is None
+        or (seqnum > previous)
+        or (seqnum < 0 and previous >= 0)  # a negative seqnum reset
+    )
 
 
 def _get_debtor_policy(debtor_policy):
