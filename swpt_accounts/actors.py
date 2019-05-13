@@ -1,40 +1,33 @@
+import datetime
 from .extensions import broker, APP_QUEUE_NAME
-from .models import ISSUER_CREDITOR_ID
 from . import procedures
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def prepare_transfer(
         *,
-        coordinator_type,
-        coordinator_id,
-        coordinator_request_id,
-        min_amount,
-        max_amount,
-        debtor_id,
-        sender_creditor_id,
-        recipient_creditor_id,
-        avl_balance_check_mode=procedures.AVL_BALANCE_WITH_INTEREST,
-        lock_amount=True,
+        coordinator_type: str,
+        coordinator_id: int,
+        coordinator_request_id: int,
+        min_amount: int,
+        max_amount: int,
+        debtor_id: int,
+        sender_creditor_id: int,
+        recipient_creditor_id: int,
+        avl_balance_check_mode: int,
+        lock_amount: bool = True,
 ):
     """Try to greedily secure an amount between `min_amount` and `max_amount`.
 
-    When `check_avl_balance` is `False`, no check is done to determine
-    whether the amount is available or not.
+    `avl_balance_check_mode` should be one of these:
 
-    When `coordinator_type` is 'direct', and `recipient_creditor_id`
-    is `ISSUER_CREDITOR_ID`, this is a withdrawal. For withdrawals the
-    interest accumulated on the account (positive or negative) should
-    not be added to the available balance. Otherwise, when calculating
-    the interest, we should not forget to include (in addition to the
-    value of the `interest` field) the interest accumulated for the
-    time passed between `last_change_ts` and the current moment.
+    * `procedures.AVL_BALANCE_IGNORE`
+    * `procedures.AVL_BALANCE_ONLY`
+    * `procedures.AVL_BALANCE_WITH_INTEREST`
 
     """
 
-    # TODO: handle withdrawals.
-    assert ISSUER_CREDITOR_ID <= 0
-    prepare_transfer(
+    procedures.prepare_transfer(
         coordinator_type,
         coordinator_id,
         coordinator_request_id,
@@ -50,11 +43,11 @@ def prepare_transfer(
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def execute_prepared_transfer(
         *,
-        debtor_id,
-        sender_creditor_id,
-        transfer_id,
-        committed_amount,
-        transfer_info,
+        debtor_id: int,
+        sender_creditor_id: int,
+        transfer_id: int,
+        committed_amount: int,
+        transfer_info: dict,
 ):
     """Execute a prepared transfer.
 
@@ -71,10 +64,11 @@ def execute_prepared_transfer(
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def update_account_interest_rate(
+        # TODO: seqnum?
         *,
-        debtor_id,
-        creditor_id,
-        concession_interest_rate=None,
+        debtor_id: int,
+        creditor_id: int,
+        concession_interest_rate: float = None,
 ):
     """Recalculates the interest on a given account."""
 
@@ -84,12 +78,14 @@ def update_account_interest_rate(
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def on_debtor_interest_rate_change_signal(
         *,
-        debtor_id,
-        interest_rate,
-        change_seqnum,
-        change_ts,
+        debtor_id: int,
+        interest_rate: float,
+        change_seqnum: int,
+        change_ts: datetime.datetime,
 ):
     """Update `DebtorPolicy.interest_rate`."""
 
-    for creditor_id in procedures.set_debtor_policy_interest_rate(debtor_id, interest_rate, change_seqnum):
-        update_account_interest_rate.send(debtor_id, creditor_id)
+    if procedures.set_debtor_policy_interest_rate(debtor_id, interest_rate, change_seqnum):
+        for creditor_id in procedures.get_debtor_creditor_ids(debtor_id):
+            # TODO: is this fast enough?
+            update_account_interest_rate.send(debtor_id, creditor_id)

@@ -101,8 +101,12 @@ def set_debtor_policy_interest_rate(debtor_policy, interest_rate, change_seqnum)
     if is_later_seqnum:
         debtor_policy.interest_rate = interest_rate
         debtor_policy.last_interest_rate_change_seqnum = change_seqnum
-        return Account.query(Account.creditor_id).filter_by(debtor_id=debtor_policy.debtor_id).all()
-    return []
+    return is_later_seqnum
+
+
+@db.atomic
+def get_debtor_creditor_ids(debtor_id):
+    return Account.query(Account.creditor_id).filter_by(debtor_id=debtor_id).all()
 
 
 def _get_debtor_policy(debtor_policy):
