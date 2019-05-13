@@ -55,6 +55,11 @@ class DebtorPolicy(db.Model):
 class Account(db.Model):
     debtor_id = db.Column(db.BigInteger, db.ForeignKey('debtor_policy.debtor_id'), primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
+    standard_interest_rate = db.Column(
+        db.REAL,
+        nullable=False,
+        comment='The value of `debtor_policy.interest_rate`',
+    )
     balance = db.Column(
         db.BigInteger,
         nullable=False,
@@ -69,7 +74,7 @@ class Account(db.Model):
                 'advantageous for the account owner than the standard one. '
                 'Interest accumulates at an annual rate (in percents) that is '
                 'equal to the maximum of `concession_interest_rate` and '
-                '`debtor_policy.interest_rate`.',
+                '`standard_interest_rate`.',
     )
     interest = db.Column(
         db.BigInteger,
@@ -90,7 +95,7 @@ class Account(db.Model):
         nullable=False,
         default=1,
         comment='Incremented on every change in `balance`, `concession_interest_rate`, '
-                'or `debtor_policy.interest_rate`.',
+                'or `standard_interest_rate`.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -109,7 +114,7 @@ class Account(db.Model):
         db.CheckConstraint(locked_amount >= 0),
     )
 
-    debtor_policy = db.relationship('DebtorPolicy', lazy='joined', innerjoin=True)
+    debtor_policy = db.relationship('DebtorPolicy')
 
 
 class PreparedTransfer(db.Model):

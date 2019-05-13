@@ -70,7 +70,7 @@ def execute_prepared_transfer(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def update_account_interest(
+def update_account_interest_rate(
         *,
         debtor_id,
         creditor_id,
@@ -78,7 +78,7 @@ def update_account_interest(
 ):
     """Recalculates the interest on a given account."""
 
-    procedures.update_account_interest((debtor_id, creditor_id), concession_interest_rate)
+    procedures.update_account_interest_rate((debtor_id, creditor_id), concession_interest_rate)
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
@@ -92,4 +92,4 @@ def on_debtor_interest_rate_change_signal(
     """Update `DebtorPolicy.interest_rate`."""
 
     for creditor_id in procedures.set_debtor_policy_interest_rate(debtor_id, interest_rate, change_seqnum):
-        update_account_interest.send(debtor_id, creditor_id)
+        update_account_interest_rate.send(debtor_id, creditor_id)

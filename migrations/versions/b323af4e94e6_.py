@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1190fdab999c
+Revision ID: b323af4e94e6
 Revises: 
-Create Date: 2019-05-12 22:12:17.755742
+Create Date: 2019-05-13 03:22:23.663862
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '1190fdab999c'
+revision = 'b323af4e94e6'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -73,11 +73,12 @@ def upgrade():
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('standard_interest_rate', sa.REAL(), nullable=False, comment='The value of `debtor_policy.interest_rate`'),
     sa.Column('balance', sa.BigInteger(), nullable=False, comment='The total owed amount'),
-    sa.Column('concession_interest_rate', sa.REAL(), nullable=False, comment='An interest rate exclusive for this account, presumably more advantageous for the account owner than the standard one. Interest accumulates at an annual rate (in percents) that is equal to the maximum of `concession_interest_rate` and `debtor_policy.interest_rate`.'),
+    sa.Column('concession_interest_rate', sa.REAL(), nullable=False, comment='An interest rate exclusive for this account, presumably more advantageous for the account owner than the standard one. Interest accumulates at an annual rate (in percents) that is equal to the maximum of `concession_interest_rate` and `standard_interest_rate`.'),
     sa.Column('interest', sa.BigInteger(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `balance` yet. Can be a negative number. `interest`gets zeroed and added to the ballance one in while (like once per year).'),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks'),
-    sa.Column('last_change_seqnum', sa.BigInteger(), nullable=False, comment='Incremented on every change in `balance`, `concession_interest_rate`, or `debtor_policy.interest_rate`.'),
+    sa.Column('last_change_seqnum', sa.BigInteger(), nullable=False, comment='Incremented on every change in `balance`, `concession_interest_rate`, or `standard_interest_rate`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`.'),
     sa.Column('last_activity_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every account activity. Can be used to remove stale accounts.'),
     sa.CheckConstraint('concession_interest_rate > -100.0'),
