@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: bc0404012dd9
+Revision ID: 4ec1e2162731
 Revises: 
-Create Date: 2019-05-13 17:03:22.092657
+Create Date: 2019-05-13 17:15:27.835418
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'bc0404012dd9'
+revision = '4ec1e2162731'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -98,7 +98,7 @@ def upgrade():
     sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, circular.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False, comment='The payee'),
     sa.Column('amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
-    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment='This amount has been subtracted from the available account balance.'),
+    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment='This amount has been added to `account.locked_amount`.'),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('amount >= 0'),
     sa.CheckConstraint('sender_locked_amount >= 0'),
