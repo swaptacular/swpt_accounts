@@ -2,7 +2,7 @@ import datetime
 import math
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, MAX_INT64, \
-    AccountChangeSignal, CommittedTransferSignal, DebtorPolicy
+    AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, AccountPolicy
 
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
@@ -79,27 +79,6 @@ def execute_prepared_transfer(pt, committed_amount, transfer_info):
 
 
 @db.atomic
-def update_account_interest_rate(account, concession_interest_rate=None):
-    account = _get_account(account, db.joinedload('debtor_policy', innerjoin=True))
-    current_ts = datetime.datetime.now(tz=datetime.timezone.utc)
-    _change_account_balance(account, 0, current_ts)  # triggers interest recalculation
-    if concession_interest_rate is not None:
-        account.concession_interest_rate = concession_interest_rate
-    account.standard_interest_rate = account.debtor_policy.interest_rate
-    _insert_account_change_signal(account, current_ts)
-
-
-@db.atomic
-def set_debtor_policy_interest_rate(debtor_policy, interest_rate, change_seqnum):
-    debtor_policy = _get_debtor_policy(debtor_policy)
-    if _is_later_seqnum(change_seqnum, debtor_policy.last_interest_rate_change_seqnum):
-        debtor_policy.interest_rate = interest_rate
-        debtor_policy.last_interest_rate_change_seqnum = change_seqnum
-        return True
-    return False
-
-
-@db.atomic
 def get_debtor_creditor_ids(debtor_id):
     return Account.query(Account.creditor_id).filter_by(debtor_id=debtor_id).all()
 
@@ -112,25 +91,18 @@ def _is_later_seqnum(seqnum, previous):
     )
 
 
-def _get_debtor_policy(debtor_policy):
-    instance = DebtorPolicy.get_instance(debtor_policy)
-    if instance is None:
-        debtor_id, = DebtorPolicy.get_pk_values(debtor_policy)
-        instance = DebtorPolicy(debtor_id=debtor_id)
-        with db.retry_on_integrity_error():
-            db.session.add(instance)
-    return instance
-
-
 def _get_account(account):
     instance = Account.get_instance(account)
     if instance is None:
         debtor_id, creditor_id = Account.get_pk_values(account)
-        debtor_policy = _get_debtor_policy(debtor_id)
+        debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True),
+        account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True),
+        standard_interest_rate = debtor_policy.interest_rate if debtor_policy else 0.0
+        concession_interest_rate = account_policy.interest_rate if account_policy else -100.0
         instance = Account(
-            debtor_policy=debtor_policy,
+            debtor_id=debtor_id,
             creditor_id=creditor_id,
-            standard_interest_rate=debtor_policy.interest_rate,
+            interest_rate=max(standard_interest_rate, concession_interest_rate)
         )
         with db.retry_on_integrity_error():
             db.session.add(instance)
@@ -139,9 +111,8 @@ def _get_account(account):
 
 def _recalc_account_current_principal(account, current_ts):
     passed_seconds = max(0.0, (current_ts - account.last_change_ts).total_seconds())
-    interest_rate = max(account.concession_interest_rate, account.standard_interest_rate)
     try:
-        k = math.log(1 + interest_rate / 100) / SECONDS_IN_YEAR
+        k = math.log(1 + account.interest_rate / 100) / SECONDS_IN_YEAR
     except ValueError:
         k = -math.inf  # the interest rate is -100
     old_principal = max(0, account.balance + account.interest)
@@ -172,8 +143,7 @@ def _insert_account_change_signal(account, last_change_ts):
         change_ts=account.last_change_ts,
         balance=account.ballance,
         interest=account.interest,
-        concession_interest_rate=account.concession_interest_rate,
-        standard_interest_rate=account.standard_interest_rate
+        interest_rate=account.interest_rate,
     ))
 
 

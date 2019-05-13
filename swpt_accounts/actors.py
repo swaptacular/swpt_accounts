@@ -1,4 +1,3 @@
-import datetime
 from .extensions import broker, APP_QUEUE_NAME
 from . import procedures
 
@@ -60,32 +59,3 @@ def execute_prepared_transfer(
         committed_amount,
         transfer_info,
     )
-
-
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def update_account_interest_rate(
-        # TODO: seqnum?
-        *,
-        debtor_id: int,
-        creditor_id: int,
-        concession_interest_rate: float = None,
-):
-    """Recalculates the interest on a given account."""
-
-    procedures.update_account_interest_rate((debtor_id, creditor_id), concession_interest_rate)
-
-
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def on_debtor_interest_rate_change_signal(
-        *,
-        debtor_id: int,
-        interest_rate: float,
-        change_seqnum: int,
-        change_ts: datetime.datetime,
-):
-    """Update `DebtorPolicy.interest_rate`."""
-
-    if procedures.set_debtor_policy_interest_rate(debtor_id, interest_rate, change_seqnum):
-        for creditor_id in procedures.get_debtor_creditor_ids(debtor_id):
-            # TODO: is this fast enough?
-            update_account_interest_rate.send(debtor_id, creditor_id)

@@ -44,37 +44,50 @@ class Signal(db.Model):
 
 
 class DebtorPolicy(db.Model):
-    debtor_id = db.Column(db.BigInteger, primary_key=True, autoincrement=False)
-    interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    interest_rate = db.Column(
+        db.REAL,
+        nullable=False,
+        default=0.0,
+        comment='The standard annual interest rate (in percents) determined by the debtor.',
+    )
     last_interest_rate_change_seqnum = db.Column(db.BigInteger)
     __table_args__ = (
         db.CheckConstraint(interest_rate > -100.0),
     )
 
 
-class Account(db.Model):
-    debtor_id = db.Column(db.BigInteger, db.ForeignKey('debtor_policy.debtor_id'), primary_key=True)
+class AccountPolicy(db.Model):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    standard_interest_rate = db.Column(
+    concession_interest_rate = db.Column(
         db.REAL,
         nullable=False,
-        comment='The value of `debtor_policy.interest_rate`',
+        default=-100.0,
+        comment='An annual interest rate (in percents), offered exclusively for this account.',
     )
+    last_concession_interest_rate_change_seqnum = db.Column(db.BigInteger)
+    __table_args__ = (
+        db.CheckConstraint(concession_interest_rate >= -100.0),
+    )
+
+
+class Account(db.Model):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
     balance = db.Column(
         db.BigInteger,
         nullable=False,
         default=0,
         comment='The total owed amount',
     )
-    concession_interest_rate = db.Column(
+    interest_rate = db.Column(
         db.REAL,
         nullable=False,
-        default=math.inf,
-        comment='An interest rate exclusive for this account, presumably more '
-                'advantageous for the account owner than the standard one. '
-                'Interest accumulates at an annual rate (in percents) that is '
-                'equal to the maximum of `concession_interest_rate` and '
-                '`standard_interest_rate`.',
+        default=0.0,
+        comment='Annual rate (in percents) at which interest accumulates on the '
+                'account. Will be the maximum of `debtor_policy.interest_rate` '
+                'and `account_policy.concession_interest_rate`.',
     )
     interest = db.Column(
         db.BigInteger,
@@ -82,7 +95,7 @@ class Account(db.Model):
         default=0,
         comment='The amount of interest accumulated on the account before `last_change_ts`, '
                 'but not added to the `balance` yet. Can be a negative number. `interest`'
-                'gets zeroed and added to the ballance one in while (like once per year).',
+                'gets zeroed and added to the ballance once in while (like once per year).',
     )
     locked_amount = db.Column(
         db.BigInteger,
@@ -94,8 +107,7 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=1,
-        comment='Incremented on every change in `balance`, `concession_interest_rate`, '
-                'or `standard_interest_rate`.',
+        comment='Incremented on every change in `balance` or `interest_rate`.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -107,14 +119,12 @@ class Account(db.Model):
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=get_now_utc,
-        comment='Updated on every account activity. Can be used to remove stale accounts.',
+        comment='Updated on owner activity. Can be used to remove stale accounts.',
     )
     __table_args__ = (
-        db.CheckConstraint(concession_interest_rate > -100.0),
+        db.CheckConstraint(interest_rate > -100.0),
         db.CheckConstraint(locked_amount >= 0),
     )
-
-    debtor_policy = db.relationship('DebtorPolicy')
 
 
 class PreparedTransfer(db.Model):
@@ -213,8 +223,7 @@ class AccountChangeSignal(Signal):
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     balance = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.BigInteger, nullable=False)
-    concession_interest_rate = db.Column(db.REAL, nullable=False)
-    standard_interest_rate = db.Column(db.REAL, nullable=False)
+    interest_rate = db.Column(db.REAL, nullable=False)
 
 
 class CommittedTransferSignal(Signal):
