@@ -86,7 +86,7 @@ def update_account_interest_rate(account, concession_interest_rate=None):
     if concession_interest_rate is not None:
         account.concession_interest_rate = concession_interest_rate
     account.standard_interest_rate = account.debtor_policy.interest_rate
-    _insert_account_change_signal(account)
+    _insert_account_change_signal(account, current_ts)
 
 
 @db.atomic
@@ -147,13 +147,13 @@ def _change_account_balance(account, delta, current_ts):
     current_principal = _recalc_account_current_principal(account, current_ts)
     account.interest = current_principal - account.balance
     account.balance += delta
-    account.last_change_seqnum += 1
-    account.last_change_ts = current_ts
     if delta != 0:
-        _insert_account_change_signal(account)
+        _insert_account_change_signal(account, current_ts)
 
 
-def _insert_account_change_signal(account):
+def _insert_account_change_signal(account, last_change_ts):
+    account.last_change_seqnum += 1
+    account.last_change_ts = last_change_ts
     db.session.add(AccountChangeSignal(
         debtor_id=account.debtor_id,
         creditor_id=account.creditor_id,
