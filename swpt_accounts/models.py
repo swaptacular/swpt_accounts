@@ -161,7 +161,7 @@ class PreparedTransfer(db.Model):
         db.BigInteger,
         nullable=False,
         default=lambda context: context.get_current_parameters()['amount'],
-        comment='This amount has been added to `account.locked_amount`.',
+        comment='This amount has been added to `sender_account.locked_amount`.',
     )
     prepared_at_ts = db.Column(
         db.TIMESTAMP(timezone=True),
