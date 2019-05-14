@@ -1,8 +1,9 @@
 import datetime
 import math
 from .extensions import db
-from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, MAX_INT64, \
-    AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, AccountPolicy
+from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
+    MIN_INT64, ISSUER_CREDITOR_ID, AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, \
+    AccountPolicy
 
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
@@ -95,14 +96,19 @@ def _get_account(account):
     instance = Account.get_instance(account)
     if instance is None:
         debtor_id, creditor_id = Account.get_pk_values(account)
-        debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True),
-        account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True),
-        standard_interest_rate = debtor_policy.interest_rate if debtor_policy else 0.0
-        concession_interest_rate = account_policy.interest_rate if account_policy else -100.0
+        if creditor_id == ISSUER_CREDITOR_ID:
+            # No interest should be calculated on issuer's account.
+            interest_rate = 0.0
+        else:
+            debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True),
+            account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True),
+            standard_interest_rate = debtor_policy.interest_rate if debtor_policy else 0.0
+            concession_interest_rate = account_policy.interest_rate if account_policy else -100.0
+            interest_rate = max(standard_interest_rate, concession_interest_rate)
         instance = Account(
             debtor_id=debtor_id,
             creditor_id=creditor_id,
-            interest_rate=max(standard_interest_rate, concession_interest_rate)
+            interest_rate=interest_rate,
         )
         with db.retry_on_integrity_error():
             db.session.add(instance)
