@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 051fb2ac62bd
+Revision ID: dc66771a1d97
 Revises: 
-Create Date: 2019-05-14 02:27:08.597341
+Create Date: 2019-05-14 23:30:14.421997
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '051fb2ac62bd'
+revision = 'dc66771a1d97'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,7 +23,7 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('balance', sa.BigInteger(), nullable=False, comment='The total owed amount'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account. Will be the maximum of `debtor_policy.interest_rate` and `account_policy.concession_interest_rate`.'),
-    sa.Column('interest', sa.BigInteger(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `balance` yet. Can be a negative number. `interest`gets zeroed and added to the ballance once in while (like once per year).'),
+    sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `balance` yet. Can be a negative number. `interest`gets zeroed and added to the ballance once in while (like once per year).'),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks'),
     sa.Column('last_change_seqnum', sa.BigInteger(), nullable=False, comment='Incremented on every change in `balance` or `interest_rate`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`.'),
@@ -38,7 +38,7 @@ def upgrade():
     sa.Column('change_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('balance', sa.BigInteger(), nullable=False),
-    sa.Column('interest', sa.BigInteger(), nullable=False),
+    sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_seqnum')
     )

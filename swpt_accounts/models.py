@@ -89,9 +89,9 @@ class Account(db.Model):
                 'and `account_policy.concession_interest_rate`.',
     )
     interest = db.Column(
-        db.BigInteger,
+        db.FLOAT,
         nullable=False,
-        default=0,
+        default=0.0,
         comment='The amount of interest accumulated on the account before `last_change_ts`, '
                 'but not added to the `balance` yet. Can be a negative number. `interest`'
                 'gets zeroed and added to the ballance once in while (like once per year).',
@@ -221,7 +221,7 @@ class AccountChangeSignal(Signal):
     change_seqnum = db.Column(db.BigInteger, primary_key=True)
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     balance = db.Column(db.BigInteger, nullable=False)
-    interest = db.Column(db.BigInteger, nullable=False)
+    interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
 
 

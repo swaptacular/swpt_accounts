@@ -1,5 +1,6 @@
 import datetime
 import math
+from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     MAX_INT64, ISSUER_CREDITOR_ID, AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, \
@@ -116,32 +117,27 @@ def _get_account(account):
 
 
 def _recalc_account_current_principal(account, current_ts):
-    principal = account.balance + account.interest
+    principal = account.balance + Decimal.from_float(account.interest)
     if principal > 0:
         try:
             k = math.log(1.0 + account.interest_rate / 100.0) / SECONDS_IN_YEAR
         except ValueError:
             # This can happen if the interest rate is -100.
-            return 0
-        if k != 0.0:
-            passed_seconds = max(0.0, (current_ts - account.last_change_ts).total_seconds())
-            p = principal * math.exp(k * passed_seconds)
-            if k > 0.0:
-                principal = max(principal, math.floor(p))
-            else:
-                principal = min(principal, math.ceil(p))
+            return Decimal(0)
+        passed_seconds = max(0.0, (current_ts - account.last_change_ts).total_seconds())
+        principal *= Decimal.from_float(math.exp(k * passed_seconds))
     return principal
 
 
 def _get_account_current_avl_balance(account, current_ts, ignore_interest=False):
     if ignore_interest:
         return account.balance - account.locked_amount
-    return _recalc_account_current_principal(account, current_ts) - account.locked_amount
+    return math.floor(_recalc_account_current_principal(account, current_ts)) - account.locked_amount
 
 
 def _change_account_balance(account, delta, current_ts):
     current_principal = _recalc_account_current_principal(account, current_ts)
-    account.interest = current_principal - account.balance
+    account.interest = float(current_principal - account.balance)
     account.balance += delta
     if delta != 0:
         _insert_account_change_signal(account, current_ts)
