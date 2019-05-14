@@ -125,7 +125,11 @@ def _recalc_account_current_principal(account, current_ts):
             return 0
         if k != 0.0:
             passed_seconds = max(0.0, (current_ts - account.last_change_ts).total_seconds())
-            principal = math.floor(principal * math.exp(k * passed_seconds))
+            p = principal * math.exp(k * passed_seconds)
+            if k > 0.0:
+                principal = max(principal, math.floor(p))
+            else:
+                principal = min(principal, math.ceil(p))
     return principal
 
 
