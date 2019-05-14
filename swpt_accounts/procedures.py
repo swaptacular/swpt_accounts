@@ -2,7 +2,7 @@ import datetime
 import math
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    MIN_INT64, ISSUER_CREDITOR_ID, AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, \
+    MAX_INT64, ISSUER_CREDITOR_ID, AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, \
     AccountPolicy
 
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
