@@ -116,13 +116,17 @@ def _get_account(account):
 
 
 def _recalc_account_current_principal(account, current_ts):
-    passed_seconds = max(0.0, (current_ts - account.last_change_ts).total_seconds())
-    try:
-        k = math.log(1 + account.interest_rate / 100) / SECONDS_IN_YEAR
-    except ValueError:
-        k = -math.inf  # the interest rate is -100
-    old_principal = max(0, account.balance + account.interest)
-    return math.floor(old_principal * math.exp(k * passed_seconds))
+    principal = account.balance + account.interest
+    if principal > 0:
+        try:
+            k = math.log(1 + account.interest_rate / 100) / SECONDS_IN_YEAR
+        except ValueError:
+            # This can happen if the interest rate is -100.
+            return 0
+        if k != 0.0:
+            passed_seconds = max(0.0, (current_ts - account.last_change_ts).total_seconds())
+            principal = math.floor(principal * math.exp(k * passed_seconds))
+    return principal
 
 
 def _get_account_current_avl_balance(account, current_ts, ignore_interest=False):
