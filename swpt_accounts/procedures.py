@@ -119,7 +119,7 @@ def _recalc_account_current_principal(account, current_ts):
     principal = account.balance + account.interest
     if principal > 0:
         try:
-            k = math.log(1 + account.interest_rate / 100) / SECONDS_IN_YEAR
+            k = math.log(1.0 + account.interest_rate / 100.0) / SECONDS_IN_YEAR
         except ValueError:
             # This can happen if the interest rate is -100.
             return 0
