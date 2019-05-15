@@ -7,6 +7,11 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
+
+# This is a special creditor ID. `(debtor_id, ISSUER_CREDITOR_ID)`
+# always refers to the account that issues all the credit. At any
+# time, the sum of the balances of all accounts (including the issuer
+# account) will be zero.
 ISSUER_CREDITOR_ID = MIN_INT64
 
 
