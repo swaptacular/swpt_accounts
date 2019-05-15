@@ -187,7 +187,7 @@ class PreparedTransfer(db.Model):
             ['account.debtor_id', 'account.creditor_id'],
             ondelete='CASCADE',
         ),
-        db.CheckConstraint(amount >= 0),
+        db.CheckConstraint(amount > 0),
         db.CheckConstraint(sender_locked_amount >= 0),
     )
 
