@@ -80,11 +80,6 @@ def execute_prepared_transfer(pt, committed_amount, transfer_info):
             _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_info)
 
 
-@db.atomic
-def get_debtor_creditor_ids(debtor_id):
-    return Account.query(Account.creditor_id).filter_by(debtor_id=debtor_id).all()
-
-
 def _get_account(account):
     instance = Account.get_instance(account)
     if instance is None:
