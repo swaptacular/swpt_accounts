@@ -26,22 +26,14 @@ def prepare_transfer(
         avl_balance_check_mode,
         lock_amount,
 ):
-    assert min_amount >= 0
-    assert max_amount >= 0
-    account = _get_account(account)
-    current_ts = datetime.datetime.now(tz=datetime.timezone.utc)
-    if avl_balance_check_mode == AVL_BALANCE_IGNORE:
-        avl_balance = MAX_INT64
-    elif avl_balance_check_mode == AVL_BALANCE_ONLY:
-        avl_balance = _get_account_current_avl_balance(account, current_ts, ignore_interest=True)
-    elif avl_balance_check_mode == AVL_BALANCE_WITH_INTEREST:
-        avl_balance = _get_account_current_avl_balance(account, current_ts, ignore_interest=False)
-    else:
-        raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
+    assert 0 < min_amount <= max_amount
+    account, avl_balance, current_ts = _get_account_current_avl_balance(account, avl_balance_check_mode)
     if avl_balance >= min_amount:
+        account = _get_or_create_account(account)
         amount = min(avl_balance, max_amount)
         locked_amount = amount if lock_amount else 0
         pt = _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, locked_amount)
+        db.session.flush()
         db.session.add(PreparedTransferSignal(
             debtor_id=pt.debtor_id,
             sender_creditor_id=pt.sender_creditor_id,
@@ -55,8 +47,9 @@ def prepare_transfer(
             coordinator_request_id=coordinator_request_id,
         ))
     else:
+        debtor_id, creditor_id = Account.get_pk_values(account)
         db.session.add(RejectedTransferSignal(
-            debtor_id=account.debtor_id,
+            debtor_id=debtor_id,
             coordinator_type=coordinator_type,
             coordinator_id=coordinator_id,
             coordinator_request_id=coordinator_request_id,
@@ -80,7 +73,7 @@ def execute_prepared_transfer(pt, committed_amount, transfer_info):
             _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_info)
 
 
-def _get_account(account):
+def _get_or_create_account(account):
     instance = Account.get_instance(account)
     if instance is None:
         debtor_id, creditor_id = Account.get_pk_values(account)
@@ -88,8 +81,8 @@ def _get_account(account):
             # No interest should be calculated on issuer's account.
             interest_rate = 0.0
         else:
-            debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True),
-            account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True),
+            debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True)
+            account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True)
             standard_interest_rate = debtor_policy.interest_rate if debtor_policy else 0.0
             concession_interest_rate = account_policy.interest_rate if account_policy else -100.0
             interest_rate = max(standard_interest_rate, concession_interest_rate)
@@ -116,10 +109,24 @@ def _recalc_account_current_principal(account, current_ts):
     return principal
 
 
-def _get_account_current_avl_balance(account, current_ts, ignore_interest=False):
-    if ignore_interest:
-        return account.balance - account.locked_amount
-    return math.floor(_recalc_account_current_principal(account, current_ts)) - account.locked_amount
+def _get_account_current_avl_balance(account, avl_balance_check_mode):
+    avl_balance = 0
+    current_ts = datetime.datetime.now(tz=datetime.timezone.utc)
+    if avl_balance_check_mode == AVL_BALANCE_IGNORE:
+        avl_balance = MAX_INT64
+    elif avl_balance_check_mode == AVL_BALANCE_ONLY:
+        instance = Account.get_instance(account)
+        if instance:
+            account = instance
+            avl_balance = account.balance - account.locked_amount
+    elif avl_balance_check_mode == AVL_BALANCE_WITH_INTEREST:
+        instance = Account.get_instance(account)
+        if instance:
+            account = instance
+            avl_balance = math.floor(_recalc_account_current_principal(account, current_ts)) - account.locked_amount
+    else:
+        raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
+    return account, avl_balance, current_ts
 
 
 def _change_account_balance(account, delta, current_ts):
@@ -181,7 +188,7 @@ def _delete_prepared_transfer(pt):
 def _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_info):
     assert committed_amount <= pt.amount
     sender_account = pt.sender_account
-    recipient_account = _get_account((pt.debtor_id, pt.recipient_creditor_id))
+    recipient_account = _get_or_create_account((pt.debtor_id, pt.recipient_creditor_id))
     _change_account_balance(sender_account, -committed_amount, committed_at_ts)
     _change_account_balance(recipient_account, committed_amount, committed_at_ts)
     if pt.coordinator_type != 'interest':
