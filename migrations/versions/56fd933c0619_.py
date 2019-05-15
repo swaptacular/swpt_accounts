@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: fe58fdc812a7
+Revision ID: 56fd933c0619
 Revises: 
-Create Date: 2019-05-15 15:20:30.555730
+Create Date: 2019-05-15 21:49:04.991639
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'fe58fdc812a7'
+revision = '56fd933c0619'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -97,7 +97,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False, comment='The payer'),
     sa.Column('transfer_id', sa.BigInteger(), autoincrement=True, nullable=False, comment='Along with `debtor_id` and `sender_creditor_id` uniquely identifies a transfer'),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, interest, circular.'),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, circular.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False, comment='The payee'),
     sa.Column('amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment="This amount has been added to sender's `account.locked_amount`."),

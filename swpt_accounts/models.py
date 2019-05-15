@@ -164,7 +164,7 @@ class PreparedTransfer(db.Model):
         nullable=False,
         comment='Indicates which subsystem has initiated the transfer and is responsible for '
                 'finalizing it. The value must be a valid python identifier, all lowercase, '
-                'no double underscores. Example: direct, interest, circular.',
+                'no double underscores. Example: direct, circular.',
     )
     recipient_creditor_id = db.Column(
         db.BigInteger,
