@@ -27,7 +27,7 @@ def prepare_transfer(
         lock_amount,
 ):
     assert 0 < min_amount <= max_amount
-    account, avl_balance, current_ts = _get_account_current_avl_balance(account, avl_balance_check_mode)
+    account, avl_balance = _get_account_avl_balance(account, avl_balance_check_mode)
     if avl_balance >= min_amount:
         account = _get_or_create_account(account)
         amount = min(avl_balance, max_amount)
@@ -109,9 +109,8 @@ def _recalc_account_current_principal(account, current_ts):
     return principal
 
 
-def _get_account_current_avl_balance(account, avl_balance_check_mode):
+def _get_account_avl_balance(account, avl_balance_check_mode):
     avl_balance = 0
-    current_ts = datetime.datetime.now(tz=datetime.timezone.utc)
     if avl_balance_check_mode == AVL_BALANCE_IGNORE:
         avl_balance = MAX_INT64
     elif avl_balance_check_mode == AVL_BALANCE_ONLY:
@@ -123,10 +122,11 @@ def _get_account_current_avl_balance(account, avl_balance_check_mode):
         instance = Account.get_instance(account)
         if instance:
             account = instance
+            current_ts = datetime.datetime.now(tz=datetime.timezone.utc)
             avl_balance = math.floor(_recalc_account_current_principal(account, current_ts)) - account.locked_amount
     else:
         raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
-    return account, avl_balance, current_ts
+    return account, avl_balance
 
 
 def _change_account_balance(account, delta, current_ts):
