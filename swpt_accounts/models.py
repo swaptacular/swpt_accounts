@@ -128,12 +128,6 @@ class Account(db.Model):
         default=get_now_utc,
         comment='Updated on every increment of `last_change_seqnum`.',
     )
-    last_activity_date = db.Column(
-        db.DATE,
-        nullable=False,
-        default=lambda: get_now_utc().date(),
-        comment='Updated on owner activity. Can be used to remove stale accounts.',
-    )
     status = db.Column(
         db.SmallInteger,
         nullable=False,
