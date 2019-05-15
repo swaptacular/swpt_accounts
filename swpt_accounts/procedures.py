@@ -197,7 +197,8 @@ def _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_in
     _change_account_balance(sender_account, -committed_amount, committed_at_ts)
     _change_account_balance(recipient_account, committed_amount, committed_at_ts)
     if pt.coordinator_type != 'interest':
-        sender_account.last_activity_ts = committed_at_ts
-        recipient_account.last_activity_ts = committed_at_ts
+        committed_at_date = committed_at_ts.date()
+        sender_account.last_activity_date = committed_at_date
+        recipient_account.last_activity_date = committed_at_date
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
     _delete_prepared_transfer(pt)
