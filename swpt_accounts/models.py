@@ -3,14 +3,23 @@ import dramatiq
 from sqlalchemy.dialects import postgresql as pg
 from .extensions import db, broker
 
+MIN_INT32 = -1 << 31
+MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 ISSUER_CREDITOR_ID = MIN_INT64
-BEGINNING_OF_TIME = datetime.datetime(datetime.MINYEAR, 1, 1, tzinfo=datetime.timezone.utc)
 
 
 def get_now_utc():
     return datetime.datetime.now(tz=datetime.timezone.utc)
+
+
+def increment_seqnum(n):
+    return MIN_INT32 if n == MAX_INT32 else n + 1
+
+
+def is_later_seqnum(n, previous):
+    return previous is None or 0 < (n - previous) % 0x100000000 < 0x80000000
 
 
 class Signal(db.Model):
@@ -50,7 +59,7 @@ class DebtorPolicy(db.Model):
         default=0.0,
         comment='The standard annual interest rate (in percents) determined by the debtor.',
     )
-    last_interest_rate_change_seqnum = db.Column(db.BigInteger)
+    last_change_seqnum = db.Column(db.Integer)
     __table_args__ = (
         db.CheckConstraint(interest_rate > -100.0),
     )
@@ -65,7 +74,7 @@ class AccountPolicy(db.Model):
         default=-100.0,
         comment='An annual interest rate (in percents), offered exclusively for this account.',
     )
-    last_concession_interest_rate_change_seqnum = db.Column(db.BigInteger)
+    last_change_seqnum = db.Column(db.Integer)
     __table_args__ = (
         db.CheckConstraint(concession_interest_rate >= -100.0),
     )
@@ -103,10 +112,10 @@ class Account(db.Model):
         comment='The total sum of all pending transfer locks',
     )
     last_change_seqnum = db.Column(
-        db.BigInteger,
+        db.Integer,
         nullable=False,
         default=1,
-        comment='Incremented on every change in `balance` or `interest_rate`.',
+        comment='Incremented (with wrapping) on every change in `balance` or `interest_rate`.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -119,6 +128,12 @@ class Account(db.Model):
         nullable=False,
         default=lambda: get_now_utc().date(),
         comment='Updated on owner activity. Can be used to remove stale accounts.',
+    )
+    status = db.Column(
+        db.SmallInteger,
+        nullable=False,
+        default=0,
+        comment='Additional account status flags.',
     )
     __table_args__ = (
         db.CheckConstraint(interest_rate > -100.0),
@@ -218,11 +233,12 @@ class RejectedTransferSignal(Signal):
 class AccountChangeSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    change_seqnum = db.Column(db.BigInteger, primary_key=True)
+    change_seqnum = db.Column(db.Integer, primary_key=True)
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     balance = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False)
 
 
 class CommittedTransferSignal(Signal):

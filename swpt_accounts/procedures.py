@@ -4,7 +4,7 @@ from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     MAX_INT64, ISSUER_CREDITOR_ID, AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, \
-    AccountPolicy
+    AccountPolicy, increment_seqnum
 
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
@@ -85,14 +85,6 @@ def get_debtor_creditor_ids(debtor_id):
     return Account.query(Account.creditor_id).filter_by(debtor_id=debtor_id).all()
 
 
-def _is_later_seqnum(seqnum, previous):
-    return (
-        previous is None
-        or (seqnum > previous)
-        or (seqnum < 0 and previous >= 0)  # a negative seqnum reset
-    )
-
-
 def _get_account(account):
     instance = Account.get_instance(account)
     if instance is None:
@@ -144,7 +136,7 @@ def _change_account_balance(account, delta, current_ts):
 
 
 def _insert_account_change_signal(account, last_change_ts):
-    account.last_change_seqnum += 1
+    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
     account.last_change_ts = last_change_ts
     db.session.add(AccountChangeSignal(
         debtor_id=account.debtor_id,
@@ -154,6 +146,7 @@ def _insert_account_change_signal(account, last_change_ts):
         balance=account.ballance,
         interest=account.interest,
         interest_rate=account.interest_rate,
+        status=account.status,
     ))
 
 
