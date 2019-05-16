@@ -78,6 +78,7 @@ def _get_or_create_account(account):
     if instance is None:
         debtor_id, creditor_id = Account.get_pk_values(account)
         if creditor_id == ISSUER_CREDITOR_ID:
+            # TODO: Get issuer'a creditor_id from debtor_policy.
             # No interest should be calculated on issuer's account.
             interest_rate = 0.0
         else:
@@ -93,6 +94,11 @@ def _get_or_create_account(account):
         )
         with db.retry_on_integrity_error():
             db.session.add(instance)
+
+    # Clear deletion flags if set.
+    if instance.status & Account.STATUS_DELETED_FLAG:
+        instance.status &= ~(Account.STATUS_DELETED_FLAG | Account.STATUS_DELETION_CONFIRMED_FLAG)
+
     return instance
 
 
