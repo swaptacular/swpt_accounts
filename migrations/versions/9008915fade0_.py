@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f111bf23ab35
+Revision ID: 9008915fade0
 Revises: 
-Create Date: 2019-05-15 22:15:20.531770
+Create Date: 2019-05-16 16:14:47.884748
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'f111bf23ab35'
+revision = '9008915fade0'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -65,6 +65,7 @@ def upgrade():
     )
     op.create_table('debtor_policy',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('issuer_creditor_id', sa.BigInteger(), nullable=True, comment='The creditor ID of the issuer account. `debtor_id` and `issuer_creditor_id` refer to the account that issues credit for this debtor. At any time, the sum of the balances of all accounts (including the issuer account) of a given debtor will be zero.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='The standard annual interest rate (in percents) determined by the debtor.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=True),
     sa.CheckConstraint('interest_rate > -100.0'),

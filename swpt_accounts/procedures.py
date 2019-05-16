@@ -76,29 +76,45 @@ def _get_or_create_account(account):
     instance = Account.get_instance(account)
     if instance is None:
         debtor_id, creditor_id = Account.get_pk_values(account)
-        if creditor_id == ISSUER_CREDITOR_ID:
-            # TODO: Get issuer'a creditor_id from debtor_policy.
-            # No interest should be calculated on issuer's account.
-            interest_rate = 0.0
-        else:
-            debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True)
-            account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True)
-            standard_interest_rate = debtor_policy.interest_rate if debtor_policy else 0.0
-            concession_interest_rate = account_policy.interest_rate if account_policy else -100.0
-            interest_rate = max(standard_interest_rate, concession_interest_rate)
         instance = Account(
             debtor_id=debtor_id,
             creditor_id=creditor_id,
-            interest_rate=interest_rate,
+            interest_rate=_calc_account_interest_rate(account),
         )
         with db.retry_on_integrity_error():
             db.session.add(instance)
-
-    # Clear deletion flags if set.
     if instance.status & Account.STATUS_DELETED_FLAG:
-        instance.status &= ~(Account.STATUS_DELETED_FLAG | Account.STATUS_DELETION_CONFIRMED_FLAG)
-
+        _resurrect_deleted_account(instance)
     return instance
+
+
+def _resurrect_deleted_account(account):
+    assert account.balance == 0
+    assert account.locked_amount == 0
+    assert account.interest == 0.0
+    account.status = 0
+    account.interest_rate = _calc_account_interest_rate(account)
+
+
+def _calc_account_interest_rate(account):
+    debtor_id, creditor_id = Account.get_pk_values(account)
+
+    debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True)
+    if debtor_policy:
+        if creditor_id == debtor_policy.issuer_creditor_id:
+            # No interest should ever be calculated on issuer's account.
+            return 0.0
+        standard_interest_rate = debtor_policy.interest_rate
+    else:
+        standard_interest_rate = 0.0
+
+    account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True)
+    if account_policy:
+        concession_interest_rate = account_policy.interest_rate
+    else:
+        concession_interest_rate = -100.0
+
+    return max(standard_interest_rate, concession_interest_rate)
 
 
 def _calc_account_current_principal(account, current_ts) -> Decimal:
