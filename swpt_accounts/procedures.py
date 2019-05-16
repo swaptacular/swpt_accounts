@@ -135,11 +135,11 @@ def _get_account_avl_balance(account, avl_balance_check_mode):
     return account, avl_balance
 
 
-def _change_account_balance(account, delta, current_ts):
+def _change_account_balance(account, amount_delta, current_ts):
     current_principal = _calc_account_current_principal(account, current_ts)
     account.interest = float(current_principal - account.balance)
-    account.balance += delta
-    if delta != 0:
+    account.balance += amount_delta
+    if amount_delta != 0:
         _insert_account_change_signal(account, current_ts)
 
 
