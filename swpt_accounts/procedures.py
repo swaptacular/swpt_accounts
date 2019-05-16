@@ -32,8 +32,7 @@ def prepare_transfer(
         account = _get_or_create_account(account)
         amount = min(avl_balance, max_amount)
         locked_amount = amount if lock_amount else 0
-        pt = _insert_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, locked_amount)
-        db.session.flush()
+        pt = _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, locked_amount)
         db.session.add(PreparedTransferSignal(
             debtor_id=pt.debtor_id,
             sender_creditor_id=pt.sender_creditor_id,
@@ -102,7 +101,7 @@ def _get_or_create_account(account):
     return instance
 
 
-def _recalc_account_current_principal(account, current_ts):
+def _calc_account_current_principal(account, current_ts) -> Decimal:
     principal = account.balance + Decimal.from_float(account.interest)
     if principal > 0:
         try:
@@ -129,14 +128,15 @@ def _get_account_avl_balance(account, avl_balance_check_mode):
         if instance:
             account = instance
             current_ts = datetime.datetime.now(tz=datetime.timezone.utc)
-            avl_balance = math.floor(_recalc_account_current_principal(account, current_ts)) - account.locked_amount
+            current_principal = _calc_account_current_principal(account, current_ts)
+            avl_balance = math.floor(current_principal) - account.locked_amount
     else:
         raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
     return account, avl_balance
 
 
 def _change_account_balance(account, delta, current_ts):
-    current_principal = _recalc_account_current_principal(account, current_ts)
+    current_principal = _calc_account_current_principal(account, current_ts)
     account.interest = float(current_principal - account.balance)
     account.balance += delta
     if delta != 0:
@@ -158,6 +158,20 @@ def _insert_account_change_signal(account, last_change_ts):
     ))
 
 
+def _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, sender_locked_amount):
+    account.locked_amount += sender_locked_amount
+    pt = PreparedTransfer(
+        sender_account=account,
+        coordinator_type=coordinator_type,
+        recipient_creditor_id=recipient_creditor_id,
+        amount=amount,
+        sender_locked_amount=sender_locked_amount,
+    )
+    db.session.add(pt)
+    db.session.flush()
+    return pt
+
+
 def _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info):
     db.session.add(CommittedTransferSignal(
         debtor_id=pt.debtor_id,
@@ -170,19 +184,6 @@ def _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, tra
         committed_amount=committed_amount,
         transfer_info=transfer_info,
     ))
-
-
-def _insert_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, sender_locked_amount):
-    account.locked_amount += sender_locked_amount
-    pt = PreparedTransfer(
-        sender_account=account,
-        coordinator_type=coordinator_type,
-        recipient_creditor_id=recipient_creditor_id,
-        amount=amount,
-        sender_locked_amount=sender_locked_amount,
-    )
-    db.session.add(pt)
-    return pt
 
 
 def _delete_prepared_transfer(pt):
