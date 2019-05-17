@@ -1,5 +1,6 @@
 import datetime
 import math
+from typing import Tuple
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
@@ -29,7 +30,7 @@ def prepare_transfer(
     assert 0 < min_amount <= max_amount
     account, avl_balance = _get_account_avl_balance(account, avl_balance_check_mode)
     if avl_balance >= min_amount:
-        account = _get_or_create_account(account)
+        account = _get_or_create_account_instance(account)
         amount = min(avl_balance, max_amount)
         locked_amount = amount if lock_amount else 0
         pt = _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, locked_amount)
@@ -87,7 +88,7 @@ def _insert_account_change_signal(account, last_change_ts=None):
     ))
 
 
-def _calc_account_interest_rate(account):
+def _calc_account_interest_rate(account) -> float:
     debtor_id, creditor_id = Account.get_pk_values(account)
     debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True)
     account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True)
@@ -96,7 +97,7 @@ def _calc_account_interest_rate(account):
     return max(standard_interest_rate, concession_interest_rate)
 
 
-def _create_account(debtor_id, creditor_id):
+def _create_account(debtor_id, creditor_id) -> Account:
     account = Account(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
@@ -108,39 +109,35 @@ def _create_account(debtor_id, creditor_id):
     return account
 
 
-def _resurrect_deleted_account(account):
-    assert account.balance == 0
-    assert account.locked_amount == 0
-    assert account.interest == 0.0
-    account.status = 0
-    account.interest_rate = _calc_account_interest_rate(account)
-    _insert_account_change_signal(account)
+def _resurrect_account_if_deleted(account):
+    if account.status & Account.STATUS_DELETED_FLAG:
+        assert account.balance == 0
+        assert account.locked_amount == 0
+        assert account.interest == 0.0
+        account.status = 0
+        account.interest_rate = _calc_account_interest_rate(account)
+        _insert_account_change_signal(account)
 
 
-def _get_or_create_account(account):
+def _get_or_create_account_instance(account) -> Account:
     instance = Account.get_instance(account)
     if instance is None:
         debtor_id, creditor_id = Account.get_pk_values(account)
         instance = _create_account(debtor_id, creditor_id)
-    elif instance.status & Account.STATUS_DELETED_FLAG:
-        _resurrect_deleted_account(instance)
+    _resurrect_account_if_deleted(instance)
     return instance
 
 
 def _calc_account_current_principal(account, current_ts) -> Decimal:
     principal = account.balance + Decimal.from_float(account.interest)
     if principal > 0:
-        try:
-            k = math.log(1.0 + account.interest_rate / 100.0) / SECONDS_IN_YEAR
-        except ValueError:
-            # This can happen if the interest rate is -100.
-            return Decimal(0)
+        k = math.log(1.0 + account.interest_rate / 100.0) / SECONDS_IN_YEAR
         passed_seconds = max(0.0, (current_ts - account.last_change_ts).total_seconds())
         principal *= Decimal.from_float(math.exp(k * passed_seconds))
     return principal
 
 
-def _get_account_avl_balance(account, avl_balance_check_mode):
+def _get_account_avl_balance(account, avl_balance_check_mode) -> Tuple[Account, int]:
     avl_balance = 0
     if avl_balance_check_mode == AVL_BALANCE_IGNORE:
         avl_balance = MAX_INT64
@@ -161,7 +158,8 @@ def _get_account_avl_balance(account, avl_balance_check_mode):
     return account, avl_balance
 
 
-def _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, sender_locked_amount):
+def _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount,
+                              sender_locked_amount) -> PreparedTransfer:
     account.locked_amount += sender_locked_amount
     pt = PreparedTransfer(
         sender_account=account,
@@ -206,7 +204,7 @@ def _delete_prepared_transfer(pt):
 def _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_info):
     assert committed_amount <= pt.amount
     sender_account = pt.sender_account
-    recipient_account = _get_or_create_account((pt.debtor_id, pt.recipient_creditor_id))
+    recipient_account = _get_or_create_account_instance((pt.debtor_id, pt.recipient_creditor_id))
     _change_account_balance(sender_account, -committed_amount, committed_at_ts)
     _change_account_balance(recipient_account, committed_amount, committed_at_ts)
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
