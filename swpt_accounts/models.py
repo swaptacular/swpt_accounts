@@ -58,13 +58,6 @@ class Signal(db.Model):
 
 class DebtorPolicy(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    issuer_creditor_id = db.Column(
-        db.BigInteger,
-        comment='The creditor ID of the issuer account. `debtor_id` and `issuer_creditor_id` '
-                'refer to the account that issues credit for this debtor. At any time, the '
-                'sum of the balances of all accounts (including the issuer account) of a '
-                'given debtor will be zero.',
-    )
     interest_rate = db.Column(
         db.REAL,
         nullable=False,
@@ -130,7 +123,8 @@ class Account(db.Model):
         db.Integer,
         nullable=False,
         default=1,
-        comment='Incremented (with wrapping) on every change in `balance` or `interest_rate`.',
+        comment='Incremented (with wrapping) on every change in `balance`, `interest_rate` '
+                'or `status`.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),

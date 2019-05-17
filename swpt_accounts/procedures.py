@@ -3,8 +3,8 @@ import math
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    MAX_INT64, ISSUER_CREDITOR_ID, AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, \
-    AccountPolicy, increment_seqnum
+    MAX_INT64, AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, AccountPolicy, \
+    increment_seqnum
 
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
@@ -72,20 +72,40 @@ def execute_prepared_transfer(pt, committed_amount, transfer_info):
             _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_info)
 
 
-def _get_or_create_account(account):
-    instance = Account.get_instance(account)
-    if instance is None:
-        debtor_id, creditor_id = Account.get_pk_values(account)
-        instance = Account(
-            debtor_id=debtor_id,
-            creditor_id=creditor_id,
-            interest_rate=_calc_account_interest_rate(account),
-        )
-        with db.retry_on_integrity_error():
-            db.session.add(instance)
-    if instance.status & Account.STATUS_DELETED_FLAG:
-        _resurrect_deleted_account(instance)
-    return instance
+def _insert_account_change_signal(account, last_change_ts=None):
+    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+    account.last_change_ts = last_change_ts or datetime.datetime.now(tz=datetime.timezone.utc)
+    db.session.add(AccountChangeSignal(
+        debtor_id=account.debtor_id,
+        creditor_id=account.creditor_id,
+        change_seqnum=account.last_change_seqnum,
+        change_ts=account.last_change_ts,
+        balance=account.ballance,
+        interest=account.interest,
+        interest_rate=account.interest_rate,
+        status=account.status,
+    ))
+
+
+def _calc_account_interest_rate(account):
+    debtor_id, creditor_id = Account.get_pk_values(account)
+    debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True)
+    account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True)
+    standard_interest_rate = debtor_policy.interest_rate if debtor_policy else 0.0
+    concession_interest_rate = account_policy.interest_rate if account_policy else -100.0
+    return max(standard_interest_rate, concession_interest_rate)
+
+
+def _create_account(debtor_id, creditor_id):
+    account = Account(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        interest_rate=_calc_account_interest_rate((debtor_id, creditor_id)),
+    )
+    with db.retry_on_integrity_error():
+        db.session.add(account)
+    _insert_account_change_signal(account)
+    return account
 
 
 def _resurrect_deleted_account(account):
@@ -94,27 +114,17 @@ def _resurrect_deleted_account(account):
     assert account.interest == 0.0
     account.status = 0
     account.interest_rate = _calc_account_interest_rate(account)
+    _insert_account_change_signal(account)
 
 
-def _calc_account_interest_rate(account):
-    debtor_id, creditor_id = Account.get_pk_values(account)
-
-    debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True)
-    if debtor_policy:
-        if creditor_id == debtor_policy.issuer_creditor_id:
-            # No interest should ever be calculated on issuer's account.
-            return 0.0
-        standard_interest_rate = debtor_policy.interest_rate
-    else:
-        standard_interest_rate = 0.0
-
-    account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True)
-    if account_policy:
-        concession_interest_rate = account_policy.interest_rate
-    else:
-        concession_interest_rate = -100.0
-
-    return max(standard_interest_rate, concession_interest_rate)
+def _get_or_create_account(account):
+    instance = Account.get_instance(account)
+    if instance is None:
+        debtor_id, creditor_id = Account.get_pk_values(account)
+        instance = _create_account(debtor_id, creditor_id)
+    elif instance.status & Account.STATUS_DELETED_FLAG:
+        _resurrect_deleted_account(instance)
+    return instance
 
 
 def _calc_account_current_principal(account, current_ts) -> Decimal:
@@ -151,29 +161,6 @@ def _get_account_avl_balance(account, avl_balance_check_mode):
     return account, avl_balance
 
 
-def _change_account_balance(account, balance_delta, current_ts):
-    current_principal = _calc_account_current_principal(account, current_ts)
-    account.interest = float(current_principal - account.balance)
-    account.balance += balance_delta
-    if balance_delta != 0:
-        _insert_account_change_signal(account, current_ts)
-
-
-def _insert_account_change_signal(account, last_change_ts):
-    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
-    account.last_change_ts = last_change_ts
-    db.session.add(AccountChangeSignal(
-        debtor_id=account.debtor_id,
-        creditor_id=account.creditor_id,
-        change_seqnum=account.last_change_seqnum,
-        change_ts=account.last_change_ts,
-        balance=account.ballance,
-        interest=account.interest,
-        interest_rate=account.interest_rate,
-        status=account.status,
-    ))
-
-
 def _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, sender_locked_amount):
     account.locked_amount += sender_locked_amount
     pt = PreparedTransfer(
@@ -200,6 +187,14 @@ def _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, tra
         committed_amount=committed_amount,
         transfer_info=transfer_info,
     ))
+
+
+def _change_account_balance(account, balance_delta, current_ts):
+    current_principal = _calc_account_current_principal(account, current_ts)
+    account.interest = float(current_principal - account.balance)
+    account.balance += balance_delta
+    if balance_delta != 0:
+        _insert_account_change_signal(account, current_ts)
 
 
 def _delete_prepared_transfer(pt):

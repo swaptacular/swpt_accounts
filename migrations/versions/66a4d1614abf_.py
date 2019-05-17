@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9008915fade0
+Revision ID: 66a4d1614abf
 Revises: 
-Create Date: 2019-05-16 16:14:47.884748
+Create Date: 2019-05-17 12:54:02.522837
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '9008915fade0'
+revision = '66a4d1614abf'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -25,7 +25,7 @@ def upgrade():
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account. Will be the maximum of `debtor_policy.interest_rate` and `account_policy.concession_interest_rate`.'),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `balance` yet. Can be a negative number. `interest`gets zeroed and added to the ballance once in while (like once per year).'),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks'),
-    sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `balance` or `interest_rate`.'),
+    sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `balance`, `interest_rate` or `status`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
     sa.CheckConstraint('interest_rate > -100.0'),
@@ -65,7 +65,6 @@ def upgrade():
     )
     op.create_table('debtor_policy',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('issuer_creditor_id', sa.BigInteger(), nullable=True, comment='The creditor ID of the issuer account. `debtor_id` and `issuer_creditor_id` refer to the account that issues credit for this debtor. At any time, the sum of the balances of all accounts (including the issuer account) of a given debtor will be zero.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='The standard annual interest rate (in percents) determined by the debtor.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=True),
     sa.CheckConstraint('interest_rate > -100.0'),
