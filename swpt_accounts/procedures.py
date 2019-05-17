@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timezone
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
@@ -74,7 +74,7 @@ def execute_prepared_transfer(pt: PreparedTransferId, committed_amount: int, tra
             _commit_prepared_transfer(instance, committed_amount, committed_at_ts, transfer_info)
 
 
-def _insert_account_change_signal(account: Account, last_change_ts: datetime = None) -> None:
+def _insert_account_change_signal(account: Account, last_change_ts: Optional[datetime] = None) -> None:
     account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
     account.last_change_ts = last_change_ts or datetime.now(tz=timezone.utc)
     db.session.add(AccountChangeSignal(
