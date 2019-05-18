@@ -1,12 +1,14 @@
 import math
 from datetime import datetime, timezone
-from typing import Tuple, Union, Optional
+from typing import TypeVar, Tuple, Dict, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     MAX_INT64, AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, AccountPolicy, \
     increment_seqnum
 
+T = TypeVar('T')
+atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 PreparedTransferId = Union[PreparedTransfer, Tuple[int, int, int]]
 
@@ -18,8 +20,9 @@ AVL_BALANCE_ONLY = 1
 AVL_BALANCE_WITH_INTEREST = 2
 
 
-@db.atomic
-def prepare_transfer(coordinator_type: str,
+@atomic
+def prepare_transfer(*,
+                     coordinator_type: str,
                      coordinator_id: int,
                      coordinator_request_id: int,
                      account: AccountId,
@@ -62,8 +65,8 @@ def prepare_transfer(coordinator_type: str,
         ))
 
 
-@db.atomic
-def execute_prepared_transfer(pt: PreparedTransferId, committed_amount: int, transfer_info: dict) -> None:
+@atomic
+def execute_prepared_transfer(pt: PreparedTransferId, committed_amount: int, transfer_info: Dict) -> None:
     assert committed_amount >= 0
     instance = PreparedTransfer.get_instance(pt, db.joinedload('sender_account', innerjoin=True))
     if instance:
@@ -180,7 +183,7 @@ def _create_prepared_transfer(account: Account,
 def _insert_committed_transfer_signal(pt: PreparedTransfer,
                                       committed_amount: int,
                                       committed_at_ts: datetime,
-                                      transfer_info: dict) -> None:
+                                      transfer_info: Dict) -> None:
     db.session.add(CommittedTransferSignal(
         debtor_id=pt.debtor_id,
         sender_creditor_id=pt.sender_creditor_id,
@@ -211,7 +214,7 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
 def _commit_prepared_transfer(pt: PreparedTransfer,
                               committed_amount: int,
                               committed_at_ts: datetime,
-                              transfer_info: dict) -> None:
+                              transfer_info: Dict) -> None:
     assert committed_amount <= pt.amount
     sender_account = pt.sender_account
     recipient_account = _get_or_create_account_instance((pt.debtor_id, pt.recipient_creditor_id))

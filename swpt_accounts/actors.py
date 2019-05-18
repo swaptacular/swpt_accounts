@@ -59,15 +59,15 @@ def prepare_transfer(
     """
 
     procedures.prepare_transfer(
-        coordinator_type,
-        coordinator_id,
-        coordinator_request_id,
-        (debtor_id, sender_creditor_id),
-        min_amount,
-        max_amount,
-        recipient_creditor_id,
-        avl_balance_check_mode,
-        lock_amount,
+        coordinator_type=coordinator_type,
+        coordinator_id=coordinator_id,
+        coordinator_request_id=coordinator_request_id,
+        account=(debtor_id, sender_creditor_id),
+        min_amount=min_amount,
+        max_amount=max_amount,
+        recipient_creditor_id=recipient_creditor_id,
+        avl_balance_check_mode=avl_balance_check_mode,
+        lock_amount=lock_amount,
     )
 
 
