@@ -66,7 +66,7 @@ def prepare_transfer(*,
 
 
 @atomic
-def execute_prepared_transfer(pt: PreparedTransferId, committed_amount: int, transfer_info: Dict) -> None:
+def execute_prepared_transfer(pt: PreparedTransferId, committed_amount: int, transfer_info: dict) -> None:
     assert committed_amount >= 0
     instance = PreparedTransfer.get_instance(pt, db.joinedload('sender_account', innerjoin=True))
     if instance:
@@ -183,7 +183,7 @@ def _create_prepared_transfer(account: Account,
 def _insert_committed_transfer_signal(pt: PreparedTransfer,
                                       committed_amount: int,
                                       committed_at_ts: datetime,
-                                      transfer_info: Dict) -> None:
+                                      transfer_info: dict) -> None:
     db.session.add(CommittedTransferSignal(
         debtor_id=pt.debtor_id,
         sender_creditor_id=pt.sender_creditor_id,
@@ -214,7 +214,7 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
 def _commit_prepared_transfer(pt: PreparedTransfer,
                               committed_amount: int,
                               committed_at_ts: datetime,
-                              transfer_info: Dict) -> None:
+                              transfer_info: dict) -> None:
     assert committed_amount <= pt.amount
     sender_account = pt.sender_account
     recipient_account = _get_or_create_account_instance((pt.debtor_id, pt.recipient_creditor_id))
