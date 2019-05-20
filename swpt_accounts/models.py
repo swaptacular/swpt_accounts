@@ -23,10 +23,6 @@ def increment_seqnum(n):
     return MIN_INT32 if n == MAX_INT32 else n + 1
 
 
-def is_later_seqnum(n, previous):
-    return previous is None or 0 < (n - previous) % 0x100000000 < 0x80000000
-
-
 class Signal(db.Model):
     __abstract__ = True
 

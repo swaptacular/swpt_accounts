@@ -1,6 +1,7 @@
+import os
 import math
-from datetime import datetime, timezone
-from typing import TypeVar, Tuple, Dict, Union, Optional, Callable
+from datetime import datetime, timezone, timedelta
+from typing import TypeVar, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
@@ -12,12 +13,17 @@ atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 PreparedTransferId = Union[PreparedTransfer, Tuple[int, int, int]]
 
-SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
+# Environment variables:
+MAX_CLOCK_DEVIATION_SECONDS = int(os.environ.get('MAX_CLOCK_DEVIATION_SECS', '604800'))
 
 # Available balance check modes:
 AVL_BALANCE_IGNORE = 0
 AVL_BALANCE_ONLY = 1
 AVL_BALANCE_WITH_INTEREST = 2
+
+TD_ZERO = timedelta()
+TD_MAX_CLOCK_DEVIATION = timedelta(seconds=MAX_CLOCK_DEVIATION_SECONDS)
+SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
 
 @atomic
@@ -75,6 +81,18 @@ def execute_prepared_transfer(pt: PreparedTransferId, committed_amount: int, tra
         else:
             committed_at_ts = datetime.now(tz=timezone.utc)
             _commit_prepared_transfer(instance, committed_amount, committed_at_ts, transfer_info)
+
+
+def _is_later_event(event: Tuple[int, datetime],
+                    other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
+    seqnum, ts = event
+    other_seqnum, other_ts = other_event
+    lagging = (other_ts - ts) if other_ts else TD_ZERO
+    if lagging > TD_MAX_CLOCK_DEVIATION:
+        return False
+    if lagging < -TD_MAX_CLOCK_DEVIATION:
+        return True
+    return other_seqnum is None or 0 < (seqnum - other_seqnum) % 0x100000000 < 0x80000000
 
 
 def _insert_account_change_signal(account: Account, last_change_ts: Optional[datetime] = None) -> None:
