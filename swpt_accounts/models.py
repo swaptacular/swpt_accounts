@@ -65,6 +65,7 @@ class DebtorPolicy(db.Model):
         comment='The standard annual interest rate (in percents) determined by the debtor.',
     )
     last_change_seqnum = db.Column(db.Integer)
+    last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
     __table_args__ = (
         db.CheckConstraint(interest_rate > -100.0),
     )
@@ -80,6 +81,7 @@ class AccountPolicy(db.Model):
         comment='An annual interest rate (in percents), offered exclusively for this account.',
     )
     last_change_seqnum = db.Column(db.Integer)
+    last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
     __table_args__ = (
         db.CheckConstraint(concession_interest_rate >= -100.0),
     )
