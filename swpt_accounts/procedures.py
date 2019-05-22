@@ -96,8 +96,9 @@ def _is_later_event(event: Tuple[int, datetime],
 
 
 def _insert_account_change_signal(account: Account, last_change_ts: Optional[datetime] = None) -> None:
+    last_change_ts = last_change_ts or datetime.now(tz=timezone.utc)
     account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
-    account.last_change_ts = last_change_ts or datetime.now(tz=timezone.utc)
+    account.last_change_ts = max(account.last_change_ts, last_change_ts)
     db.session.add(AccountChangeSignal(
         debtor_id=account.debtor_id,
         creditor_id=account.creditor_id,
