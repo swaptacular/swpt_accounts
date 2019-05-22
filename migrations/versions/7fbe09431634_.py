@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 66a4d1614abf
+Revision ID: 7fbe09431634
 Revises: 
-Create Date: 2019-05-17 12:54:02.522837
+Create Date: 2019-05-22 13:47:41.716455
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '66a4d1614abf'
+revision = '7fbe09431634'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,7 +26,7 @@ def upgrade():
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `balance` yet. Can be a negative number. `interest`gets zeroed and added to the ballance once in while (like once per year).'),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `balance`, `interest_rate` or `status`.'),
-    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`.'),
+    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
     sa.CheckConstraint('interest_rate > -100.0'),
     sa.CheckConstraint('locked_amount >= 0'),
@@ -48,6 +48,7 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('concession_interest_rate', sa.REAL(), nullable=False, comment='An annual interest rate (in percents), offered exclusively for this account.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=True),
+    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.CheckConstraint('concession_interest_rate >= -100.0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id')
     )
@@ -67,6 +68,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='The standard annual interest rate (in percents) determined by the debtor.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=True),
+    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.CheckConstraint('interest_rate > -100.0'),
     sa.PrimaryKeyConstraint('debtor_id')
     )

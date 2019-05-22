@@ -127,7 +127,7 @@ class Account(db.Model):
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=get_now_utc,
-        comment='Updated on every increment of `last_change_seqnum`.',
+        comment='Updated on every increment of `last_change_seqnum`. Must never decrease.',
     )
     status = db.Column(
         db.SmallInteger,
