@@ -39,11 +39,12 @@ ENV PYTHONPATH="$APP_ROOT_DIR"
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY --from=compile-image /opt/venv /opt/venv
-COPY docker/ wsgi.py tasks.py ./
+COPY docker/ wsgi.py tasks.py pytest.ini ./
 RUN rm -f .env
 COPY migrations/ migrations/
+COPY tests/ tests/
 COPY $FLASK_APP/ $FLASK_APP/
-RUN python -m compileall -x '^\./migrations/' .
+RUN python -m compileall -x '^\./(migrations|tests)/' .
 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 CMD ["serve"]
