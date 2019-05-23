@@ -21,6 +21,7 @@ dramatiq = {git = "https://github.com/epandurski/dramatiq.git", extras = ["rabbi
 [tool.poetry.dev-dependencies]
 python-dotenv = ">=0.10.1"
 pytest = "^4.0"
+flake8 = "^3.7"
 pytest-pudb = "^0.7.0"
 pytest-mock = "^1.10"
 pytest-dotenv = "^0.4.0"
