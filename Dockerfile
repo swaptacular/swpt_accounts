@@ -24,13 +24,7 @@ RUN poetry config settings.virtualenvs.create false \
 # This is the second and final image. Starting from a clean alpine
 # image, it copies over the previously created virtual environment.
 FROM python:3.7.3-alpine3.9 AS runtime-image
-WORKDIR /usr/src/app
 ARG FLASK_APP=swpt_accounts
-
-RUN apk add --no-cache \
-    libffi \
-    postgresql-libs \
-    supervisor
 
 ENV FLASK_APP=$FLASK_APP
 ENV APP_ROOT_DIR=/usr/src/app
@@ -38,13 +32,25 @@ ENV APP_LOGGING_CONFIG_FILE="$APP_ROOT_DIR/$FLASK_APP/logging.conf"
 ENV PYTHONPATH="$APP_ROOT_DIR"
 ENV PATH="/opt/venv/bin:$PATH"
 
+RUN apk add --no-cache \
+    libffi \
+    postgresql-libs \
+    supervisor \
+    && addgroup -S "$FLASK_APP" \
+    && adduser -S -D -h "$APP_ROOT_DIR" "$FLASK_APP" "$FLASK_APP"
+
 COPY --from=compile-image /opt/venv /opt/venv
+
+WORKDIR /usr/src/app
+
 COPY docker/ wsgi.py tasks.py pytest.ini ./
-RUN rm -f .env
 COPY migrations/ migrations/
 COPY tests/ tests/
 COPY $FLASK_APP/ $FLASK_APP/
-RUN python -m compileall -x '^\./(migrations|tests)/' .
+RUN python -m compileall -x '^\./(migrations|tests)/' . \
+    && rm -f .env \
+    && chown -R "$FLASK_APP:$FLASK_APP" .
 
+USER $FLASK_APP
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 CMD ["serve"]
