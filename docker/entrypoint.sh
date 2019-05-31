@@ -46,6 +46,11 @@ case $1 in
         flask signalbus flush -w 0
         exec flask run --host=0.0.0.0 --port $PORT --without-threads "$@"
         ;;
+    test)
+        perform_db_upgrade
+        perform_initializations
+        exec pytest
+        ;;
     configure)
         flask db upgrade
         perform_initializations
