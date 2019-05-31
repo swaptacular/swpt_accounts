@@ -4,8 +4,7 @@ from typing import TypeVar, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    MAX_INT64, AccountChangeSignal, CommittedTransferSignal, DebtorPolicy, AccountPolicy, \
-    increment_seqnum
+    MAX_INT64, AccountChangeSignal, CommittedTransferSignal, increment_seqnum
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -106,20 +105,10 @@ def _insert_account_change_signal(account: Account, last_change_ts: Optional[dat
     ))
 
 
-def _calc_account_interest_rate(account: AccountId) -> float:
-    debtor_id, creditor_id = Account.get_pk_values(account)
-    debtor_policy = DebtorPolicy.lock_instance(debtor_id, read=True)
-    account_policy = AccountPolicy.lock_instance((debtor_id, creditor_id), read=True)
-    standard_interest_rate = debtor_policy.interest_rate if debtor_policy else 0.0
-    concession_interest_rate = account_policy.interest_rate if account_policy else -100.0
-    return max(standard_interest_rate, concession_interest_rate)
-
-
 def _create_account(debtor_id: int, creditor_id: int) -> Account:
     account = Account(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
-        interest_rate=_calc_account_interest_rate((debtor_id, creditor_id)),
     )
     with db.retry_on_integrity_error():
         db.session.add(account)
@@ -133,7 +122,7 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         assert account.locked_amount == 0
         assert account.interest == 0.0
         account.status = 0
-        account.interest_rate = _calc_account_interest_rate(account)
+        account.interest_rate = 0.0
         _insert_account_change_signal(account)
 
 

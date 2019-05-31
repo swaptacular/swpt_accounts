@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7fbe09431634
+Revision ID: 5f87fd3ba0cb
 Revises: 
-Create Date: 2019-05-22 13:47:41.716455
+Create Date: 2019-05-31 21:23:21.854343
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '7fbe09431634'
+revision = '5f87fd3ba0cb'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,7 +22,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('balance', sa.BigInteger(), nullable=False, comment='The total owed amount'),
-    sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account. Will be the maximum of `debtor_policy.interest_rate` and `account_policy.concession_interest_rate`.'),
+    sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account'),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `balance` yet. Can be a negative number. `interest`gets zeroed and added to the ballance once in while (like once per year).'),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `balance`, `interest_rate` or `status`.'),
@@ -43,15 +43,6 @@ def upgrade():
     sa.Column('status', sa.SmallInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_seqnum')
     )
-    op.create_table('account_policy',
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('concession_interest_rate', sa.REAL(), nullable=False, comment='An annual interest rate (in percents), offered exclusively for this account.'),
-    sa.Column('last_change_seqnum', sa.Integer(), nullable=True),
-    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
-    sa.CheckConstraint('concession_interest_rate >= -100.0'),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id')
-    )
     op.create_table('committed_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
@@ -63,14 +54,6 @@ def upgrade():
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id')
-    )
-    op.create_table('debtor_policy',
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('interest_rate', sa.REAL(), nullable=False, comment='The standard annual interest rate (in percents) determined by the debtor.'),
-    sa.Column('last_change_seqnum', sa.Integer(), nullable=True),
-    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
-    sa.CheckConstraint('interest_rate > -100.0'),
-    sa.PrimaryKeyConstraint('debtor_id')
     )
     op.create_table('prepared_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -116,9 +99,7 @@ def downgrade():
     op.drop_table('prepared_transfer')
     op.drop_table('rejected_transfer_signal')
     op.drop_table('prepared_transfer_signal')
-    op.drop_table('debtor_policy')
     op.drop_table('committed_transfer_signal')
-    op.drop_table('account_policy')
     op.drop_table('account_change_signal')
     op.drop_table('account')
     # ### end Alembic commands ###

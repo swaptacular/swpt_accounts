@@ -15,8 +15,8 @@ def prepare_transfer(
         sender_creditor_id: int,
         recipient_creditor_id: int,
         avl_balance_check_mode: int,
-        lock_amount: bool = True,
-):
+        lock_amount: bool = True):
+
     """Try to greedily secure an amount between `min_amount` and
    `max_amount`, to transfer it from sender's account (`debtor_id`,
    `sender_creditor_id`) to recipient's account (`debtor_id`,
@@ -78,8 +78,8 @@ def execute_prepared_transfer(
         sender_creditor_id: int,
         transfer_id: int,
         committed_amount: int,
-        transfer_info: dict,
-):
+        transfer_info: dict):
+
     """Execute a prepared transfer.
 
     To dismiss the transfer, `committed_amount` should be `0`.

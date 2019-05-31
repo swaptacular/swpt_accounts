@@ -52,37 +52,6 @@ class Signal(db.Model):
         broker.publish_message(message, exchange='')
 
 
-class DebtorPolicy(db.Model):
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    interest_rate = db.Column(
-        db.REAL,
-        nullable=False,
-        default=0.0,
-        comment='The standard annual interest rate (in percents) determined by the debtor.',
-    )
-    last_change_seqnum = db.Column(db.Integer)
-    last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
-    __table_args__ = (
-        db.CheckConstraint(interest_rate > -100.0),
-    )
-
-
-class AccountPolicy(db.Model):
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    concession_interest_rate = db.Column(
-        db.REAL,
-        nullable=False,
-        default=-100.0,
-        comment='An annual interest rate (in percents), offered exclusively for this account.',
-    )
-    last_change_seqnum = db.Column(db.Integer)
-    last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
-    __table_args__ = (
-        db.CheckConstraint(concession_interest_rate >= -100.0),
-    )
-
-
 class Account(db.Model):
     STATUS_DELETED_FLAG = 1
 
@@ -98,9 +67,7 @@ class Account(db.Model):
         db.REAL,
         nullable=False,
         default=0.0,
-        comment='Annual rate (in percents) at which interest accumulates on the '
-                'account. Will be the maximum of `debtor_policy.interest_rate` '
-                'and `account_policy.concession_interest_rate`.',
+        comment='Annual rate (in percents) at which interest accumulates on the account',
     )
     interest = db.Column(
         db.FLOAT,
