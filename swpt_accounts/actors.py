@@ -1,3 +1,5 @@
+from datetime import datetime
+from typing import Optional
 from .extensions import broker, APP_QUEUE_NAME
 from .procedures import AVL_BALANCE_IGNORE, AVL_BALANCE_ONLY, AVL_BALANCE_WITH_INTEREST  # noqa
 from . import procedures
@@ -91,3 +93,16 @@ def execute_prepared_transfer(
         committed_amount,
         transfer_info,
     )
+
+
+@broker.actor(queue_name=APP_QUEUE_NAME)
+def on_account_interest_rate_change_signal(
+        *,
+        debtor_id: int,
+        creditor_id: int,
+        old_interest_rate: Optional[float],
+        new_interest_rate: float,
+        change_ts: datetime,
+        change_seqnum: int):
+
+    """Change the interest rate on given account."""

@@ -123,6 +123,8 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         assert account.interest == 0.0
         account.status = 0
         account.interest_rate = 0.0
+        account.interest_rate_last_change_seqnum = None
+        account.interest_rate_last_change_ts = None
         _insert_account_change_signal(account)
 
 

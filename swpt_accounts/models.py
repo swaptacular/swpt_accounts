@@ -54,6 +54,7 @@ class Signal(db.Model):
 
 class Account(db.Model):
     STATUS_DELETED_FLAG = 1
+    STATUS_SETTLED_INTEREST_RATE_FLAG = 2
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -69,6 +70,8 @@ class Account(db.Model):
         default=0.0,
         comment='Annual rate (in percents) at which interest accumulates on the account',
     )
+    interest_rate_last_change_seqnum = db.Column(db.Integer)
+    interest_rate_last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
     interest = db.Column(
         db.FLOAT,
         nullable=False,
