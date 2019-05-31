@@ -8,12 +8,6 @@ MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 
-# This is a special creditor ID. `(debtor_id, ISSUER_CREDITOR_ID)`
-# always refers to the account that issues all the credit. At any
-# time, the sum of the balances of all accounts (including the issuer
-# account) will be zero.
-ISSUER_CREDITOR_ID = MIN_INT64
-
 
 def get_now_utc():
     return datetime.datetime.now(tz=datetime.timezone.utc)
@@ -62,7 +56,9 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='The total owed amount',
+        comment='The total owed amount. Can be negative. At any time, the sum of the '
+                'balances of all accounts (including the issuer account) for a given '
+                'debtor will be zero.',
     )
     interest_rate = db.Column(
         db.REAL,

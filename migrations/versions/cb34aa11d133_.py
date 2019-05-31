@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5f87fd3ba0cb
+Revision ID: cb34aa11d133
 Revises: 
-Create Date: 2019-05-31 21:23:21.854343
+Create Date: 2019-06-01 01:49:55.151498
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '5f87fd3ba0cb'
+revision = 'cb34aa11d133'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,8 +21,10 @@ def upgrade():
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('balance', sa.BigInteger(), nullable=False, comment='The total owed amount'),
+    sa.Column('balance', sa.BigInteger(), nullable=False, comment='The total owed amount. Can be negative. At any time, the sum of the balances of all accounts (including the issuer account) for a given debtor will be zero.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account'),
+    sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True),
+    sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `balance` yet. Can be a negative number. `interest`gets zeroed and added to the ballance once in while (like once per year).'),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `balance`, `interest_rate` or `status`.'),
