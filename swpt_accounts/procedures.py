@@ -91,7 +91,7 @@ def update_account_interest_rate(account: AccountId, interest_rate: float,
         if _is_later_event(this_update, prev_update):
             current_ts = datetime.now(tz=timezone.utc)
             current_principal = _calc_account_current_principal(instance, current_ts)
-            instance.interest = current_principal - instance.balance
+            instance.interest = float(current_principal - instance.balance)
             instance.interest_rate = interest_rate
             instance.interest_rate_last_change_seqnum = change_seqnum
             instance.interest_rate_last_change_ts = change_ts
