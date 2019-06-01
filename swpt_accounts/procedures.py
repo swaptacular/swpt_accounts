@@ -95,6 +95,7 @@ def update_account_interest_rate(account: AccountId, interest_rate: float,
             instance.interest_rate = interest_rate
             instance.interest_rate_last_change_seqnum = change_seqnum
             instance.interest_rate_last_change_ts = change_ts
+            instance.status = instance.status | Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
             _insert_account_change_signal(instance, current_ts)
 
 
@@ -227,8 +228,7 @@ def _change_account_balance(account: Account, balance_delta: int, current_ts: da
     current_principal = _calc_account_current_principal(account, current_ts)
     account.interest = float(current_principal - account.balance)
     account.balance += balance_delta
-    if balance_delta != 0:
-        _insert_account_change_signal(account, current_ts)
+    _insert_account_change_signal(account, current_ts)
 
 
 def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
