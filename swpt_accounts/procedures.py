@@ -17,6 +17,8 @@ AVL_BALANCE_ONLY = 1
 AVL_BALANCE_WITH_INTEREST = 2
 
 TD_ZERO = timedelta()
+TD_SECOND = timedelta(seconds=1)
+TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
 
@@ -82,8 +84,8 @@ def _is_later_event(event: Tuple[int, datetime],
     seqnum, ts = event
     other_seqnum, other_ts = other_event
     advance = (ts - other_ts) if other_ts else TD_ZERO
-    return advance >= TD_ZERO and (
-        advance > TD_ZERO
+    return advance >= TD_MINUS_SECOND and (
+        advance > TD_SECOND
         or other_seqnum is None
         or 0 < (seqnum - other_seqnum) % 0x100000000 < 0x80000000
     )
