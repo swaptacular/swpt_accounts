@@ -19,6 +19,7 @@ psycopg2-binary = "^2.8"
 dramatiq = {git = "https://github.com/epandurski/dramatiq.git", extras = ["rabbitmq", "watch"], branch = "set-queue-name-if-missing"}
 pytest = "^4.0"
 pytest-mock = "^1.10"
+iso8601 = "^0.1.12"
 
 [tool.poetry.dev-dependencies]
 python-dotenv = ">=0.10.1"

@@ -1,4 +1,4 @@
-from typing import Optional
+import iso8601
 from .extensions import broker, APP_QUEUE_NAME
 from .procedures import AVL_BALANCE_IGNORE, AVL_BALANCE_ONLY, AVL_BALANCE_WITH_INTEREST  # noqa
 from . import procedures
@@ -16,7 +16,7 @@ def prepare_transfer(
         sender_creditor_id: int,
         recipient_creditor_id: int,
         avl_balance_check_mode: int,
-        lock_amount: bool = True):
+        lock_amount: bool = True) -> None:
 
     """Try to greedily secure an amount between `min_amount` and
    `max_amount`, to transfer it from sender's account (`debtor_id`,
@@ -79,7 +79,7 @@ def execute_prepared_transfer(
         sender_creditor_id: int,
         transfer_id: int,
         committed_amount: int,
-        transfer_info: dict):
+        transfer_info: dict) -> None:
 
     """Execute a prepared transfer.
 
@@ -95,13 +95,19 @@ def execute_prepared_transfer(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def on_account_interest_rate_change_signal(
+def update_account_interest_rate(
         *,
         debtor_id: int,
         creditor_id: int,
-        old_interest_rate: Optional[float],
-        new_interest_rate: float,
-        change_ts: str,
-        change_seqnum: int):
+        interest_rate: float,
+        change_seqnum: int,
+        change_ts: str) -> None:
 
     """Change the interest rate on given account."""
+
+    procedures.update_account_interest_rate(
+        (debtor_id, creditor_id),
+        interest_rate,
+        change_seqnum,
+        iso8601.parse_date(change_ts),
+    )

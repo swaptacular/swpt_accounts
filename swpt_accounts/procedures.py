@@ -79,6 +79,25 @@ def execute_prepared_transfer(pt: PreparedTransferId, committed_amount: int, tra
             _commit_prepared_transfer(instance, committed_amount, committed_at_ts, transfer_info)
 
 
+@atomic
+def update_account_interest_rate(account: AccountId, interest_rate: float,
+                                 change_seqnum: int, change_ts: datetime) -> None:
+    assert change_seqnum is not None
+    assert change_ts is not None
+    instance = Account.get_instance(account)
+    if instance and not instance.status & Account.STATUS_DELETED_FLAG:
+        this_update = (change_seqnum, change_ts)
+        prev_update = (instance.interest_rate_last_change_seqnum, instance.interest_rate_last_change_ts)
+        if _is_later_event(this_update, prev_update):
+            current_ts = datetime.now(tz=timezone.utc)
+            current_principal = _calc_account_current_principal(instance, current_ts)
+            instance.interest = current_principal - instance.balance
+            instance.interest_rate = interest_rate
+            instance.interest_rate_last_change_seqnum = change_seqnum
+            instance.interest_rate_last_change_ts = change_ts
+            _insert_account_change_signal(instance, current_ts)
+
+
 def _is_later_event(event: Tuple[int, datetime],
                     other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
     seqnum, ts = event
