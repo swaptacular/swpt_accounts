@@ -1,4 +1,3 @@
-from datetime import datetime
 from typing import Optional
 from .extensions import broker, APP_QUEUE_NAME
 from .procedures import AVL_BALANCE_IGNORE, AVL_BALANCE_ONLY, AVL_BALANCE_WITH_INTEREST  # noqa
@@ -102,7 +101,7 @@ def on_account_interest_rate_change_signal(
         creditor_id: int,
         old_interest_rate: Optional[float],
         new_interest_rate: float,
-        change_ts: datetime,
+        change_ts: str,
         change_seqnum: int):
 
     """Change the interest rate on given account."""
