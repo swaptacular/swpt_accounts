@@ -198,7 +198,6 @@ def _get_account_avl_balance(account_identity: AccountId, avl_balance_check_mode
 
 def _create_prepared_transfer(account: Account, coordinator_type: str, recipient_creditor_id: int,
                               amount: int, sender_locked_amount: int) -> PreparedTransfer:
-    account.locked_amount += sender_locked_amount
     pt = PreparedTransfer(
         sender_account=account,
         coordinator_type=coordinator_type,
@@ -208,6 +207,7 @@ def _create_prepared_transfer(account: Account, coordinator_type: str, recipient
     )
     db.session.add(pt)
     db.session.flush()
+    account.locked_amount += sender_locked_amount
     return pt
 
 
