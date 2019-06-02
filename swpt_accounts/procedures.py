@@ -119,7 +119,7 @@ def _insert_account_change_signal(account: Account, last_change_ts: Optional[dat
         creditor_id=account.creditor_id,
         change_seqnum=account.last_change_seqnum,
         change_ts=account.last_change_ts,
-        balance=account.ballance,
+        balance=account.balance,
         interest=account.interest,
         interest_rate=account.interest_rate,
         status=account.status,
