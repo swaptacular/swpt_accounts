@@ -90,8 +90,7 @@ def update_account_interest_rate(account: AccountId, interest_rate: float,
         prev_update = (instance.interest_rate_last_change_seqnum, instance.interest_rate_last_change_ts)
         if _is_later_event(this_update, prev_update):
             current_ts = datetime.now(tz=timezone.utc)
-            current_principal = _calc_account_current_principal(instance, current_ts)
-            instance.interest = float(current_principal - instance.balance)
+            _update_accumulated_account_interest(instance, current_ts)
             instance.interest_rate = interest_rate
             instance.interest_rate_last_change_seqnum = change_seqnum
             instance.interest_rate_last_change_ts = change_ts
@@ -224,16 +223,19 @@ def _insert_committed_transfer_signal(pt: PreparedTransfer,
     ))
 
 
-def _change_account_balance(account: Account, balance_delta: int, current_ts: datetime) -> None:
+def _update_accumulated_account_interest(account: Account, current_ts: datetime) -> None:
     current_principal = _calc_account_current_principal(account, current_ts)
     account.interest = float(current_principal - account.balance)
+
+
+def _change_account_balance(account: Account, balance_delta: int, current_ts: datetime) -> None:
+    _update_accumulated_account_interest(account, current_ts)
     account.balance += balance_delta
     _insert_account_change_signal(account, current_ts)
 
 
 def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
-    sender_account = pt.sender_account
-    sender_account.locked_amount -= pt.sender_locked_amount
+    pt.sender_account.locked_amount -= pt.sender_locked_amount
     db.session.delete(pt)
 
 
@@ -242,9 +244,8 @@ def _commit_prepared_transfer(pt: PreparedTransfer,
                               committed_at_ts: datetime,
                               transfer_info: dict) -> None:
     assert committed_amount <= pt.amount
-    sender_account = pt.sender_account
     recipient_account = _get_or_create_account_instance((pt.debtor_id, pt.recipient_creditor_id))
-    _change_account_balance(sender_account, -committed_amount, committed_at_ts)
+    _change_account_balance(pt.sender_account, -committed_amount, committed_at_ts)
     _change_account_balance(recipient_account, committed_amount, committed_at_ts)
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
     _delete_prepared_transfer(pt)
