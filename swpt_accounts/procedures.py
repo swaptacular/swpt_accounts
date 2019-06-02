@@ -39,7 +39,7 @@ def prepare_transfer(*,
         account = _get_or_create_account(account_identity)
         amount = min(avl_balance, max_amount)
         locked_amount = amount if lock_amount else 0
-        pt = _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, locked_amount)
+        pt = _create_prepared_transfer(coordinator_type, account, recipient_creditor_id, amount, locked_amount)
         db.session.add(PreparedTransferSignal(
             debtor_id=pt.debtor_id,
             sender_creditor_id=pt.sender_creditor_id,
@@ -108,10 +108,10 @@ def capitalize_account_interest(debtor_id: int, creditor_id: int, issuer_credito
         amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
         if amount >= accumulated_interest_threshold:
             issuer_account = _get_or_create_account((debtor_id, issuer_creditor_id))
-            pt = _create_prepared_transfer(issuer_account, 'interest', creditor_id, amount, 0)
+            pt = _create_prepared_transfer('interest', issuer_account, creditor_id, amount, 0)
             _commit_prepared_transfer(pt, amount, current_ts, {})
         elif amount <= -accumulated_interest_threshold:
-            pt = _create_prepared_transfer(account, 'demurrage', issuer_creditor_id, -amount, 0)
+            pt = _create_prepared_transfer('demurrage', account, issuer_creditor_id, -amount, 0)
             _commit_prepared_transfer(pt, -amount, current_ts, {})
 
 
@@ -196,10 +196,10 @@ def _get_account_avl_balance(account_identity: AccountId, avl_balance_check_mode
     return account_identity, avl_balance
 
 
-def _create_prepared_transfer(account: Account, coordinator_type: str, recipient_creditor_id: int,
+def _create_prepared_transfer(coordinator_type: str, sender_account: Account, recipient_creditor_id: int,
                               amount: int, sender_locked_amount: int) -> PreparedTransfer:
     pt = PreparedTransfer(
-        sender_account=account,
+        sender_account=sender_account,
         coordinator_type=coordinator_type,
         recipient_creditor_id=recipient_creditor_id,
         amount=amount,
@@ -207,7 +207,7 @@ def _create_prepared_transfer(account: Account, coordinator_type: str, recipient
     )
     db.session.add(pt)
     db.session.flush()
-    account.locked_amount += sender_locked_amount
+    sender_account.locked_amount += sender_locked_amount
     return pt
 
 
