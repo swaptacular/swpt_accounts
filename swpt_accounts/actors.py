@@ -111,3 +111,21 @@ def update_account_interest_rate(
         change_seqnum,
         iso8601.parse_date(change_ts),
     )
+
+
+@broker.actor(queue_name=APP_QUEUE_NAME)
+def capitalize_account_interest(
+        *,
+        debtor_id: int,
+        creditor_id: int,
+        issuer_creditor_id: int,
+        min_accumulated_interest: int) -> None:
+
+    """Clear the accumulated account interest, adding it to the balance."""
+
+    procedures.capitalize_account_interest(
+        debtor_id,
+        creditor_id,
+        issuer_creditor_id,
+        min_accumulated_interest,
+    )

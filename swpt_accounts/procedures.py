@@ -80,22 +80,39 @@ def execute_prepared_transfer(pt: PreparedTransferId, committed_amount: int, tra
 
 
 @atomic
-def update_account_interest_rate(account: AccountId, interest_rate: float,
+def update_account_interest_rate(accountid: AccountId, interest_rate: float,
                                  change_seqnum: int, change_ts: datetime) -> None:
     assert change_seqnum is not None
     assert change_ts is not None
-    instance = Account.get_instance(account)
-    if instance and not instance.status & Account.STATUS_DELETED_FLAG:
+    account = _get_existing_account(accountid)
+    if account:
         this_update = (change_seqnum, change_ts)
-        prev_update = (instance.interest_rate_last_change_seqnum, instance.interest_rate_last_change_ts)
+        prev_update = (account.interest_rate_last_change_seqnum, account.interest_rate_last_change_ts)
         if _is_later_event(this_update, prev_update):
             current_ts = datetime.now(tz=timezone.utc)
-            _update_accumulated_account_interest(instance, current_ts)
-            instance.interest_rate = interest_rate
-            instance.interest_rate_last_change_seqnum = change_seqnum
-            instance.interest_rate_last_change_ts = change_ts
-            instance.status = instance.status | Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-            _insert_account_change_signal(instance, current_ts)
+            account.interest = _calc_accumulated_account_interest(account, current_ts)
+            account.interest_rate = interest_rate
+            account.interest_rate_last_change_seqnum = change_seqnum
+            account.interest_rate_last_change_ts = change_ts
+            account.status = account.status | Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+            _insert_account_change_signal(account, current_ts)
+
+
+@atomic
+def capitalize_account_interest(debtor_id: int, creditor_id: int, issuer_creditor_id: int,
+                                min_accumulated_interest: int) -> None:
+    assert min_accumulated_interest > 0
+    account = _get_existing_account((debtor_id, creditor_id))
+    if account:
+        current_ts = datetime.now(tz=timezone.utc)
+        amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
+        if amount >= min_accumulated_interest:
+            issuer_account = _get_or_create_account_instance((debtor_id, issuer_creditor_id))
+            pt = _create_prepared_transfer(issuer_account, 'interest', creditor_id, amount, 0)
+            _commit_prepared_transfer(pt, amount, current_ts, {})
+        elif amount <= -min_accumulated_interest:
+            pt = _create_prepared_transfer(account, 'demurrage', issuer_creditor_id, -amount, 0)
+            _commit_prepared_transfer(pt, -amount, current_ts, {})
 
 
 def _is_later_event(event: Tuple[int, datetime],
@@ -124,6 +141,13 @@ def _insert_account_change_signal(account: Account, last_change_ts: Optional[dat
         interest_rate=account.interest_rate,
         status=account.status,
     ))
+
+
+def _get_existing_account(account_identity: AccountId) -> Optional[Account]:
+    account = Account.get_instance(account_identity)
+    if account and not account.status & Account.STATUS_DELETED_FLAG:
+        return account
+    return None
 
 
 def _create_account(debtor_id: int, creditor_id: int) -> Account:
@@ -223,14 +247,17 @@ def _insert_committed_transfer_signal(pt: PreparedTransfer,
     ))
 
 
-def _update_accumulated_account_interest(account: Account, current_ts: datetime) -> None:
+def _calc_accumulated_account_interest(account: Account, current_ts: datetime) -> float:
     current_principal = _calc_account_current_principal(account, current_ts)
-    account.interest = float(current_principal - account.balance)
+    return float(current_principal - account.balance)
 
 
-def _change_account_balance(account: Account, balance_delta: int, current_ts: datetime) -> None:
-    _update_accumulated_account_interest(account, current_ts)
+def _change_account_balance(account: Account, balance_delta: int, current_ts: datetime,
+                            is_interest_payment: bool = False) -> None:
+    account.interest = _calc_accumulated_account_interest(account, current_ts)
     account.balance += balance_delta
+    if is_interest_payment:
+        account.interest -= float(balance_delta)
     _insert_account_change_signal(account, current_ts)
 
 
@@ -245,7 +272,7 @@ def _commit_prepared_transfer(pt: PreparedTransfer,
                               transfer_info: dict) -> None:
     assert committed_amount <= pt.amount
     recipient_account = _get_or_create_account_instance((pt.debtor_id, pt.recipient_creditor_id))
-    _change_account_balance(pt.sender_account, -committed_amount, committed_at_ts)
-    _change_account_balance(recipient_account, committed_amount, committed_at_ts)
+    _change_account_balance(pt.sender_account, -committed_amount, committed_at_ts, pt.coordinator_type == 'demurrage')
+    _change_account_balance(recipient_account, committed_amount, committed_at_ts, pt.coordinator_type == 'interest')
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
     _delete_prepared_transfer(pt)
