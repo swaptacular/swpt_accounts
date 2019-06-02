@@ -114,7 +114,7 @@ def update_account_interest_rate(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def capitalize_account_interest(
+def capitalize_accumulated_account_interest(
         *,
         debtor_id: int,
         creditor_id: int,
@@ -128,7 +128,7 @@ def capitalize_account_interest(
 
     """
 
-    procedures.capitalize_account_interest(
+    procedures.capitalize_accumulated_account_interest(
         debtor_id,
         creditor_id,
         issuer_creditor_id,
