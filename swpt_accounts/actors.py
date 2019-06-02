@@ -119,13 +119,18 @@ def capitalize_account_interest(
         debtor_id: int,
         creditor_id: int,
         issuer_creditor_id: int,
-        min_accumulated_interest: int) -> None:
+        accumulated_interest_threshold: int) -> None:
 
-    """Clear the accumulated account interest, adding it to the balance."""
+    """Clear the interest accumulated on the account `(debtor_id,
+    creditor_id)`, adding it to the balance. Does nothing if the
+    absolute value of the accumulated interest is smaller than
+    `abs(accumulated_interest_threshold)`.
+
+    """
 
     procedures.capitalize_account_interest(
         debtor_id,
         creditor_id,
         issuer_creditor_id,
-        min_accumulated_interest,
+        accumulated_interest_threshold,
     )

@@ -100,17 +100,17 @@ def update_account_interest_rate(account_identity: AccountId, interest_rate: flo
 
 @atomic
 def capitalize_account_interest(debtor_id: int, creditor_id: int, issuer_creditor_id: int,
-                                min_accumulated_interest: int) -> None:
-    assert min_accumulated_interest >= 1
+                                accumulated_interest_threshold: int) -> None:
+    accumulated_interest_threshold = max(1, abs(accumulated_interest_threshold))
     account = _get_account((debtor_id, creditor_id))
     if account:
         current_ts = datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
-        if amount >= min_accumulated_interest:
+        if amount >= accumulated_interest_threshold:
             issuer_account = _get_or_create_account((debtor_id, issuer_creditor_id))
             pt = _create_prepared_transfer(issuer_account, 'interest', creditor_id, amount, 0)
             _commit_prepared_transfer(pt, amount, current_ts, {})
-        elif amount <= -min_accumulated_interest:
+        elif amount <= -accumulated_interest_threshold:
             pt = _create_prepared_transfer(account, 'demurrage', issuer_creditor_id, -amount, 0)
             _commit_prepared_transfer(pt, -amount, current_ts, {})
 
