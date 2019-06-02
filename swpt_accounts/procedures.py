@@ -27,16 +27,16 @@ def prepare_transfer(*,
                      coordinator_type: str,
                      coordinator_id: int,
                      coordinator_request_id: int,
-                     account: AccountId,
+                     account_identity: AccountId,
                      min_amount: int,
                      max_amount: int,
                      recipient_creditor_id: int,
                      avl_balance_check_mode: int,
                      lock_amount: bool) -> None:
     assert 0 < min_amount <= max_amount
-    account, avl_balance = _get_account_avl_balance(account, avl_balance_check_mode)
+    account_identity, avl_balance = _get_account_avl_balance(account_identity, avl_balance_check_mode)
     if avl_balance >= min_amount:
-        account = _get_or_create_account_instance(account)
+        account = _get_or_create_account(account_identity)
         amount = min(avl_balance, max_amount)
         locked_amount = amount if lock_amount else 0
         pt = _create_prepared_transfer(account, coordinator_type, recipient_creditor_id, amount, locked_amount)
@@ -53,7 +53,7 @@ def prepare_transfer(*,
             coordinator_request_id=coordinator_request_id,
         ))
     else:
-        debtor_id, creditor_id = Account.get_pk_values(account)
+        debtor_id, creditor_id = Account.get_pk_values(account_identity)
         db.session.add(RejectedTransferSignal(
             debtor_id=debtor_id,
             coordinator_type=coordinator_type,
@@ -80,11 +80,11 @@ def execute_prepared_transfer(pt: PreparedTransferId, committed_amount: int, tra
 
 
 @atomic
-def update_account_interest_rate(accountid: AccountId, interest_rate: float,
+def update_account_interest_rate(account_identity: AccountId, interest_rate: float,
                                  change_seqnum: int, change_ts: datetime) -> None:
     assert change_seqnum is not None
     assert change_ts is not None
-    account = _get_existing_account(accountid)
+    account = _get_account(account_identity)
     if account:
         this_update = (change_seqnum, change_ts)
         prev_update = (account.interest_rate_last_change_seqnum, account.interest_rate_last_change_ts)
@@ -102,12 +102,12 @@ def update_account_interest_rate(accountid: AccountId, interest_rate: float,
 def capitalize_account_interest(debtor_id: int, creditor_id: int, issuer_creditor_id: int,
                                 min_accumulated_interest: int) -> None:
     assert min_accumulated_interest > 0
-    account = _get_existing_account((debtor_id, creditor_id))
+    account = _get_account((debtor_id, creditor_id))
     if account:
         current_ts = datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
         if amount >= min_accumulated_interest:
-            issuer_account = _get_or_create_account_instance((debtor_id, issuer_creditor_id))
+            issuer_account = _get_or_create_account((debtor_id, issuer_creditor_id))
             pt = _create_prepared_transfer(issuer_account, 'interest', creditor_id, amount, 0)
             _commit_prepared_transfer(pt, amount, current_ts, {})
         elif amount <= -min_accumulated_interest:
@@ -127,23 +127,7 @@ def _is_later_event(event: Tuple[int, datetime],
     )
 
 
-def _insert_account_change_signal(account: Account, last_change_ts: Optional[datetime] = None) -> None:
-    last_change_ts = last_change_ts or datetime.now(tz=timezone.utc)
-    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
-    account.last_change_ts = max(account.last_change_ts, last_change_ts)
-    db.session.add(AccountChangeSignal(
-        debtor_id=account.debtor_id,
-        creditor_id=account.creditor_id,
-        change_seqnum=account.last_change_seqnum,
-        change_ts=account.last_change_ts,
-        balance=account.balance,
-        interest=account.interest,
-        interest_rate=account.interest_rate,
-        status=account.status,
-    ))
-
-
-def _get_existing_account(account_identity: AccountId) -> Optional[Account]:
+def _get_account(account_identity: AccountId) -> Optional[Account]:
     account = Account.get_instance(account_identity)
     if account and not account.status & Account.STATUS_DELETED_FLAG:
         return account
@@ -161,6 +145,15 @@ def _create_account(debtor_id: int, creditor_id: int) -> Account:
     return account
 
 
+def _get_or_create_account(account_identity: AccountId) -> Account:
+    account = Account.get_instance(account_identity)
+    if account is None:
+        debtor_id, creditor_id = Account.get_pk_values(account_identity)
+        account = _create_account(debtor_id, creditor_id)
+    _resurrect_account_if_deleted(account)
+    return account
+
+
 def _resurrect_account_if_deleted(account: Account) -> None:
     if account.status & Account.STATUS_DELETED_FLAG:
         assert account.balance == 0
@@ -173,15 +166,6 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         _insert_account_change_signal(account)
 
 
-def _get_or_create_account_instance(account: AccountId) -> Account:
-    instance = Account.get_instance(account)
-    if instance is None:
-        debtor_id, creditor_id = Account.get_pk_values(account)
-        instance = _create_account(debtor_id, creditor_id)
-    _resurrect_account_if_deleted(instance)
-    return instance
-
-
 def _calc_account_current_principal(account: Account, current_ts: datetime) -> Decimal:
     principal = account.balance + Decimal.from_float(account.interest)
     if principal > 0:
@@ -191,32 +175,29 @@ def _calc_account_current_principal(account: Account, current_ts: datetime) -> D
     return principal
 
 
-def _get_account_avl_balance(account: AccountId, avl_balance_check_mode: int) -> Tuple[AccountId, int]:
+def _get_account_avl_balance(account_identity: AccountId, avl_balance_check_mode: int) -> Tuple[AccountId, int]:
     avl_balance = 0
     if avl_balance_check_mode == AVL_BALANCE_IGNORE:
         avl_balance = MAX_INT64
     elif avl_balance_check_mode == AVL_BALANCE_ONLY:
-        instance = Account.get_instance(account)
-        if instance:
-            avl_balance = instance.balance - instance.locked_amount
-            account = instance
+        account = Account.get_instance(account_identity)
+        if account:
+            avl_balance = account.balance - account.locked_amount
+            account_identity = account
     elif avl_balance_check_mode == AVL_BALANCE_WITH_INTEREST:
-        instance = Account.get_instance(account)
-        if instance:
+        account = Account.get_instance(account_identity)
+        if account:
             current_ts = datetime.now(tz=timezone.utc)
-            current_principal = _calc_account_current_principal(instance, current_ts)
-            avl_balance = math.floor(current_principal) - instance.locked_amount
-            account = instance
+            current_principal = _calc_account_current_principal(account, current_ts)
+            avl_balance = math.floor(current_principal) - account.locked_amount
+            account_identity = account
     else:
         raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
-    return account, avl_balance
+    return account_identity, avl_balance
 
 
-def _create_prepared_transfer(account: Account,
-                              coordinator_type: str,
-                              recipient_creditor_id: int,
-                              amount: int,
-                              sender_locked_amount: int) -> PreparedTransfer:
+def _create_prepared_transfer(account: Account, coordinator_type: str, recipient_creditor_id: int,
+                              amount: int, sender_locked_amount: int) -> PreparedTransfer:
     account.locked_amount += sender_locked_amount
     pt = PreparedTransfer(
         sender_account=account,
@@ -230,10 +211,8 @@ def _create_prepared_transfer(account: Account,
     return pt
 
 
-def _insert_committed_transfer_signal(pt: PreparedTransfer,
-                                      committed_amount: int,
-                                      committed_at_ts: datetime,
-                                      transfer_info: dict) -> None:
+def _insert_committed_transfer_signal(pt: PreparedTransfer, committed_amount: int,
+                                      committed_at_ts: datetime, transfer_info: dict) -> None:
     db.session.add(CommittedTransferSignal(
         debtor_id=pt.debtor_id,
         sender_creditor_id=pt.sender_creditor_id,
@@ -244,6 +223,22 @@ def _insert_committed_transfer_signal(pt: PreparedTransfer,
         committed_at_ts=committed_at_ts,
         committed_amount=committed_amount,
         transfer_info=transfer_info,
+    ))
+
+
+def _insert_account_change_signal(account: Account, last_change_ts: Optional[datetime] = None) -> None:
+    last_change_ts = last_change_ts or datetime.now(tz=timezone.utc)
+    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+    account.last_change_ts = max(account.last_change_ts, last_change_ts)
+    db.session.add(AccountChangeSignal(
+        debtor_id=account.debtor_id,
+        creditor_id=account.creditor_id,
+        change_seqnum=account.last_change_seqnum,
+        change_ts=account.last_change_ts,
+        balance=account.balance,
+        interest=account.interest,
+        interest_rate=account.interest_rate,
+        status=account.status,
     ))
 
 
@@ -262,7 +257,8 @@ def _change_account_balance(account: Account, balance_delta: int, current_ts: da
 
 
 def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
-    pt.sender_account.locked_amount -= pt.sender_locked_amount
+    sender_account = pt.sender_account
+    sender_account.locked_amount -= pt.sender_locked_amount
     db.session.delete(pt)
 
 
@@ -271,7 +267,7 @@ def _commit_prepared_transfer(pt: PreparedTransfer,
                               committed_at_ts: datetime,
                               transfer_info: dict) -> None:
     assert committed_amount <= pt.amount
-    recipient_account = _get_or_create_account_instance((pt.debtor_id, pt.recipient_creditor_id))
+    recipient_account = _get_or_create_account((pt.debtor_id, pt.recipient_creditor_id))
     _change_account_balance(pt.sender_account, -committed_amount, committed_at_ts, pt.coordinator_type == 'demurrage')
     _change_account_balance(recipient_account, committed_amount, committed_at_ts, pt.coordinator_type == 'interest')
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
