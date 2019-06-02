@@ -101,7 +101,7 @@ def update_account_interest_rate(account_identity: AccountId, interest_rate: flo
 @atomic
 def capitalize_account_interest(debtor_id: int, creditor_id: int, issuer_creditor_id: int,
                                 min_accumulated_interest: int) -> None:
-    assert min_accumulated_interest > 0
+    assert min_accumulated_interest >= 1
     account = _get_account((debtor_id, creditor_id))
     if account:
         current_ts = datetime.now(tz=timezone.utc)
