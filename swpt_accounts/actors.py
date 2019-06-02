@@ -63,7 +63,7 @@ def prepare_transfer(
         coordinator_type=coordinator_type,
         coordinator_id=coordinator_id,
         coordinator_request_id=coordinator_request_id,
-        account=(debtor_id, sender_creditor_id),
+        sender_account=(debtor_id, sender_creditor_id),
         min_amount=min_amount,
         max_amount=max_amount,
         recipient_creditor_id=recipient_creditor_id,
@@ -79,7 +79,7 @@ def execute_prepared_transfer(
         sender_creditor_id: int,
         transfer_id: int,
         committed_amount: int,
-        transfer_info: dict) -> None:
+        transfer_info: dict = {}) -> None:
 
     """Execute a prepared transfer.
 
@@ -119,7 +119,7 @@ def capitalize_accumulated_account_interest(
         debtor_id: int,
         creditor_id: int,
         issuer_creditor_id: int,
-        accumulated_interest_threshold: int) -> None:
+        accumulated_interest_threshold: int = 0) -> None:
 
     """Clear the interest accumulated on the account `(debtor_id,
     creditor_id)`, adding it to the balance. Does nothing if the
