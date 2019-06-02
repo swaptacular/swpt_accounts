@@ -180,12 +180,12 @@ def _get_account_avl_balance(account_identity: AccountId, avl_balance_check_mode
     if avl_balance_check_mode == AVL_BALANCE_IGNORE:
         avl_balance = MAX_INT64
     elif avl_balance_check_mode == AVL_BALANCE_ONLY:
-        account = Account.get_instance(account_identity)
+        account = _get_account(account_identity)
         if account:
             avl_balance = account.balance - account.locked_amount
             account_identity = account
     elif avl_balance_check_mode == AVL_BALANCE_WITH_INTEREST:
-        account = Account.get_instance(account_identity)
+        account = _get_account(account_identity)
         if account:
             current_ts = datetime.now(tz=timezone.utc)
             current_principal = _calc_account_current_principal(account, current_ts)
