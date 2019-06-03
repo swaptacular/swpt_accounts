@@ -124,8 +124,8 @@ def capitalize_accumulated_interest(debtor_id: int,
         amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
 
         # When the new account balance is very close to zero, we make
-        # it a zero. This behavior is extremely useful when the
-        # creditor wants to zero out the account, before deleting it.
+        # it a zero. This behavior is extremely useful when the owner
+        # wants to zero out the account before deleting it.
         if abs(account.balance + amount) <= TINY_BALANCE_AMOUNT:
             amount = -account.balance
 
