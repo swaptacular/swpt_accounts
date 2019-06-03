@@ -1,6 +1,6 @@
 import iso8601
 from .extensions import broker, APP_QUEUE_NAME
-from .procedures import AVL_BALANCE_IGNORE, AVL_BALANCE_ONLY, AVL_BALANCE_WITH_INTEREST  # noqa
+from .procedures import AB_IGNORE, AB_PRINCIPAL_ONLY, AB_PRINCIPAL_WITH_INTEREST  # noqa
 from . import procedures
 
 
@@ -24,8 +24,7 @@ def prepare_transfer(
    `recipient_creditor_id`).
 
     The value of `avl_balance_check_mode` should be one of these:
-    `AVL_BALANCE_IGNORE`, `AVL_BALANCE_ONLY`,
-    `AVL_BALANCE_WITH_INTEREST`.
+    `AB_IGNORE`, `AB_PRINCIPAL_ONLY`, `AB_PRINCIPAL_WITH_INTEREST`.
 
     Before sending a message to this actor, the sender must create a
     Coordinator Request (CR) database record, with a primary key of
@@ -126,7 +125,7 @@ def capitalize_accumulated_interest(
         accumulated_interest_threshold: int = 0) -> None:
 
     """Clear the interest accumulated on the account `(debtor_id,
-    creditor_id)`, adding it to the balance. Does nothing if the
+    creditor_id)`, adding it to the principal. Does nothing if the
     absolute value of the accumulated interest is smaller than
     `abs(accumulated_interest_threshold)`.
 
@@ -147,7 +146,7 @@ def delete_account(
         creditor_id: int) -> None:
 
     """Mark the account `(debtor_id, creditor_id)` as deleted if the
-    balance is zero and the available balance is near zero.
+    principal is zero and the available balance is near zero.
 
     """
 

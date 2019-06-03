@@ -52,12 +52,12 @@ class Account(db.Model):
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    balance = db.Column(
+    principal = db.Column(
         db.BigInteger,
         nullable=False,
         default=0,
         comment='The total owed amount. Can be negative. At any time, the sum of the '
-                'balances of all accounts (including the issuer account) for a given '
+                'principals of all accounts (including the issuer account) for a given '
                 'debtor will be zero.',
     )
     interest_rate = db.Column(
@@ -73,8 +73,8 @@ class Account(db.Model):
         nullable=False,
         default=0.0,
         comment='The amount of interest accumulated on the account before `last_change_ts`, '
-                'but not added to the `balance` yet. Can be a negative number. `interest`'
-                'gets zeroed and added to the balance once in while (like once per week).',
+                'but not added to the `principal` yet. Can be a negative number. `interest`'
+                'gets zeroed and added to the principal once in while (like once per week).',
     )
     locked_amount = db.Column(
         db.BigInteger,
@@ -93,7 +93,7 @@ class Account(db.Model):
         db.Integer,
         nullable=False,
         default=1,
-        comment='Incremented (with wrapping) on every change in `balance`, `interest_rate` '
+        comment='Incremented (with wrapping) on every change in `principal`, `interest_rate` '
                 'or `status`.',
     )
     last_change_ts = db.Column(
@@ -209,7 +209,7 @@ class AccountChangeSignal(Signal):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     change_seqnum = db.Column(db.Integer, primary_key=True)
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    balance = db.Column(db.BigInteger, nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
     status = db.Column(db.SmallInteger, nullable=False)

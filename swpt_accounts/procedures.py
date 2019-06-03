@@ -11,11 +11,11 @@ atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 
 # Available balance check modes:
-AVL_BALANCE_IGNORE = 0
-AVL_BALANCE_ONLY = 1
-AVL_BALANCE_WITH_INTEREST = 2
+AB_IGNORE = 0
+AB_PRINCIPAL_ONLY = 1
+AB_PRINCIPAL_WITH_INTEREST = 2
 
-TINY_BALANCE_AMOUNT = 5
+TINY_PRINCIPAL_AMOUNT = 5
 MAX_PREPARED_TRANSFERS_COUNT = 1000
 
 TD_ZERO = timedelta()
@@ -123,11 +123,11 @@ def capitalize_accumulated_interest(debtor_id: int,
         current_ts = datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
 
-        # When the new account balance is very close to zero, we make
+        # When the new account principal is very close to zero, we make
         # it a zero. This behavior is extremely useful when the owner
         # wants to zero out the account before deleting it.
-        if abs(account.balance + amount) <= TINY_BALANCE_AMOUNT:
-            amount = -account.balance
+        if abs(account.principal + amount) <= TINY_PRINCIPAL_AMOUNT:
+            amount = -account.principal
 
         if amount >= positive_threshold:
             # The issuer pays interest to the owner of the account.
@@ -144,9 +144,9 @@ def capitalize_accumulated_interest(debtor_id: int,
 def delete_account(debtor_id: int, creditor_id: int) -> None:
     account = _get_account((debtor_id, creditor_id))
     if (account
-            and account.balance == 0
+            and account.principal == 0
             and account.prepared_transfers_count == 0
-            and abs(_calc_account_current_principal(account)) <= TINY_BALANCE_AMOUNT):
+            and abs(_get_account_current_balance(account)) <= TINY_PRINCIPAL_AMOUNT):
         assert account.locked_amount == 0
         account.interest = 0.0
         account.status = account.status | Account.STATUS_DELETED_FLAG
@@ -191,7 +191,7 @@ def _get_or_create_account(account_or_pk: AccountId) -> Account:
 
 def _resurrect_account_if_deleted(account: Account) -> None:
     if account.status & Account.STATUS_DELETED_FLAG:
-        assert account.balance == 0
+        assert account.principal == 0
         assert account.locked_amount == 0
         assert account.prepared_transfers_count == 0
         assert account.interest == 0.0
@@ -202,29 +202,29 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         _insert_account_change_signal(account)
 
 
-def _calc_account_current_principal(account: Account, current_ts: datetime = None) -> Decimal:
+def _get_account_current_balance(account: Account, current_ts: datetime = None) -> Decimal:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
-    principal = account.balance + Decimal.from_float(account.interest)
-    if principal > 0:
+    current_balance = account.principal + Decimal.from_float(account.interest)
+    if current_balance > 0:
         k = math.log(1.0 + account.interest_rate / 100.0) / SECONDS_IN_YEAR
         passed_seconds = max(0.0, (current_ts - account.last_change_ts).total_seconds())
-        principal *= Decimal.from_float(math.exp(k * passed_seconds))
-    return principal
+        current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
+    return current_balance
 
 
 def _get_account_avl_balance(account_or_pk: AccountId, avl_balance_check_mode: int) -> Tuple[AccountId, int]:
     avl_balance = 0
-    if avl_balance_check_mode == AVL_BALANCE_IGNORE:
+    if avl_balance_check_mode == AB_IGNORE:
         avl_balance = MAX_INT64
-    elif avl_balance_check_mode == AVL_BALANCE_ONLY:
+    elif avl_balance_check_mode == AB_PRINCIPAL_ONLY:
         account = _get_account(account_or_pk)
         if account:
-            avl_balance = account.balance - account.locked_amount
+            avl_balance = account.principal - account.locked_amount
             account_or_pk = account
-    elif avl_balance_check_mode == AVL_BALANCE_WITH_INTEREST:
+    elif avl_balance_check_mode == AB_PRINCIPAL_WITH_INTEREST:
         account = _get_account(account_or_pk)
         if account:
-            avl_balance = math.floor(_calc_account_current_principal(account)) - account.locked_amount
+            avl_balance = math.floor(_get_account_current_balance(account)) - account.locked_amount
             account_or_pk = account
     else:
         raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
@@ -276,7 +276,7 @@ def _insert_account_change_signal(account: Account, last_change_ts: Optional[dat
         creditor_id=account.creditor_id,
         change_seqnum=account.last_change_seqnum,
         change_ts=account.last_change_ts,
-        balance=account.balance,
+        principal=account.principal,
         interest=account.interest,
         interest_rate=account.interest_rate,
         status=account.status,
@@ -284,19 +284,19 @@ def _insert_account_change_signal(account: Account, last_change_ts: Optional[dat
 
 
 def _calc_accumulated_account_interest(account: Account, current_ts: datetime) -> float:
-    current_principal = _calc_account_current_principal(account, current_ts)
-    return float(current_principal - account.balance)
+    current_balance = _get_account_current_balance(account, current_ts)
+    return float(current_balance - account.principal)
 
 
-def _change_account_balance(account: Account,
-                            balance_delta: int,
-                            current_ts: Optional[datetime] = None,
-                            is_interest_payment: bool = False) -> None:
+def _change_account_principal(account: Account,
+                              principal_delta: int,
+                              current_ts: Optional[datetime] = None,
+                              is_interest_payment: bool = False) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     account.interest = _calc_accumulated_account_interest(account, current_ts)
-    account.balance += balance_delta
+    account.principal += principal_delta
     if is_interest_payment:
-        account.interest -= float(balance_delta)
+        account.interest -= float(principal_delta)
     _insert_account_change_signal(account, current_ts)
 
 
@@ -327,7 +327,7 @@ def _commit_prepared_transfer(pt: PreparedTransfer,
                               transfer_info: dict = {}) -> None:
     assert committed_amount <= pt.amount
     recipient_account = _get_or_create_account((pt.debtor_id, pt.recipient_creditor_id))
-    _change_account_balance(pt.sender_account, -committed_amount, committed_at_ts, pt.coordinator_type == 'demurrage')
-    _change_account_balance(recipient_account, committed_amount, committed_at_ts, pt.coordinator_type == 'interest')
+    _change_account_principal(pt.sender_account, -committed_amount, committed_at_ts, pt.coordinator_type == 'demurrage')
+    _change_account_principal(recipient_account, committed_amount, committed_at_ts, pt.coordinator_type == 'interest')
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
     _delete_prepared_transfer(pt)
