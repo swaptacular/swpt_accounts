@@ -119,9 +119,16 @@ def capitalize_accumulated_interest(debtor_id: int,
                                     accumulated_interest_threshold: int) -> None:
     account = _get_account((debtor_id, creditor_id))
     if account:
+        positive_threshold = max(1, abs(accumulated_interest_threshold))
         current_ts = datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
-        positive_threshold = max(1, abs(accumulated_interest_threshold))
+
+        # When the new account balance is very close to zero, we make
+        # it a zero. This behavior is extremely useful when the
+        # creditor wants to zero out the account, before deleting it.
+        if abs(account.balance + amount) <= TINY_BALANCE_AMOUNT:
+            amount = -account.balance
+
         if amount >= positive_threshold:
             # The issuer pays interest to the owner of the account.
             issuer_account = _get_or_create_account((debtor_id, issuer_creditor_id))
