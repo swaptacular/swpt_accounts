@@ -88,7 +88,6 @@ class Account(db.Model):
         default=0,
         comment='The number of `prepared_transfer` records for this account.',
     )
-
     last_change_seqnum = db.Column(
         db.Integer,
         nullable=False,
