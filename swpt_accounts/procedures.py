@@ -33,10 +33,10 @@ def prepare_transfer(coordinator_type: str,
                      avl_balance_check_mode: int,
                      lock_amount: bool) -> None:
     assert 0 < min_amount <= max_amount
-    sender_account = (debtor_id, sender_creditor_id)
-    sender_account, avl_balance = _get_account_avl_balance(sender_account, avl_balance_check_mode)
+    account_identity = (debtor_id, sender_creditor_id)
+    account_identity, avl_balance = _get_account_avl_balance(account_identity, avl_balance_check_mode)
     if avl_balance >= min_amount:
-        account = _get_or_create_account(sender_account)
+        account = _get_or_create_account(account_identity)
         amount = min(avl_balance, max_amount)
         locked_amount = amount if lock_amount else 0
         pt = _create_prepared_transfer(coordinator_type, account, recipient_creditor_id, amount, locked_amount)
@@ -53,7 +53,7 @@ def prepare_transfer(coordinator_type: str,
             coordinator_request_id=coordinator_request_id,
         ))
     else:
-        debtor_id, creditor_id = Account.get_pk_values(sender_account)
+        debtor_id, creditor_id = Account.get_pk_values(account_identity)
         db.session.add(RejectedTransferSignal(
             debtor_id=debtor_id,
             coordinator_type=coordinator_type,
@@ -127,7 +127,8 @@ def capitalize_accumulated_account_interest(debtor_id: int,
             _commit_prepared_transfer(pt, -amount, current_ts, {})
 
 
-def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
+def _is_later_event(event: Tuple[int, datetime],
+                    other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
     seqnum, ts = event
     other_seqnum, other_ts = other_event
     advance = (ts - other_ts) if other_ts else TD_ZERO
