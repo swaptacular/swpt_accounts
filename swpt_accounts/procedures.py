@@ -74,14 +74,16 @@ def execute_prepared_transfer(debtor_id: int,
                               committed_amount: int,
                               transfer_info: dict) -> None:
     assert committed_amount >= 0
-    pk = (debtor_id, sender_creditor_id, transfer_id)
-    instance = PreparedTransfer.get_instance(pk, db.joinedload('sender_account', innerjoin=True))
-    if instance:
+    pt = PreparedTransfer.get_instance(
+        (debtor_id, sender_creditor_id, transfer_id),
+        db.joinedload('sender_account', innerjoin=True),
+    )
+    if pt:
         if committed_amount == 0:
-            _delete_prepared_transfer(instance)
+            _delete_prepared_transfer(pt)
         else:
             committed_at_ts = datetime.now(tz=timezone.utc)
-            _commit_prepared_transfer(instance, committed_amount, committed_at_ts, transfer_info)
+            _commit_prepared_transfer(pt, committed_amount, committed_at_ts, transfer_info)
 
 
 @atomic
