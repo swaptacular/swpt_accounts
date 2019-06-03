@@ -127,8 +127,7 @@ def capitalize_accumulated_account_interest(debtor_id: int,
             _commit_prepared_transfer(pt, -amount, current_ts, {})
 
 
-def _is_later_event(event: Tuple[int, datetime],
-                    other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
+def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
     seqnum, ts = event
     other_seqnum, other_ts = other_event
     advance = (ts - other_ts) if other_ts else TD_ZERO
@@ -208,8 +207,11 @@ def _get_account_avl_balance(account: AccountId, avl_balance_check_mode: int) ->
     return account, avl_balance
 
 
-def _create_prepared_transfer(coordinator_type: str, sender_account: Account, recipient_creditor_id: int,
-                              amount: int, sender_locked_amount: int) -> PreparedTransfer:
+def _create_prepared_transfer(coordinator_type: str,
+                              sender_account: Account,
+                              recipient_creditor_id: int,
+                              amount: int,
+                              sender_locked_amount: int) -> PreparedTransfer:
     pt = PreparedTransfer(
         sender_account=sender_account,
         coordinator_type=coordinator_type,
@@ -223,8 +225,10 @@ def _create_prepared_transfer(coordinator_type: str, sender_account: Account, re
     return pt
 
 
-def _insert_committed_transfer_signal(pt: PreparedTransfer, committed_amount: int,
-                                      committed_at_ts: datetime, transfer_info: dict) -> None:
+def _insert_committed_transfer_signal(pt: PreparedTransfer,
+                                      committed_amount: int,
+                                      committed_at_ts: datetime,
+                                      transfer_info: dict) -> None:
     db.session.add(CommittedTransferSignal(
         debtor_id=pt.debtor_id,
         sender_creditor_id=pt.sender_creditor_id,
@@ -259,7 +263,9 @@ def _calc_accumulated_account_interest(account: Account, current_ts: datetime) -
     return float(current_principal - account.balance)
 
 
-def _change_account_balance(account: Account, balance_delta: int, current_ts: datetime,
+def _change_account_balance(account: Account,
+                            balance_delta: int,
+                            current_ts: datetime,
                             is_interest_payment: bool = False) -> None:
     account.interest = _calc_accumulated_account_interest(account, current_ts)
     account.balance += balance_delta
