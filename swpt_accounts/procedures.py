@@ -15,6 +15,7 @@ AVL_BALANCE_IGNORE = 0
 AVL_BALANCE_ONLY = 1
 AVL_BALANCE_WITH_INTEREST = 2
 
+TINY_BALANCE_AMOUNT = 5
 MAX_PREPARED_TRANSFERS_COUNT = 1000
 
 TD_ZERO = timedelta()
@@ -132,6 +133,19 @@ def capitalize_accumulated_interest(debtor_id: int,
             _commit_prepared_transfer(pt, -amount, current_ts)
 
 
+@atomic
+def delete_account(debtor_id: int, creditor_id: int) -> None:
+    account = _get_account((debtor_id, creditor_id))
+    if (account
+            and account.balance == 0
+            and account.prepared_transfers_count == 0
+            and abs(_calc_account_current_principal(account)) <= TINY_BALANCE_AMOUNT):
+        assert account.locked_amount == 0
+        account.interest = 0.0
+        account.status = account.status | Account.STATUS_DELETED_FLAG
+        _insert_account_change_signal(account)
+
+
 def _is_later_event(event: Tuple[int, datetime],
                     other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
     seqnum, ts = event
@@ -181,7 +195,8 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         _insert_account_change_signal(account)
 
 
-def _calc_account_current_principal(account: Account, current_ts: datetime) -> Decimal:
+def _calc_account_current_principal(account: Account, current_ts: datetime = None) -> Decimal:
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
     principal = account.balance + Decimal.from_float(account.interest)
     if principal > 0:
         k = math.log(1.0 + account.interest_rate / 100.0) / SECONDS_IN_YEAR
@@ -202,9 +217,7 @@ def _get_account_avl_balance(account_or_pk: AccountId, avl_balance_check_mode: i
     elif avl_balance_check_mode == AVL_BALANCE_WITH_INTEREST:
         account = _get_account(account_or_pk)
         if account:
-            current_ts = datetime.now(tz=timezone.utc)
-            current_principal = _calc_account_current_principal(account, current_ts)
-            avl_balance = math.floor(current_principal) - account.locked_amount
+            avl_balance = math.floor(_calc_account_current_principal(account)) - account.locked_amount
             account_or_pk = account
     else:
         raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
