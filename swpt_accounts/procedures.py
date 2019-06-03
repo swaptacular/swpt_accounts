@@ -37,14 +37,14 @@ def prepare_transfer(coordinator_type: str,
     assert 0 < min_amount <= max_amount
     account_or_pk, avl_balance = _get_account_avl_balance((debtor_id, sender_creditor_id), avl_balance_check_mode)
 
-    def reject_transfer(details: dict):
+    def reject_transfer(**kw):
         debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
         db.session.add(RejectedTransferSignal(
             debtor_id=debtor_id,
             coordinator_type=coordinator_type,
             coordinator_id=coordinator_id,
             coordinator_request_id=coordinator_request_id,
-            details=details,
+            details=kw,
         ))
 
     if avl_balance >= min_amount:
@@ -66,17 +66,17 @@ def prepare_transfer(coordinator_type: str,
                 coordinator_request_id=coordinator_request_id,
             ))
         else:
-            reject_transfer({
-                'error_code': 'ACC002',
-                'message': 'Too many prepared transfers',
-                'prepared_transfers_count': account.prepared_transfers_count,
-            })
+            reject_transfer(
+                error_code='ACC002',
+                message='Too many prepared transfers',
+                prepared_transfers_count=account.prepared_transfers_count,
+            )
     else:
-        reject_transfer({
-            'error_code': 'ACC001',
-            'message': 'Insufficient available balance',
-            'avl_balance': avl_balance,
-        })
+        reject_transfer(
+            error_code='ACC001',
+            message='Insufficient available balance',
+            avl_balance=avl_balance,
+        )
 
 
 @atomic
