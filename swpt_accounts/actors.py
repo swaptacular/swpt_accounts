@@ -98,7 +98,7 @@ def execute_prepared_transfer(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def update_account_interest_rate(
+def update_interest_rate(
         *,
         debtor_id: int,
         creditor_id: int,
@@ -108,7 +108,7 @@ def update_account_interest_rate(
 
     """Change the interest rate on given account."""
 
-    procedures.update_account_interest_rate(
+    procedures.update_interest_rate(
         debtor_id,
         creditor_id,
         interest_rate,
@@ -118,7 +118,7 @@ def update_account_interest_rate(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def capitalize_accumulated_account_interest(
+def capitalize_accumulated_interest(
         *,
         debtor_id: int,
         creditor_id: int,
@@ -132,7 +132,7 @@ def capitalize_accumulated_account_interest(
 
     """
 
-    procedures.capitalize_accumulated_account_interest(
+    procedures.capitalize_accumulated_interest(
         debtor_id,
         creditor_id,
         issuer_creditor_id,
