@@ -139,22 +139,19 @@ def _is_later_event(event: Tuple[int, datetime],
     )
 
 
+def _create_account(debtor_id: int, creditor_id: int) -> Account:
+    account = Account(debtor_id=debtor_id, creditor_id=creditor_id)
+    with db.retry_on_integrity_error():
+        db.session.add(account)
+    _insert_account_change_signal(account)
+    return account
+
+
 def _get_account(account_identity: AccountId) -> Optional[Account]:
     account = Account.get_instance(account_identity)
     if account and not account.status & Account.STATUS_DELETED_FLAG:
         return account
     return None
-
-
-def _create_account(debtor_id: int, creditor_id: int) -> Account:
-    account = Account(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-    )
-    with db.retry_on_integrity_error():
-        db.session.add(account)
-    _insert_account_change_signal(account)
-    return account
 
 
 def _get_or_create_account(account_identity: AccountId) -> Account:
