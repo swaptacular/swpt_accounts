@@ -82,6 +82,13 @@ class Account(db.Model):
         default=0,
         comment='The total sum of all pending transfer locks',
     )
+    prepared_transfers_count = db.Column(
+        db.SmallInteger,
+        nullable=False,
+        default=0,
+        comment='The number of `prepared_transfer` records for this account.',
+    )
+
     last_change_seqnum = db.Column(
         db.Integer,
         nullable=False,
@@ -104,6 +111,7 @@ class Account(db.Model):
     __table_args__ = (
         db.CheckConstraint(interest_rate > -100.0),
         db.CheckConstraint(locked_amount >= 0),
+        db.CheckConstraint(prepared_transfers_count >= 0),
     )
 
 

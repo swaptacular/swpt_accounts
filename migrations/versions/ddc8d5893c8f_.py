@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: b4adb9d668e7
+Revision ID: ddc8d5893c8f
 Revises: 
-Create Date: 2019-06-02 17:46:32.732731
+Create Date: 2019-06-03 17:58:40.977058
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b4adb9d668e7'
+revision = 'ddc8d5893c8f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -27,11 +27,13 @@ def upgrade():
     sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `balance` yet. Can be a negative number. `interest`gets zeroed and added to the balance once in while (like once per week).'),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks'),
+    sa.Column('prepared_transfers_count', sa.SmallInteger(), nullable=False, comment='The number of `prepared_transfer` records for this account.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `balance`, `interest_rate` or `status`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
     sa.CheckConstraint('interest_rate > -100.0'),
     sa.CheckConstraint('locked_amount >= 0'),
+    sa.CheckConstraint('prepared_transfers_count >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id')
     )
     op.create_table('account_change_signal',
