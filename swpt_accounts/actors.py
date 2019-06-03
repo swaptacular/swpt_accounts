@@ -60,15 +60,16 @@ def prepare_transfer(
     """
 
     procedures.prepare_transfer(
-        coordinator_type=coordinator_type,
-        coordinator_id=coordinator_id,
-        coordinator_request_id=coordinator_request_id,
-        sender_account=(debtor_id, sender_creditor_id),
-        min_amount=min_amount,
-        max_amount=max_amount,
-        recipient_creditor_id=recipient_creditor_id,
-        avl_balance_check_mode=avl_balance_check_mode,
-        lock_amount=lock_amount,
+        coordinator_type,
+        coordinator_id,
+        coordinator_request_id,
+        min_amount,
+        max_amount,
+        debtor_id,
+        sender_creditor_id,
+        recipient_creditor_id,
+        avl_balance_check_mode,
+        lock_amount,
     )
 
 
@@ -88,7 +89,9 @@ def execute_prepared_transfer(
     """
 
     procedures.execute_prepared_transfer(
-        (debtor_id, sender_creditor_id, transfer_id),
+        debtor_id,
+        sender_creditor_id,
+        transfer_id,
         committed_amount,
         transfer_info,
     )
@@ -106,7 +109,8 @@ def update_account_interest_rate(
     """Change the interest rate on given account."""
 
     procedures.update_account_interest_rate(
-        (debtor_id, creditor_id),
+        debtor_id,
+        creditor_id,
         interest_rate,
         change_seqnum,
         iso8601.parse_date(change_ts),
