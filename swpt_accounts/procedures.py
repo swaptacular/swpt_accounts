@@ -139,10 +139,10 @@ def _is_later_event(event: Tuple[int, datetime],
     )
 
 
-def _get_account(account: AccountId) -> Optional[Account]:
-    instance = Account.get_instance(account)
-    if instance and not instance.status & Account.STATUS_DELETED_FLAG:
-        return instance
+def _get_account(account_identity: AccountId) -> Optional[Account]:
+    account = Account.get_instance(account_identity)
+    if account and not account.status & Account.STATUS_DELETED_FLAG:
+        return account
     return None
 
 
@@ -157,13 +157,13 @@ def _create_account(debtor_id: int, creditor_id: int) -> Account:
     return account
 
 
-def _get_or_create_account(account: AccountId) -> Account:
-    instance = Account.get_instance(account)
-    if instance is None:
-        debtor_id, creditor_id = Account.get_pk_values(account)
-        instance = _create_account(debtor_id, creditor_id)
-    _resurrect_account_if_deleted(instance)
-    return instance
+def _get_or_create_account(account_identity: AccountId) -> Account:
+    account = Account.get_instance(account_identity)
+    if account is None:
+        debtor_id, creditor_id = Account.get_pk_values(account_identity)
+        account = _create_account(debtor_id, creditor_id)
+    _resurrect_account_if_deleted(account)
+    return account
 
 
 def _resurrect_account_if_deleted(account: Account) -> None:
@@ -187,25 +187,25 @@ def _calc_account_current_principal(account: Account, current_ts: datetime) -> D
     return principal
 
 
-def _get_account_avl_balance(account: AccountId, avl_balance_check_mode: int) -> Tuple[AccountId, int]:
+def _get_account_avl_balance(account_identity: AccountId, avl_balance_check_mode: int) -> Tuple[AccountId, int]:
     avl_balance = 0
     if avl_balance_check_mode == AVL_BALANCE_IGNORE:
         avl_balance = MAX_INT64
     elif avl_balance_check_mode == AVL_BALANCE_ONLY:
-        instance = _get_account(account)
-        if instance:
-            avl_balance = instance.balance - instance.locked_amount
-            account = instance
+        account = _get_account(account_identity)
+        if account:
+            avl_balance = account.balance - account.locked_amount
+            account_identity = account
     elif avl_balance_check_mode == AVL_BALANCE_WITH_INTEREST:
-        instance = _get_account(account)
-        if instance:
+        account = _get_account(account_identity)
+        if account:
             current_ts = datetime.now(tz=timezone.utc)
-            current_principal = _calc_account_current_principal(instance, current_ts)
-            avl_balance = math.floor(current_principal) - instance.locked_amount
-            account = instance
+            current_principal = _calc_account_current_principal(account, current_ts)
+            avl_balance = math.floor(current_principal) - account.locked_amount
+            account_identity = account
     else:
         raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
-    return account, avl_balance
+    return account_identity, avl_balance
 
 
 def _create_prepared_transfer(coordinator_type: str,
