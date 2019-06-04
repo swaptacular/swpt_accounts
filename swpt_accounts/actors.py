@@ -37,10 +37,10 @@ def prepare_transfer(
     corresponding CR record must be set to "prepared", and the
     received values for `debtor_id`, `sender_creditor_id`, and
     `transfer_id` -- recorded. The "prepared" CR record must be, at
-    some point, executed (using the `finalize_prepared_transfer`
-    actor), and the status set to "executed". The "executed" CR record
-    must not be deleted right away, to avoid problems when the event
-    handler ends up being executed more than once.
+    some point, finalized (using the `finalize_prepared_transfer`
+    actor), and the status set to "finalized". The "finalized" CR
+    record must not be deleted right away, to avoid problems when the
+    event handler ends up being executed more than once.
 
     If a `PreparedTransferSignal` is received, but a corresponding CR
     record is not found, the newly prepared transfer must be
@@ -48,7 +48,7 @@ def prepare_transfer(
     `finalize_prepared_transfer` actor with a zero `committed_amount`).
 
     If a `PreparedTransferSignal` is received for an already
-    "prepared" or "executed" CR record, the corresponding values of
+    "prepared" or "finalized" CR record, the corresponding values of
     `debtor_id`, `sender_creditor_id`, and `transfer_id` must be
     compared. If they are the same, no action should be taken. If they
     differ, the newly prepared transfer must be immediately dismissed.
