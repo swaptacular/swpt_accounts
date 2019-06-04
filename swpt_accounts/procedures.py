@@ -36,7 +36,7 @@ def prepare_transfer(coordinator_type: str,
                      avl_balance_check_mode: int,
                      lock_amount: bool) -> None:
     assert 0 < min_amount <= max_amount
-    account_or_pk, avl_balance = _get_account_avl_balance((debtor_id, sender_creditor_id), avl_balance_check_mode)
+    account_or_pk, avl_balance = _calc_account_avl_balance((debtor_id, sender_creditor_id), avl_balance_check_mode)
 
     def reject_transfer(**kw):
         debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
@@ -146,7 +146,7 @@ def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
     if (account
             and account.principal == 0
             and account.prepared_transfers_count == 0
-            and 0 <= _get_account_current_balance(account) <= TINY_PRINCIPAL_AMOUNT):
+            and 0 <= _calc_account_current_balance(account) <= TINY_PRINCIPAL_AMOUNT):
         assert account.locked_amount == 0
         account.interest = 0.0
         account.status = account.status | Account.STATUS_DELETED_FLAG
@@ -202,7 +202,7 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         _insert_account_change_signal(account)
 
 
-def _get_account_current_balance(account: Account, current_ts: datetime = None) -> Decimal:
+def _calc_account_current_balance(account: Account, current_ts: datetime = None) -> Decimal:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     current_balance = account.principal + Decimal.from_float(account.interest)
     if current_balance > 0:
@@ -212,7 +212,7 @@ def _get_account_current_balance(account: Account, current_ts: datetime = None) 
     return current_balance
 
 
-def _get_account_avl_balance(account_or_pk: AccountId, avl_balance_check_mode: int) -> Tuple[AccountId, int]:
+def _calc_account_avl_balance(account_or_pk: AccountId, avl_balance_check_mode: int) -> Tuple[AccountId, int]:
     avl_balance = 0
     if avl_balance_check_mode == AB_IGNORE:
         avl_balance = MAX_INT64
@@ -224,7 +224,7 @@ def _get_account_avl_balance(account_or_pk: AccountId, avl_balance_check_mode: i
     elif avl_balance_check_mode == AB_PRINCIPAL_WITH_INTEREST:
         account = _get_account(account_or_pk)
         if account:
-            avl_balance = math.floor(_get_account_current_balance(account)) - account.locked_amount
+            avl_balance = math.floor(_calc_account_current_balance(account)) - account.locked_amount
             account_or_pk = account
     else:
         raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
@@ -284,7 +284,7 @@ def _insert_account_change_signal(account: Account, last_change_ts: Optional[dat
 
 
 def _calc_accumulated_account_interest(account: Account, current_ts: datetime) -> Decimal:
-    return _get_account_current_balance(account, current_ts) - account.principal
+    return _calc_account_current_balance(account, current_ts) - account.principal
 
 
 def _change_account_principal(account: Account,
