@@ -113,10 +113,10 @@ def set_interest_rate(debtor_id: int,
 
 
 @atomic
-def capitalize_accumulated_interest(debtor_id: int,
-                                    creditor_id: int,
-                                    issuer_creditor_id: int,
-                                    accumulated_interest_threshold: int) -> None:
+def capitalize_interest(debtor_id: int,
+                        creditor_id: int,
+                        issuer_creditor_id: int,
+                        accumulated_interest_threshold: int) -> None:
     account = _get_account((debtor_id, creditor_id))
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))

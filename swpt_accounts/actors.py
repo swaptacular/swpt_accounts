@@ -117,7 +117,7 @@ def set_interest_rate(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def capitalize_accumulated_interest(
+def capitalize_interest(
         *,
         debtor_id: int,
         creditor_id: int,
@@ -131,7 +131,7 @@ def capitalize_accumulated_interest(
 
     """
 
-    procedures.capitalize_accumulated_interest(
+    procedures.capitalize_interest(
         debtor_id,
         creditor_id,
         issuer_creditor_id,
