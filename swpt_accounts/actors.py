@@ -1,3 +1,4 @@
+from datetime import datetime
 import iso8601
 from .extensions import broker, APP_QUEUE_NAME
 from .procedures import AB_IGNORE, AB_PRINCIPAL_ONLY, AB_PRINCIPAL_WITH_INTEREST  # noqa
@@ -154,4 +155,23 @@ def delete_account_if_zeroed(
     procedures.delete_account_if_zeroed(
         debtor_id,
         creditor_id,
+    )
+
+
+@broker.actor(queue_name=APP_QUEUE_NAME)
+def purge_deleted_account(
+        *,
+        debtor_id: int,
+        creditor_id: int,
+        if_deleted_before: datetime) -> None:
+
+    """Removes the account `(debtor_id, creditor_id)` if it has been
+    marked as deleted before the `if_deleted_before` moment.
+
+    """
+
+    procedures.purge_deleted_account(
+        debtor_id,
+        creditor_id,
+        if_deleted_before,
     )

@@ -153,6 +153,14 @@ def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
         _insert_account_change_signal(account)
 
 
+@atomic
+def purge_deleted_account(debtor_id: int, creditor_id: int, if_deleted_before: datetime) -> None:
+    Account.query.filter_by(debtor_id=debtor_id, creditor_id=creditor_id)\
+                 .filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == 1)\
+                 .filter(Account.last_change_ts < if_deleted_before)\
+                 .delete(synchronize_session=False)
+
+
 def _is_later_event(event: Tuple[int, datetime],
                     other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
     seqnum, ts = event
