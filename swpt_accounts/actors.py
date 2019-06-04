@@ -97,7 +97,7 @@ def finalize_prepared_transfer(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def update_interest_rate(
+def set_interest_rate(
         *,
         debtor_id: int,
         creditor_id: int,
@@ -107,7 +107,7 @@ def update_interest_rate(
 
     """Change the interest rate on given account."""
 
-    procedures.update_interest_rate(
+    procedures.set_interest_rate(
         debtor_id,
         creditor_id,
         interest_rate,

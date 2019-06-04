@@ -97,11 +97,11 @@ def finalize_prepared_transfer(debtor_id: int,
 
 
 @atomic
-def update_interest_rate(debtor_id: int,
-                         creditor_id: int,
-                         interest_rate: float,
-                         change_seqnum: int,
-                         change_ts: datetime) -> None:
+def set_interest_rate(debtor_id: int,
+                      creditor_id: int,
+                      interest_rate: float,
+                      change_seqnum: int,
+                      change_ts: datetime) -> None:
     assert change_seqnum is not None
     assert change_ts is not None
     account = _get_account((debtor_id, creditor_id))
