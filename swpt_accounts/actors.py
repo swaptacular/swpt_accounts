@@ -140,17 +140,18 @@ def capitalize_accumulated_interest(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def delete_account(
+def delete_account_if_zeroed(
         *,
         debtor_id: int,
         creditor_id: int) -> None:
 
     """Mark the account `(debtor_id, creditor_id)` as deleted if the
-    principal is zero and the available balance is near zero.
+    principal is zero and the available balance is positive and near
+    zero.
 
     """
 
-    procedures.delete_account(
+    procedures.delete_account_if_zeroed(
         debtor_id,
         creditor_id,
     )

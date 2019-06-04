@@ -15,7 +15,7 @@ AB_IGNORE = 0
 AB_PRINCIPAL_ONLY = 1
 AB_PRINCIPAL_WITH_INTEREST = 2
 
-TINY_PRINCIPAL_AMOUNT = 5
+TINY_PRINCIPAL_AMOUNT = 3
 MAX_PREPARED_TRANSFERS_COUNT = 1000
 
 TD_ZERO = timedelta()
@@ -123,10 +123,10 @@ def capitalize_accumulated_interest(debtor_id: int,
         current_ts = datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
 
-        # When the new account principal is very close to zero, we make
-        # it a zero. This behavior is extremely useful when the owner
-        # wants to zero out the account before deleting it.
-        if abs(account.principal + amount) <= TINY_PRINCIPAL_AMOUNT:
+        # When the new account principal is positive and very close to
+        # zero, we make it a zero. This behavior could be helpful when
+        # the owner zeroes out the account before deleting it.
+        if 0 <= account.principal + amount <= TINY_PRINCIPAL_AMOUNT:
             amount = -account.principal
 
         if amount >= positive_threshold:
@@ -141,12 +141,12 @@ def capitalize_accumulated_interest(debtor_id: int,
 
 
 @atomic
-def delete_account(debtor_id: int, creditor_id: int) -> None:
+def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
     account = _get_account((debtor_id, creditor_id))
     if (account
             and account.principal == 0
             and account.prepared_transfers_count == 0
-            and abs(_get_account_current_balance(account)) <= TINY_PRINCIPAL_AMOUNT):
+            and 0 <= _get_account_current_balance(account) <= TINY_PRINCIPAL_AMOUNT):
         assert account.locked_amount == 0
         account.interest = 0.0
         account.status = account.status | Account.STATUS_DELETED_FLAG
@@ -283,9 +283,8 @@ def _insert_account_change_signal(account: Account, last_change_ts: Optional[dat
     ))
 
 
-def _calc_accumulated_account_interest(account: Account, current_ts: datetime) -> float:
-    current_balance = _get_account_current_balance(account, current_ts)
-    return float(current_balance - account.principal)
+def _calc_accumulated_account_interest(account: Account, current_ts: datetime) -> Decimal:
+    return _get_account_current_balance(account, current_ts) - account.principal
 
 
 def _change_account_principal(account: Account,
@@ -293,10 +292,9 @@ def _change_account_principal(account: Account,
                               current_ts: Optional[datetime] = None,
                               is_interest_payment: bool = False) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
-    account.interest = _calc_accumulated_account_interest(account, current_ts)
+    interest = _calc_accumulated_account_interest(account, current_ts)
+    account.interest = float(interest - principal_delta if is_interest_payment else interest)
     account.principal += principal_delta
-    if is_interest_payment:
-        account.interest -= float(principal_delta)
     _insert_account_change_signal(account, current_ts)
 
 
@@ -306,7 +304,7 @@ def _change_account_interest_rate(account: Account,
                                   change_ts: datetime,
                                   current_ts: Optional[datetime] = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
-    account.interest = _calc_accumulated_account_interest(account, current_ts)
+    account.interest = float(_calc_accumulated_account_interest(account, current_ts))
     account.interest_rate = interest_rate
     account.interest_rate_last_change_seqnum = change_seqnum
     account.interest_rate_last_change_ts = change_ts
