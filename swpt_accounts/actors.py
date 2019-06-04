@@ -36,7 +36,7 @@ def prepare_transfer(
     corresponding CR record must be set to "prepared", and the
     received values for `debtor_id`, `sender_creditor_id`, and
     `transfer_id` -- recorded. The "prepared" CR record must be, at
-    some point, executed (using the `execute_prepared_transfer`
+    some point, executed (using the `finalize_prepared_transfer`
     actor), and the status set to "executed". The "executed" CR record
     must not be deleted right away, to avoid problems when the event
     handler ends up being executed more than once.
@@ -44,7 +44,7 @@ def prepare_transfer(
     If a `PreparedTransferSignal` is received, but a corresponding CR
     record is not found, the newly prepared transfer must be
     immediately dismissed (by sending a message to the
-    `execute_prepared_transfer` actor with a zero `committed_amount`).
+    `finalize_prepared_transfer` actor with a zero `committed_amount`).
 
     If a `PreparedTransferSignal` is received for an already
     "prepared" or "executed" CR record, the corresponding values of
@@ -73,7 +73,7 @@ def prepare_transfer(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def execute_prepared_transfer(
+def finalize_prepared_transfer(
         *,
         debtor_id: int,
         sender_creditor_id: int,
@@ -87,7 +87,7 @@ def execute_prepared_transfer(
 
     """
 
-    procedures.execute_prepared_transfer(
+    procedures.finalize_prepared_transfer(
         debtor_id,
         sender_creditor_id,
         transfer_id,
