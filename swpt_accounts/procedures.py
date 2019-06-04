@@ -126,7 +126,7 @@ def capitalize_interest(debtor_id: int,
         # When the new account principal is positive and very close to
         # zero, we make it a zero. This behavior could be helpful when
         # the owner zeroes out the account before deleting it.
-        if 0 <= account.principal + amount <= TINY_PRINCIPAL_AMOUNT:
+        if 0 < account.principal + amount <= TINY_PRINCIPAL_AMOUNT:
             amount = -account.principal
 
         if amount >= positive_threshold:
