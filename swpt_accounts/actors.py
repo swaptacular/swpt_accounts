@@ -142,50 +142,6 @@ def capitalize_interest(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def create_account_if_possible(
-        *,
-        debtor_id: int,
-        creditor_id: int) -> None:
-
-    """Make sure the account `(debtor_id, creditor_id)` exists.
-
-    The name of this actor includes "if possible", because if a
-    `delete_account_if_possible` asynchronous message is also sent for
-    the given account, it is uncertain which one will be executed
-    first. To avoid confusion, it should not be presumed that the
-    account will always be created successfully. If you must be sure,
-    use a synchronous HTTP POST request instead.
-
-    """
-
-    procedures.get_or_create_account((debtor_id, creditor_id))
-
-
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def delete_account_if_possible(
-        *,
-        debtor_id: int,
-        creditor_id: int) -> None:
-
-    """Mark the account `(debtor_id, creditor_id)` as deleted if there are
-    no prepared transfers, the principal is zero, and the available
-    balance is non-negative and very close to zero.
-
-    Even if the account has been marked as deleted, it can be
-    "resurrected" by an incoming transfer. To avoid confusion, in any
-    circumstances this actor does not guarantee that the account will
-    be marked as deleted successfully. (Also, see the comment for
-    `create_account_if_possible`.)
-
-    """
-
-    procedures.delete_account_if_zeroed(
-        debtor_id,
-        creditor_id,
-    )
-
-
-@broker.actor(queue_name=APP_QUEUE_NAME)
 def purge_deleted_account(
         *,
         debtor_id: int,
