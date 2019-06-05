@@ -170,7 +170,7 @@ def delete_account_if_possible(
 
     """Mark the account `(debtor_id, creditor_id)` as deleted if the
     principal is zero and the available balance is positive and near
-    zero.
+    zero. (See the comment for `create_account_if_possible`.)
 
     """
 
