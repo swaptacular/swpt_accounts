@@ -150,10 +150,10 @@ def create_account_if_possible(
     """Make sure the account `(debtor_id, creditor_id)` exists.
 
     The name of this actor includes "if possible", because if a
-    `delete_account_if_possible` async message is also sent for the
-    given account, it is uncertain which one will be executed
-    first. To avoid confusion, this actor does not guarantee that the
-    account will be created successfully. If you have to be sure, use
+    `delete_account_if_possible` asynchronous message is also sent for
+    the given account, it is uncertain which one will be executed
+    first. To avoid confusion, it should not be presumed that the
+    account will always be created successfully. If must be sure, use
     a synchronous HTTP POST request instead.
 
     """
