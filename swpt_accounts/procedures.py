@@ -151,7 +151,7 @@ def capitalize_interest(debtor_id: int,
 
 
 @atomic
-def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
+def delete_account_if_possible(debtor_id: int, creditor_id: int) -> None:
     account = _get_account((debtor_id, creditor_id))
     if (account
             and account.principal == 0

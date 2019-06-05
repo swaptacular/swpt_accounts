@@ -142,7 +142,7 @@ def capitalize_interest(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def delete_account_if_zeroed(
+def delete_account_if_possible(
         *,
         debtor_id: int,
         creditor_id: int) -> None:
@@ -153,7 +153,7 @@ def delete_account_if_zeroed(
 
     """
 
-    procedures.delete_account_if_zeroed(
+    procedures.delete_account_if_possible(
         debtor_id,
         creditor_id,
     )
