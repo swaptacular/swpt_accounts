@@ -25,6 +25,16 @@ SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
 
 @atomic
+def get_or_create_account(account_or_pk: AccountId) -> Account:
+    account = Account.get_instance(account_or_pk)
+    if account is None:
+        debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
+        account = _create_account(debtor_id, creditor_id)
+    _resurrect_account_if_deleted(account)
+    return account
+
+
+@atomic
 def prepare_transfer(coordinator_type: str,
                      coordinator_id: int,
                      coordinator_request_id: int,
@@ -60,7 +70,7 @@ def prepare_transfer(coordinator_type: str,
             message='Recipient account does not exist',
         )
     else:
-        sender_account = _get_or_create_account(account_or_pk)
+        sender_account = get_or_create_account(account_or_pk)
         if sender_account.prepared_transfers_count >= MAX_PREPARED_TRANSFERS_COUNT:
             reject_transfer(
                 error_code='ACC003',
@@ -141,7 +151,7 @@ def capitalize_interest(debtor_id: int,
 
         if amount >= positive_threshold:
             # The issuer pays interest to the owner of the account.
-            issuer_account = _get_or_create_account((debtor_id, issuer_creditor_id))
+            issuer_account = get_or_create_account((debtor_id, issuer_creditor_id))
             pt = _create_prepared_transfer('interest', issuer_account, creditor_id, amount, amount)
             _commit_prepared_transfer(pt, amount, current_ts)
         elif -amount >= positive_threshold:
@@ -196,15 +206,6 @@ def _get_account(account_or_pk: AccountId) -> Optional[Account]:
     if account and not account.status & Account.STATUS_DELETED_FLAG:
         return account
     return None
-
-
-def _get_or_create_account(account_or_pk: AccountId) -> Account:
-    account = Account.get_instance(account_or_pk)
-    if account is None:
-        debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
-        account = _create_account(debtor_id, creditor_id)
-    _resurrect_account_if_deleted(account)
-    return account
 
 
 def _resurrect_account_if_deleted(account: Account) -> None:
@@ -347,7 +348,7 @@ def _commit_prepared_transfer(pt: PreparedTransfer,
                               committed_at_ts: datetime,
                               transfer_info: dict = {}) -> None:
     assert committed_amount <= pt.amount
-    recipient_account = _get_or_create_account((pt.debtor_id, pt.recipient_creditor_id))
+    recipient_account = get_or_create_account((pt.debtor_id, pt.recipient_creditor_id))
     _change_account_principal(pt.sender_account, -committed_amount, committed_at_ts, pt.coordinator_type == 'demurrage')
     _change_account_principal(recipient_account, committed_amount, committed_at_ts, pt.coordinator_type == 'interest')
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)

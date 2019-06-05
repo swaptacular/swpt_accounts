@@ -142,6 +142,27 @@ def capitalize_interest(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
+def create_account_if_possible(
+        *,
+        debtor_id: int,
+        creditor_id: int) -> None:
+
+    """Make sure the account `(debtor_id, creditor_id)` exists.
+
+    The name of this actor includes "if possible", because if a
+    `delete_account_if_possible` async message is also sent for the
+    given account, it is uncertain which one will be executed
+    first. To avoid confusion, and to allow for future changes in
+    behavior, this actor does not guarantee that the account will be
+    created successfully. If you have to be sure, use a synchronous
+    HTTP POST request instead.
+
+    """
+
+    procedures.get_or_create_account((debtor_id, creditor_id))
+
+
+@broker.actor(queue_name=APP_QUEUE_NAME)
 def delete_account_if_possible(
         *,
         debtor_id: int,
