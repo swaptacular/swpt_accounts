@@ -169,8 +169,14 @@ def delete_account_if_possible(
         creditor_id: int) -> None:
 
     """Mark the account `(debtor_id, creditor_id)` as deleted if the
-    principal is zero and the available balance is positive and near
-    zero. (See the comment for `create_account_if_possible`.)
+    principal is zero and the available balance is near zero, but not
+    negative.
+
+    Even if the account has been marked as deleted, it can be
+    "resurrected" by an incoming transfer. To avoid confusion, in any
+    circumstances this actor does not guarantee that the account will
+    be marked as deleted successfully. (Also, see the comment for
+    `create_account_if_possible`.)
 
     """
 
