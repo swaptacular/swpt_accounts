@@ -15,7 +15,7 @@ AB_IGNORE = 0
 AB_PRINCIPAL_ONLY = 1
 AB_PRINCIPAL_WITH_INTEREST = 2
 
-TINY_PRINCIPAL_AMOUNT = 3
+TINY_POSITIVE_AMOUNT = 3  # should be at least `2`
 MAX_PREPARED_TRANSFERS_COUNT = 1000
 
 TD_ZERO = timedelta()
@@ -146,7 +146,7 @@ def capitalize_interest(debtor_id: int,
         # When the new account principal is positive and very close to
         # zero, we make it a zero. This behavior could be helpful when
         # the owner zeroes out the account before deleting it.
-        if 0 < account.principal + amount <= TINY_PRINCIPAL_AMOUNT:
+        if 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
             amount = -account.principal
 
         if amount >= positive_threshold:
@@ -166,7 +166,7 @@ def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
     if (account
             and account.principal == 0
             and account.prepared_transfers_count == 0
-            and 0 <= _calc_account_current_balance(account) <= TINY_PRINCIPAL_AMOUNT):
+            and 0 <= _calc_account_current_balance(account) <= TINY_POSITIVE_AMOUNT):
         assert account.locked_amount == 0
         account.interest = 0.0
         account.status = account.status | Account.STATUS_DELETED_FLAG
