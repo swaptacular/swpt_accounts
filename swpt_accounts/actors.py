@@ -143,6 +143,17 @@ def capitalize_interest(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
+def create_account(
+        *,
+        debtor_id: int,
+        creditor_id: int) -> None:
+
+    """Make sure the account `(debtor_id, creditor_id)` exists."""
+
+    procedures.get_or_create_account(debtor_id, creditor_id)
+
+
+@broker.actor(queue_name=APP_QUEUE_NAME)
 def purge_deleted_account(
         *,
         debtor_id: int,
