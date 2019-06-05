@@ -217,6 +217,7 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         account.interest_rate = 0.0
         account.interest_rate_last_change_seqnum = None
         account.interest_rate_last_change_ts = None
+        account.last_transfer_date = None
         _insert_account_change_signal(account)
 
 
@@ -308,11 +309,15 @@ def _calc_accumulated_account_interest(account: Account, current_ts: datetime) -
 def _change_account_principal(account: Account,
                               principal_delta: int,
                               current_ts: Optional[datetime] = None,
-                              is_interest_payment: bool = False) -> None:
+                              is_interest_or_demurrage_payment: bool = False) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     interest = _calc_accumulated_account_interest(account, current_ts)
-    account.interest = float(interest - principal_delta if is_interest_payment else interest)
     account.principal += principal_delta
+    if is_interest_or_demurrage_payment:
+        account.interest = float(interest - principal_delta)
+    else:
+        account.interest = float(interest)
+        account.last_transfer_date = current_ts.date()
     _insert_account_change_signal(account, current_ts)
 
 

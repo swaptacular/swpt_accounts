@@ -101,6 +101,11 @@ class Account(db.Model):
         default=get_now_utc,
         comment='Updated on every increment of `last_change_seqnum`. Must never decrease.',
     )
+    last_transfer_date = db.Column(
+        db.DATE,
+        comment='Updated for each committed transfer which is not an interest or demurrage '
+                'payment',
+    )
     status = db.Column(
         db.SmallInteger,
         nullable=False,
