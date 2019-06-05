@@ -216,6 +216,7 @@ class AccountChangeSignal(Signal):
     principal = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
+    last_transfer_date = db.Column(db.DATE)
     status = db.Column(db.SmallInteger, nullable=False)
 
 

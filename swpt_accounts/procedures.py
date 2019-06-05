@@ -303,6 +303,7 @@ def _insert_account_change_signal(account: Account, last_change_ts: Optional[dat
         principal=account.principal,
         interest=account.interest,
         interest_rate=account.interest_rate,
+        last_transfer_date=account.last_transfer_date,
         status=account.status,
     ))
 
