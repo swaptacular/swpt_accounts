@@ -17,7 +17,8 @@ def prepare_transfer(
         sender_creditor_id: int,
         recipient_creditor_id: int,
         avl_balance_check_mode: int,
-        lock_amount: bool = True) -> None:
+        lock_amount: bool = True,
+        recipient_account_must_exist: bool = True) -> None:
 
     """Try to greedily secure an amount between `min_amount` and
    `max_amount`, to transfer it from sender's account (`debtor_id`,

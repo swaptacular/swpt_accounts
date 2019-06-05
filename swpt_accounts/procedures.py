@@ -34,12 +34,11 @@ def prepare_transfer(coordinator_type: str,
                      sender_creditor_id: int,
                      recipient_creditor_id: int,
                      avl_balance_check_mode: int,
-                     lock_amount: bool) -> None:
+                     lock_amount: bool,
+                     recipient_account_must_exist: bool) -> None:
     assert 0 < min_amount <= max_amount
-    account_or_pk, avl_balance = _calc_account_avl_balance((debtor_id, sender_creditor_id), avl_balance_check_mode)
 
     def reject_transfer(**kw):
-        debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
         db.session.add(RejectedTransferSignal(
             debtor_id=debtor_id,
             coordinator_type=coordinator_type,
@@ -48,12 +47,35 @@ def prepare_transfer(coordinator_type: str,
             details=kw,
         ))
 
-    if avl_balance >= min_amount:
-        account = _get_or_create_account(account_or_pk)
-        if account.prepared_transfers_count < MAX_PREPARED_TRANSFERS_COUNT:
+    avl_balance, account_or_pk = _calc_account_avl_balance((debtor_id, sender_creditor_id), avl_balance_check_mode)
+    if avl_balance < min_amount:
+        reject_transfer(
+            error_code='ACC001',
+            message='Insufficient available balance',
+            avl_balance=avl_balance,
+        )
+    elif recipient_account_must_exist and not _get_account((debtor_id, recipient_creditor_id)):
+        reject_transfer(
+            error_code='ACC002',
+            message='Recipient account does not exist',
+        )
+    else:
+        sender_account = _get_or_create_account(account_or_pk)
+        if sender_account.prepared_transfers_count >= MAX_PREPARED_TRANSFERS_COUNT:
+            reject_transfer(
+                error_code='ACC003',
+                message='Too many prepared transfers',
+                prepared_transfers_count=sender_account.prepared_transfers_count,
+            )
+        else:
             amount = min(avl_balance, max_amount)
-            locked_amount = amount if lock_amount else 0
-            pt = _create_prepared_transfer(coordinator_type, account, recipient_creditor_id, amount, locked_amount)
+            pt = _create_prepared_transfer(
+                coordinator_type,
+                sender_account,
+                recipient_creditor_id,
+                amount,
+                amount if lock_amount else 0,
+            )
             db.session.add(PreparedTransferSignal(
                 debtor_id=pt.debtor_id,
                 sender_creditor_id=pt.sender_creditor_id,
@@ -66,18 +88,6 @@ def prepare_transfer(coordinator_type: str,
                 coordinator_id=coordinator_id,
                 coordinator_request_id=coordinator_request_id,
             ))
-        else:
-            reject_transfer(
-                error_code='ACC002',
-                message='Too many prepared transfers',
-                prepared_transfers_count=account.prepared_transfers_count,
-            )
-    else:
-        reject_transfer(
-            error_code='ACC001',
-            message='Insufficient available balance',
-            avl_balance=avl_balance,
-        )
 
 
 @atomic
@@ -220,7 +230,7 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
     return current_balance
 
 
-def _calc_account_avl_balance(account_or_pk: AccountId, avl_balance_check_mode: int) -> Tuple[AccountId, int]:
+def _calc_account_avl_balance(account_or_pk: AccountId, avl_balance_check_mode: int) -> Tuple[int, AccountId]:
     avl_balance = 0
     if avl_balance_check_mode == AB_IGNORE:
         avl_balance = MAX_INT64
@@ -236,7 +246,7 @@ def _calc_account_avl_balance(account_or_pk: AccountId, avl_balance_check_mode: 
             account_or_pk = account
     else:
         raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
-    return account_or_pk, avl_balance
+    return avl_balance, account_or_pk
 
 
 def _create_prepared_transfer(coordinator_type: str,
