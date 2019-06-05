@@ -180,7 +180,7 @@ def delete_account_if_possible(
 
     """
 
-    procedures.delete_account_if_possible(
+    procedures.delete_account_if_zeroed(
         debtor_id,
         creditor_id,
     )
