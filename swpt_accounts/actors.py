@@ -71,6 +71,7 @@ def prepare_transfer(
         recipient_creditor_id,
         avl_balance_check_mode,
         lock_amount,
+        recipient_account_must_exist,
     )
 
 

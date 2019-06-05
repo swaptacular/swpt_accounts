@@ -10,7 +10,7 @@ def create_account(debtor_id, creditor_id):
     """Make sure the account `(debtor_id, creditor_id)` exists."""
 
     # TODO: Add a real implementation.
-    procedures.get_or_create_account((debtor_id, creditor_id))
+    procedures.get_or_create_account(debtor_id, creditor_id)
 
 
 @web_api.route('/delete-account/<debtor_id>/<creditor_id>', methods=['POST'])
