@@ -152,10 +152,9 @@ def create_account_if_possible(
     The name of this actor includes "if possible", because if a
     `delete_account_if_possible` async message is also sent for the
     given account, it is uncertain which one will be executed
-    first. To avoid confusion, and to allow for future changes in
-    behavior, this actor does not guarantee that the account will be
-    created successfully. If you have to be sure, use a synchronous
-    HTTP POST request instead.
+    first. To avoid confusion, this actor does not guarantee that the
+    account will be created successfully. If you have to be sure, use
+    a synchronous HTTP POST request instead.
 
     """
 
