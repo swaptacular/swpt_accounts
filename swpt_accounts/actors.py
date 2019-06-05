@@ -153,8 +153,8 @@ def create_account_if_possible(
     `delete_account_if_possible` asynchronous message is also sent for
     the given account, it is uncertain which one will be executed
     first. To avoid confusion, it should not be presumed that the
-    account will always be created successfully. If must be sure, use
-    a synchronous HTTP POST request instead.
+    account will always be created successfully. If you must be sure,
+    use a synchronous HTTP POST request instead.
 
     """
 
