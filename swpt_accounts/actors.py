@@ -196,6 +196,14 @@ def purge_deleted_account(
     """Removes the account `(debtor_id, creditor_id)` if it has been
     marked as deleted before the `if_deleted_before` moment.
 
+    Some time should be allowed to pass between the marking of an
+    account as "deleted", and its actual removal from the database.
+    This is necessary to protect against the rare case when after the
+    removal from the database, the account is quickly re-created with
+    an older timestamp (due to un-synchronized system clocks). Since
+    accounts that are marked as deleted behave exactly as removed,
+    there is no rush to actually remove them from the database.
+
     """
 
     procedures.purge_deleted_account(
