@@ -35,6 +35,7 @@ class Configuration(metaclass=MetaFlaskEnv):
 def create_app(config_dict={}):
     from flask import Flask
     from .extensions import db, migrate, broker
+    from .routes import web_api
     from . import models  # noqa
 
     app = Flask(__name__)
@@ -43,4 +44,5 @@ def create_app(config_dict={}):
     db.init_app(app)
     migrate.init_app(app, db)
     broker.init_app(app)
+    app.register_blueprint(web_api, url_prefix='/api')
     return app
