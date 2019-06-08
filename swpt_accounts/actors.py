@@ -1,7 +1,6 @@
 from datetime import datetime
 import iso8601
 from .extensions import broker, APP_QUEUE_NAME
-from .procedures import AB_IGNORE, AB_PRINCIPAL_ONLY, AB_PRINCIPAL_WITH_INTEREST  # noqa
 from . import procedures
 
 
@@ -16,7 +15,8 @@ def prepare_transfer(
         debtor_id: int,
         sender_creditor_id: int,
         recipient_creditor_id: int,
-        avl_balance_check_mode: int,
+        ignore_interest: bool,
+        overdraft_limit: int = 0,
         lock_amount: bool = True,
         recipient_account_must_exist: bool = True) -> None:
 
@@ -25,8 +25,10 @@ def prepare_transfer(
    `sender_creditor_id`) to recipient's account (`debtor_id`,
    `recipient_creditor_id`).
 
-    The value of `avl_balance_check_mode` should be one of these:
-    `AB_IGNORE`, `AB_PRINCIPAL_ONLY`, `AB_PRINCIPAL_WITH_INTEREST`.
+    The value of `overdraft_limit` specifies the minimum balance on
+    the account, that should be available after the transfer. For
+    example, if `overdraft_limit=-1000`, an overdraft of 1000 will be
+    allowed.
 
     Before sending a message to this actor, the sender must create a
     Coordinator Request (CR) database record, with a primary key of
@@ -69,7 +71,8 @@ def prepare_transfer(
         debtor_id,
         sender_creditor_id,
         recipient_creditor_id,
-        avl_balance_check_mode,
+        ignore_interest,
+        overdraft_limit,
         lock_amount,
         recipient_account_must_exist,
     )

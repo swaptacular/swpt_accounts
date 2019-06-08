@@ -4,16 +4,11 @@ from typing import TypeVar, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    MAX_INT64, AccountChangeSignal, CommittedTransferSignal, increment_seqnum
+    AccountChangeSignal, CommittedTransferSignal, increment_seqnum
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
-
-# Available balance check modes:
-AB_IGNORE = 0
-AB_PRINCIPAL_ONLY = 1
-AB_PRINCIPAL_WITH_INTEREST = 2
 
 TINY_POSITIVE_AMOUNT = 3  # should be at least `2`
 MAX_PREPARED_TRANSFERS_COUNT = 1000
@@ -38,7 +33,8 @@ def prepare_transfer(coordinator_type: str,
                      debtor_id: int,
                      sender_creditor_id: int,
                      recipient_creditor_id: int,
-                     avl_balance_check_mode: int,
+                     ignore_interest: bool,
+                     overdraft_limit: int,
                      lock_amount: bool,
                      recipient_account_must_exist: bool) -> None:
     assert 0 < min_amount <= max_amount
@@ -52,7 +48,8 @@ def prepare_transfer(coordinator_type: str,
             details=kw,
         ))
 
-    avl_balance, account_or_pk = _calc_account_avl_balance((debtor_id, sender_creditor_id), avl_balance_check_mode)
+    avl_balance, account_or_pk = _calc_account_avl_balance((debtor_id, sender_creditor_id), ignore_interest)
+    avl_balance -= overdraft_limit
     if avl_balance < min_amount:
         reject_transfer(
             error_code='ACC001',
@@ -236,22 +233,13 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
     return current_balance
 
 
-def _calc_account_avl_balance(account_or_pk: AccountId, avl_balance_check_mode: int) -> Tuple[int, AccountId]:
+def _calc_account_avl_balance(account_or_pk: AccountId, ignore_interest: bool) -> Tuple[int, AccountId]:
     avl_balance = 0
-    if avl_balance_check_mode == AB_IGNORE:
-        avl_balance = MAX_INT64
-    elif avl_balance_check_mode == AB_PRINCIPAL_ONLY:
-        account = _get_account(account_or_pk)
-        if account:
-            avl_balance = account.principal - account.locked_amount
-            account_or_pk = account
-    elif avl_balance_check_mode == AB_PRINCIPAL_WITH_INTEREST:
-        account = _get_account(account_or_pk)
-        if account:
-            avl_balance = math.floor(_calc_account_current_balance(account)) - account.locked_amount
-            account_or_pk = account
-    else:
-        raise ValueError(f'invalid available balance check mode: {avl_balance_check_mode}')
+    account = _get_account(account_or_pk)
+    if account:
+        avl_balance = account.principal if ignore_interest else math.floor(_calc_account_current_balance(account))
+        avl_balance -= account.locked_amount
+        account_or_pk = account
     return avl_balance, account_or_pk
 
 
