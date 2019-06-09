@@ -14,7 +14,7 @@ AccountId = Union[Account, Tuple[int, int]]
 TINY_POSITIVE_AMOUNT = 3  # should be at least `2`
 MAX_PREPARED_TRANSFERS_COUNT = 1000
 
-TD_ZERO = timedelta()
+TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
@@ -155,22 +155,15 @@ def capitalize_interest(debtor_id: int,
 
         issuer_creditor_id = _get_issuer_creditor_id(debtor_id)
         if issuer_creditor_id is None:
-            # No issuer account has been set up yet. Interest and
-            # demurrage payments must come from/to issuer's account,
-            # and therefore there is nothing we can do at the moment.
+            # No issuer -- nobody gets paid.
             pass
         elif issuer_creditor_id == creditor_id:
-            # We are capitalizing the interest accumulated on the
-            # issuer's account. This means that the issuer owes
-            # interest to himself. Therefore we just throw away the
-            # accumulated interest.
+            # The issuer must pay himself -- discard the interest.
             if account.interest != 0.0:
                 account.interest = 0.0
                 _insert_account_change_signal(account, current_ts)
         elif abs(amount) > MAX_INT64:
-            # The accumulated amount is huge. Most probably this is
-            # some kind of error, so we better avoid the integer
-            # overflow, and not do anything stupid now.
+            # The amount is insanely huge -- avoid overflow.
             pass
         elif amount >= positive_threshold:
             # The issuer pays interest to the owner of the account.
@@ -200,7 +193,7 @@ def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
 @atomic
 def purge_deleted_account(debtor_id: int, creditor_id: int, if_deleted_before: datetime) -> None:
     Account.query.filter_by(debtor_id=debtor_id, creditor_id=creditor_id)\
-                 .filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == 1)\
+                 .filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG)\
                  .filter(Account.last_change_ts < if_deleted_before)\
                  .delete(synchronize_session=False)
 
@@ -381,7 +374,7 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
 
 
 def _detect_overflow(amount: int, sender_account: Account, recipient_account: Account) -> int:
-    assert amount > 0
+    assert amount >= 0
     if sender_account.principal - amount < MIN_INT64:
         sender_account.status |= Account.STATUS_OVERFLOWN_FLAG
         amount = sender_account.principal - MIN_INT64
@@ -395,7 +388,7 @@ def _commit_prepared_transfer(pt: PreparedTransfer,
                               committed_amount: int,
                               committed_at_ts: datetime,
                               transfer_info: dict = {}) -> None:
-    assert committed_amount <= pt.amount
+    assert 0 < committed_amount <= pt.amount
     sender_account = pt.sender_account
     recipient_account = _get_or_create_account((pt.debtor_id, pt.recipient_creditor_id))
     committed_amount = _detect_overflow(committed_amount, sender_account, recipient_account)
