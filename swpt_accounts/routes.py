@@ -28,3 +28,19 @@ def delete_account(debtor_id, creditor_id):
 
     # TODO: Add a real implementation.
     procedures.delete_account_if_zeroed(debtor_id, creditor_id)
+
+
+@web_api.route('/old-prepared-transfers/<debtor_id>/', methods=['GET'])
+def get_debtor_old_prepared_transfers(debtor_id):
+    """Set stale prepared transfers for a given debtor."""
+
+    # TODO: Add a real implementation.
+    pass
+
+
+@web_api.route('/issuer-account/<debtor_id>/', methods=['POST'])
+def set_debtor_issuer_account(debtor_id, creditor_id):
+    """Set the issuser account for a given debtor."""
+
+    # TODO: Add a real implementation.
+    pass
