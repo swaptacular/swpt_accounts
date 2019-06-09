@@ -38,7 +38,7 @@ def prepare_transfer(coordinator_type: str,
                      avl_balance_correction: int,
                      lock_amount: bool,
                      recipient_account_must_exist: bool) -> None:
-    assert 0 < min_amount <= max_amount
+    assert 0 < min_amount <= max_amount <= MAX_INT64
 
     def reject_transfer(**kw):
         db.session.add(RejectedTransferSignal(
