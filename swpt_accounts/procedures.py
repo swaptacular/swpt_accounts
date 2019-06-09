@@ -5,7 +5,7 @@ from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, CommittedTransferSignal, increment_seqnum
-from .models import MAX_INT64
+from .models import MIN_INT64, MAX_INT64
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -338,7 +338,7 @@ def _change_account_interest_rate(account: Account,
     account.interest_rate = interest_rate
     account.interest_rate_last_change_seqnum = change_seqnum
     account.interest_rate_last_change_ts = change_ts
-    account.status = account.status | Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     _insert_account_change_signal(account, current_ts)
 
 
@@ -349,13 +349,26 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
     db.session.delete(pt)
 
 
+def _detect_overflow(amount: int, sender_account: Account, recipient_account: Account) -> int:
+    assert amount > 0
+    if sender_account.principal - amount < MIN_INT64:
+        sender_account.status |= Account.STATUS_OVERFLOWN_FLAG
+        amount = sender_account.principal - MIN_INT64
+    if recipient_account.principal + amount > MAX_INT64:
+        recipient_account.status |= Account.STATUS_OVERFLOWN_FLAG
+        amount = MAX_INT64 - recipient_account.principal
+    return amount
+
+
 def _commit_prepared_transfer(pt: PreparedTransfer,
                               committed_amount: int,
                               committed_at_ts: datetime,
                               transfer_info: dict = {}) -> None:
     assert committed_amount <= pt.amount
+    sender_account = pt.sender_account
     recipient_account = _get_or_create_account((pt.debtor_id, pt.recipient_creditor_id))
-    _change_account_principal(pt.sender_account, -committed_amount, committed_at_ts, pt.coordinator_type == 'demurrage')
+    committed_amount = _detect_overflow(committed_amount, sender_account, recipient_account)
+    _change_account_principal(sender_account, -committed_amount, committed_at_ts, pt.coordinator_type == 'demurrage')
     _change_account_principal(recipient_account, committed_amount, committed_at_ts, pt.coordinator_type == 'interest')
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
     _delete_prepared_transfer(pt)

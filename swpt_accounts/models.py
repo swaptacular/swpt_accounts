@@ -49,6 +49,7 @@ class Signal(db.Model):
 class Account(db.Model):
     STATUS_DELETED_FLAG = 1
     STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 2
+    STATUS_OVERFLOWN_FLAG = 4
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
