@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: b45b896406d5
+Revision ID: c1b4d8274865
 Revises: 
-Create Date: 2019-06-05 18:04:49.818496
+Create Date: 2019-06-09 15:36:45.349213
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b45b896406d5'
+revision = 'c1b4d8274865'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -45,6 +45,7 @@ def upgrade():
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
+    sa.Column('last_transfer_date', sa.DATE(), nullable=True),
     sa.Column('status', sa.SmallInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_seqnum')
     )
@@ -59,6 +60,19 @@ def upgrade():
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id')
+    )
+    op.create_table('issuer',
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.PrimaryKeyConstraint('debtor_id')
+    )
+    op.create_table('issuer_policy',
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('max_total_credit', sa.BigInteger(), nullable=False, comment='The total amount owed to creditors should not surpass this value.'),
+    sa.Column('last_change_seqnum', sa.Integer(), nullable=True),
+    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
+    sa.CheckConstraint('max_total_credit >= 0'),
+    sa.PrimaryKeyConstraint('debtor_id')
     )
     op.create_table('prepared_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -104,6 +118,8 @@ def downgrade():
     op.drop_table('prepared_transfer')
     op.drop_table('rejected_transfer_signal')
     op.drop_table('prepared_transfer_signal')
+    op.drop_table('issuer_policy')
+    op.drop_table('issuer')
     op.drop_table('committed_transfer_signal')
     op.drop_table('account_change_signal')
     op.drop_table('account')

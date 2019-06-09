@@ -122,7 +122,6 @@ def capitalize_interest(
         *,
         debtor_id: int,
         creditor_id: int,
-        issuer_creditor_id: int,
         accumulated_interest_threshold: int = 0) -> None:
 
     """Clear the interest accumulated on the account `(debtor_id,
@@ -135,7 +134,6 @@ def capitalize_interest(
     procedures.capitalize_interest(
         debtor_id,
         creditor_id,
-        issuer_creditor_id,
         accumulated_interest_threshold,
     )
 
@@ -176,3 +174,6 @@ def purge_deleted_account(
         creditor_id,
         if_deleted_before,
     )
+
+
+# TODO: Implement `set_isser_policy()` and `set_issuer_account()`.

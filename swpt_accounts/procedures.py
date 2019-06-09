@@ -4,8 +4,8 @@ from typing import TypeVar, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal, increment_seqnum
-from .models import MIN_INT64, MAX_INT64
+    AccountChangeSignal, CommittedTransferSignal, Issuer, IssuerPolicy, \
+    increment_seqnum, MIN_INT64, MAX_INT64
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -135,7 +135,6 @@ def set_interest_rate(debtor_id: int,
 @atomic
 def capitalize_interest(debtor_id: int,
                         creditor_id: int,
-                        issuer_creditor_id: int,
                         accumulated_interest_threshold: int) -> None:
     account = _get_account((debtor_id, creditor_id))
     if account:
@@ -149,7 +148,13 @@ def capitalize_interest(debtor_id: int,
         if 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
             amount = -account.principal
 
-        if abs(amount) > MAX_INT64:
+        issuer_creditor_id = _get_issuer_creditor_id(debtor_id)
+        if issuer_creditor_id is None:
+            # No issuer account has been set up yet. Interest and
+            # demurrage payments must come from/to issuer's account,
+            # and therefore there is nothing we can do at the moment.
+            pass
+        elif abs(amount) > MAX_INT64:
             # The accumulated amount is huge. Most probably this is
             # some kind of error, so we better avoid the integer
             # overflow, and not do anything stupid now.
@@ -169,6 +174,7 @@ def capitalize_interest(debtor_id: int,
 def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
     account = _get_account((debtor_id, creditor_id))
     if (account
+            and not account.status & Account.STATUS_ISSUER_ACCOUNT_FLAG
             and account.principal == 0
             and account.prepared_transfers_count == 0
             and 0 <= _calc_account_current_balance(account) <= TINY_POSITIVE_AMOUNT):
@@ -196,6 +202,16 @@ def _is_later_event(event: Tuple[int, datetime],
         or other_seqnum is None
         or 0 < (seqnum - other_seqnum) % 0x100000000 < 0x80000000
     )
+
+
+def _get_issuer_creditor_id(debtor_id: int) -> Optional[int]:
+    issuer = Issuer.lock_instance(debtor_id, read=True)
+    return issuer.creditor_id if issuer else None
+
+
+def _get_issuer_max_total_credit(debtor_id: int) -> int:
+    issuer_policy = IssuerPolicy.get_instance(debtor_id)
+    return issuer_policy.max_total_credit if issuer_policy else 0
 
 
 def _create_account(debtor_id: int, creditor_id: int) -> Account:
@@ -252,6 +268,8 @@ def _calc_account_avl_balance(account_or_pk: AccountId, ignore_interest: bool) -
     if account:
         avl_balance = account.principal if ignore_interest else math.floor(_calc_account_current_balance(account))
         avl_balance -= account.locked_amount
+        if account.status & Account.STATUS_ISSUER_ACCOUNT_FLAG:
+            avl_balance += _get_issuer_max_total_credit(account.debtor_id)
         account_or_pk = account
     return avl_balance, account_or_pk
 

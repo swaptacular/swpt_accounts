@@ -46,10 +46,31 @@ class Signal(db.Model):
         broker.publish_message(message, exchange='')
 
 
+class Issuer(db.Model):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, nullable=False)
+
+
+class IssuerPolicy(db.Model):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    max_total_credit = db.Column(
+        db.BigInteger,
+        nullable=False,
+        default=0,
+        comment='The total amount owed to creditors should not surpass this value.',
+    )
+    last_change_seqnum = db.Column(db.Integer)
+    last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
+    __table_args__ = (
+        db.CheckConstraint(max_total_credit >= 0),
+    )
+
+
 class Account(db.Model):
     STATUS_DELETED_FLAG = 1
     STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 2
     STATUS_OVERFLOWN_FLAG = 4
+    STATUS_ISSUER_ACCOUNT_FLAG = 8
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
