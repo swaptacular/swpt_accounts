@@ -34,7 +34,7 @@ def prepare_transfer(coordinator_type: str,
                      sender_creditor_id: int,
                      recipient_creditor_id: int,
                      ignore_interest: bool,
-                     overdraft_limit: int,
+                     avl_balance_correction: int,
                      lock_amount: bool,
                      recipient_account_must_exist: bool) -> None:
     assert 0 < min_amount <= max_amount
@@ -49,7 +49,7 @@ def prepare_transfer(coordinator_type: str,
         ))
 
     avl_balance, account_or_pk = _calc_account_avl_balance((debtor_id, sender_creditor_id), ignore_interest)
-    avl_balance -= overdraft_limit
+    avl_balance += avl_balance_correction
     if avl_balance < min_amount:
         reject_transfer(
             error_code='ACC001',

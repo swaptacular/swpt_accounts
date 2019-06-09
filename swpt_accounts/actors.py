@@ -16,7 +16,7 @@ def prepare_transfer(
         sender_creditor_id: int,
         recipient_creditor_id: int,
         ignore_interest: bool,
-        overdraft_limit: int = 0,
+        avl_balance_correction: int = 0,
         lock_amount: bool = True,
         recipient_account_must_exist: bool = True) -> None:
 
@@ -24,11 +24,6 @@ def prepare_transfer(
    `max_amount`, to transfer it from sender's account (`debtor_id`,
    `sender_creditor_id`) to recipient's account (`debtor_id`,
    `recipient_creditor_id`).
-
-    The value of `overdraft_limit` specifies the minimum balance on
-    the account, that should be available after the transfer. For
-    example, if `overdraft_limit=-1000`, an overdraft of 1000 will be
-    allowed.
 
     Before sending a message to this actor, the sender must create a
     Coordinator Request (CR) database record, with a primary key of
@@ -72,7 +67,7 @@ def prepare_transfer(
         sender_creditor_id,
         recipient_creditor_id,
         ignore_interest,
-        overdraft_limit,
+        avl_balance_correction,
         lock_amount,
         recipient_account_must_exist,
     )
