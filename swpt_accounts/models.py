@@ -114,8 +114,8 @@ class Account(db.Model):
         db.Integer,
         nullable=False,
         default=1,
-        comment='Incremented (with wrapping) on every change in `principal`, `interest_rate` '
-                'or `status`.',
+        comment='Incremented (with wrapping) on every change in `principal`, `interest_rate`, '
+                '`interest`, or `status`.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),

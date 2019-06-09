@@ -154,6 +154,14 @@ def capitalize_interest(debtor_id: int,
             # demurrage payments must come from/to issuer's account,
             # and therefore there is nothing we can do at the moment.
             pass
+        elif issuer_creditor_id == creditor_id:
+            # We are capitalizing the interest accumulated on the
+            # issuer's account. This means that the issuer owes
+            # interest to himself. Therefore we just throw away the
+            # accumulated interest.
+            if account.interest != 0.0:
+                account.interest = 0.0
+                _insert_account_change_signal(account, current_ts)
         elif abs(amount) > MAX_INT64:
             # The accumulated amount is huge. Most probably this is
             # some kind of error, so we better avoid the integer
