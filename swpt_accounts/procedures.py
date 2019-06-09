@@ -158,7 +158,7 @@ def capitalize_interest(debtor_id: int,
             # No issuer -- nobody gets paid.
             pass
         elif issuer_creditor_id == creditor_id:
-            # The issuer must pay himself -- discard the interest.
+            # The issuer must pay himself -- just discard the interest.
             if account.interest != 0.0:
                 account.interest = 0.0
                 _insert_account_change_signal(account, current_ts)
@@ -166,12 +166,12 @@ def capitalize_interest(debtor_id: int,
             # The amount is insanely huge -- avoid overflow.
             pass
         elif amount >= positive_threshold:
-            # The issuer pays interest to the owner of the account.
+            # The issuer must pay interest to the owner of the account.
             issuer_account = _get_or_create_account((debtor_id, issuer_creditor_id))
             pt = _create_prepared_transfer('interest', issuer_account, creditor_id, amount, 0)
             _commit_prepared_transfer(pt, amount, current_ts)
         elif -amount >= positive_threshold:
-            # The owner of the account pays demurrage to the issuer.
+            # The owner of the account must pay demurrage to the issuer.
             pt = _create_prepared_transfer('demurrage', account, issuer_creditor_id, -amount, 0)
             _commit_prepared_transfer(pt, -amount, current_ts)
 
