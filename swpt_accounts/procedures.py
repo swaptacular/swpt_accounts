@@ -254,7 +254,7 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         account.interest_rate = 0.0
         account.interest_rate_last_change_seqnum = None
         account.interest_rate_last_change_ts = None
-        account.last_transfer_date = None
+        account.last_outgoing_transfer_date = None
         _insert_account_change_signal(account)
 
 
@@ -328,7 +328,7 @@ def _insert_account_change_signal(account: Account, last_change_ts: Optional[dat
         principal=account.principal,
         interest=account.interest,
         interest_rate=account.interest_rate,
-        last_transfer_date=account.last_transfer_date,
+        last_outgoing_transfer_date=account.last_outgoing_transfer_date,
         status=account.status,
     ))
 
@@ -344,11 +344,7 @@ def _change_account_principal(account: Account,
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     interest = _calc_accumulated_account_interest(account, current_ts)
     account.principal += principal_delta
-    if is_interest_or_demurrage_payment:
-        account.interest = float(interest - principal_delta)
-    else:
-        account.interest = float(interest)
-        account.last_transfer_date = current_ts.date()
+    account.interest = float(interest - principal_delta if is_interest_or_demurrage_payment else interest)
     _insert_account_change_signal(account, current_ts)
 
 
@@ -390,6 +386,7 @@ def _commit_prepared_transfer(pt: PreparedTransfer,
                               transfer_info: dict = {}) -> None:
     assert 0 < committed_amount <= pt.amount
     sender_account = pt.sender_account
+    sender_account.last_outgoing_transfer_date = committed_at_ts.date()
     recipient_account = _get_or_create_account((pt.debtor_id, pt.recipient_creditor_id))
     committed_amount = _detect_overflow(committed_amount, sender_account, recipient_account)
     _change_account_principal(sender_account, -committed_amount, committed_at_ts, pt.coordinator_type == 'demurrage')

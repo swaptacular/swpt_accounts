@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c1b4d8274865
+Revision ID: 70ea2519290c
 Revises: 
-Create Date: 2019-06-09 15:36:45.349213
+Create Date: 2019-06-10 00:27:44.230520
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'c1b4d8274865'
+revision = '70ea2519290c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -28,9 +28,9 @@ def upgrade():
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest`gets zeroed and added to the principal once in while (like once per week).'),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks'),
     sa.Column('prepared_transfers_count', sa.SmallInteger(), nullable=False, comment='The number of `prepared_transfer` records for this account.'),
-    sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `principal`, `interest_rate` or `status`.'),
+    sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `principal`, `interest_rate`, `interest`, or `status`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
-    sa.Column('last_transfer_date', sa.DATE(), nullable=True, comment='Updated for each committed transfer which is not an interest or demurrage payment'),
+    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
     sa.CheckConstraint('interest_rate > -100.0'),
     sa.CheckConstraint('locked_amount >= 0'),
@@ -45,7 +45,7 @@ def upgrade():
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
-    sa.Column('last_transfer_date', sa.DATE(), nullable=True),
+    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True),
     sa.Column('status', sa.SmallInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_seqnum')
     )

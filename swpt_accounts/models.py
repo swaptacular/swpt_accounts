@@ -123,10 +123,9 @@ class Account(db.Model):
         default=get_now_utc,
         comment='Updated on every increment of `last_change_seqnum`. Must never decrease.',
     )
-    last_transfer_date = db.Column(
+    last_outgoing_transfer_date = db.Column(
         db.DATE,
-        comment='Updated for each committed transfer which is not an interest or demurrage '
-                'payment',
+        comment='Updated on each transfer for which this account is the sender.',
     )
     status = db.Column(
         db.SmallInteger,
@@ -238,7 +237,7 @@ class AccountChangeSignal(Signal):
     principal = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
-    last_transfer_date = db.Column(db.DATE)
+    last_outgoing_transfer_date = db.Column(db.DATE)
     status = db.Column(db.SmallInteger, nullable=False)
 
 
