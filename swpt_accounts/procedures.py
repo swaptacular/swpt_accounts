@@ -57,9 +57,14 @@ def prepare_transfer(coordinator_type: str,
             message='Insufficient available balance',
             avl_balance=avl_balance,
         )
-    elif recipient_account_must_exist and not _get_account((debtor_id, recipient_creditor_id)):
+    elif sender_creditor_id == recipient_creditor_id:
         reject_transfer(
             error_code='ACC002',
+            message='Recipient and sender accounts are the same',
+        )
+    elif recipient_account_must_exist and not _get_account((debtor_id, recipient_creditor_id)):
+        reject_transfer(
+            error_code='ACC003',
             message='Recipient account does not exist',
         )
     else:
@@ -68,15 +73,15 @@ def prepare_transfer(coordinator_type: str,
         locked_amount = amount if lock_amount else 0
         if sender_account.prepared_transfers_count >= MAX_PREPARED_TRANSFERS_COUNT:
             reject_transfer(
-                error_code='ACC003',
+                error_code='ACC004',
                 message='Too many prepared transfers',
                 prepared_transfers_count=sender_account.prepared_transfers_count,
             )
         elif sender_account.locked_amount + locked_amount > MAX_INT64:
             reject_transfer(
                 error_code='ACC004',
-                message='Integer overflow error',
-                value=sender_account.locked_amount + locked_amount,
+                message='Too big locked amount (integer overflow)',
+                locked_amount=sender_account.locked_amount + locked_amount,
             )
         else:
             pt = _create_prepared_transfer(
