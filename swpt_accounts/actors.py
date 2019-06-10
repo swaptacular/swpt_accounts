@@ -1,4 +1,3 @@
-from typing import Optional
 from datetime import datetime
 import iso8601
 from .extensions import broker, APP_QUEUE_NAME
@@ -15,19 +14,16 @@ def prepare_transfer(
         max_amount: int,
         debtor_id: int,
         sender_creditor_id: int,
-        recipient_creditor_id: Optional[int],
+        recipient_creditor_id: int,
         ignore_interest: bool,
         avl_balance_correction: int = 0,
         lock_amount: bool = True,
         recipient_account_must_exist: bool = True) -> None:
 
     """Try to greedily secure an amount between `min_amount` and
-   `max_amount`, to transfer it from sender's account (`debtor_id`,
-   `sender_creditor_id`) to recipient's account (`debtor_id`,
-   `recipient_creditor_id`).
-
-    If `recipient_creditor_id` is `None`, this means that the
-    recipient should be the issuer account.
+    `max_amount`, to transfer it from sender's account (`debtor_id`,
+    `sender_creditor_id`) to recipient's account (`debtor_id`,
+    `recipient_creditor_id`).
 
     Before sending a message to this actor, the sender must create a
     Coordinator Request (CR) database record, with a primary key of

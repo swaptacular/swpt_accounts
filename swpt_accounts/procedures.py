@@ -22,6 +22,7 @@ SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
 @atomic
 def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
+    assert MIN_INT64 < creditor_id <= MAX_INT64
     return _get_or_create_account((debtor_id, creditor_id))
 
 
@@ -33,12 +34,17 @@ def prepare_transfer(coordinator_type: str,
                      max_amount: int,
                      debtor_id: int,
                      sender_creditor_id: int,
-                     recipient_creditor_id: Optional[int],
+                     recipient_creditor_id: int,
                      ignore_interest: bool,
-                     avl_balance_correction: int,
-                     lock_amount: bool,
-                     recipient_account_must_exist: bool) -> None:
+                     avl_balance_correction: int = 0,
+                     lock_amount: bool = True,
+                     recipient_account_must_exist: bool = True) -> None:
+    assert MIN_INT64 <= coordinator_id <= MAX_INT64
+    assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 < min_amount <= max_amount <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
+    assert MIN_INT64 <= recipient_creditor_id <= MAX_INT64
 
     def reject_transfer(**kw):
         db.session.add(RejectedTransferSignal(
@@ -61,17 +67,14 @@ def prepare_transfer(coordinator_type: str,
         )
         return
 
-    # `None` as `recipient_creditor_id` means that the issuer is the recipient.
-    if recipient_creditor_id is None:
-        recipient_creditor_id = _get_issuer_creditor_id(debtor_id)
-
     if sender_creditor_id == recipient_creditor_id:
         reject_transfer(
             error_code='ACC002',
             message='Recipient and sender accounts are the same',
         )
-    elif (recipient_creditor_id is None
-          or recipient_account_must_exist and not _get_account((debtor_id, recipient_creditor_id))):
+    elif (recipient_account_must_exist
+          and recipient_creditor_id != MIN_INT64
+          and not _get_account((debtor_id, recipient_creditor_id))):
         reject_transfer(
             error_code='ACC003',
             message='Recipient account does not exist',
@@ -119,7 +122,7 @@ def finalize_prepared_transfer(debtor_id: int,
                                sender_creditor_id: int,
                                transfer_id: int,
                                committed_amount: int,
-                               transfer_info: dict) -> None:
+                               transfer_info: dict = {}) -> None:
     assert committed_amount >= 0
     pt_pk = (debtor_id, sender_creditor_id, transfer_id)
     pt = PreparedTransfer.get_instance(pt_pk, db.joinedload('sender_account', innerjoin=True))
@@ -136,8 +139,6 @@ def set_interest_rate(debtor_id: int,
                       interest_rate: float,
                       change_seqnum: int,
                       change_ts: datetime) -> None:
-    assert change_seqnum is not None
-    assert change_ts is not None
     account = _get_account((debtor_id, creditor_id))
     if account:
         this_event = (change_seqnum, change_ts)
@@ -149,7 +150,7 @@ def set_interest_rate(debtor_id: int,
 @atomic
 def capitalize_interest(debtor_id: int,
                         creditor_id: int,
-                        accumulated_interest_threshold: int) -> None:
+                        accumulated_interest_threshold: int = 0) -> None:
     account = _get_account((debtor_id, creditor_id))
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))
@@ -162,26 +163,25 @@ def capitalize_interest(debtor_id: int,
         if 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
             amount = -account.principal
 
-        issuer_creditor_id = _get_issuer_creditor_id(debtor_id)
-        if issuer_creditor_id is None:
-            # No issuer -- nobody gets paid.
-            pass
-        elif issuer_creditor_id == creditor_id:
-            # The issuer must pay himself -- just discard the interest.
+        # The account `(debtor_id, MIN_INT64)` is special. It is the
+        # debtor's account. All interest and demurrage payments will
+        # come from/to this account.
+        if creditor_id == MIN_INT64:
+            # The debtor must pay himself (simply discard the interest).
             if account.interest != 0.0:
                 account.interest = 0.0
                 _insert_account_change_signal(account, current_ts)
         elif abs(amount) > MAX_INT64:
-            # The amount is insanely huge -- avoid overflow.
+            # The amount is erroneously huge (avoid overflow).
             pass
         elif amount >= positive_threshold:
-            # The issuer must pay interest to the owner of the account.
-            issuer_account = _get_or_create_account((debtor_id, issuer_creditor_id))
-            pt = _create_prepared_transfer('interest', issuer_account, creditor_id, amount, 0)
+            # The debtor must pay interest to the owner of the account.
+            debtor_account = _get_or_create_account((debtor_id, MIN_INT64))
+            pt = _create_prepared_transfer('interest', debtor_account, creditor_id, amount, 0)
             _commit_prepared_transfer(pt, amount, current_ts)
         elif -amount >= positive_threshold:
-            # The owner of the account must pay demurrage to the issuer.
-            pt = _create_prepared_transfer('demurrage', account, issuer_creditor_id, -amount, 0)
+            # The owner of the account must pay demurrage to the debtor.
+            pt = _create_prepared_transfer('demurrage', account, MIN_INT64, -amount, 0)
             _commit_prepared_transfer(pt, -amount, current_ts)
 
 
@@ -219,9 +219,13 @@ def _is_later_event(event: Tuple[int, datetime],
     )
 
 
-def _get_issuer_creditor_id(debtor_id: int) -> Optional[int]:
-    issuer = Issuer.lock_instance(debtor_id, read=True)
-    return issuer.creditor_id if issuer else None
+def _lock_issuer_instance(debtor_id: int) -> Issuer:
+    issuer = Issuer.lock_instance(debtor_id)
+    if issuer is None:
+        issuer = Issuer(debtor_id=debtor_id)
+        with db.retry_on_integrity_error():
+            db.session.add(issuer)
+    return issuer
 
 
 def _get_issuer_max_total_credit(debtor_id: int) -> int:

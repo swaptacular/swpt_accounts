@@ -48,7 +48,9 @@ class Signal(db.Model):
 
 class Issuer(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, nullable=False)
+    creditor_id = db.Column(db.BigInteger)
+    last_change_seqnum = db.Column(db.Integer)
+    last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
 
 
 class IssuerPolicy(db.Model):
