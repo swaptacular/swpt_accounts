@@ -176,4 +176,4 @@ def purge_deleted_account(
     )
 
 
-# TODO: Implement `set_isser_policy()`.
+# TODO: Implement `set_issuer_policy()` and `set_issuer()` actors.
