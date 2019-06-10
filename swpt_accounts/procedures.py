@@ -33,7 +33,7 @@ def prepare_transfer(coordinator_type: str,
                      max_amount: int,
                      debtor_id: int,
                      sender_creditor_id: int,
-                     recipient_creditor_id: int,
+                     recipient_creditor_id: Optional[int],
                      ignore_interest: bool,
                      avl_balance_correction: int,
                      lock_amount: bool,
@@ -49,6 +49,8 @@ def prepare_transfer(coordinator_type: str,
             details=kw,
         ))
 
+    # We check the available balance first because this should be, by
+    # far, the most frequent reason to fail to prepare the transfer.
     avl_balance, account_or_pk = _calc_account_avl_balance((debtor_id, sender_creditor_id), ignore_interest)
     avl_balance += avl_balance_correction
     if avl_balance < min_amount:
@@ -57,12 +59,19 @@ def prepare_transfer(coordinator_type: str,
             message='Insufficient available balance',
             avl_balance=avl_balance,
         )
-    elif sender_creditor_id == recipient_creditor_id:
+        return
+
+    # `None` as `recipient_creditor_id` means that the issuer is the recipient.
+    if recipient_creditor_id is None:
+        recipient_creditor_id = _get_issuer_creditor_id(debtor_id)
+
+    if sender_creditor_id == recipient_creditor_id:
         reject_transfer(
             error_code='ACC002',
             message='Recipient and sender accounts are the same',
         )
-    elif recipient_account_must_exist and not _get_account((debtor_id, recipient_creditor_id)):
+    elif (recipient_creditor_id is None
+          or recipient_account_must_exist and not _get_account((debtor_id, recipient_creditor_id))):
         reject_transfer(
             error_code='ACC003',
             message='Recipient account does not exist',
