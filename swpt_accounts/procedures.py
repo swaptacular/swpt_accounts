@@ -22,7 +22,7 @@ SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
 @atomic
 def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
-    assert MIN_INT64 < creditor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
     return _get_or_create_account((debtor_id, creditor_id))
 
 
