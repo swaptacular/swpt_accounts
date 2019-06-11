@@ -150,6 +150,11 @@ def set_interest_rate(debtor_id: int,
         prev_event = (account.interest_rate_last_change_seqnum, account.interest_rate_last_change_ts)
         if _is_later_event(this_event, prev_event):
             _change_account_interest_rate(account, interest_rate, change_seqnum, change_ts)
+            if creditor_id == ROOT_CREDITOR_ID:
+                # It is a nonsense to accumulate interest on debtor's
+                # own account. Therefore, we only pretend that the
+                # interest rate has been set, while leaving it zero.
+                account.interest_rate = 0.0
 
 
 @atomic
