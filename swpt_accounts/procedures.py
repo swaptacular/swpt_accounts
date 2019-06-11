@@ -155,16 +155,17 @@ def set_interest_rate(debtor_id: int,
 @atomic
 def capitalize_interest(debtor_id: int,
                         creditor_id: int,
-                        accumulated_interest_threshold: int = 0) -> None:
+                        accumulated_interest_threshold: int = 0,
+                        current_ts: datetime = None) -> None:
     account = _get_account((debtor_id, creditor_id))
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))
-        current_ts = datetime.now(tz=timezone.utc)
+        current_ts = current_ts or datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
 
         # When the new account principal is positive and very close to
-        # zero, we make it a zero. This behavior could be helpful when
-        # the owner zeroes out the account before deleting it.
+        # zero, we make it a zero. This behavior allows us to
+        # reliably zero out the principal before deleting the account.
         if 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
             amount = -account.principal
 
@@ -189,16 +190,19 @@ def capitalize_interest(debtor_id: int,
 
 @atomic
 def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
+    current_ts = datetime.now(tz=timezone.utc)
     account = _get_account((debtor_id, creditor_id))
     if (account
             and not account.status & Account.STATUS_ISSUER_ACCOUNT_FLAG
-            and account.principal == 0
             and account.prepared_transfers_count == 0
-            and 0 <= _calc_account_current_balance(account) <= TINY_POSITIVE_AMOUNT):
+            and 0 <= _calc_account_current_balance(account, current_ts) <= TINY_POSITIVE_AMOUNT):
         assert account.locked_amount == 0
-        account.interest = 0.0
-        account.status = account.status | Account.STATUS_DELETED_FLAG
-        _insert_account_change_signal(account)
+        if account.principal != 0:
+            capitalize_interest(debtor_id, creditor_id, 0, current_ts)
+        if account.principal == 0:
+            account.interest = 0.0
+            account.status = account.status | Account.STATUS_DELETED_FLAG
+            _insert_account_change_signal(account)
 
 
 @atomic
