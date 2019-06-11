@@ -87,18 +87,18 @@ def prepare_transfer(coordinator_type: str,
     else:
         sender_account = _get_or_create_account(account_or_pk)
         amount = min(avl_balance, max_amount)
-        locked_amount = amount if lock_amount else 0
+        sender_locked_amount = amount if lock_amount else 0
         if sender_account.prepared_transfers_count >= MAX_PREPARED_TRANSFERS_COUNT:
             reject_transfer(
                 error_code='ACC004',
                 message='Too many prepared transfers',
                 prepared_transfers_count=sender_account.prepared_transfers_count,
             )
-        elif sender_account.locked_amount + locked_amount > MAX_INT64:
+        elif sender_account.locked_amount + sender_locked_amount > MAX_INT64:
             reject_transfer(
                 error_code='ACC004',
                 message='The locked amount is too big',
-                locked_amount=sender_account.locked_amount + locked_amount,
+                locked_amount=sender_account.locked_amount + sender_locked_amount,
             )
         else:
             pt = _create_prepared_transfer(
@@ -106,7 +106,7 @@ def prepare_transfer(coordinator_type: str,
                 sender_account,
                 recipient_creditor_id,
                 amount,
-                locked_amount,
+                sender_locked_amount,
             )
             db.session.add(PreparedTransferSignal(
                 debtor_id=pt.debtor_id,
