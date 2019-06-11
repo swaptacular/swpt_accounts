@@ -171,14 +171,14 @@ def capitalize_interest(debtor_id: int,
             _schedule_account_change(
                 debtor_id,
                 sender_creditor_id,
-                -committed_amount,
-                committed_amount if sender_creditor_id != ROOT_CREDITOR_ID else 0,
+                principal_delta=-committed_amount,
+                interest_delta=committed_amount if sender_creditor_id != ROOT_CREDITOR_ID else 0,
             )
             _schedule_account_change(
                 debtor_id,
                 recipient_creditor_id,
-                committed_amount,
-                -committed_amount if recipient_creditor_id != ROOT_CREDITOR_ID else 0,
+                principal_delta=committed_amount,
+                interest_delta=-committed_amount if recipient_creditor_id != ROOT_CREDITOR_ID else 0,
             )
             db.session.add(CommittedTransferSignal(
                 debtor_id=debtor_id,
@@ -431,14 +431,22 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
     db.session.delete(pt)
 
 
-def _commit_prepared_transfer(pt: PreparedTransfer,
-                              committed_amount: int,
-                              transfer_info: dict = {}) -> None:
+def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, transfer_info: dict = {}) -> None:
     assert 0 < committed_amount <= pt.amount
     committed_at_ts = datetime.now(tz=timezone.utc)
     sender_account = pt.sender_account
     sender_account.last_outgoing_transfer_date = committed_at_ts.date()
-    _apply_account_change(sender_account, -committed_amount, 0, committed_at_ts)
-    _schedule_account_change(pt.debtor_id, pt.recipient_creditor_id, committed_amount, 0)
+    _apply_account_change(
+        sender_account,
+        principal_delta=-committed_amount,
+        interest_delta=0,
+        current_ts=committed_at_ts,
+    )
+    _schedule_account_change(
+        pt.debtor_id,
+        pt.recipient_creditor_id,
+        principal_delta=committed_amount,
+        interest_delta=0,
+    )
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
     _delete_prepared_transfer(pt)
