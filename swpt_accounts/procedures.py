@@ -4,7 +4,7 @@ from typing import TypeVar, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal, Issuer, IssuerPolicy, \
+    AccountChangeSignal, CommittedTransferSignal, Issuer, IssuerPolicy, ScheduledAccountPrincipalChange, \
     increment_seqnum, MIN_INT64, MAX_INT64
 
 T = TypeVar('T')
@@ -135,7 +135,7 @@ def finalize_prepared_transfer(debtor_id: int,
         if committed_amount == 0:
             _delete_prepared_transfer(pt)
         else:
-            _commit_prepared_transfer(pt, committed_amount, datetime.now(tz=timezone.utc), transfer_info)
+            _commit_prepared_transfer(pt, committed_amount, transfer_info)
 
 
 @atomic
@@ -162,35 +162,54 @@ def capitalize_interest(debtor_id: int,
                         creditor_id: int,
                         accumulated_interest_threshold: int = 0,
                         current_ts: datetime = None) -> None:
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
+
+    def make_interest_payment(sender_creditor_id, recipient_creditor_id, committed_amount):
+        assert sender_creditor_id == ROOT_CREDITOR_ID or recipient_creditor_id == ROOT_CREDITOR_ID
+        assert committed_amount > 0
+        if sender_creditor_id != recipient_creditor_id:
+            _schedule_account_principal_change(
+                debtor_id,
+                sender_creditor_id,
+                -committed_amount,
+                is_interest_payment=(sender_creditor_id != ROOT_CREDITOR_ID),
+            )
+            _schedule_account_principal_change(
+                debtor_id,
+                recipient_creditor_id,
+                committed_amount,
+                is_interest_payment=(recipient_creditor_id != ROOT_CREDITOR_ID),
+            )
+            db.session.add(CommittedTransferSignal(
+                debtor_id=debtor_id,
+                coordinator_type='interest',
+                sender_creditor_id=sender_creditor_id,
+                recipient_creditor_id=recipient_creditor_id,
+                committed_at_ts=current_ts,
+                committed_amount=committed_amount,
+                transfer_info={},
+            ))
+
     account = _get_account((debtor_id, creditor_id))
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))
-        current_ts = current_ts or datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
 
         # When the new account principal is positive and very close to
-        # zero, we make it a zero. This behavior allows us to
-        # reliably zero out the principal before deleting the account.
-        if 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
+        # zero, we make it a zero. This behavior allows us to reliably
+        # zero out the principal before deleting the account.
+        if creditor_id != ROOT_CREDITOR_ID and 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
             amount = -account.principal
 
-        if creditor_id == ROOT_CREDITOR_ID:
-            # The debtor must pay interest to himself (simply discard the interest).
-            if account.interest != 0.0:
-                account.interest = 0.0
-                _insert_account_change_signal(account, current_ts)
-        elif abs(amount) > MAX_INT64:
-            # The amount is erroneously huge (avoid integer overflow).
+        if abs(amount) > MAX_INT64:
+            # The amount is erroneously huge -- avoid integer overflow.
             pass
         elif amount >= positive_threshold:
             # The debtor must pay interest to the owner of the account.
-            debtor_account = _get_or_create_account((debtor_id, ROOT_CREDITOR_ID))
-            pt = _create_prepared_transfer('interest', debtor_account, creditor_id, amount, 0)
-            _commit_prepared_transfer(pt, amount, current_ts)
+            make_interest_payment(ROOT_CREDITOR_ID, creditor_id, amount)
         elif -amount >= positive_threshold:
             # The owner of the account must pay demurrage to the debtor.
-            pt = _create_prepared_transfer('demurrage', account, ROOT_CREDITOR_ID, -amount, 0)
-            _commit_prepared_transfer(pt, -amount, current_ts)
+            make_interest_payment(creditor_id, ROOT_CREDITOR_ID, -amount)
 
 
 @atomic
@@ -329,13 +348,12 @@ def _insert_committed_transfer_signal(pt: PreparedTransfer,
                                       transfer_info: dict) -> None:
     db.session.add(CommittedTransferSignal(
         debtor_id=pt.debtor_id,
-        sender_creditor_id=pt.sender_creditor_id,
-        transfer_id=pt.transfer_id,
         coordinator_type=pt.coordinator_type,
+        sender_creditor_id=pt.sender_creditor_id,
         recipient_creditor_id=pt.recipient_creditor_id,
-        prepared_at_ts=pt.prepared_at_ts,
         committed_at_ts=committed_at_ts,
         committed_amount=committed_amount,
+        committed_transfer_id=pt.transfer_id,
         transfer_info=transfer_info,
     ))
 
@@ -364,12 +382,33 @@ def _calc_accumulated_account_interest(account: Account, current_ts: datetime) -
 def _change_account_principal(account: Account,
                               principal_delta: int,
                               current_ts: Optional[datetime] = None,
-                              is_interest_or_demurrage_payment: bool = False) -> None:
+                              is_interest_payment: bool = False) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     interest = _calc_accumulated_account_interest(account, current_ts)
-    account.principal += principal_delta
-    account.interest = float(interest - principal_delta if is_interest_or_demurrage_payment else interest)
+    account.interest = float(interest - principal_delta if is_interest_payment else interest)
+    new_principal = account.principal + principal_delta
+    if new_principal < MIN_INT64:
+        account.principal = MIN_INT64
+        account.status |= Account.STATUS_OVERFLOWN_FLAG
+    elif new_principal > MAX_INT64:
+        account.principal = MAX_INT64
+        account.status |= Account.STATUS_OVERFLOWN_FLAG
+    else:
+        account.principal = new_principal
     _insert_account_change_signal(account, current_ts)
+
+
+def _schedule_account_principal_change(
+        debtor_id: int,
+        creditor_id: int,
+        principal_delta: int,
+        is_interest_payment: bool = False) -> None:
+    db.session.add(ScheduledAccountPrincipalChange(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        principal_delta=principal_delta,
+        is_interest_payment=is_interest_payment,
+    ))
 
 
 def _change_account_interest_rate(account: Account,
@@ -393,27 +432,14 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
     db.session.delete(pt)
 
 
-def _detect_overflow(amount: int, sender_account: Account, recipient_account: Account) -> int:
-    assert amount >= 0
-    if sender_account.principal - amount < MIN_INT64:
-        sender_account.status |= Account.STATUS_OVERFLOWN_FLAG
-        amount = sender_account.principal - MIN_INT64
-    if recipient_account.principal + amount > MAX_INT64:
-        recipient_account.status |= Account.STATUS_OVERFLOWN_FLAG
-        amount = MAX_INT64 - recipient_account.principal
-    return amount
-
-
 def _commit_prepared_transfer(pt: PreparedTransfer,
                               committed_amount: int,
-                              committed_at_ts: datetime,
                               transfer_info: dict = {}) -> None:
     assert 0 < committed_amount <= pt.amount
+    committed_at_ts = datetime.now(tz=timezone.utc)
     sender_account = pt.sender_account
     sender_account.last_outgoing_transfer_date = committed_at_ts.date()
-    recipient_account = _get_or_create_account((pt.debtor_id, pt.recipient_creditor_id))
-    committed_amount = _detect_overflow(committed_amount, sender_account, recipient_account)
-    _change_account_principal(sender_account, -committed_amount, committed_at_ts, pt.coordinator_type == 'demurrage')
-    _change_account_principal(recipient_account, committed_amount, committed_at_ts, pt.coordinator_type == 'interest')
+    _change_account_principal(sender_account, -committed_amount, committed_at_ts)
+    _schedule_account_principal_change(pt.debtor_id, pt.recipient_creditor_id, committed_amount)
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
     _delete_prepared_transfer(pt)

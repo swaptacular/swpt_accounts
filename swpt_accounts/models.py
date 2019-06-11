@@ -199,6 +199,14 @@ class PreparedTransfer(db.Model):
     )
 
 
+class ScheduledAccountPrincipalChange(db.Model):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    principal_delta = db.Column(db.BigInteger, nullable=False)
+    is_interest_payment = db.Column(db.BOOLEAN, nullable=False)
+    scheduled_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+
+
 class PreparedTransferSignal(Signal):
     # These fields are taken from `PreparedTransfer`.
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -244,14 +252,12 @@ class AccountChangeSignal(Signal):
 
 
 class CommittedTransferSignal(Signal):
-    # These fields are taken from `PreparedTransfer`.
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_id = db.Column(db.BigInteger, primary_key=True)
+    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
+    sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
+    committed_transfer_id = db.Column(db.BigInteger)
     transfer_info = db.Column(pg.JSON, nullable=False, default={})
