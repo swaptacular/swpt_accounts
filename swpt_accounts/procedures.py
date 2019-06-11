@@ -418,3 +418,6 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
         transfer_info=transfer_info,
     ))
     _delete_prepared_transfer(pt)
+
+
+# TODO: Process `ScheduledAccountChange` records.
