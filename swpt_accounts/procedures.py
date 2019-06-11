@@ -4,7 +4,7 @@ from typing import TypeVar, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal, Issuer, IssuerPolicy, ScheduledAccountPrincipalChange, \
+    AccountChangeSignal, CommittedTransferSignal, Issuer, IssuerPolicy, ScheduledAccountChange, \
     increment_seqnum, MIN_INT64, MAX_INT64
 
 T = TypeVar('T')
@@ -51,7 +51,7 @@ def prepare_transfer(coordinator_type: str,
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
     assert MIN_INT64 <= recipient_creditor_id <= MAX_INT64
 
-    def reject_transfer(**kw):
+    def reject_transfer(**kw) -> None:
         db.session.add(RejectedTransferSignal(
             debtor_id=debtor_id,
             coordinator_type=coordinator_type,
@@ -164,21 +164,21 @@ def capitalize_interest(debtor_id: int,
                         current_ts: datetime = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
 
-    def make_interest_payment(sender_creditor_id, recipient_creditor_id, committed_amount):
+    def make_interest_payment(sender_creditor_id: int, recipient_creditor_id: int, committed_amount: int) -> None:
         assert sender_creditor_id == ROOT_CREDITOR_ID or recipient_creditor_id == ROOT_CREDITOR_ID
         assert committed_amount > 0
         if sender_creditor_id != recipient_creditor_id:
-            _schedule_account_principal_change(
+            _schedule_account_change(
                 debtor_id,
                 sender_creditor_id,
                 -committed_amount,
-                is_interest_payment=(sender_creditor_id != ROOT_CREDITOR_ID),
+                committed_amount if sender_creditor_id != ROOT_CREDITOR_ID else 0,
             )
-            _schedule_account_principal_change(
+            _schedule_account_change(
                 debtor_id,
                 recipient_creditor_id,
                 committed_amount,
-                is_interest_payment=(recipient_creditor_id != ROOT_CREDITOR_ID),
+                -committed_amount if recipient_creditor_id != ROOT_CREDITOR_ID else 0,
             )
             db.session.add(CommittedTransferSignal(
                 debtor_id=debtor_id,
@@ -379,13 +379,12 @@ def _calc_accumulated_account_interest(account: Account, current_ts: datetime) -
     return _calc_account_current_balance(account, current_ts) - account.principal
 
 
-def _change_account_principal(account: Account,
-                              principal_delta: int,
-                              current_ts: Optional[datetime] = None,
-                              is_interest_payment: bool = False) -> None:
+def _apply_account_change(account: Account,
+                          principal_delta: int,
+                          interest_delta: int,
+                          current_ts: Optional[datetime] = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
-    interest = _calc_accumulated_account_interest(account, current_ts)
-    account.interest = float(interest - principal_delta if is_interest_payment else interest)
+    account.interest = float(_calc_accumulated_account_interest(account, current_ts) + interest_delta)
     new_principal = account.principal + principal_delta
     if new_principal < MIN_INT64:
         account.principal = MIN_INT64
@@ -398,16 +397,16 @@ def _change_account_principal(account: Account,
     _insert_account_change_signal(account, current_ts)
 
 
-def _schedule_account_principal_change(
+def _schedule_account_change(
         debtor_id: int,
         creditor_id: int,
         principal_delta: int,
-        is_interest_payment: bool = False) -> None:
-    db.session.add(ScheduledAccountPrincipalChange(
+        interest_delta: int) -> None:
+    db.session.add(ScheduledAccountChange(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         principal_delta=principal_delta,
-        is_interest_payment=is_interest_payment,
+        interest_delta=interest_delta,
     ))
 
 
@@ -439,7 +438,7 @@ def _commit_prepared_transfer(pt: PreparedTransfer,
     committed_at_ts = datetime.now(tz=timezone.utc)
     sender_account = pt.sender_account
     sender_account.last_outgoing_transfer_date = committed_at_ts.date()
-    _change_account_principal(sender_account, -committed_amount, committed_at_ts)
-    _schedule_account_principal_change(pt.debtor_id, pt.recipient_creditor_id, committed_amount)
+    _apply_account_change(sender_account, -committed_amount, 0, committed_at_ts)
+    _schedule_account_change(pt.debtor_id, pt.recipient_creditor_id, committed_amount, 0)
     _insert_committed_transfer_signal(pt, committed_amount, committed_at_ts, transfer_info)
     _delete_prepared_transfer(pt)

@@ -199,11 +199,11 @@ class PreparedTransfer(db.Model):
     )
 
 
-class ScheduledAccountPrincipalChange(db.Model):
+class ScheduledAccountChange(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     principal_delta = db.Column(db.BigInteger, nullable=False)
-    is_interest_payment = db.Column(db.BOOLEAN, nullable=False)
+    interest_delta = db.Column(db.BigInteger, nullable=False)
     scheduled_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
 
