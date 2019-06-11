@@ -127,7 +127,8 @@ class Account(db.Model):
     )
     last_outgoing_transfer_date = db.Column(
         db.DATE,
-        comment='Updated on each transfer for which this account is the sender.',
+        comment='Updated on each transfer for which this account is the sender. This field is '
+                'not updated on demurrage payments.',
     )
     status = db.Column(
         db.SmallInteger,

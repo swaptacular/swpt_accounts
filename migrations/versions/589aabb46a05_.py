@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 99ca0a290994
+Revision ID: 589aabb46a05
 Revises: 
-Create Date: 2019-06-11 22:42:53.319416
+Create Date: 2019-06-11 23:53:55.282856
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '99ca0a290994'
+revision = '589aabb46a05'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,7 +30,7 @@ def upgrade():
     sa.Column('prepared_transfers_count', sa.SmallInteger(), nullable=False, comment='The number of `prepared_transfer` records for this account.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `principal`, `interest_rate`, `interest`, or `status`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
-    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender.'),
+    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. This field is not updated on demurrage payments.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
     sa.CheckConstraint('interest_rate > -100.0'),
     sa.CheckConstraint('locked_amount >= 0'),
