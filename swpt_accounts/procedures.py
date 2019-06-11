@@ -18,6 +18,10 @@ TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
+
+# The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
+# debtor's account. All interest and demurrage payments will come
+# from/to this account.
 ROOT_CREDITOR_ID = MIN_INT64
 
 
@@ -164,16 +168,13 @@ def capitalize_interest(debtor_id: int,
         if 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
             amount = -account.principal
 
-        # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. It
-        # is the debtor's account. All interest and demurrage payments
-        # will come from/to this account.
         if creditor_id == ROOT_CREDITOR_ID:
-            # The debtor must pay himself (simply discard the interest).
+            # The debtor must pay interest to himself (simply discard the interest).
             if account.interest != 0.0:
                 account.interest = 0.0
                 _insert_account_change_signal(account, current_ts)
         elif abs(amount) > MAX_INT64:
-            # The amount is erroneously huge (avoid overflow).
+            # The amount is erroneously huge (avoid integer overflow).
             pass
         elif amount >= positive_threshold:
             # The debtor must pay interest to the owner of the account.
