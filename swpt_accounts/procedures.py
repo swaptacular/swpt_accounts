@@ -318,7 +318,10 @@ def _calc_account_avl_balance(account_or_pk: AccountId, ignore_interest: bool) -
     avl_balance = 0
     account = _get_account(account_or_pk)
     if account:
-        avl_balance = account.principal if ignore_interest else math.floor(_calc_account_current_balance(account))
+        if ignore_interest:
+            avl_balance = account.principal
+        else:
+            avl_balance = math.floor(_calc_account_current_balance(account))
         avl_balance -= account.locked_amount
         if account.status & Account.STATUS_ISSUER_ACCOUNT_FLAG:
             avl_balance += _get_issuer_max_total_credit(account.debtor_id)
