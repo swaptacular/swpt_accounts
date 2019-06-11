@@ -18,6 +18,7 @@ TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
+ROOT_CREDITOR_ID = MIN_INT64
 
 
 @atomic
@@ -73,7 +74,7 @@ def prepare_transfer(coordinator_type: str,
             message='Recipient and sender accounts are the same',
         )
     elif (recipient_account_must_exist
-          and recipient_creditor_id != MIN_INT64
+          and recipient_creditor_id != ROOT_CREDITOR_ID
           and not _get_account((debtor_id, recipient_creditor_id))):
         reject_transfer(
             error_code='ACC003',
@@ -163,10 +164,10 @@ def capitalize_interest(debtor_id: int,
         if 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
             amount = -account.principal
 
-        # The account `(debtor_id, MIN_INT64)` is special. It is the
-        # debtor's account. All interest and demurrage payments will
-        # come from/to this account.
-        if creditor_id == MIN_INT64:
+        # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. It
+        # is the debtor's account. All interest and demurrage payments
+        # will come from/to this account.
+        if creditor_id == ROOT_CREDITOR_ID:
             # The debtor must pay himself (simply discard the interest).
             if account.interest != 0.0:
                 account.interest = 0.0
@@ -176,12 +177,12 @@ def capitalize_interest(debtor_id: int,
             pass
         elif amount >= positive_threshold:
             # The debtor must pay interest to the owner of the account.
-            debtor_account = _get_or_create_account((debtor_id, MIN_INT64))
+            debtor_account = _get_or_create_account((debtor_id, ROOT_CREDITOR_ID))
             pt = _create_prepared_transfer('interest', debtor_account, creditor_id, amount, 0)
             _commit_prepared_transfer(pt, amount, current_ts)
         elif -amount >= positive_threshold:
             # The owner of the account must pay demurrage to the debtor.
-            pt = _create_prepared_transfer('demurrage', account, MIN_INT64, -amount, 0)
+            pt = _create_prepared_transfer('demurrage', account, ROOT_CREDITOR_ID, -amount, 0)
             _commit_prepared_transfer(pt, -amount, current_ts)
 
 
