@@ -195,45 +195,36 @@ def make_debtor_payment(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 < amount <= MAX_INT64
-    if amount == 0:
-        return
 
-    committed_at_ts = datetime.now(tz=timezone.utc)
-    sender_interest_delta = 0
-    recipient_interest_delta = 0
+    # It could happen that the debtor must pay himself, for example,
+    # when `capitalize_interest` is called for the debtor's
+    # account. In that case we will simply discard the interest.
+    is_self_payment = creditor_id == ROOT_CREDITOR_ID
+
     if amount > 0:
         # The debtor pays the creditor.
-        sender_creditor_id = ROOT_CREDITOR_ID
-        recipient_creditor_id = creditor_id
-        committed_amount = amount
-        if coordinator_type == 'interest':
-            recipient_interest_delta = -amount
-    else:
+        _make_transfer(
+            coordinator_type=coordinator_type,
+            debtor_id=debtor_id,
+            sender_creditor_id=ROOT_CREDITOR_ID,
+            recipient_creditor_id=creditor_id,
+            committed_at_ts=datetime.now(tz=timezone.utc),
+            committed_amount=0 if is_self_payment else amount,
+            transfer_info=transfer_info,
+            recipient_interest_delta=0 if coordinator_type != 'interest' else -amount,
+        )
+    elif amount < 0:
         # The creditor pays the debtor.
-        sender_creditor_id = creditor_id
-        recipient_creditor_id = ROOT_CREDITOR_ID
-        committed_amount = -amount
-        if coordinator_type == 'interest':
-            sender_interest_delta = -amount
-
-    if sender_creditor_id == recipient_creditor_id:
-        # The debtor must pay himself, which is a nonsense. Still this
-        # could happen, for example, when `capitalize_interest` is
-        # called for the debtor's account. In that case we will simply
-        # discard the interest.
-        committed_amount = 0
-
-    _make_transfer(
-        coordinator_type,
-        debtor_id,
-        sender_creditor_id,
-        recipient_creditor_id,
-        committed_at_ts,
-        committed_amount,
-        transfer_info,
-        sender_interest_delta,
-        recipient_interest_delta,
-    )
+        _make_transfer(
+            coordinator_type=coordinator_type,
+            debtor_id=debtor_id,
+            sender_creditor_id=creditor_id,
+            recipient_creditor_id=ROOT_CREDITOR_ID,
+            committed_at_ts=datetime.now(tz=timezone.utc),
+            committed_amount=0 if is_self_payment else -amount,
+            transfer_info=transfer_info,
+            sender_interest_delta=0 if coordinator_type != 'interest' else -amount,
+        )
 
 
 @atomic
