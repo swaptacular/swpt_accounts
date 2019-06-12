@@ -198,6 +198,7 @@ def make_debtor_payment(
     if amount == 0:
         return
 
+    committed_at_ts = datetime.now(tz=timezone.utc)
     sender_interest_delta = 0
     recipient_interest_delta = 0
     if amount > 0:
@@ -222,27 +223,16 @@ def make_debtor_payment(
         # discard the interest.
         committed_amount = 0
 
-    if committed_amount != 0:
-        db.session.add(CommittedTransferSignal(
-            debtor_id=debtor_id,
-            coordinator_type=coordinator_type,
-            sender_creditor_id=sender_creditor_id,
-            recipient_creditor_id=recipient_creditor_id,
-            committed_at_ts=datetime.now(tz=timezone.utc),
-            committed_amount=committed_amount,
-            transfer_info=transfer_info,
-        ))
-    _schedule_account_change(
-        debtor_id=debtor_id,
-        creditor_id=sender_creditor_id,
-        principal_delta=-committed_amount,
-        interest_delta=sender_interest_delta,
-    )
-    _schedule_account_change(
-        debtor_id=debtor_id,
-        creditor_id=recipient_creditor_id,
-        principal_delta=committed_amount,
-        interest_delta=recipient_interest_delta,
+    _make_transfer(
+        coordinator_type,
+        debtor_id,
+        sender_creditor_id,
+        recipient_creditor_id,
+        committed_at_ts,
+        committed_amount,
+        transfer_info,
+        sender_interest_delta,
+        recipient_interest_delta,
     )
 
 
@@ -402,6 +392,39 @@ def _schedule_account_change(debtor_id: int, creditor_id: int, principal_delta: 
             principal_delta=principal_delta,
             interest_delta=interest_delta,
         ))
+
+
+def _make_transfer(coordinator_type: str,
+                   debtor_id: int,
+                   sender_creditor_id: int,
+                   recipient_creditor_id,
+                   committed_at_ts: datetime,
+                   committed_amount: int,
+                   transfer_info: dict = {},
+                   sender_interest_delta: int = 0,
+                   recipient_interest_delta: int = 0) -> None:
+    if committed_amount != 0 and sender_creditor_id != recipient_creditor_id:
+        db.session.add(CommittedTransferSignal(
+            debtor_id=debtor_id,
+            coordinator_type=coordinator_type,
+            sender_creditor_id=sender_creditor_id,
+            recipient_creditor_id=recipient_creditor_id,
+            committed_at_ts=committed_at_ts,
+            committed_amount=committed_amount,
+            transfer_info=transfer_info,
+        ))
+    _schedule_account_change(
+        debtor_id=debtor_id,
+        creditor_id=sender_creditor_id,
+        principal_delta=-committed_amount,
+        interest_delta=sender_interest_delta,
+    )
+    _schedule_account_change(
+        debtor_id=debtor_id,
+        creditor_id=recipient_creditor_id,
+        principal_delta=committed_amount,
+        interest_delta=recipient_interest_delta,
+    )
 
 
 def _change_interest_rate(account: Account, interest_rate: float, change_seqnum: int, change_ts: datetime) -> None:
