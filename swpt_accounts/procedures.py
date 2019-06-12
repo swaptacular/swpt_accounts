@@ -151,7 +151,15 @@ def set_interest_rate(debtor_id: int,
                       interest_rate: float,
                       change_seqnum: int,
                       change_ts: datetime) -> None:
+    # Too big interest rates can cause negative account balance
+    # overflows, which results in *unexpectedly* creating money "out
+    # of thin air". (That is, in addition to the expected exponential
+    # expansion caused by the interest accumulation.) To prevent this
+    # from happening, the interest rates should be kept within
+    # reasonable limits, and the accumulated interest should be
+    # capitalized every once in a while (like once a month).
     assert -100.0 < interest_rate < 200.0
+
     account = _get_account((debtor_id, creditor_id))
     if account:
         this_event = (change_seqnum, change_ts)
