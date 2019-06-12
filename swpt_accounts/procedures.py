@@ -319,11 +319,11 @@ def _get_or_create_account(account_or_pk: AccountId) -> Account:
 
 def _resurrect_account_if_deleted(account: Account) -> None:
     if account.status & Account.STATUS_DELETED_FLAG:
-        assert account.principal == 0
-        assert account.locked_amount == 0
-        assert account.prepared_transfers_count == 0
-        assert account.interest == 0.0
+        account.principal = 0
+        account.prepared_transfers_count = 0
+        account.locked_amount = 0
         account.status = 0
+        account.interest = 0.0
         account.interest_rate = 0.0
         account.interest_rate_last_change_seqnum = None
         account.interest_rate_last_change_ts = None
@@ -413,8 +413,8 @@ def _change_interest_rate(account: Account, interest_rate: float, change_seqnum:
 
 def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
     sender_account = pt.sender_account
-    sender_account.locked_amount -= pt.sender_locked_amount
-    sender_account.prepared_transfers_count -= 1
+    sender_account.locked_amount = max(0, sender_account.locked_amount - pt.sender_locked_amount)
+    sender_account.prepared_transfers_count = max(0, sender_account.prepared_transfers_count - 1)
     db.session.delete(pt)
 
 
