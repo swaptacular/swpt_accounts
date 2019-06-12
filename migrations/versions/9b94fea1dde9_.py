@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 57618086e36d
+Revision ID: 9b94fea1dde9
 Revises: 
-Create Date: 2019-06-12 20:09:26.535216
+Create Date: 2019-06-13 01:12:05.323984
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '57618086e36d'
+revision = '9b94fea1dde9'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -73,7 +73,7 @@ def upgrade():
     sa.Column('max_total_credit', sa.BigInteger(), nullable=False, comment='The total amount owed to creditors should not surpass this value.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=True),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
-    sa.CheckConstraint('max_total_credit >= 0'),
+    sa.CheckConstraint('max_total_credit >= 0 AND max_total_credit <= 4611686018427387903'),
     sa.PrimaryKeyConstraint('debtor_id')
     )
     op.create_table('prepared_transfer_signal',

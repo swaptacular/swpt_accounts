@@ -64,7 +64,7 @@ class IssuerPolicy(db.Model):
     last_change_seqnum = db.Column(db.Integer)
     last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
     __table_args__ = (
-        db.CheckConstraint(max_total_credit >= 0),
+        db.CheckConstraint((max_total_credit >= 0) & (max_total_credit <= MAX_INT64 // 2)),
     )
 
 
