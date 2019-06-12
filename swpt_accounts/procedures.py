@@ -96,7 +96,7 @@ def prepare_transfer(coordinator_type: str,
             )
         elif sender_account.locked_amount + sender_locked_amount > MAX_INT64:
             reject_transfer(
-                error_code='ACC004',
+                error_code='ACC005',
                 message='The locked amount is too big',
                 locked_amount=sender_account.locked_amount + sender_locked_amount,
             )
