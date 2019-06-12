@@ -15,10 +15,7 @@ def prepare_transfer(
         debtor_id: int,
         sender_creditor_id: int,
         recipient_creditor_id: int,
-        ignore_interest: bool,
-        avl_balance_correction: int = 0,
-        lock_amount: bool = True,
-        recipient_account_must_exist: bool = True) -> None:
+        ignore_interest: bool) -> None:
 
     """Try to greedily secure an amount between `min_amount` and
     `max_amount`, to transfer it from sender's account (`debtor_id`,
@@ -67,9 +64,6 @@ def prepare_transfer(
         sender_creditor_id,
         recipient_creditor_id,
         ignore_interest,
-        avl_balance_correction,
-        lock_amount,
-        recipient_account_must_exist,
     )
 
 

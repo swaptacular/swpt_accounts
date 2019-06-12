@@ -40,16 +40,18 @@ def prepare_transfer(coordinator_type: str,
                      debtor_id: int,
                      sender_creditor_id: int,
                      recipient_creditor_id: int,
-                     ignore_interest: bool,
-                     avl_balance_correction: int = 0,
-                     lock_amount: bool = True,
-                     recipient_account_must_exist: bool = True) -> None:
+                     ignore_interest: bool) -> None:
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 < min_amount <= max_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
     assert MIN_INT64 <= recipient_creditor_id <= MAX_INT64
+
+    # These can become function arguments if needed.
+    avl_balance_correction = 0
+    lock_amount = True
+    recipient_account_must_exist = True
 
     def reject_transfer(**kw) -> None:
         db.session.add(RejectedTransferSignal(
