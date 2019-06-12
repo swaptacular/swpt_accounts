@@ -211,6 +211,7 @@ def make_debtor_payment(
         committed_amount = -amount
         if coordinator_type == 'interest':
             sender_interest_delta = -amount
+
     if sender_creditor_id == recipient_creditor_id:
         # The debtor must pay himself, which is a nonsense. Still this
         # could happen, for example, when `capitalize_interest` is
