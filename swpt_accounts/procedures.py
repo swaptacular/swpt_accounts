@@ -148,6 +148,7 @@ def set_interest_rate(debtor_id: int,
                       interest_rate: float,
                       change_seqnum: int,
                       change_ts: datetime) -> None:
+    assert interest_rate > -100.0
     account = _get_account((debtor_id, creditor_id))
     if account:
         this_event = (change_seqnum, change_ts)
