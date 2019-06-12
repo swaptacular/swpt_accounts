@@ -166,37 +166,10 @@ def capitalize_interest(debtor_id: int,
                         creditor_id: int,
                         accumulated_interest_threshold: int = 0,
                         current_ts: datetime = None) -> None:
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
-
-    def make_interest_payment(sender_creditor_id: int, recipient_creditor_id: int, committed_amount: int) -> None:
-        assert sender_creditor_id == ROOT_CREDITOR_ID or recipient_creditor_id == ROOT_CREDITOR_ID
-        assert committed_amount > 0
-        if sender_creditor_id != recipient_creditor_id:
-            _schedule_account_change(
-                debtor_id=debtor_id,
-                creditor_id=sender_creditor_id,
-                principal_delta=-committed_amount,
-                interest_delta=committed_amount if sender_creditor_id != ROOT_CREDITOR_ID else 0,
-            )
-            _schedule_account_change(
-                debtor_id=debtor_id,
-                creditor_id=recipient_creditor_id,
-                principal_delta=committed_amount,
-                interest_delta=-committed_amount if recipient_creditor_id != ROOT_CREDITOR_ID else 0,
-            )
-            db.session.add(CommittedTransferSignal(
-                debtor_id=debtor_id,
-                coordinator_type='interest',
-                sender_creditor_id=sender_creditor_id,
-                recipient_creditor_id=recipient_creditor_id,
-                committed_at_ts=current_ts,
-                committed_amount=committed_amount,
-                transfer_info={},
-            ))
-
     account = _get_account((debtor_id, creditor_id))
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))
+        current_ts = current_ts or datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
 
         # When the new account principal is positive and very close to
@@ -205,15 +178,68 @@ def capitalize_interest(debtor_id: int,
         if creditor_id != ROOT_CREDITOR_ID and 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
             amount = -account.principal
 
-        if abs(amount) > MAX_INT64:
-            # The amount is erroneously huge -- avoid integer overflow.
-            pass
-        elif amount >= positive_threshold:
-            # The debtor must pay interest to the owner of the account.
-            make_interest_payment(ROOT_CREDITOR_ID, creditor_id, amount)
-        elif -amount >= positive_threshold:
-            # The owner of the account must pay demurrage to the debtor.
-            make_interest_payment(creditor_id, ROOT_CREDITOR_ID, -amount)
+        if positive_threshold <= abs(amount) <= MAX_INT64:
+            make_debtor_payment('interest', debtor_id, creditor_id, amount)
+
+
+@atomic
+def make_debtor_payment(
+        coordinator_type: str,
+        debtor_id: int,
+        creditor_id: int,
+        amount: int,
+        transfer_info: dict = {}) -> None:
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 < amount <= MAX_INT64
+    if amount == 0:
+        return
+
+    sender_interest_delta = 0
+    recipient_interest_delta = 0
+    if amount > 0:
+        # The debtor pays the creditor.
+        sender_creditor_id = ROOT_CREDITOR_ID
+        recipient_creditor_id = creditor_id
+        committed_amount = amount
+        if coordinator_type == 'interest':
+            recipient_interest_delta = -amount
+    else:
+        # The creditor pays the debtor.
+        sender_creditor_id = creditor_id
+        recipient_creditor_id = ROOT_CREDITOR_ID
+        committed_amount = -amount
+        if coordinator_type == 'interest':
+            sender_interest_delta = -amount
+    if sender_creditor_id == recipient_creditor_id:
+        # The debtor must pay himself, which is a nonsense. Still this
+        # could happen, for example, when `capitalize_interest` is
+        # called for the debtor's account. In that case we will simply
+        # discard the interest.
+        committed_amount = 0
+
+    if committed_amount != 0:
+        db.session.add(CommittedTransferSignal(
+            debtor_id=debtor_id,
+            coordinator_type=coordinator_type,
+            sender_creditor_id=sender_creditor_id,
+            recipient_creditor_id=recipient_creditor_id,
+            committed_at_ts=datetime.now(tz=timezone.utc),
+            committed_amount=committed_amount,
+            transfer_info=transfer_info,
+        ))
+    _schedule_account_change(
+        debtor_id=debtor_id,
+        creditor_id=sender_creditor_id,
+        principal_delta=-committed_amount,
+        interest_delta=sender_interest_delta,
+    )
+    _schedule_account_change(
+        debtor_id=debtor_id,
+        creditor_id=recipient_creditor_id,
+        principal_delta=committed_amount,
+        interest_delta=recipient_interest_delta,
+    )
 
 
 @atomic
@@ -365,12 +391,13 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
 
 
 def _schedule_account_change(debtor_id: int, creditor_id: int, principal_delta: int, interest_delta: int) -> None:
-    db.session.add(ScheduledAccountChange(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-        principal_delta=principal_delta,
-        interest_delta=interest_delta,
-    ))
+    if principal_delta != 0 or interest_delta != 0:
+        db.session.add(ScheduledAccountChange(
+            debtor_id=debtor_id,
+            creditor_id=creditor_id,
+            principal_delta=principal_delta,
+            interest_delta=interest_delta,
+        ))
 
 
 def _change_interest_rate(account: Account, interest_rate: float, change_seqnum: int, change_ts: datetime) -> None:
