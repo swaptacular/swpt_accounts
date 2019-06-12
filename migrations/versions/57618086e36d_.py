@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 589aabb46a05
+Revision ID: 57618086e36d
 Revises: 
-Create Date: 2019-06-11 23:53:55.282856
+Create Date: 2019-06-12 20:09:26.535216
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '589aabb46a05'
+revision = '57618086e36d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -32,7 +32,7 @@ def upgrade():
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. This field is not updated on demurrage payments.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
-    sa.CheckConstraint('interest_rate > -100.0'),
+    sa.CheckConstraint('interest_rate > -100.0 AND interest_rate < 200.0'),
     sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('prepared_transfers_count >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id')
