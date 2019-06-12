@@ -137,7 +137,7 @@ class Account(db.Model):
         comment='Additional account status flags.',
     )
     __table_args__ = (
-        db.CheckConstraint((interest_rate > -100.0) & (interest_rate < 200.0)),
+        db.CheckConstraint((interest_rate > -100.0) & (interest_rate <= 100.0)),
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(prepared_transfers_count >= 0),
     )
