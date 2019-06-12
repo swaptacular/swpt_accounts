@@ -250,8 +250,8 @@ def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
     if (account
             and not account.status & Account.STATUS_ISSUER_ACCOUNT_FLAG
             and account.prepared_transfers_count == 0
+            and account.locked_amount == 0
             and 0 <= _calc_account_current_balance(account, current_ts) <= TINY_POSITIVE_AMOUNT):
-        assert account.locked_amount == 0
         if account.principal != 0:
             capitalize_interest(debtor_id, creditor_id, 0, current_ts)
         if account.principal == 0:
