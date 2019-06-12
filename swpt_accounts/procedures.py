@@ -146,6 +146,21 @@ def finalize_prepared_transfer(debtor_id: int,
 
 
 @atomic
+def set_issuer_policy(debtor_id: int,
+                      max_total_credit: int,
+                      change_seqnum: int,
+                      change_ts: datetime) -> None:
+    assert 0 <= max_total_credit <= MAX_INT64 // 2
+    issuer_policy = _get_or_create_issuer_policy(debtor_id)
+    this_event = (change_seqnum, change_ts)
+    prev_event = (issuer_policy.last_change_seqnum, issuer_policy.last_change_ts)
+    if _is_later_event(this_event, prev_event):
+        issuer_policy.max_total_credit = max_total_credit
+        issuer_policy.last_change_seqnum = change_seqnum
+        issuer_policy.last_change_ts = change_ts
+
+
+@atomic
 def set_interest_rate(debtor_id: int,
                       creditor_id: int,
                       interest_rate: float,
@@ -272,15 +287,6 @@ def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int
     )
 
 
-def _lock_issuer_instance(debtor_id: int) -> Issuer:
-    issuer = Issuer.lock_instance(debtor_id)
-    if issuer is None:
-        issuer = Issuer(debtor_id=debtor_id)
-        with db.retry_on_integrity_error():
-            db.session.add(issuer)
-    return issuer
-
-
 def _get_issuer_max_total_credit(debtor_id: int) -> int:
     issuer_policy = IssuerPolicy.get_instance(debtor_id)
     return issuer_policy.max_total_credit if issuer_policy else 0
@@ -308,6 +314,24 @@ def _get_or_create_account(account_or_pk: AccountId) -> Account:
         account = _create_account(debtor_id, creditor_id)
     _resurrect_account_if_deleted(account)
     return account
+
+
+def _get_or_create_issuer_policy(debtor_id: int) -> IssuerPolicy:
+    issuer_policy = IssuerPolicy.get_instance(debtor_id)
+    if issuer_policy is None:
+        issuer_policy = IssuerPolicy(debtor_id=debtor_id)
+        with db.retry_on_integrity_error():
+            db.session.add(issuer_policy)
+    return issuer_policy
+
+
+def _lock_issuer_instance(debtor_id: int) -> Issuer:
+    issuer = Issuer.lock_instance(debtor_id)
+    if issuer is None:
+        issuer = Issuer(debtor_id=debtor_id)
+        with db.retry_on_integrity_error():
+            db.session.add(issuer)
+    return issuer
 
 
 def _resurrect_account_if_deleted(account: Account) -> None:

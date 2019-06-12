@@ -92,6 +92,24 @@ def finalize_prepared_transfer(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
+def set_issuer_policy(
+        *,
+        debtor_id: int,
+        max_total_credit: int,
+        change_seqnum: int,
+        change_ts: str) -> None:
+
+    """Change the issuer policy of given debtor."""
+
+    procedures.set_issuer_policy(
+        debtor_id,
+        max_total_credit,
+        change_seqnum,
+        iso8601.parse_date(change_ts),
+    )
+
+
+@broker.actor(queue_name=APP_QUEUE_NAME)
 def set_interest_rate(
         *,
         debtor_id: int,
@@ -170,4 +188,4 @@ def purge_deleted_account(
     )
 
 
-# TODO: Implement `set_issuer_policy()` and `set_issuer()` actors.
+# TODO: Implement `set_issuer()` actor.
