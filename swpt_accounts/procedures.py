@@ -49,11 +49,6 @@ def prepare_transfer(coordinator_type: str,
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
     assert MIN_INT64 <= recipient_creditor_id <= MAX_INT64
 
-    # These can become function arguments if needed.
-    avl_balance_correction = 0
-    lock_amount = True
-    recipient_account_must_exist = True
-
     def reject_transfer(**kw) -> None:
         db.session.add(RejectedTransferSignal(
             debtor_id=debtor_id,
@@ -62,6 +57,11 @@ def prepare_transfer(coordinator_type: str,
             coordinator_request_id=coordinator_request_id,
             details=kw,
         ))
+
+    # These can become function arguments if needed:
+    avl_balance_correction = 0
+    lock_amount = True
+    recipient_account_must_exist = True
 
     # We check the available balance first because this should be, by
     # far, the most frequent reason to fail to prepare the transfer.
