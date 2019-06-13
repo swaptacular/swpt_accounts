@@ -406,30 +406,6 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
     _delete_prepared_transfer(pt)
 
 
-def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:
-    account.interest = float(_calc_account_accumulated_interest(account, current_ts) + interest_delta)
-    new_principal = account.principal + principal_delta
-    if new_principal < MIN_INT64:
-        account.principal = MIN_INT64
-        account.status |= Account.STATUS_OVERFLOWN_FLAG
-    elif new_principal > MAX_INT64:
-        account.principal = MAX_INT64
-        account.status |= Account.STATUS_OVERFLOWN_FLAG
-    else:
-        account.principal = new_principal
-    _insert_account_change_signal(account, current_ts)
-
-
-def _schedule_account_change(debtor_id: int, creditor_id: int, principal_delta: int, interest_delta: int) -> None:
-    if principal_delta != 0 or interest_delta != 0:
-        db.session.add(ScheduledAccountChange(
-            debtor_id=debtor_id,
-            creditor_id=creditor_id,
-            principal_delta=principal_delta,
-            interest_delta=interest_delta,
-        ))
-
-
 def _force_transfer(coordinator_type: str,
                     debtor_id: int,
                     sender_creditor_id: int,
@@ -462,6 +438,30 @@ def _force_transfer(coordinator_type: str,
         principal_delta=committed_amount,
         interest_delta=recipient_interest_delta,
     )
+
+
+def _schedule_account_change(debtor_id: int, creditor_id: int, principal_delta: int, interest_delta: int) -> None:
+    if principal_delta != 0 or interest_delta != 0:
+        db.session.add(ScheduledAccountChange(
+            debtor_id=debtor_id,
+            creditor_id=creditor_id,
+            principal_delta=principal_delta,
+            interest_delta=interest_delta,
+        ))
+
+
+def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:
+    account.interest = float(_calc_account_accumulated_interest(account, current_ts) + interest_delta)
+    new_principal = account.principal + principal_delta
+    if new_principal < MIN_INT64:
+        account.principal = MIN_INT64
+        account.status |= Account.STATUS_OVERFLOWN_FLAG
+    elif new_principal > MAX_INT64:
+        account.principal = MAX_INT64
+        account.status |= Account.STATUS_OVERFLOWN_FLAG
+    else:
+        account.principal = new_principal
+    _insert_account_change_signal(account, current_ts)
 
 
 # TODO: Process `ScheduledAccountChange` records.
