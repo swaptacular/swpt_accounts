@@ -185,7 +185,13 @@ def capitalize_interest(debtor_id: int,
         if creditor_id != ROOT_CREDITOR_ID and 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
             amount = -account.principal
 
-        if positive_threshold <= abs(amount) <= MAX_INT64:
+        # Make sure `amount` and `-amount` are within INT64 limits.
+        if amount > MAX_INT64:
+            amount = MAX_INT64
+        if amount < -MAX_INT64:
+            amount = -MAX_INT64
+
+        if abs(amount) >= positive_threshold:
             make_debtor_payment('interest', debtor_id, creditor_id, amount)
 
 
@@ -198,7 +204,7 @@ def make_debtor_payment(
         transfer_info: dict = {}) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 < amount <= MAX_INT64
+    assert -MAX_INT64 <= amount <= MAX_INT64
 
     # It could happen that the debtor must pay himself, for example,
     # when `capitalize_interest` is called for the debtor's
@@ -258,7 +264,10 @@ def purge_deleted_account(debtor_id: int, creditor_id: int, if_deleted_before: d
 def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
     seqnum, ts = event
     other_seqnum, other_ts = other_event
-    advance = (ts - other_ts) if other_ts else TD_ZERO
+    if other_ts:
+        advance = ts - other_ts
+    else:
+        advance = TD_ZERO
     return advance >= TD_MINUS_SECOND and (
         advance > TD_SECOND
         or other_seqnum is None
