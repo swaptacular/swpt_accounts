@@ -208,12 +208,12 @@ def make_debtor_payment(
 
     # It could happen that the debtor must pay himself, for example,
     # when `capitalize_interest` is called for the debtor's
-    # account. In that case we will simply discard the interest.
+    # account. In this case we will simply discard the interest.
     is_self_payment = creditor_id == ROOT_CREDITOR_ID
 
     if amount > 0:
         # The debtor pays the creditor.
-        _make_transfer(
+        _force_transfer(
             coordinator_type=coordinator_type,
             debtor_id=debtor_id,
             sender_creditor_id=ROOT_CREDITOR_ID,
@@ -225,7 +225,7 @@ def make_debtor_payment(
         )
     elif amount < 0:
         # The creditor pays the debtor.
-        _make_transfer(
+        _force_transfer(
             coordinator_type=coordinator_type,
             debtor_id=debtor_id,
             sender_creditor_id=creditor_id,
@@ -381,15 +381,15 @@ def _schedule_account_change(debtor_id: int, creditor_id: int, principal_delta: 
         ))
 
 
-def _make_transfer(coordinator_type: str,
-                   debtor_id: int,
-                   sender_creditor_id: int,
-                   recipient_creditor_id,
-                   committed_at_ts: datetime,
-                   committed_amount: int,
-                   transfer_info: dict = {},
-                   sender_interest_delta: int = 0,
-                   recipient_interest_delta: int = 0) -> None:
+def _force_transfer(coordinator_type: str,
+                    debtor_id: int,
+                    sender_creditor_id: int,
+                    recipient_creditor_id,
+                    committed_at_ts: datetime,
+                    committed_amount: int,
+                    transfer_info: dict = {},
+                    sender_interest_delta: int = 0,
+                    recipient_interest_delta: int = 0) -> None:
     if committed_amount != 0 and sender_creditor_id != recipient_creditor_id:
         db.session.add(CommittedTransferSignal(
             debtor_id=debtor_id,
