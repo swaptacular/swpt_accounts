@@ -177,7 +177,7 @@ def capitalize_interest(debtor_id: int,
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))
         current_ts = current_ts or datetime.now(tz=timezone.utc)
-        amount = math.floor(_calc_accumulated_account_interest(account, current_ts))
+        amount = math.floor(_calc_account_accumulated_interest(account, current_ts))
 
         # When the new account principal is positive and very close to
         # zero, we make it a zero. This behavior allows us to reliably
@@ -275,6 +275,23 @@ def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int
     )
 
 
+def _insert_account_change_signal(account: Account, current_ts: Optional[datetime] = None) -> None:
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
+    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+    account.last_change_ts = max(account.last_change_ts, current_ts)
+    db.session.add(AccountChangeSignal(
+        debtor_id=account.debtor_id,
+        creditor_id=account.creditor_id,
+        change_seqnum=account.last_change_seqnum,
+        change_ts=account.last_change_ts,
+        principal=account.principal,
+        interest=account.interest,
+        interest_rate=account.interest_rate,
+        last_outgoing_transfer_date=account.last_outgoing_transfer_date,
+        status=account.status,
+    ))
+
+
 def _create_account(debtor_id: int, creditor_id: int) -> Account:
     account = Account(debtor_id=debtor_id, creditor_id=creditor_id)
     with db.retry_on_integrity_error():
@@ -336,87 +353,13 @@ def _calc_account_avl_balance(account_or_pk: AccountId, ignore_interest: bool) -
     return avl_balance, account_or_pk
 
 
-def _insert_account_change_signal(account: Account, current_ts: Optional[datetime] = None) -> None:
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
-    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
-    account.last_change_ts = max(account.last_change_ts, current_ts)
-    db.session.add(AccountChangeSignal(
-        debtor_id=account.debtor_id,
-        creditor_id=account.creditor_id,
-        change_seqnum=account.last_change_seqnum,
-        change_ts=account.last_change_ts,
-        principal=account.principal,
-        interest=account.interest,
-        interest_rate=account.interest_rate,
-        last_outgoing_transfer_date=account.last_outgoing_transfer_date,
-        status=account.status,
-    ))
-
-
-def _calc_accumulated_account_interest(account: Account, current_ts: datetime) -> Decimal:
+def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
     return _calc_account_current_balance(account, current_ts) - account.principal
-
-
-def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:
-    account.interest = float(_calc_accumulated_account_interest(account, current_ts) + interest_delta)
-    new_principal = account.principal + principal_delta
-    if new_principal < MIN_INT64:
-        account.principal = MIN_INT64
-        account.status |= Account.STATUS_OVERFLOWN_FLAG
-    elif new_principal > MAX_INT64:
-        account.principal = MAX_INT64
-        account.status |= Account.STATUS_OVERFLOWN_FLAG
-    else:
-        account.principal = new_principal
-    _insert_account_change_signal(account, current_ts)
-
-
-def _schedule_account_change(debtor_id: int, creditor_id: int, principal_delta: int, interest_delta: int) -> None:
-    if principal_delta != 0 or interest_delta != 0:
-        db.session.add(ScheduledAccountChange(
-            debtor_id=debtor_id,
-            creditor_id=creditor_id,
-            principal_delta=principal_delta,
-            interest_delta=interest_delta,
-        ))
-
-
-def _force_transfer(coordinator_type: str,
-                    debtor_id: int,
-                    sender_creditor_id: int,
-                    recipient_creditor_id,
-                    committed_at_ts: datetime,
-                    committed_amount: int,
-                    transfer_info: dict = {},
-                    sender_interest_delta: int = 0,
-                    recipient_interest_delta: int = 0) -> None:
-    if committed_amount != 0 and sender_creditor_id != recipient_creditor_id:
-        db.session.add(CommittedTransferSignal(
-            debtor_id=debtor_id,
-            coordinator_type=coordinator_type,
-            sender_creditor_id=sender_creditor_id,
-            recipient_creditor_id=recipient_creditor_id,
-            committed_at_ts=committed_at_ts,
-            committed_amount=committed_amount,
-            transfer_info=transfer_info,
-        ))
-    _schedule_account_change(
-        debtor_id=debtor_id,
-        creditor_id=sender_creditor_id,
-        principal_delta=-committed_amount,
-        interest_delta=sender_interest_delta,
-    )
-    _schedule_account_change(
-        debtor_id=debtor_id,
-        creditor_id=recipient_creditor_id,
-        principal_delta=committed_amount,
-        interest_delta=recipient_interest_delta,
-    )
 
 
 def _change_interest_rate(account: Account, interest_rate: float, change_seqnum: int, change_ts: datetime) -> None:
     current_ts = datetime.now(tz=timezone.utc)
-    account.interest = float(_calc_accumulated_account_interest(account, current_ts))
+    account.interest = float(_calc_account_accumulated_interest(account, current_ts))
     account.interest_rate = interest_rate
     account.interest_rate_last_change_seqnum = change_seqnum
     account.interest_rate_last_change_ts = change_ts
@@ -459,6 +402,64 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
         transfer_info=transfer_info,
     ))
     _delete_prepared_transfer(pt)
+
+
+def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:
+    account.interest = float(_calc_account_accumulated_interest(account, current_ts) + interest_delta)
+    new_principal = account.principal + principal_delta
+    if new_principal < MIN_INT64:
+        account.principal = MIN_INT64
+        account.status |= Account.STATUS_OVERFLOWN_FLAG
+    elif new_principal > MAX_INT64:
+        account.principal = MAX_INT64
+        account.status |= Account.STATUS_OVERFLOWN_FLAG
+    else:
+        account.principal = new_principal
+    _insert_account_change_signal(account, current_ts)
+
+
+def _schedule_account_change(debtor_id: int, creditor_id: int, principal_delta: int, interest_delta: int) -> None:
+    if principal_delta != 0 or interest_delta != 0:
+        db.session.add(ScheduledAccountChange(
+            debtor_id=debtor_id,
+            creditor_id=creditor_id,
+            principal_delta=principal_delta,
+            interest_delta=interest_delta,
+        ))
+
+
+def _force_transfer(coordinator_type: str,
+                    debtor_id: int,
+                    sender_creditor_id: int,
+                    recipient_creditor_id,
+                    committed_at_ts: datetime,
+                    committed_amount: int,
+                    transfer_info: dict = {},
+                    sender_interest_delta: int = 0,
+                    recipient_interest_delta: int = 0) -> None:
+    assert 0 <= committed_amount <= MAX_INT64
+    if committed_amount != 0 and sender_creditor_id != recipient_creditor_id:
+        db.session.add(CommittedTransferSignal(
+            debtor_id=debtor_id,
+            coordinator_type=coordinator_type,
+            sender_creditor_id=sender_creditor_id,
+            recipient_creditor_id=recipient_creditor_id,
+            committed_at_ts=committed_at_ts,
+            committed_amount=committed_amount,
+            transfer_info=transfer_info,
+        ))
+    _schedule_account_change(
+        debtor_id=debtor_id,
+        creditor_id=sender_creditor_id,
+        principal_delta=-committed_amount,
+        interest_delta=sender_interest_delta,
+    )
+    _schedule_account_change(
+        debtor_id=debtor_id,
+        creditor_id=recipient_creditor_id,
+        principal_delta=committed_amount,
+        interest_delta=recipient_interest_delta,
+    )
 
 
 # TODO: Process `ScheduledAccountChange` records.
