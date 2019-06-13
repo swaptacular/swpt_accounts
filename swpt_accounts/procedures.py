@@ -20,8 +20,8 @@ TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
-# debtor's account. All interest and demurrage payments will come
-# from/to this account.
+# debtor's account. It issuers all the money. Also, all interest and
+# demurrage payments come from/to this account.
 ROOT_CREDITOR_ID = MIN_INT64
 
 
