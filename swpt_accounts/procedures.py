@@ -375,6 +375,7 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
 
 
 def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, transfer_info: dict) -> None:
+    assert committed_amount > 0
     if committed_amount > pt.amount:
         committed_amount = pt.amount
     current_ts = datetime.now(tz=timezone.utc)
