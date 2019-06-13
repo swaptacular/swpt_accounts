@@ -375,7 +375,8 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
 
 
 def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, transfer_info: dict) -> None:
-    assert 0 < committed_amount <= pt.amount
+    if committed_amount > pt.amount:
+        committed_amount = pt.amount
     current_ts = datetime.now(tz=timezone.utc)
     sender_account = pt.sender_account
     sender_account.last_outgoing_transfer_date = current_ts.date()
@@ -437,7 +438,7 @@ def _force_transfer(coordinator_type: str,
                     transfer_info: dict = {},
                     sender_interest_delta: int = 0,
                     recipient_interest_delta: int = 0) -> None:
-    assert 0 <= committed_amount <= MAX_INT64
+    assert committed_amount >= 0
     if committed_amount != 0 and sender_creditor_id != recipient_creditor_id:
         db.session.add(CommittedTransferSignal(
             debtor_id=debtor_id,
