@@ -58,67 +58,73 @@ def prepare_transfer(coordinator_type: str,
             details=kw,
         ))
 
-    # We check the available balance first because this should be, by
-    # far, the most frequent reason to fail to prepare the transfer.
-    avl_balance, account_or_pk = _calc_account_avl_balance((debtor_id, sender_creditor_id), ignore_interest)
-    if avl_balance < min_amount:
+    if sender_creditor_id == recipient_creditor_id:
         reject_transfer(
             error_code='ACC001',
+            message='Recipient and sender accounts are the same',
+        )
+        return
+
+    avl_balance, account_or_pk = _calc_account_avl_balance((debtor_id, sender_creditor_id), ignore_interest)
+
+    if avl_balance < min_amount:
+        reject_transfer(
+            error_code='ACC002',
             message='Insufficient available balance',
             avl_balance=avl_balance,
         )
         return
 
-    if sender_creditor_id == recipient_creditor_id:
-        reject_transfer(
-            error_code='ACC002',
-            message='Recipient and sender accounts are the same',
-        )
-    elif not (recipient_creditor_id == ROOT_CREDITOR_ID or _get_account((debtor_id, recipient_creditor_id))):
+    if not (recipient_creditor_id == ROOT_CREDITOR_ID or _get_account((debtor_id, recipient_creditor_id))):
         reject_transfer(
             error_code='ACC003',
             message='Recipient account does not exist',
         )
-    else:
-        sender_account = _get_or_create_account(account_or_pk)
-        amount = min(avl_balance, max_amount)
-        new_locked_amount = sender_account.locked_amount + amount
-        if new_locked_amount > MAX_INT64:
-            reject_transfer(
-                error_code='ACC004',
-                message='The locked amount becomes too big',
-                locked_amount=new_locked_amount,
-            )
-        elif sender_account.prepared_transfers_count >= MAX_PREPARED_TRANSFERS_COUNT:
-            reject_transfer(
-                error_code='ACC005',
-                message='Too many prepared transfers',
-                prepared_transfers_count=sender_account.prepared_transfers_count,
-            )
-        else:
-            sender_account.locked_amount = new_locked_amount
-            sender_account.prepared_transfers_count += 1
-            pt = PreparedTransfer(
-                sender_account=sender_account,
-                coordinator_type=coordinator_type,
-                recipient_creditor_id=recipient_creditor_id,
-                amount=amount,
-                sender_locked_amount=amount,
-            )
-            db.session.add(pt)
-            db.session.flush()
-            db.session.add(PreparedTransferSignal(
-                debtor_id=pt.debtor_id,
-                sender_creditor_id=pt.sender_creditor_id,
-                transfer_id=pt.transfer_id,
-                coordinator_type=pt.coordinator_type,
-                recipient_creditor_id=pt.recipient_creditor_id,
-                amount=pt.amount,
-                sender_locked_amount=pt.sender_locked_amount,
-                prepared_at_ts=pt.prepared_at_ts,
-                coordinator_id=coordinator_id,
-                coordinator_request_id=coordinator_request_id,
-            ))
+        return
+
+    sender_account = _get_or_create_account(account_or_pk)
+    amount = min(avl_balance, max_amount)
+    new_locked_amount = sender_account.locked_amount + amount
+
+    if new_locked_amount > MAX_INT64:
+        reject_transfer(
+            error_code='ACC004',
+            message='The locked amount becomes too big',
+            locked_amount=new_locked_amount,
+        )
+        return
+
+    if sender_account.prepared_transfers_count >= MAX_PREPARED_TRANSFERS_COUNT:
+        reject_transfer(
+            error_code='ACC005',
+            message='Too many prepared transfers',
+            prepared_transfers_count=sender_account.prepared_transfers_count,
+        )
+        return
+
+    sender_account.locked_amount = new_locked_amount
+    sender_account.prepared_transfers_count += 1
+    pt = PreparedTransfer(
+        sender_account=sender_account,
+        coordinator_type=coordinator_type,
+        recipient_creditor_id=recipient_creditor_id,
+        amount=amount,
+        sender_locked_amount=amount,
+    )
+    db.session.add(pt)
+    db.session.flush()
+    db.session.add(PreparedTransferSignal(
+        debtor_id=pt.debtor_id,
+        sender_creditor_id=pt.sender_creditor_id,
+        transfer_id=pt.transfer_id,
+        coordinator_type=pt.coordinator_type,
+        recipient_creditor_id=pt.recipient_creditor_id,
+        amount=pt.amount,
+        sender_locked_amount=pt.sender_locked_amount,
+        prepared_at_ts=pt.prepared_at_ts,
+        coordinator_id=coordinator_id,
+        coordinator_request_id=coordinator_request_id,
+    ))
 
 
 @atomic
