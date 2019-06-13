@@ -4,7 +4,7 @@ from typing import TypeVar, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal, Issuer, IssuerPolicy, ScheduledAccountChange, \
+    AccountChangeSignal, CommittedTransferSignal, ScheduledAccountChange, \
     increment_seqnum, MIN_INT64, MAX_INT64
 
 T = TypeVar('T')
@@ -146,21 +146,6 @@ def finalize_prepared_transfer(debtor_id: int,
 
 
 @atomic
-def set_issuer_policy(debtor_id: int,
-                      max_total_credit: int,
-                      change_seqnum: int,
-                      change_ts: datetime) -> None:
-    assert 0 <= max_total_credit <= MAX_INT64 // 2
-    issuer_policy = _get_or_create_issuer_policy(debtor_id)
-    this_event = (change_seqnum, change_ts)
-    prev_event = (issuer_policy.last_change_seqnum, issuer_policy.last_change_ts)
-    if _is_later_event(this_event, prev_event):
-        issuer_policy.max_total_credit = max_total_credit
-        issuer_policy.last_change_seqnum = change_seqnum
-        issuer_policy.last_change_ts = change_ts
-
-
-@atomic
 def set_interest_rate(debtor_id: int,
                       creditor_id: int,
                       interest_rate: float,
@@ -253,7 +238,6 @@ def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     account = _get_account((debtor_id, creditor_id))
     if (account
-            and not account.status & Account.STATUS_ISSUER_ACCOUNT_FLAG
             and account.prepared_transfers_count == 0
             and account.locked_amount == 0
             and 0 <= _calc_account_current_balance(account, current_ts) <= TINY_POSITIVE_AMOUNT):
@@ -284,11 +268,6 @@ def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int
     )
 
 
-def _get_issuer_max_total_credit(debtor_id: int) -> int:
-    issuer_policy = IssuerPolicy.get_instance(debtor_id)
-    return issuer_policy.max_total_credit if issuer_policy else 0
-
-
 def _create_account(debtor_id: int, creditor_id: int) -> Account:
     account = Account(debtor_id=debtor_id, creditor_id=creditor_id)
     with db.retry_on_integrity_error():
@@ -311,24 +290,6 @@ def _get_or_create_account(account_or_pk: AccountId) -> Account:
         account = _create_account(debtor_id, creditor_id)
     _resurrect_account_if_deleted(account)
     return account
-
-
-def _get_or_create_issuer_policy(debtor_id: int) -> IssuerPolicy:
-    issuer_policy = IssuerPolicy.get_instance(debtor_id)
-    if issuer_policy is None:
-        issuer_policy = IssuerPolicy(debtor_id=debtor_id)
-        with db.retry_on_integrity_error():
-            db.session.add(issuer_policy)
-    return issuer_policy
-
-
-def _lock_issuer_instance(debtor_id: int) -> Issuer:
-    issuer = Issuer.lock_instance(debtor_id)
-    if issuer is None:
-        issuer = Issuer(debtor_id=debtor_id)
-        with db.retry_on_integrity_error():
-            db.session.add(issuer)
-    return issuer
 
 
 def _resurrect_account_if_deleted(account: Account) -> None:
@@ -364,8 +325,6 @@ def _calc_account_avl_balance(account_or_pk: AccountId, ignore_interest: bool) -
         else:
             avl_balance = math.floor(_calc_account_current_balance(account))
         avl_balance -= account.locked_amount
-        if account.status & Account.STATUS_ISSUER_ACCOUNT_FLAG:
-            avl_balance += _get_issuer_max_total_credit(account.debtor_id)
         account_or_pk = account
     return avl_balance, account_or_pk
 

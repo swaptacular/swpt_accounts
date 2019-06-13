@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 8ce7155bda78
+Revision ID: a6225110f852
 Revises: 
-Create Date: 2019-06-13 02:01:47.022118
+Create Date: 2019-06-13 14:25:02.356731
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '8ce7155bda78'
+revision = 'a6225110f852'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade():
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('principal', sa.BigInteger(), nullable=False, comment='The total owed amount. Can be negative. At any time, the sum of the principals of all accounts (including the issuer account) for a given debtor will be zero.'),
+    sa.Column('principal', sa.BigInteger(), nullable=False, comment='The total owed amount. Can be negative.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account'),
     sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True),
     sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
@@ -60,21 +60,6 @@ def upgrade():
     sa.Column('committed_transfer_id', sa.BigInteger(), nullable=True),
     sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'signal_id')
-    )
-    op.create_table('issuer',
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creditor_id', sa.BigInteger(), nullable=True),
-    sa.Column('last_change_seqnum', sa.Integer(), nullable=True),
-    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
-    sa.PrimaryKeyConstraint('debtor_id')
-    )
-    op.create_table('issuer_policy',
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('max_total_credit', sa.BigInteger(), nullable=False, comment='The total amount owed to creditors should not surpass this value.'),
-    sa.Column('last_change_seqnum', sa.Integer(), nullable=True),
-    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
-    sa.CheckConstraint('max_total_credit >= 0 AND max_total_credit <= 4611686018427387903'),
-    sa.PrimaryKeyConstraint('debtor_id')
     )
     op.create_table('prepared_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -129,8 +114,6 @@ def downgrade():
     op.drop_table('scheduled_account_change')
     op.drop_table('rejected_transfer_signal')
     op.drop_table('prepared_transfer_signal')
-    op.drop_table('issuer_policy')
-    op.drop_table('issuer')
     op.drop_table('committed_transfer_signal')
     op.drop_table('account_change_signal')
     op.drop_table('account')
