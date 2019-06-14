@@ -4,8 +4,8 @@ from typing import TypeVar, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal, ScheduledAccountChange, \
-    increment_seqnum, MIN_INT64, MAX_INT64
+    AccountChangeSignal, CommittedTransferSignal, ScheduledChange, increment_seqnum, \
+    MIN_INT64, MAX_INT64
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -271,14 +271,18 @@ def purge_deleted_account(debtor_id: int, creditor_id: int, if_deleted_before: d
 
 
 @atomic
-def process_scheduled_account_changes(debtor_id: int, creditor_id: int):
-    account = _get_or_create_account((debtor_id, creditor_id))
-    SAC = ScheduledAccountChange
-    changes = db.session.query(SAC.change_id, SAC.principal_delta, SAC.interest_delta).\
-        filter((SAC.debtor_id == debtor_id) & (SAC.creditor_id == creditor_id)).\
+def process_scheduled_changes(debtor_id: int, creditor_id: int):
+    changes = db.session.query(
+        ScheduledChange.change_id,
+        ScheduledChange.principal_delta,
+        ScheduledChange.interest_delta,
+    ).\
+        filter(ScheduledChange.debtor_id == debtor_id).\
+        filter(ScheduledChange.creditor_id == creditor_id).\
         with_for_update(skip_locked=True).\
         all()
     if changes:
+        account = _get_or_create_account((debtor_id, creditor_id))
         principal_delta = 0
         interest_delta = 0
         for change in changes:
@@ -290,9 +294,10 @@ def process_scheduled_account_changes(debtor_id: int, creditor_id: int):
             interest_delta=interest_delta,
             current_ts=datetime.now(tz=timezone.utc),
         )
-        ScheduledAccountChange.query.\
-            filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
-            filter(ScheduledAccountChange.change_id.in_([c.change_id for c in changes])).\
+        ScheduledChange.query.\
+            filter(ScheduledChange.debtor_id == debtor_id).\
+            filter(ScheduledChange.creditor_id == creditor_id).\
+            filter(ScheduledChange.change_id.in_([change.change_id for change in changes])).\
             delete(synchronize_session=False)
 
 
@@ -477,7 +482,7 @@ def _force_transfer(coordinator_type: str,
 
 def _schedule_account_change(debtor_id: int, creditor_id: int, principal_delta: int, interest_delta: int) -> None:
     if principal_delta != 0 or interest_delta != 0:
-        db.session.add(ScheduledAccountChange(
+        db.session.add(ScheduledChange(
             debtor_id=debtor_id,
             creditor_id=creditor_id,
             principal_delta=principal_delta,
@@ -497,6 +502,3 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
     else:
         account.principal = new_principal
     _insert_account_change_signal(account, current_ts)
-
-
-# TODO: Process `ScheduledAccountChange` records.
