@@ -1,6 +1,7 @@
 import math
+from itertools import groupby
 from datetime import datetime, timezone, timedelta
-from typing import TypeVar, Tuple, Union, Optional, Callable
+from typing import TypeVar, List, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
@@ -268,6 +269,14 @@ def purge_deleted_account(debtor_id: int, creditor_id: int, if_deleted_before: d
         filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
         filter(Account.last_change_ts < if_deleted_before).\
         delete(synchronize_session=False)
+
+
+@atomic
+def list_accounts_with_scheduled_changes() -> List[Tuple[int, int]]:
+    changes = db.session.query(ScheduledChange.debtor_id, ScheduledChange.creditor_id).\
+        order_by(ScheduledChange.debtor_id, ScheduledChange.creditor_id).\
+        all()
+    return [t for t, _ in groupby(changes)]
 
 
 @atomic
