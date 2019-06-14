@@ -271,7 +271,7 @@ def purge_deleted_account(debtor_id: int, creditor_id: int, if_deleted_before: d
 
 
 @atomic
-def process_scheduled_changes(debtor_id: int, creditor_id: int):
+def process_scheduled_changes(debtor_id: int, creditor_id: int) -> None:
     changes = db.session.query(
         ScheduledChange.change_id,
         ScheduledChange.principal_delta,
@@ -282,7 +282,7 @@ def process_scheduled_changes(debtor_id: int, creditor_id: int):
         with_for_update(skip_locked=True).\
         all()
     if changes:
-        account = _get_or_create_account((debtor_id, creditor_id))
+        account = _get_or_create_account((debtor_id, creditor_id), lock=True)
         principal_delta = 0
         interest_delta = 0
         for change in changes:
@@ -347,8 +347,11 @@ def _get_account(account_or_pk: AccountId) -> Optional[Account]:
     return None
 
 
-def _get_or_create_account(account_or_pk: AccountId) -> Account:
-    account = Account.get_instance(account_or_pk)
+def _get_or_create_account(account_or_pk: AccountId, lock: bool = False) -> Account:
+    if lock:
+        account = Account.lock_instance(account_or_pk)
+    else:
+        account = Account.get_instance(account_or_pk)
     if account is None:
         debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
         account = _create_account(debtor_id, creditor_id)
