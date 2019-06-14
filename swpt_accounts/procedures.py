@@ -263,10 +263,37 @@ def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
 
 @atomic
 def purge_deleted_account(debtor_id: int, creditor_id: int, if_deleted_before: datetime) -> None:
-    Account.query.filter_by(debtor_id=debtor_id, creditor_id=creditor_id)\
-                 .filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG)\
-                 .filter(Account.last_change_ts < if_deleted_before)\
-                 .delete(synchronize_session=False)
+    Account.query.\
+        filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
+        filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
+        filter(Account.last_change_ts < if_deleted_before).\
+        delete(synchronize_session=False)
+
+
+@atomic
+def process_scheduled_account_changes(debtor_id: int, creditor_id: int):
+    account = _get_or_create_account((debtor_id, creditor_id))
+    SAC = ScheduledAccountChange
+    changes = db.session.query(SAC.change_id, SAC.principal_delta, SAC.interest_delta).\
+        filter((SAC.debtor_id == debtor_id) & (SAC.creditor_id == creditor_id)).\
+        with_for_update(skip_locked=True).\
+        all()
+    if changes:
+        principal_delta = 0
+        interest_delta = 0
+        for change in changes:
+            principal_delta += change.principal_delta
+            interest_delta += change.interest_delta
+        _apply_account_change(
+            account=account,
+            principal_delta=principal_delta,
+            interest_delta=interest_delta,
+            current_ts=datetime.now(tz=timezone.utc),
+        )
+        ScheduledAccountChange.query.\
+            filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
+            filter(ScheduledAccountChange.change_id.in_([c.change_id for c in changes])).\
+            delete(synchronize_session=False)
 
 
 def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
