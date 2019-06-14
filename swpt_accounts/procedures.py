@@ -283,21 +283,16 @@ def process_scheduled_changes(debtor_id: int, creditor_id: int) -> None:
         all()
     if changes:
         account = _get_or_create_account((debtor_id, creditor_id), lock=True)
-        principal_delta = 0
-        interest_delta = 0
-        for change in changes:
-            principal_delta += change.principal_delta
-            interest_delta += change.interest_delta
         _apply_account_change(
             account=account,
-            principal_delta=principal_delta,
-            interest_delta=interest_delta,
+            principal_delta=sum(c.principal_delta for c in changes),
+            interest_delta=sum(c.interest_delta for c in changes),
             current_ts=datetime.now(tz=timezone.utc),
         )
         ScheduledChange.query.\
             filter(ScheduledChange.debtor_id == debtor_id).\
             filter(ScheduledChange.creditor_id == creditor_id).\
-            filter(ScheduledChange.change_id.in_([change.change_id for change in changes])).\
+            filter(ScheduledChange.change_id.in_(c.change_id for c in changes)).\
             delete(synchronize_session=False)
 
 
