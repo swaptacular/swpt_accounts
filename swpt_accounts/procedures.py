@@ -58,10 +58,17 @@ def prepare_transfer(coordinator_type: str,
             details=kw,
         ))
 
-    if sender_creditor_id == recipient_creditor_id:
+    if sender_creditor_id == ROOT_CREDITOR_ID:
         reject_transfer(
             error_code='ACC001',
-            message='Recipient and sender accounts are the same',
+            message="The sender account can not be the debtor's account.",
+        )
+        return
+
+    if sender_creditor_id == recipient_creditor_id:
+        reject_transfer(
+            error_code='ACC002',
+            message='Recipient and sender accounts are the same.',
         )
         return
 
@@ -69,16 +76,16 @@ def prepare_transfer(coordinator_type: str,
 
     if avl_balance < min_amount:
         reject_transfer(
-            error_code='ACC002',
-            message='Insufficient available balance',
+            error_code='ACC003',
+            message='The available balance is insufficient.',
             avl_balance=avl_balance,
         )
         return
 
     if not (recipient_creditor_id == ROOT_CREDITOR_ID or _get_account((debtor_id, recipient_creditor_id))):
         reject_transfer(
-            error_code='ACC003',
-            message='Recipient account does not exist',
+            error_code='ACC004',
+            message='The recipient account does not exist.',
         )
         return
 
@@ -88,16 +95,16 @@ def prepare_transfer(coordinator_type: str,
 
     if new_locked_amount > MAX_INT64:
         reject_transfer(
-            error_code='ACC004',
-            message='The locked amount becomes too big',
+            error_code='ACC005',
+            message='The locked amount is too big.',
             locked_amount=new_locked_amount,
         )
         return
 
     if sender_account.prepared_transfers_count >= MAX_PREPARED_TRANSFERS_COUNT:
         reject_transfer(
-            error_code='ACC005',
-            message='Too many prepared transfers',
+            error_code='ACC006',
+            message='There are too many prepared transfers.',
             prepared_transfers_count=sender_account.prepared_transfers_count,
         )
         return
@@ -208,7 +215,8 @@ def make_debtor_payment(
 
     # It could happen that the debtor must pay himself, for example,
     # when `capitalize_interest` is called for the debtor's
-    # account. In this case we will simply discard the interest.
+    # account. In this case we will simply discard the interest
+    # accumulated on the account.
     is_self_payment = creditor_id == ROOT_CREDITOR_ID
 
     if amount > 0:
