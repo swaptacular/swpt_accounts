@@ -171,11 +171,11 @@ def purge_deleted_account(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def process_scheduled_changes(
+def process_pending_changes(
         *,
         debtor_id: int,
         creditor_id: int) -> None:
 
-    """Apply all scheduled changes for the given account."""
+    """Apply all pending changes for the given account."""
 
-    procedures.process_scheduled_changes(debtor_id, creditor_id)
+    procedures.process_pending_changes(debtor_id, creditor_id)

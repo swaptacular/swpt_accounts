@@ -175,13 +175,13 @@ class PreparedTransfer(db.Model):
     )
 
 
-class ScheduledChange(db.Model):
+class PendingChange(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     change_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     principal_delta = db.Column(db.BigInteger, nullable=False)
     interest_delta = db.Column(db.BigInteger, nullable=False)
-    scheduled_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
 
 class PreparedTransferSignal(Signal):

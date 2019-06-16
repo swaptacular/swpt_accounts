@@ -5,7 +5,7 @@ from typing import TypeVar, List, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal, ScheduledChange, increment_seqnum, \
+    AccountChangeSignal, CommittedTransferSignal, PendingChange, increment_seqnum, \
     MIN_INT64, MAX_INT64
 
 T = TypeVar('T')
@@ -272,22 +272,22 @@ def purge_deleted_account(debtor_id: int, creditor_id: int, if_deleted_before: d
 
 
 @atomic
-def list_accounts_with_scheduled_changes() -> List[Tuple[int, int]]:
-    changes = db.session.query(ScheduledChange.debtor_id, ScheduledChange.creditor_id).\
-        order_by(ScheduledChange.debtor_id, ScheduledChange.creditor_id).\
+def get_accounts_with_pending_changes() -> List[Tuple[int, int]]:
+    changes = db.session.query(PendingChange.debtor_id, PendingChange.creditor_id).\
+        order_by(PendingChange.debtor_id, PendingChange.creditor_id).\
         all()
     return [t for t, _ in groupby(changes)]
 
 
 @atomic
-def process_scheduled_changes(debtor_id: int, creditor_id: int) -> None:
+def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
     changes = db.session.query(
-        ScheduledChange.change_id,
-        ScheduledChange.principal_delta,
-        ScheduledChange.interest_delta,
+        PendingChange.change_id,
+        PendingChange.principal_delta,
+        PendingChange.interest_delta,
     ).\
-        filter(ScheduledChange.debtor_id == debtor_id).\
-        filter(ScheduledChange.creditor_id == creditor_id).\
+        filter(PendingChange.debtor_id == debtor_id).\
+        filter(PendingChange.creditor_id == creditor_id).\
         with_for_update(skip_locked=True).\
         all()
     if changes:
@@ -298,10 +298,10 @@ def process_scheduled_changes(debtor_id: int, creditor_id: int) -> None:
             interest_delta=sum(c.interest_delta for c in changes),
             current_ts=datetime.now(tz=timezone.utc),
         )
-        ScheduledChange.query.\
-            filter(ScheduledChange.debtor_id == debtor_id).\
-            filter(ScheduledChange.creditor_id == creditor_id).\
-            filter(ScheduledChange.change_id.in_(c.change_id for c in changes)).\
+        PendingChange.query.\
+            filter(PendingChange.debtor_id == debtor_id).\
+            filter(PendingChange.creditor_id == creditor_id).\
+            filter(PendingChange.change_id.in_(c.change_id for c in changes)).\
             delete(synchronize_session=False)
 
 
@@ -434,7 +434,7 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
         interest_delta=0,
         current_ts=current_ts,
     )
-    _schedule_account_change(
+    _insert_pending_change(
         debtor_id=pt.debtor_id,
         creditor_id=pt.recipient_creditor_id,
         principal_delta=committed_amount,
@@ -473,13 +473,13 @@ def _force_transfer(coordinator_type: str,
             committed_amount=committed_amount,
             transfer_info=transfer_info,
         ))
-    _schedule_account_change(
+    _insert_pending_change(
         debtor_id=debtor_id,
         creditor_id=sender_creditor_id,
         principal_delta=-committed_amount,
         interest_delta=sender_interest_delta,
     )
-    _schedule_account_change(
+    _insert_pending_change(
         debtor_id=debtor_id,
         creditor_id=recipient_creditor_id,
         principal_delta=committed_amount,
@@ -487,9 +487,9 @@ def _force_transfer(coordinator_type: str,
     )
 
 
-def _schedule_account_change(debtor_id: int, creditor_id: int, principal_delta: int, interest_delta: int) -> None:
+def _insert_pending_change(debtor_id: int, creditor_id: int, principal_delta: int, interest_delta: int) -> None:
     if principal_delta != 0 or interest_delta != 0:
-        db.session.add(ScheduledChange(
+        db.session.add(PendingChange(
             debtor_id=debtor_id,
             creditor_id=creditor_id,
             principal_delta=principal_delta,
