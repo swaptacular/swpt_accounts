@@ -25,28 +25,38 @@ def account():
 
 
 def test_get_or_create_account(db_session):
-    a = account()
+    a = p.get_or_create_account(D_ID, C_ID)
     assert isinstance(a, Account)
     assert a.status == 0
     assert a.principal == 0
     assert a.interest == 0.0
     assert a.interest_rate == 0.0
+    acs = AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
+    assert acs.last_outgoing_transfer_date is None
+    assert acs.status == a.status
+    assert acs.principal == a.principal
+    assert acs.interest == a.interest
+    assert acs.interest_rate == a.interest_rate
 
 
 def test_set_interest_rate(db_session, current_ts):
-    account()
-
     # The account does not exist.
-    p.set_interest_rate(-1234, 1234, 7.0, 666, current_ts)
-    assert not Account.query.filter_by(debtor_id=-1234, creditor_id=1234).one_or_none()
+    p.set_interest_rate(D_ID, C_ID, 7.0, 665, current_ts)
+    assert p.get_account(D_ID, C_ID) is None
+    assert len(AccountChangeSignal.query.all()) == 0
 
     # The account does exist.
+    p.get_or_create_account(D_ID, C_ID)
     p.set_interest_rate(D_ID, C_ID, 7.0, 666, current_ts)
-    assert account().interest_rate == 7.0
+    a = p.get_account(D_ID, C_ID)
+    assert a.interest_rate == 7.0
+    assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    assert len(AccountChangeSignal.query.all()) == 2
 
     # Older event
     p.set_interest_rate(D_ID, C_ID, 8.0, 665, current_ts)
-    assert account().interest_rate == 7.0
+    assert p.get_account(D_ID, C_ID).interest_rate == 7.0
+    assert len(AccountChangeSignal.query.all()) == 2
 
 
 AMOUNT = 50000
@@ -62,7 +72,7 @@ def amount(request):
 
 
 def test_make_debtor_payment(db_session, amount):
-    account()
+    p.get_or_create_account(D_ID, C_ID)
     p.make_debtor_payment('test', D_ID, C_ID, amount)
     cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
     assert cts.coordinator_type == 'test'
@@ -79,7 +89,7 @@ def test_make_debtor_payment(db_session, amount):
 
 
 def test_make_debtor_interest_payment(db_session, amount):
-    account()
+    p.get_or_create_account(D_ID, C_ID)
     p.make_debtor_payment('interest', D_ID, C_ID, amount)
     root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
@@ -90,7 +100,7 @@ def test_make_debtor_interest_payment(db_session, amount):
 
 
 def test_process_pending_changes(db_session):
-    account()
+    p.get_or_create_account(D_ID, C_ID)
     p.make_debtor_payment('test', D_ID, C_ID, 10000)
     assert len(p.get_accounts_with_pending_changes()) == 2
     p.process_pending_changes(D_ID, C_ID)
@@ -106,8 +116,8 @@ def test_process_pending_changes(db_session):
         principal=-10000,
     ).one_or_none()
     assert len(p.get_accounts_with_pending_changes()) == 0
-    assert account().principal == 10000
-    assert p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID).principal == -10000
+    assert p.get_account(D_ID, C_ID).principal == 10000
+    assert p.get_account(D_ID, p.ROOT_CREDITOR_ID).principal == -10000
 
 
 def test_positive_overflow(db_session):
