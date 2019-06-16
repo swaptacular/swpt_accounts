@@ -112,7 +112,7 @@ def myaccount(request, amount):
     return account()
 
 
-def test_calc_account_current_balance(db_session, myaccount, current_ts):
+def test_capitalize_interest(db_session, myaccount, current_ts):
     amt = myaccount.principal
     calc_cb = db.atomic(p._calc_account_current_balance)
     assert calc_cb(myaccount, current_ts) == amt
@@ -123,6 +123,9 @@ def test_calc_account_current_balance(db_session, myaccount, current_ts):
         assert 1.09 * amt < new_amt < 1.11 * amt
     else:
         assert new_amt == amt
+    p.capitalize_interest(D_ID, C_ID, 0, current_ts + timedelta(days=365))
+    p.process_pending_changes(D_ID, C_ID)
+    assert abs(account().principal - new_amt) <= p.TINY_POSITIVE_AMOUNT
 
 
 def test_prepare_transfer(db_session, myaccount):
