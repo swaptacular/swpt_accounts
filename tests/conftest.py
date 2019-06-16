@@ -39,6 +39,7 @@ def db_session(app):
 
     """
 
+    db.signalbus.autoflush = False
     engines_by_table = db.get_binds()
     connections_by_engine = {engine: engine.connect() for engine in set(engines_by_table.values())}
     transactions = [connection.begin() for connection in connections_by_engine.values()]
