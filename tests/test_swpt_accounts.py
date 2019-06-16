@@ -4,7 +4,7 @@ from swpt_accounts.extensions import db
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT64, Account, PendingChange, RejectedTransferSignal, \
-    PreparedTransfer, PreparedTransferSignal, AccountChangeSignal
+    PreparedTransfer, PreparedTransferSignal, AccountChangeSignal, CommittedTransferSignal
 
 
 def test_version(db_session):
@@ -64,6 +64,12 @@ def amount(request):
 def test_make_debtor_payment(db_session, amount):
     account()
     p.make_debtor_payment('test', D_ID, C_ID, amount)
+    cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
+    assert cts.coordinator_type == 'test'
+    assert cts.sender_creditor_id == p.ROOT_CREDITOR_ID if amount > 0 else C_ID
+    assert cts.recipient_creditor_id == C_ID if amount > 0 else p.ROOT_CREDITOR_ID
+    assert cts.committed_amount == abs(amount)
+    assert cts.committed_transfer_id is None
     root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
     assert root_change.interest_delta == 0
