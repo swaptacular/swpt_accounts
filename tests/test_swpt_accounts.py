@@ -3,7 +3,8 @@ from datetime import datetime, timezone, timedelta
 from swpt_accounts.extensions import db
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
-from swpt_accounts.models import Account, PendingChange
+from swpt_accounts.models import MAX_INT64, Account, PendingChange, RejectedTransferSignal, \
+    PreparedTransfer, PreparedTransferSignal
 
 
 def test_version(db_session):
@@ -83,17 +84,96 @@ def test_process_pending_changes(db_session):
     assert p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID).principal == -10000
 
 
-@pytest.fixture(scope='function')
-def myaccount(request):
+def test_positive_overflow(db_session):
     account()
-    p.make_debtor_payment('test', D_ID, C_ID, 10000)
+    p.make_debtor_payment('test', D_ID, C_ID, MAX_INT64)
+    p.process_pending_changes(D_ID, C_ID)
+    assert not account().status & Account.STATUS_OVERFLOWN_FLAG
+    p.make_debtor_payment('test', D_ID, C_ID, 1)
+    p.process_pending_changes(D_ID, C_ID)
+    assert account().status & Account.STATUS_OVERFLOWN_FLAG
+
+
+def test_negative_overflow(db_session):
+    account()
+    p.make_debtor_payment('test', D_ID, C_ID, -MAX_INT64)
+    p.process_pending_changes(D_ID, C_ID)
+    assert not account().status & Account.STATUS_OVERFLOWN_FLAG
+    p.make_debtor_payment('test', D_ID, C_ID, -2)
+    p.process_pending_changes(D_ID, C_ID)
+    assert account().status & Account.STATUS_OVERFLOWN_FLAG
+
+
+@pytest.fixture(scope='function')
+def myaccount(request, amount):
+    account()
+    p.make_debtor_payment('test', D_ID, C_ID, amount)
     p.process_pending_changes(D_ID, C_ID)
     return account()
 
 
 def test_calc_account_current_balance(db_session, myaccount, current_ts):
+    amt = myaccount.principal
     calc_cb = db.atomic(p._calc_account_current_balance)
-    assert calc_cb(myaccount, current_ts) == 10000
-    assert calc_cb(myaccount, current_ts + timedelta(days=50000)) == 10000
+    assert calc_cb(myaccount, current_ts) == amt
+    assert calc_cb(myaccount, current_ts + timedelta(days=50000)) == amt
     p.set_interest_rate(D_ID, C_ID, 10.0, 666, current_ts)
-    assert 10950 < calc_cb(account(), current_ts + timedelta(days=365)) < 11050
+    new_amt = calc_cb(account(), current_ts + timedelta(days=365))
+    if amt > 0:
+        assert 1.09 * amt < new_amt < 1.11 * amt
+    else:
+        assert new_amt == amt
+
+
+def test_prepare_transfer(db_session, myaccount):
+    assert account().locked_amount == 0
+    assert account().prepared_transfers_count == 0
+    p.get_or_create_account(D_ID, 1234)
+    amt = myaccount.principal
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        recipient_creditor_id=1234,
+        ignore_interest=False,
+    )
+    if amt > 0:
+        assert account().locked_amount > 0
+        assert account().prepared_transfers_count == 1
+        pts = PreparedTransferSignal.query.one_or_none()
+        assert pts
+        assert pts.debtor_id == D_ID
+        assert pts.coordinator_type == 'test'
+        assert pts.coordinator_id == 1
+        assert pts.coordinator_request_id == 2
+        assert pts.sender_creditor_id == C_ID
+        assert pts.recipient_creditor_id == 1234
+        assert 1 <= pts.amount <= 200
+        assert pts.sender_locked_amount == pts.amount
+        pt = PreparedTransfer.query.filter_by(
+            debtor_id=D_ID,
+            sender_creditor_id=C_ID,
+            transfer_id=pts.transfer_id,
+        ).one_or_none()
+        assert pt
+        assert pt.coordinator_type == 'test'
+        assert pt.recipient_creditor_id == 1234
+        assert pt.amount == pts.amount
+        assert pt.sender_locked_amount == pts.amount
+
+        # Discard the transfer.
+        p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, 0)
+        assert not PreparedTransfer.query.one_or_none()
+        assert account().locked_amount == 0
+        assert account().prepared_transfers_count == 0
+    else:
+        rts = RejectedTransferSignal.query.one_or_none()
+        assert rts
+        assert rts.debtor_id == D_ID
+        assert rts.coordinator_type == 'test'
+        assert rts.coordinator_id == 1
+        assert rts.coordinator_request_id == 2
