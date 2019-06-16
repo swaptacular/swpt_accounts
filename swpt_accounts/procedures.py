@@ -27,6 +27,13 @@ ROOT_CREDITOR_ID = MIN_INT64
 
 
 @atomic
+def get_account(debtor_id: int, creditor_id: int) -> Optional[Account]:
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    return _get_account((debtor_id, creditor_id))
+
+
+@atomic
 def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -256,9 +263,10 @@ def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
             and 0 <= _calc_account_current_balance(account, current_ts) <= TINY_POSITIVE_AMOUNT):
         if account.principal != 0:
             capitalize_interest(debtor_id, creditor_id, 0, current_ts)
+            process_pending_changes(debtor_id, creditor_id)
         if account.principal == 0:
             account.interest = 0.0
-            account.status = account.status | Account.STATUS_DELETED_FLAG
+            account.status |= Account.STATUS_DELETED_FLAG
             _insert_account_change_signal(account, current_ts)
 
 

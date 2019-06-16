@@ -17,7 +17,7 @@ def current_ts():
 
 
 D_ID = -1
-C_ID = -1
+C_ID = 1
 
 
 def account():
@@ -27,6 +27,7 @@ def account():
 def test_get_or_create_account(db_session):
     a = account()
     assert isinstance(a, Account)
+    assert a.status == 0
     assert a.principal == 0
     assert a.interest == 0.0
     assert a.interest_rate == 0.0
@@ -63,12 +64,10 @@ def amount(request):
 def test_make_debtor_payment(db_session, amount):
     account()
     p.make_debtor_payment('test', D_ID, C_ID, amount)
-    root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one_or_none()
-    assert root_change
+    root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
     assert root_change.interest_delta == 0
-    change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one_or_none()
-    assert change
+    change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert change.principal_delta == amount
     assert change.interest_delta == 0
 
@@ -76,12 +75,10 @@ def test_make_debtor_payment(db_session, amount):
 def test_make_debtor_interest_payment(db_session, amount):
     account()
     p.make_debtor_payment('interest', D_ID, C_ID, amount)
-    root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one_or_none()
-    assert root_change
+    root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
     assert root_change.interest_delta == 0
-    change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one_or_none()
-    assert change
+    change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert change.principal_delta == amount
     assert change.interest_delta == -amount
 
@@ -151,6 +148,46 @@ def test_capitalize_interest(db_session, myaccount, current_ts):
     assert abs(account().principal - new_amt) <= p.TINY_POSITIVE_AMOUNT
 
 
+def test_capitalize_interest_tiny_amount(db_session, current_ts):
+    account()
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 1})
+    db.session.flush()
+    p.capitalize_interest(D_ID, C_ID, 0, current_ts)
+    p.process_pending_changes(D_ID, C_ID)
+    a = account()
+    assert a.principal == 0
+    assert a.interest == 1.0
+
+
+def test_delete_account(db_session, current_ts):
+    assert p.get_account(D_ID, C_ID) is None
+    account()
+    assert p.get_account(D_ID, C_ID)
+    p.delete_account_if_zeroed(D_ID, C_ID)
+    assert p.get_account(D_ID, C_ID) is None
+    assert AccountChangeSignal.query.filter_by(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        status=Account.STATUS_DELETED_FLAG,
+    ).one_or_none()
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    assert q.one().status & Account.STATUS_DELETED_FLAG
+    p.purge_deleted_account(D_ID, C_ID, current_ts - timedelta(days=1000))
+    assert q.one().status & Account.STATUS_DELETED_FLAG
+    p.purge_deleted_account(D_ID, C_ID, current_ts + timedelta(days=1000))
+    assert not q.one_or_none()
+
+
+def test_resurect_deleted_account(db_session, current_ts):
+    account()
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.interest_rate: 10.0})
+    p.delete_account_if_zeroed(D_ID, C_ID)
+    account()
+    assert p.get_account(D_ID, C_ID).interest_rate == 0.0
+
+
 def test_prepare_transfer(db_session, myaccount):
     assert account().locked_amount == 0
     assert account().prepared_transfers_count == 0
@@ -170,8 +207,7 @@ def test_prepare_transfer(db_session, myaccount):
     if amt > 0:
         assert account().locked_amount > 0
         assert account().prepared_transfers_count == 1
-        pts = PreparedTransferSignal.query.one_or_none()
-        assert pts
+        pts = PreparedTransferSignal.query.one()
         assert pts.debtor_id == D_ID
         assert pts.coordinator_type == 'test'
         assert pts.coordinator_id == 1
@@ -184,8 +220,7 @@ def test_prepare_transfer(db_session, myaccount):
             debtor_id=D_ID,
             sender_creditor_id=C_ID,
             transfer_id=pts.transfer_id,
-        ).one_or_none()
-        assert pt
+        ).one()
         assert pt.coordinator_type == 'test'
         assert pt.recipient_creditor_id == 1234
         assert pt.amount == pts.amount
@@ -197,8 +232,7 @@ def test_prepare_transfer(db_session, myaccount):
         assert account().locked_amount == 0
         assert account().prepared_transfers_count == 0
     else:
-        rts = RejectedTransferSignal.query.one_or_none()
-        assert rts
+        rts = RejectedTransferSignal.query.one()
         assert rts.debtor_id == D_ID
         assert rts.coordinator_type == 'test'
         assert rts.coordinator_id == 1
