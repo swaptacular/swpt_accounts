@@ -154,6 +154,17 @@ def test_capitalize_interest(db_session, myaccount, current_ts):
     assert abs(account().principal - new_amt) <= p.TINY_POSITIVE_AMOUNT
 
 
+def test_discard_interest_on_self(db_session, current_ts):
+    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
+    q.update({Account.interest: 100.0, Account.principal: 50})
+    p.capitalize_interest(D_ID, p.ROOT_CREDITOR_ID, 0, current_ts)
+    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
+    a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
+    assert a.principal == 50
+    assert a.interest == 0.0
+
+
 def test_delete_account(db_session, current_ts):
     assert p.get_account(D_ID, C_ID) is None
     account()
