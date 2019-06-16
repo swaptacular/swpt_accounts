@@ -148,16 +148,23 @@ def test_capitalize_interest(db_session, myaccount, current_ts):
     assert abs(account().principal - new_amt) <= p.TINY_POSITIVE_AMOUNT
 
 
-def test_capitalize_interest_tiny_amount(db_session, current_ts):
+def test_delete_account_negative_balance(db_session):
+    account()
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: -1})
+    p.delete_account_if_zeroed(D_ID, C_ID)
+    assert p.get_account(D_ID, C_ID)
+
+
+def test_delete_account_tiny_positive_balance(db_session, current_ts):
+    assert p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID).principal == 0
     account()
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 1})
-    db.session.flush()
-    p.capitalize_interest(D_ID, C_ID, 0, current_ts)
-    p.process_pending_changes(D_ID, C_ID)
-    a = account()
-    assert a.principal == 0
-    assert a.interest == 1.0
+    p.delete_account_if_zeroed(D_ID, C_ID)
+    assert p.get_account(D_ID, C_ID) is None
+    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
+    assert p.get_account(D_ID, p.ROOT_CREDITOR_ID).principal == 1
 
 
 def test_delete_account(db_session, current_ts):
