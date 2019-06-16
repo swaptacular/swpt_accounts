@@ -59,6 +59,15 @@ def test_set_interest_rate(db_session, current_ts):
     assert len(AccountChangeSignal.query.all()) == 2
 
 
+def test_set_interest_rate_on_self(db_session, current_ts):
+    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
+    p.set_interest_rate(D_ID, p.ROOT_CREDITOR_ID, 7.0, 666, current_ts)
+    a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
+    assert a.interest_rate == 0.0
+    assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    assert len(AccountChangeSignal.query.all()) == 2
+
+
 AMOUNT = 50000
 
 
