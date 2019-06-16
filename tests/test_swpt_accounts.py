@@ -101,6 +101,7 @@ def test_make_debtor_interest_payment(db_session, amount):
 
 def test_process_pending_changes(db_session):
     p.get_or_create_account(D_ID, C_ID)
+    assert len(p.get_accounts_with_pending_changes()) == 0
     p.make_debtor_payment('test', D_ID, C_ID, 10000)
     assert len(p.get_accounts_with_pending_changes()) == 2
     p.process_pending_changes(D_ID, C_ID)
@@ -121,33 +122,38 @@ def test_process_pending_changes(db_session):
 
 
 def test_positive_overflow(db_session):
-    account()
+    p.get_or_create_account(D_ID, C_ID)
+
     p.make_debtor_payment('test', D_ID, C_ID, MAX_INT64)
     p.process_pending_changes(D_ID, C_ID)
-    assert not account().status & Account.STATUS_OVERFLOWN_FLAG
+    assert not p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
+
     p.make_debtor_payment('test', D_ID, C_ID, 1)
     p.process_pending_changes(D_ID, C_ID)
-    assert account().status & Account.STATUS_OVERFLOWN_FLAG
+    assert p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
 
 
 def test_negative_overflow(db_session):
-    account()
+    p.get_or_create_account(D_ID, C_ID)
+
     p.make_debtor_payment('test', D_ID, C_ID, -MAX_INT64)
     p.process_pending_changes(D_ID, C_ID)
-    assert not account().status & Account.STATUS_OVERFLOWN_FLAG
+    assert not p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
+
     p.make_debtor_payment('test', D_ID, C_ID, -2)
     p.process_pending_changes(D_ID, C_ID)
-    assert account().status & Account.STATUS_OVERFLOWN_FLAG
+    assert p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
 
 
 @pytest.fixture(scope='function')
 def myaccount(request, amount):
-    account()
+    p.get_or_create_account(D_ID, C_ID)
     p.make_debtor_payment('test', D_ID, C_ID, amount)
     p.process_pending_changes(D_ID, C_ID)
-    return account()
+    return p.get_account(D_ID, C_ID)
 
 
+# TODO
 def test_capitalize_interest(db_session, myaccount, current_ts):
     amt = myaccount.principal
     calc_cb = db.atomic(p._calc_account_current_balance)
