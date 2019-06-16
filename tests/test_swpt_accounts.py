@@ -73,6 +73,19 @@ def test_make_debtor_payment(db_session, amount):
     assert change.interest_delta == 0
 
 
+def test_make_debtor_interest_payment(db_session, amount):
+    account()
+    p.make_debtor_payment('interest', D_ID, C_ID, amount)
+    root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one_or_none()
+    assert root_change
+    assert root_change.principal_delta == -amount
+    assert root_change.interest_delta == 0
+    change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one_or_none()
+    assert change
+    assert change.principal_delta == amount
+    assert change.interest_delta == -amount
+
+
 def test_process_pending_changes(db_session):
     account()
     p.make_debtor_payment('test', D_ID, C_ID, 10000)
