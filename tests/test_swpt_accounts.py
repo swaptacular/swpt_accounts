@@ -4,7 +4,7 @@ from swpt_accounts.extensions import db
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT64, Account, PendingChange, RejectedTransferSignal, \
-    PreparedTransfer, PreparedTransferSignal
+    PreparedTransfer, PreparedTransferSignal, AccountChangeSignal
 
 
 def test_version(db_session):
@@ -92,6 +92,16 @@ def test_process_pending_changes(db_session):
     assert len(p.get_accounts_with_pending_changes()) == 2
     p.process_pending_changes(D_ID, C_ID)
     p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
+    assert AccountChangeSignal.query.filter_by(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        principal=10000,
+    ).one_or_none()
+    assert AccountChangeSignal.query.filter_by(
+        debtor_id=D_ID,
+        creditor_id=p.ROOT_CREDITOR_ID,
+        principal=-10000,
+    ).one_or_none()
     assert len(p.get_accounts_with_pending_changes()) == 0
     assert account().principal == 10000
     assert p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID).principal == -10000
