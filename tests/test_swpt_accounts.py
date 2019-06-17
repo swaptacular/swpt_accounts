@@ -293,7 +293,7 @@ def test_resurect_deleted_account(db_session, current_ts):
     assert p.get_or_create_account(D_ID, C_ID).interest_rate == 0.0
 
 
-def test_prepare_transfer_fail(db_session):
+def test_prepare_transfer_insufficient_funds(db_session):
     assert 1234 != D_ID
     p.get_or_create_account(D_ID, 1234)
     p.get_or_create_account(D_ID, C_ID)
@@ -323,6 +323,29 @@ def test_prepare_transfer_fail(db_session):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
+
+
+def test_prepare_transfer_account_does_not_exist(db_session):
+    p.get_or_create_account(D_ID, C_ID)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 100})
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        recipient_creditor_id=1234,
+        ignore_interest=False,
+    )
+    rts = RejectedTransferSignal.query.one()
+    assert rts.debtor_id == D_ID
+    assert rts.coordinator_type == 'test'
+    assert rts.coordinator_id == 1
+    assert rts.coordinator_request_id == 2
+    assert rts.details['error_code'] == 'ACC004'
 
 
 def test_prepare_transfer_success(db_session):
