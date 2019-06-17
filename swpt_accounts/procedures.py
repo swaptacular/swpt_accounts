@@ -41,7 +41,7 @@ def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
 
 
 @atomic
-def get_avl_balance(debtor_id: int, creditor_id: int, ignore_interest: bool) -> int:
+def get_available_balance(debtor_id: int, creditor_id: int, ignore_interest: bool) -> int:
     avl_balance, _ = _calc_account_avl_balance((debtor_id, creditor_id), ignore_interest)
     return avl_balance
 
@@ -72,14 +72,14 @@ def prepare_transfer(coordinator_type: str,
             details=kw,
         ))
 
-    if sender_creditor_id == ROOT_CREDITOR_ID:
+    if sender_creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
         reject_transfer(
             error_code='ACC001',
             message="The sender account can not be the debtor's account.",
         )
         return
 
-    if sender_creditor_id == recipient_creditor_id:
+    if sender_creditor_id == recipient_creditor_id:  # pragma: no cover
         reject_transfer(
             error_code='ACC002',
             message='Recipient and sender accounts are the same.',
@@ -107,7 +107,7 @@ def prepare_transfer(coordinator_type: str,
     amount = min(avl_balance, max_amount)
     new_locked_amount = sender_account.locked_amount + amount
 
-    if new_locked_amount > MAX_INT64:
+    if new_locked_amount > MAX_INT64:  # pragma: no cover
         reject_transfer(
             error_code='ACC005',
             message='The locked amount is too big.',
@@ -115,7 +115,7 @@ def prepare_transfer(coordinator_type: str,
         )
         return
 
-    if sender_account.prepared_transfers_count >= MAX_PREPARED_TRANSFERS_COUNT:
+    if sender_account.prepared_transfers_count >= MAX_PREPARED_TRANSFERS_COUNT:  # pragma: no cover
         reject_transfer(
             error_code='ACC006',
             message='There are too many prepared transfers.',
@@ -207,9 +207,9 @@ def capitalize_interest(debtor_id: int,
             amount = -account.principal
 
         # Make sure `amount` and `-amount` are within INT64 limits.
-        if amount > MAX_INT64:
+        if amount > MAX_INT64:  # pragma: no cover
             amount = MAX_INT64
-        if amount < -MAX_INT64:
+        if amount < -MAX_INT64:  # pragma: no cover
             amount = -MAX_INT64
 
         if abs(amount) >= positive_threshold:
@@ -437,7 +437,7 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
 
 def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, transfer_info: dict) -> None:
     assert committed_amount > 0
-    if committed_amount > pt.amount:
+    if committed_amount > pt.amount:  # pragma: no cover
         committed_amount = pt.amount
     current_ts = datetime.now(tz=timezone.utc)
     sender_account = pt.sender_account
