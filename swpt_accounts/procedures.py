@@ -41,6 +41,12 @@ def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
 
 
 @atomic
+def get_avl_balance(debtor_id: int, creditor_id: int, ignore_interest: bool) -> int:
+    avl_balance, _ = _calc_account_avl_balance((debtor_id, creditor_id), ignore_interest)
+    return avl_balance
+
+
+@atomic
 def prepare_transfer(coordinator_type: str,
                      coordinator_id: int,
                      coordinator_request_id: int,

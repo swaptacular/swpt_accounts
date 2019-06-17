@@ -20,10 +20,6 @@ D_ID = -1
 C_ID = 1
 
 
-def account():
-    return p.get_or_create_account(D_ID, C_ID)
-
-
 def test_get_or_create_account(db_session):
     a = p.get_or_create_account(D_ID, C_ID)
     assert isinstance(a, Account)
@@ -159,29 +155,86 @@ def test_negative_overflow(db_session):
     assert p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
 
 
-@pytest.fixture(scope='function')
-def myaccount(request, amount):
+def test_get_avl_balance(db_session, current_ts):
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=True) == 0
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=False) == 0
     p.get_or_create_account(D_ID, C_ID)
-    p.make_debtor_payment('test', D_ID, C_ID, amount)
-    p.process_pending_changes(D_ID, C_ID)
-    return p.get_account(D_ID, C_ID)
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=True) == 0
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=False) == 0
+    q.update({
+        Account.interest: 100.0,
+        Account.principal: 5000,
+    })
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=True) == 5000
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=False) == 5100
+    q.update({
+        Account.locked_amount: 1000,
+    })
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=True) == 4000
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=False) == 4100
+    q.update({
+        Account.interest_rate: 10.00,
+        Account.last_change_ts: current_ts - timedelta(days=365),
+        Account.last_change_seqnum: 666,
+    })
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=True) == 4000
+    assert 4608 <= p.get_avl_balance(D_ID, C_ID, ignore_interest=False) <= 4610
+    q.update({
+        Account.interest_rate: -10.00,
+        Account.last_change_ts: current_ts - timedelta(days=365),
+        Account.last_change_seqnum: 666,
+    })
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=True) == 4000
+    assert 3590 <= p.get_avl_balance(D_ID, C_ID, ignore_interest=False) <= 3592
+    q.update({
+        Account.interest: -5100.0,
+    })
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=True) == 4000
+    assert p.get_avl_balance(D_ID, C_ID, ignore_interest=False) == -1100
 
 
-# TODO
-def test_capitalize_interest(db_session, myaccount, current_ts):
-    amt = myaccount.principal
-    calc_cb = db.atomic(p._calc_account_current_balance)
-    assert calc_cb(myaccount, current_ts) == amt
-    assert calc_cb(myaccount, current_ts + timedelta(days=50000)) == amt
-    p.set_interest_rate(D_ID, C_ID, 10.0, 666, current_ts)
-    new_amt = calc_cb(account(), current_ts + timedelta(days=365))
-    if amt > 0:
-        assert 1.09 * amt < new_amt < 1.11 * amt
-    else:
-        assert new_amt == amt
-    p.capitalize_interest(D_ID, C_ID, 0, current_ts + timedelta(days=365))
+def test_capitalize_positive_interest(db_session, current_ts):
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+
+    p.get_or_create_account(D_ID, C_ID)
+    q.update({
+        Account.interest: 100.0,
+        Account.principal: 5000,
+        Account.interest_rate: 10.00,
+        Account.last_change_ts: current_ts - timedelta(days=365),
+        Account.last_change_seqnum: 666,
+    })
+    p.capitalize_interest(D_ID, C_ID, 10000000)
     p.process_pending_changes(D_ID, C_ID)
-    assert abs(account().principal - new_amt) <= p.TINY_POSITIVE_AMOUNT
+    assert p.get_account(D_ID, C_ID).interest == 100.0
+    p.capitalize_interest(D_ID, C_ID, 0)
+    p.process_pending_changes(D_ID, C_ID)
+    a = p.get_account(D_ID, C_ID)
+    assert abs(a.interest) <= p.TINY_POSITIVE_AMOUNT
+    assert 5608 <= a.principal <= 5612
+
+
+def test_capitalize_negative_interest(db_session, current_ts):
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+
+    p.get_or_create_account(D_ID, C_ID)
+    q.update({
+        Account.interest: -100.0,
+        Account.principal: 5000,
+        Account.interest_rate: -10.00,
+        Account.last_change_ts: current_ts - timedelta(days=365),
+        Account.last_change_seqnum: 666,
+    })
+    p.capitalize_interest(D_ID, C_ID, 10000000)
+    p.process_pending_changes(D_ID, C_ID)
+    assert p.get_account(D_ID, C_ID).interest == -100.0
+    p.capitalize_interest(D_ID, C_ID, 0)
+    p.process_pending_changes(D_ID, C_ID)
+    a = p.get_account(D_ID, C_ID)
+    assert abs(a.interest) <= p.TINY_POSITIVE_AMOUNT
+    assert 4408 <= a.principal <= 4412
 
 
 def test_discard_interest_on_self(db_session, current_ts):
