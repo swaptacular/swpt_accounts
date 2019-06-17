@@ -241,8 +241,10 @@ def test_resurect_deleted_account(db_session, current_ts):
 
 
 def test_prepare_transfer_fail(db_session):
+    assert 1234 != D_ID
+    p.get_or_create_account(D_ID, 1234)
     p.get_or_create_account(D_ID, C_ID)
-    assert len(AccountChangeSignal.query.all()) == 1
+    assert len(AccountChangeSignal.query.all()) == 2
     p.prepare_transfer(
         coordinator_type='test',
         coordinator_id=1,
@@ -254,9 +256,15 @@ def test_prepare_transfer_fail(db_session):
         recipient_creditor_id=1234,
         ignore_interest=False,
     )
-    assert len(AccountChangeSignal.query.all()) == 1
+    a = p.get_account(D_ID, C_ID)
+    assert a.locked_amount == 0
+    assert a.prepared_transfers_count == 0
+    p.process_pending_changes(D_ID, 1234)
+    p.process_pending_changes(D_ID, C_ID)
+    assert len(AccountChangeSignal.query.all()) == 2
     assert len(PreparedTransfer.query.all()) == 0
     assert len(PreparedTransferSignal.query.all()) == 0
+    assert len(CommittedTransferSignal.query.all()) == 0
     rts = RejectedTransferSignal.query.one()
     assert rts.debtor_id == D_ID
     assert rts.coordinator_type == 'test'
@@ -283,8 +291,10 @@ def test_prepare_transfer_success(db_session):
         ignore_interest=False,
     )
     a = p.get_account(D_ID, C_ID)
-    assert a.locked_amount > 0
+    assert a.locked_amount == 100
     assert a.prepared_transfers_count == 1
+    p.process_pending_changes(D_ID, 1234)
+    p.process_pending_changes(D_ID, C_ID)
     assert len(AccountChangeSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
     pts = PreparedTransferSignal.query.one()
@@ -305,9 +315,55 @@ def test_prepare_transfer_success(db_session):
 
     # Discard the transfer.
     p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, 0)
-    assert not PreparedTransfer.query.one_or_none()
+    p.process_pending_changes(D_ID, 1234)
+    p.process_pending_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a.locked_amount == 0
     assert a.prepared_transfers_count == 0
+    assert a.principal == 100
+    assert a.interest == 0.0
+    assert not PreparedTransfer.query.one_or_none()
     assert len(AccountChangeSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
+    assert len(CommittedTransferSignal.query.all()) == 0
+
+
+def test_commit_prepared_transfer(db_session):
+    p.get_or_create_account(D_ID, 1234)
+    p.get_or_create_account(D_ID, C_ID)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 100})
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        recipient_creditor_id=1234,
+        ignore_interest=False,
+    )
+    pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
+    p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, 40)
+    p.process_pending_changes(D_ID, 1234)
+    p.process_pending_changes(D_ID, C_ID)
+    a1 = p.get_account(D_ID, 1234)
+    assert a1.locked_amount == 0
+    assert a1.prepared_transfers_count == 0
+    assert a1.principal == 40
+    assert a1.interest == 0.0
+    a2 = p.get_account(D_ID, C_ID)
+    assert a2.locked_amount == 0
+    assert a2.prepared_transfers_count == 0
+    assert a2.principal == 60
+    assert a2.interest == 0.0
+    assert not PreparedTransfer.query.one_or_none()
+    assert len(AccountChangeSignal.query.all()) == 4
+    assert len(RejectedTransferSignal.query.all()) == 0
+    cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
+    assert cts.coordinator_type == 'test'
+    assert cts.sender_creditor_id == C_ID
+    assert cts.recipient_creditor_id == 1234
+    assert cts.committed_amount == 40
+    assert cts.committed_transfer_id == pt.transfer_id
