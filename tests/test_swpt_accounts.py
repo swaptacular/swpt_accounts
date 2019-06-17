@@ -192,15 +192,15 @@ def test_discard_interest_on_self(db_session, current_ts):
 
 def test_delete_account(db_session, current_ts):
     assert p.get_account(D_ID, C_ID) is None
-    account()
+    p.get_or_create_account(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID)
     p.delete_account_if_zeroed(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID) is None
-    assert AccountChangeSignal.query.filter_by(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        status=Account.STATUS_DELETED_FLAG,
-    ).one_or_none()
+    assert AccountChangeSignal.query.\
+        filter(AccountChangeSignal.debtor_id == D_ID).\
+        filter(AccountChangeSignal.creditor_id == C_ID).\
+        filter(AccountChangeSignal.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
+        one_or_none()
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     assert q.one().status & Account.STATUS_DELETED_FLAG
     p.purge_deleted_account(D_ID, C_ID, current_ts - timedelta(days=1000))
@@ -210,7 +210,7 @@ def test_delete_account(db_session, current_ts):
 
 
 def test_delete_account_negative_balance(db_session):
-    account()
+    p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: -1})
     p.delete_account_if_zeroed(D_ID, C_ID)
@@ -218,8 +218,7 @@ def test_delete_account_negative_balance(db_session):
 
 
 def test_delete_account_tiny_positive_balance(db_session, current_ts):
-    assert p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID).principal == 0
-    account()
+    p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 1})
     p.delete_account_if_zeroed(D_ID, C_ID)
@@ -229,12 +228,11 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
 
 
 def test_resurect_deleted_account(db_session, current_ts):
-    account()
+    p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
     p.delete_account_if_zeroed(D_ID, C_ID)
-    account()
-    assert p.get_account(D_ID, C_ID).interest_rate == 0.0
+    assert p.get_or_create_account(D_ID, C_ID).interest_rate == 0.0
 
 
 def test_prepare_transfer(db_session, myaccount):
