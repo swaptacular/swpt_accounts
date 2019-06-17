@@ -1,6 +1,5 @@
 import pytest
 from datetime import datetime, timezone, timedelta
-from swpt_accounts.extensions import db
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT64, Account, PendingChange, RejectedTransferSignal, \

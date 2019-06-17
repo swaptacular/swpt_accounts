@@ -10,7 +10,7 @@ from flask_env import MetaFlaskEnv
 # a relative path, the directory of this (__init__.py) file will be
 # used as a current directory.
 config_filename = os.environ.get('APP_LOGGING_CONFIG_FILE')
-if config_filename:
+if config_filename:  # pragma: no cover
     if not os.path.isabs(config_filename):
         current_dir = os.path.dirname(__file__)
         config_filename = os.path.join(current_dir, config_filename)
