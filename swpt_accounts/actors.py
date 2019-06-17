@@ -171,11 +171,23 @@ def purge_deleted_account(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def process_pending_changes(
+def make_debtor_payment(
         *,
+        coordinator_type: str,
         debtor_id: int,
-        creditor_id: int) -> None:
+        creditor_id: int,
+        amount: int,
+        transfer_info: dict = {}) -> None:
 
-    """Apply all pending changes for the given account."""
+    """Make a payment from the debtor's account to the given `(debtor_id,
+    creditor_id)` account.
 
-    procedures.process_pending_changes(debtor_id, creditor_id)
+    """
+
+    procedures.make_debtor_payment(
+        coordinator_type,
+        debtor_id,
+        creditor_id,
+        amount,
+        transfer_info,
+    )
