@@ -6,7 +6,6 @@ from . import procedures
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def prepare_transfer(
-        *,
         coordinator_type: str,
         coordinator_id: int,
         coordinator_request_id: int,
@@ -69,7 +68,6 @@ def prepare_transfer(
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def finalize_prepared_transfer(
-        *,
         debtor_id: int,
         sender_creditor_id: int,
         transfer_id: int,
@@ -93,7 +91,6 @@ def finalize_prepared_transfer(
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def set_interest_rate(
-        *,
         debtor_id: int,
         creditor_id: int,
         interest_rate: float,
@@ -113,7 +110,6 @@ def set_interest_rate(
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def capitalize_interest(
-        *,
         debtor_id: int,
         creditor_id: int,
         accumulated_interest_threshold: int = 0) -> None:
@@ -134,7 +130,6 @@ def capitalize_interest(
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def create_account(
-        *,
         debtor_id: int,
         creditor_id: int) -> None:
 
@@ -145,7 +140,6 @@ def create_account(
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def purge_deleted_account(
-        *,
         debtor_id: int,
         creditor_id: int,
         if_deleted_before: datetime) -> None:
@@ -172,7 +166,6 @@ def purge_deleted_account(
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def make_debtor_payment(
-        *,
         coordinator_type: str,
         debtor_id: int,
         creditor_id: int,
