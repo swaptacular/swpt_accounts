@@ -23,6 +23,16 @@ class AccountsAPI(MethodView):
         return account_json, 200, {'Content-Type': 'application/json'}
 
     def delete(self, debtor_id, creditor_id):
+        """Mark the account as deleted if there are no prepared transfers, and
+        the current balance is zero or positive and very close to zero.
+
+        Even if the account has been marked as deleted, it could be
+        "resurrected" by an incoming transfer. Therefore, this
+        function does not guarantee that the account will be marked as
+        deleted successfully, nor that it will "stay" deleted.
+
+        """
+
         procedures.delete_account_if_zeroed(debtor_id, creditor_id)
         return '', 202, {'Content-Type': 'application/json'}
 
