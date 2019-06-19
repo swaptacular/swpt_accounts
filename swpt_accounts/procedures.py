@@ -318,7 +318,8 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
 
 
 @atomic
-def get_dead_transfers(if_prepared_before: datetime) -> List[PreparedTransfer]:
+def get_dead_transfers(if_prepared_before: datetime = None) -> List[PreparedTransfer]:
+    if_prepared_before = if_prepared_before or datetime.now(tz=timezone.utc) - timedelta(days=7)
     return PreparedTransfer.query.\
         filter(PreparedTransfer.prepared_at_ts < if_prepared_before).\
         all()
