@@ -444,5 +444,5 @@ def test_commit_prepared_transfer(db_session):
     assert cts.committed_transfer_id == pt.transfer_id
 
 
-def test_get_staled_transfers(db_session, current_ts):
-    assert p.get_staled_transfers(D_ID, current_ts) == []
+def test_get_dead_transfers(db_session, current_ts):
+    assert p.get_dead_transfers(D_ID, current_ts) == []

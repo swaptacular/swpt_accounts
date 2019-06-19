@@ -37,10 +37,10 @@ class AccountsAPI(MethodView):
 web_api.add_url_rule('/accounts/<int:debtor_id>/<int:creditor_id>/', view_func=AccountsAPI.as_view('show_account'))
 
 
-@web_api.route('/staled-transfers/<int:debtor_id>/', methods=['GET'])
-def get_staled_transfers(debtor_id):
+@web_api.route('/dead-transfers/<int:debtor_id>/', methods=['GET'])
+def get_dead_transfers(debtor_id):
     days = int(request.args.get('days', '7'))
     current_ts = datetime.now(tz=timezone.utc)
-    staled_transfers = procedures.get_staled_transfers(debtor_id, current_ts - timedelta(days=days))
-    staled_transfers_json = json.dumps([prepared_transfer_schema.dump(pt) for pt in staled_transfers])
-    return staled_transfers_json, 200, {'Content-Type': 'application/json'}
+    dead_transfers = procedures.get_dead_transfers(debtor_id, current_ts - timedelta(days=days))
+    dead_transfers_json = json.dumps([prepared_transfer_schema.dump(pt) for pt in dead_transfers])
+    return dead_transfers_json, 200, {'Content-Type': 'application/json'}
