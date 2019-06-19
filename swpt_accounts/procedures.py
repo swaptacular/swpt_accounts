@@ -327,6 +327,14 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
             delete(synchronize_session=False)
 
 
+@atomic
+def get_staled_transfers(debtor_id: int, if_prepared_before: datetime) -> None:
+    return PreparedTransfer.query.\
+        filter_by(debtor_id=debtor_id).\
+        filter(PreparedTransfer.prepared_at_ts < if_prepared_before).\
+        all()
+
+
 def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
     seqnum, ts = event
     other_seqnum, other_ts = other_event
