@@ -1,38 +1,43 @@
-from flask import Blueprint
+import json
+from marshmallow_sqlalchemy import ModelSchema
+from flask import Blueprint, abort
+from flask.views import MethodView
 from . import procedures
+from .models import Account, PreparedTransfer
 
 
+class AccountSchema(ModelSchema):
+    class Meta:
+        model = Account
+        exclude = ['prepared_transfers']
+
+
+class PreparedTransferSchema(ModelSchema):
+    class Meta:
+        model = PreparedTransfer
+
+
+account_schema = AccountSchema()
+prepared_transfer_schema = PreparedTransferSchema()
 web_api = Blueprint('web_api', __name__)
 
 
-@web_api.route('/account/<debtor_id>/<creditor_id>', methods=['POST'])
-def create_account(debtor_id, creditor_id):
-    """Make sure the account `(debtor_id, creditor_id)` exists."""
+class AccountsAPI(MethodView):
+    def get(self, debtor_id, creditor_id):
+        account = procedures.get_account(debtor_id, creditor_id) or abort(404)
+        account_json = json.dumps(account_schema.dump(account))
+        return account_json, 200, {'Content-Type': 'application/json'}
 
-    # TODO: Add a real implementation.
-    procedures.get_or_create_account(debtor_id, creditor_id)
-
-
-@web_api.route('/delete-account/<debtor_id>/<creditor_id>', methods=['POST'])
-def delete_account(debtor_id, creditor_id):
-    """Mark the account `(debtor_id, creditor_id)` as deleted if there are
-    no prepared transfers, the principal is zero, and the available
-    balance is non-negative and very close to zero.
-
-    Even if the account has been marked as deleted, it could be
-    "resurrected" by an incoming transfer. Therefore, this method does
-    not guarantee that the account will be marked as deleted
-    successfully, nor that it will "stay" deleted.
-
-    """
-
-    # TODO: Add a real implementation.
-    procedures.delete_account_if_zeroed(debtor_id, creditor_id)
+    def delete(self, debtor_id, creditor_id):
+        procedures.delete_account_if_zeroed(debtor_id, creditor_id)
+        return '', 202, {'Content-Type': 'application/json'}
 
 
-@web_api.route('/old-prepared-transfers/<debtor_id>/', methods=['GET'])
-def get_debtor_old_prepared_transfers(debtor_id):
-    """Set stale prepared transfers for a given debtor."""
+web_api.add_url_rule('/accounts/<int:debtor_id>/<int:creditor_id>/', view_func=AccountsAPI.as_view('show_account'))
 
-    # TODO: Add a real implementation.
-    pass
+
+@web_api.route('/staled-transfers/<int:debtor_id>/', methods=['GET'])
+def get_staled_transfers(debtor_id):
+    staled_transfers = PreparedTransfer.query.all()  # TODO: use a procedure
+    staled_transfers_json = json.dumps([prepared_transfer_schema.dump(pt) for pt in staled_transfers])
+    return staled_transfers_json, 200, {'Content-Type': 'application/json'}

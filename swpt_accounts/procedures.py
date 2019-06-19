@@ -28,8 +28,6 @@ ROOT_CREDITOR_ID = MIN_INT64
 
 @atomic
 def get_account(debtor_id: int, creditor_id: int) -> Optional[Account]:
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
     return _get_account((debtor_id, creditor_id))
 
 
@@ -261,6 +259,16 @@ def make_debtor_payment(
 
 @atomic
 def delete_account_if_zeroed(debtor_id: int, creditor_id: int) -> None:
+    """Mark the account as deleted if there are no prepared transfers, and
+    the current balance is zero or positive and very close to zero.
+
+    Even if the account has been marked as deleted, it could be
+    "resurrected" by an incoming transfer. Therefore, this function
+    does not guarantee that the account will be marked as deleted
+    successfully, nor that it will "stay" deleted.
+
+    """
+
     current_ts = datetime.now(tz=timezone.utc)
     account = _get_account((debtor_id, creditor_id))
     if (account
