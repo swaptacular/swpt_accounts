@@ -445,4 +445,4 @@ def test_commit_prepared_transfer(db_session):
 
 
 def test_get_dead_transfers(db_session, current_ts):
-    assert p.get_dead_transfers(D_ID, current_ts) == []
+    assert p.get_dead_transfers(current_ts) == []

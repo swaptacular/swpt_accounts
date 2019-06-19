@@ -328,9 +328,8 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
 
 
 @atomic
-def get_dead_transfers(debtor_id: int, if_prepared_before: datetime) -> List[PreparedTransfer]:
+def get_dead_transfers(if_prepared_before: datetime) -> List[PreparedTransfer]:
     return PreparedTransfer.query.\
-        filter_by(debtor_id=debtor_id).\
         filter(PreparedTransfer.prepared_at_ts < if_prepared_before).\
         all()
 

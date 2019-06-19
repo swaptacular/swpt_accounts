@@ -1,10 +1,9 @@
 import json
-from datetime import datetime, timezone, timedelta
 from marshmallow_sqlalchemy import ModelSchema
-from flask import Blueprint, abort, request
+from flask import Blueprint, abort
 from flask.views import MethodView
 from . import procedures
-from .models import Account, PreparedTransfer
+from .models import Account
 
 
 class AccountSchema(ModelSchema):
@@ -13,13 +12,7 @@ class AccountSchema(ModelSchema):
         exclude = ['prepared_transfers']
 
 
-class PreparedTransferSchema(ModelSchema):
-    class Meta:
-        model = PreparedTransfer
-
-
 account_schema = AccountSchema()
-prepared_transfer_schema = PreparedTransferSchema()
 web_api = Blueprint('web_api', __name__)
 
 
@@ -35,12 +28,3 @@ class AccountsAPI(MethodView):
 
 
 web_api.add_url_rule('/accounts/<int:debtor_id>/<int:creditor_id>/', view_func=AccountsAPI.as_view('show_account'))
-
-
-@web_api.route('/dead-transfers/<int:debtor_id>/', methods=['GET'])
-def get_dead_transfers(debtor_id):
-    days = int(request.args.get('days', '7'))
-    current_ts = datetime.now(tz=timezone.utc)
-    dead_transfers = procedures.get_dead_transfers(debtor_id, current_ts - timedelta(days=days))
-    dead_transfers_json = json.dumps([prepared_transfer_schema.dump(pt) for pt in dead_transfers])
-    return dead_transfers_json, 200, {'Content-Type': 'application/json'}
