@@ -23,11 +23,11 @@ class Signal(db.Model):
     queue_name = None
 
     @property
-    def event_name(self):
+    def event_name(self):  # pragma: no cover
         model = type(self)
         return f'on_{model.__tablename__}'
 
-    def send_signalbus_message(self):
+    def send_signalbus_message(self):  # pragma: no cover
         model = type(self)
         if model.queue_name is None:
             assert not hasattr(model, 'actor_name'), \
@@ -199,7 +199,7 @@ class PreparedTransferSignal(Signal):
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
 
     @property
-    def event_name(self):
+    def event_name(self):  # pragma: no cover
         return f'on_prepared_{self.coordinator_type}_transfer_signal'
 
 
@@ -212,7 +212,7 @@ class RejectedTransferSignal(Signal):
     details = db.Column(pg.JSON, nullable=False, default={})
 
     @property
-    def event_name(self):
+    def event_name(self):  # pragma: no cover
         return f'on_rejected_{self.coordinator_type}_transfer_signal'
 
 
