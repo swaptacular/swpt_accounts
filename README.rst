@@ -3,9 +3,9 @@ swpt_accounts
 
 Swaptacular micro-service that manages user account balances
 
-It implements several public dramatic actors (see
-`swpt_accounts/actors.py`), and a very simple web API (see
-`swpt_accounts/routes.py`)
+It implements several public `Dramatiq`_ actors (see
+``swpt_accounts/actors.py``), and a very simple web API (see
+``swpt_accounts/routes.py``)
 
 
 How to run it
@@ -49,3 +49,4 @@ How to setup a development environment
 .. _RabbitMQ: https://www.rabbitmq.com/
 .. _Poetry: https://poetry.eustace.io/docs/
 .. _Python: https://docs.python.org/
+.. _Dramatiq: https://dramatiq.io/
