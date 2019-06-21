@@ -45,3 +45,20 @@ services:
     command: develop-run-tasks --watch '/usr/src/app/swpt_accounts' tasks:broker
     depends_on:
       - pg
+
+  supervisord:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - './swpt_accounts:/usr/src/app/swpt_accounts'
+    ports:
+      - 3$PORT:5555
+    env_file: .env
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONBREAKPOINT=web_pdb.set_trace
+      - SQLALCHEMY_DATABASE_URI=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@pg:5432/${POSTGRES_DB}
+    command: supervisord
+    depends_on:
+      - pg
