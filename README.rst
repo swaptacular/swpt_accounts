@@ -3,6 +3,10 @@ swpt_accounts
 
 Swaptacular micro-service that manages user account balances
 
+It implements several public dramatic actors (see
+`swpt_accounts/actors.py`), and a very simple web API (see
+`swpt_accounts/routes.py`)
+
 
 How to run it
 -------------
