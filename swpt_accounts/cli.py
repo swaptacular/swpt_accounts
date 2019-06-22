@@ -1,4 +1,8 @@
+import logging
 import click
+from os import environ
+from multiprocessing.dummy import Pool as ThreadPool
+from flask import current_app
 from flask.cli import with_appcontext
 from . import procedures
 
@@ -10,12 +14,26 @@ def swpt_accounts():
 
 @swpt_accounts.command()
 @with_appcontext
-@click.option('-p', '--processes', type=int, help='The number of worker processes.')
-def process_pending_changes(processes):
+@click.option('-t', '--threads', type=int, help='The number of worker threads.')
+def process_pending_changes(threads):
     """Process all pending account changes."""
 
-    changes = procedures.get_accounts_with_pending_changes()
+    threads = threads or int(environ.get('APP_PENDING_CHANGES_THREADS', '1'))
+    app = current_app._get_current_object()
 
-    # TODO: Spawn worker processes.
-    for debtor_id, creditor_id in changes:
-        procedures.process_pending_changes(debtor_id, creditor_id)
+    def push_app_context():
+        ctx = app.app_context()
+        ctx.push()
+
+    def log_error(e):  # pragma: no cover
+        try:
+            raise e
+        except Exception:
+            logger = logging.getLogger(__name__)
+            logger.exception('Caught error while processing account pending changes.')
+
+    pool = ThreadPool(threads, initializer=push_app_context)
+    for account_pk in procedures.get_accounts_with_pending_changes():
+        pool.apply_async(procedures.process_pending_changes, account_pk, error_callback=log_error)
+    pool.close()
+    pool.join()
