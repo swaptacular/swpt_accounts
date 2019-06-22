@@ -32,6 +32,11 @@ def process_pending_changes(threads):
             logger = logging.getLogger(__name__)
             logger.exception('Caught error while processing account pending changes.')
 
+    # TODO: Python with SQLAlchemy can process about 1000 accounts per
+    # second. This might be insufficient if we have a highly perfomant
+    # database server. In this case we should either distribute the
+    # processing to several machines, or improve on python's code
+    # performance.
     pool = ThreadPool(threads, initializer=push_app_context)
     for account_pk in procedures.get_accounts_with_pending_changes():
         pool.apply_async(procedures.process_pending_changes, account_pk, error_callback=log_error)
