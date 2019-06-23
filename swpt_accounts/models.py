@@ -33,8 +33,10 @@ class Signal(db.Model):
             assert not hasattr(model, 'actor_name'), \
                 'SignalModel.actor_name is set, but SignalModel.queue_name is not'
             actor_name = self.event_name
+            exchange = 'dramatiq.events'
         else:
             actor_name = model.actor_name
+            exchange = ''
         data = model.__marshmallow_schema__.dump(self)
         message = dramatiq.Message(
             queue_name=model.queue_name,
@@ -43,7 +45,7 @@ class Signal(db.Model):
             kwargs=data,
             options={},
         )
-        broker.publish_message(message, exchange='')
+        broker.publish_message(message, exchange=exchange)
 
 
 class Account(db.Model):
