@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_signalbus import SignalBusMixin, AtomicProceduresMixin
 from flask_melodramatiq import RabbitmqBroker
 
+DRAMATIQ_EXCHANGE_NAME = 'dramatiq'
 APP_QUEUE_NAME = os.environ.get('APP_QUEUE_NAME', 'swpt_accounts')
 
 warnings.filterwarnings(

@@ -1,7 +1,7 @@
 import datetime
 import dramatiq
 from sqlalchemy.dialects import postgresql as pg
-from .extensions import db, broker
+from .extensions import db, broker, DRAMATIQ_EXCHANGE_NAME
 
 MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
@@ -45,7 +45,7 @@ class Signal(db.Model):
             kwargs=data,
             options={},
         )
-        broker.publish_message(message, exchange='dramatiq', routing_key=routing_key)
+        broker.publish_message(message, exchange=DRAMATIQ_EXCHANGE_NAME, routing_key=routing_key)
 
 
 class Account(db.Model):
