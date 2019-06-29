@@ -7,7 +7,7 @@ from flask.cli import with_appcontext
 from . import procedures
 
 
-@click.group()
+@click.group('swpt_accounts')
 def swpt_accounts():
     """Perform operations on Swaptacular accounts."""
 
