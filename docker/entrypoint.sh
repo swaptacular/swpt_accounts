@@ -19,14 +19,16 @@ perform_db_upgrade() {
     local retry_after=1
     local time_limit=$(($retry_after << 5))
     local error_file="$APP_ROOT_DIR/flask-db-upgrade.error"
-    echo 'Running database schema upgrade ...'
+    echo -n 'Running database schema upgrade ...'
     while [[ $retry_after -lt $time_limit ]]; do
         if flask db upgrade 2>$error_file; then
+            echo ' done.'
             return 0
         fi
         sleep $retry_after
         retry_after=$((2 * retry_after))
     done
+    echo
     cat "$error_file"
     return 1
 }
