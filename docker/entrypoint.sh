@@ -48,9 +48,6 @@ perform_initializations() {
 case $1 in
     develop-run-flask)
         shift
-        perform_db_upgrade
-        setup_rabbitmq_bindings
-        perform_initializations
         flask signalbus flush -w 0
         exec flask run --host=0.0.0.0 --port $PORT --without-threads "$@"
         ;;
@@ -59,6 +56,7 @@ case $1 in
         perform_db_upgrade
         setup_rabbitmq_bindings
         perform_initializations
+        flask signalbus flush -w 0
         exec dramatiq --processes ${DRAMATIQ_PROCESSES-4} --threads ${DRAMATIQ_THREADS-8} "$@"
         ;;
     test)
