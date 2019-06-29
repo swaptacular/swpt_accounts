@@ -43,7 +43,7 @@ class Signal(db.Model):
             kwargs=data,
             options={},
         )
-        broker.publish_message(message, exchange=exchange)
+        broker.publish_message(message, exchange='dramatiq.messages')
 
 
 class Account(db.Model):
