@@ -33,6 +33,11 @@ perform_db_upgrade() {
     return 1
 }
 
+setup_rabbitmq_bindings() {
+    flask swpt_accounts subscribe swpt_accounts
+    return 0
+}
+
 # This function is intended to perform additional one-time
 # initializations. Make sure that it is idempotent.
 # (https://en.wikipedia.org/wiki/Idempotence)
