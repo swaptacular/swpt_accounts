@@ -61,7 +61,7 @@ def subscribe(queue_name):  # pragma: no cover
     channel.exchange_declare(DRAMATIQ_EXCHANGE_NAME)
     click.echo(f'Declared "{DRAMATIQ_EXCHANGE_NAME}" direct exchange.')
 
-    if environ.get('APP_USE_LOAD_BALANCING_EXCHANGE', ''):
+    if environ.get('APP_USE_LOAD_BALANCING_EXCHANGE', '') not in ['', 'False']:
         bind = channel.exchange_bind
         unbind = channel.exchange_unbind
     else:
