@@ -47,7 +47,7 @@ def process_pending_changes(threads):
 @swpt_accounts.command()
 @with_appcontext
 @click.argument('queue_name')
-def subscribe(queue_name):
+def subscribe(queue_name):  # pragma: no cover
     """Subscribe a queue for the observed events and messages.
 
     QUEUE_NAME specifies the name of the queue.

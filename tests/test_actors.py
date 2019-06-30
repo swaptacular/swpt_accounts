@@ -66,3 +66,11 @@ def test_make_debtor_payment(db_session):
         creditor_id=C_ID,
         amount=50,
     )
+
+
+def test_delete_account_if_zeroed(db_session):
+    a.delete_account_if_zeroed(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        ignore_after_ts='2000-01-01T00:00:00Z',
+    )

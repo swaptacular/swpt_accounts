@@ -251,7 +251,9 @@ def test_delete_account(db_session, current_ts):
     assert p.get_account(D_ID, C_ID) is None
     p.get_or_create_account(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID)
-    p.delete_account_if_zeroed(D_ID, C_ID)
+    p.delete_account_if_zeroed(D_ID, C_ID, current_ts - timedelta(days=1000))
+    assert p.get_account(D_ID, C_ID)
+    p.delete_account_if_zeroed(D_ID, C_ID, current_ts + timedelta(days=1000))
     assert p.get_account(D_ID, C_ID) is None
     assert AccountChangeSignal.query.\
         filter(AccountChangeSignal.debtor_id == D_ID).\
