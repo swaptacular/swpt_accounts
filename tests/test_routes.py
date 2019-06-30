@@ -13,6 +13,20 @@ def account():
     return get_or_create_account(1, 1)
 
 
+def test_get_accounts(client, account):
+    r = client.get('/api/accounts/1/')
+    assert r.status_code == 200
+    assert r.content_type == 'application/json'
+    accounts = json.loads(r.data)
+    assert len(accounts) == 1
+    assert accounts[0]['creditor_id'] == 1
+
+    r = client.get('/api/accounts/1/?start_after=1&limit=100')
+    assert r.status_code == 200
+    assert r.content_type == 'application/json'
+    assert len(json.loads(r.data)) == 0
+
+
 def test_get_account(client, account):
     r = client.get('/api/accounts/1/666/')
     assert r.status_code == 404
@@ -21,10 +35,3 @@ def test_get_account(client, account):
     assert r.status_code == 200
     assert r.content_type == 'application/json'
     assert json.loads(r.data)['principal'] == account.principal
-
-
-def test_delete_account(client, account):
-    r = client.delete('/api/accounts/1/1/')
-    assert r.status_code == 202
-    r = client.get('/api/accounts/1/1/')
-    assert r.status_code == 404

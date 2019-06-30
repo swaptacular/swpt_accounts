@@ -448,3 +448,17 @@ def test_commit_prepared_transfer(db_session):
 
 def test_get_dead_transfers(db_session):
     assert p.get_dead_transfers() == []
+
+
+def test_get_debtor_account_list(db_session):
+    p.get_or_create_account(D_ID, C_ID)
+    p.get_or_create_account(D_ID, C_ID + 1)
+    accounts = p.get_debtor_account_list(D_ID, start_after=None, limit=None)
+    assert len(accounts) == 2
+    assert accounts[0].creditor_id == C_ID
+    assert accounts[1].creditor_id == C_ID + 1
+    assert len(p.get_debtor_account_list(1234, start_after=None, limit=None)) == 0
+    assert len(p.get_debtor_account_list(D_ID, start_after=None, limit=1)) == 1
+    assert len(p.get_debtor_account_list(D_ID, start_after=C_ID, limit=100)) == 1
+    assert len(p.get_debtor_account_list(D_ID, start_after=C_ID + 1, limit=100)) == 0
+    assert len(p.get_debtor_account_list(D_ID, start_after=None, limit=-1)) == 0

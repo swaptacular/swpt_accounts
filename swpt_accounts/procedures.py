@@ -27,6 +27,18 @@ ROOT_CREDITOR_ID = MIN_INT64
 
 
 @atomic
+def get_debtor_account_list(debtor_id: int, start_after: int = None, limit: bool = None) -> List[Account]:
+    query = Account.query.filter_by(debtor_id=debtor_id).order_by(Account.creditor_id)
+    if start_after is not None:
+        query = query.filter(Account.creditor_id > start_after)
+    if limit is not None:
+        if limit < 1:
+            return []
+        query = query.limit(limit)
+    return query.all()
+
+
+@atomic
 def get_account(debtor_id: int, creditor_id: int) -> Optional[Account]:
     return _get_account((debtor_id, creditor_id))
 
