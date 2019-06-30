@@ -7,7 +7,7 @@ from flask_signalbus import SignalBusMixin, AtomicProceduresMixin
 from flask_melodramatiq import RabbitmqBroker
 from dramatiq import Middleware
 
-APP_EXCHANGE_NAME = 'dramatiq'
+MAIN_EXCHANGE_NAME = 'dramatiq'
 APP_QUEUE_NAME = os.environ.get('APP_QUEUE_NAME', 'swpt_accounts')
 
 warnings.filterwarnings(
