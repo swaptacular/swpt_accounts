@@ -54,12 +54,12 @@ def subscribe(queue_name):  # pragma: no cover
 
     """
 
-    from .extensions import broker, DRAMATIQ_EXCHANGE_NAME
+    from .extensions import broker, APP_EXCHANGE_NAME
     from . import actors  # noqa
 
     channel = broker.channel
-    channel.exchange_declare(DRAMATIQ_EXCHANGE_NAME)
-    click.echo(f'Declared "{DRAMATIQ_EXCHANGE_NAME}" direct exchange.')
+    channel.exchange_declare(APP_EXCHANGE_NAME)
+    click.echo(f'Declared "{APP_EXCHANGE_NAME}" direct exchange.')
 
     if environ.get('APP_USE_LOAD_BALANCING_EXCHANGE', '') not in ['', 'False']:
         bind = channel.exchange_bind
@@ -67,15 +67,15 @@ def subscribe(queue_name):  # pragma: no cover
     else:
         bind = channel.queue_bind
         unbind = channel.queue_unbind
-    bind(queue_name, DRAMATIQ_EXCHANGE_NAME, queue_name)
-    click.echo(f'Subscribed "{queue_name}" to "{DRAMATIQ_EXCHANGE_NAME}.{queue_name}".')
+    bind(queue_name, APP_EXCHANGE_NAME, queue_name)
+    click.echo(f'Subscribed "{queue_name}" to "{APP_EXCHANGE_NAME}.{queue_name}".')
 
     for actor in [broker.get_actor(actor_name) for actor_name in broker.get_declared_actors()]:
         if 'event_subscription' in actor.options:
             routing_key = f'events.{actor.actor_name}'
             if actor.options['event_subscription']:
-                bind(queue_name, DRAMATIQ_EXCHANGE_NAME, routing_key)
-                click.echo(f'Subscribed "{queue_name}" to "{DRAMATIQ_EXCHANGE_NAME}.{routing_key}".')
+                bind(queue_name, APP_EXCHANGE_NAME, routing_key)
+                click.echo(f'Subscribed "{queue_name}" to "{APP_EXCHANGE_NAME}.{routing_key}".')
             else:
-                unbind(queue_name, DRAMATIQ_EXCHANGE_NAME, routing_key)
-                click.echo(f'Unsubscribed "{queue_name}" from "{DRAMATIQ_EXCHANGE_NAME}.{routing_key}".')
+                unbind(queue_name, APP_EXCHANGE_NAME, routing_key)
+                click.echo(f'Unsubscribed "{queue_name}" from "{APP_EXCHANGE_NAME}.{routing_key}".')
