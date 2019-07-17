@@ -1,5 +1,6 @@
 import datetime
 import dramatiq
+from sqlalchemy.sql.expression import null
 from sqlalchemy.dialects import postgresql as pg
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
@@ -183,7 +184,14 @@ class PendingChange(db.Model):
     change_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     principal_delta = db.Column(db.BigInteger, nullable=False)
     interest_delta = db.Column(db.BigInteger, nullable=False)
+    unlocked_amount = db.Column(db.BigInteger, nullable=False)
+    finalized_transfer_id = db.Column(db.BigInteger)
     inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+
+    __table_args__ = (
+        db.CheckConstraint(unlocked_amount >= 0),
+        db.CheckConstraint((unlocked_amount == 0) | (finalized_transfer_id != null())),
+    )
 
 
 class PreparedTransferSignal(Signal):
