@@ -312,7 +312,6 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
         PendingChange.principal_delta,
         PendingChange.interest_delta,
         PendingChange.unlocked_amount,
-        PendingChange.finalized_transfer_id,
     ).\
         filter(PendingChange.debtor_id == debtor_id).\
         filter(PendingChange.creditor_id == creditor_id).\
@@ -321,10 +320,9 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
     if changes:
         account = _get_or_create_account((debtor_id, creditor_id), lock=True)
         current_ts = datetime.now(tz=timezone.utc)
-        unlocked_amount = sum(c.unlocked_amount for c in changes)
-        finalized_transfer_ids = [c.finalized_transfer_id for c in changes if c.finalized_transfer_id is not None]
+        unlocked_amounts = [c.unlocked_amount for c in changes if c.unlocked_amount is not None]
         has_nonzero_deltas = any(c.principal_delta != 0 or c.interest_delta != 0 for c in changes)
-        has_outgoing_transfers = any(c.finalized_transfer_id is not None and c.principal_delta < 0 for c in changes)
+        has_outgoing_transfers = any(c.unlocked_amount is not None and c.principal_delta < 0 for c in changes)
         if has_nonzero_deltas:
             _apply_account_change(
                 account=account,
@@ -334,17 +332,12 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
             )
         if has_outgoing_transfers:
             account.last_outgoing_transfer_date = current_ts.date()
-        account.locked_amount = max(0, account.locked_amount - unlocked_amount)
-        account.prepared_transfers_count = max(0, account.prepared_transfers_count - len(finalized_transfer_ids))
+        account.locked_amount = max(0, account.locked_amount - sum(unlocked_amounts))
+        account.prepared_transfers_count = max(0, account.prepared_transfers_count - len(unlocked_amounts))
         PendingChange.query.\
             filter(PendingChange.debtor_id == debtor_id).\
             filter(PendingChange.creditor_id == creditor_id).\
             filter(PendingChange.change_id.in_(c.change_id for c in changes)).\
-            delete(synchronize_session=False)
-        PreparedTransfer.query.\
-            filter(PreparedTransfer.debtor_id == debtor_id).\
-            filter(PreparedTransfer.sender_creditor_id == creditor_id).\
-            filter(PreparedTransfer.transfer_id.in_(finalized_transfer_ids)).\
             delete(synchronize_session=False)
 
 
@@ -470,8 +463,8 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
         debtor_id=pt.debtor_id,
         creditor_id=pt.sender_creditor_id,
         unlocked_amount=pt.sender_locked_amount,
-        finalized_transfer_id=pt.transfer_id,
     )
+    db.session.delete(pt)
 
 
 def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, transfer_info: dict) -> None:
@@ -484,7 +477,6 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
         creditor_id=pt.sender_creditor_id,
         principal_delta=-committed_amount,
         unlocked_amount=pt.sender_locked_amount,
-        finalized_transfer_id=pt.transfer_id,
         current_ts=current_ts,
     )
     _insert_pending_change(
@@ -503,6 +495,7 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
         committed_transfer_id=pt.transfer_id,
         transfer_info=transfer_info,
     ))
+    db.session.delete(pt)
 
 
 def _force_transfer(coordinator_type: str,
@@ -545,10 +538,9 @@ def _insert_pending_change(debtor_id: int,
                            creditor_id: int,
                            principal_delta: int = 0,
                            interest_delta: int = 0,
-                           unlocked_amount: int = 0,
-                           finalized_transfer_id: Optional[int] = None,
+                           unlocked_amount: int = None,
                            current_ts: datetime = None) -> None:
-    if principal_delta != 0 or interest_delta != 0 or finalized_transfer_id is not None:
+    if principal_delta != 0 or interest_delta != 0 or unlocked_amount is not None:
         current_ts = current_ts or datetime.now(tz=timezone.utc)
         db.session.add(PendingChange(
             debtor_id=debtor_id,
@@ -556,7 +548,6 @@ def _insert_pending_change(debtor_id: int,
             principal_delta=principal_delta,
             interest_delta=interest_delta,
             unlocked_amount=unlocked_amount,
-            finalized_transfer_id=finalized_transfer_id,
             inserted_at_ts=current_ts,
         ))
 
