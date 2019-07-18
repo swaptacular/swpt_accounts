@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: e6307838730d
+Revision ID: a097bece226d
 Revises: 
-Create Date: 2019-07-18 03:40:59.997829
+Create Date: 2019-07-18 03:50:04.544086
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'e6307838730d'
+revision = 'a097bece226d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,7 +26,7 @@ def upgrade():
     sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True),
     sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest`gets zeroed and added to the principal once in while (like once per week).'),
-    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all transfer locks for this account'),
+    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks for this account'),
     sa.Column('pending_transfers_count', sa.SmallInteger(), nullable=False, comment='The number of pending transfers for this account.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `principal`, `interest_rate`, `interest`, or `status`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
