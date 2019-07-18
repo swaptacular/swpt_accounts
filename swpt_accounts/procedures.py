@@ -320,7 +320,6 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
     if changes:
         account = _get_or_create_account((debtor_id, creditor_id), lock=True)
         current_ts = datetime.now(tz=timezone.utc)
-        unlocked_amounts = [c.unlocked_amount for c in changes if c.unlocked_amount is not None]
         has_outgoing_transfers = any(c.unlocked_amount is not None and c.principal_delta < 0 for c in changes)
         has_nonzero_deltas = any(c.principal_delta != 0 or c.interest_delta != 0 for c in changes)
         if has_outgoing_transfers:
@@ -337,6 +336,7 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
         # Changing `locked_amount` and `pending_transfers_count` after
         # the call to `_apply_account_change` is OK, because these
         # fields are not included in the `AccountChangeSignal`.
+        unlocked_amounts = [c.unlocked_amount for c in changes if c.unlocked_amount is not None]
         account.locked_amount = max(0, account.locked_amount - sum(unlocked_amounts))
         account.pending_transfers_count = max(0, account.pending_transfers_count - len(unlocked_amounts))
 
