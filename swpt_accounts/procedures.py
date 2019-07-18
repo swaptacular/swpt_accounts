@@ -13,7 +13,7 @@ atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 
 TINY_POSITIVE_AMOUNT = 3  # should be at least `2`
-MAX_PREPARED_TRANSFERS_COUNT = 1000
+MAX_PENDING_TRANSFERS_COUNT = 1000
 
 TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
@@ -125,16 +125,16 @@ def prepare_transfer(coordinator_type: str,
         )
         return
 
-    if sender_account.prepared_transfers_count >= MAX_PREPARED_TRANSFERS_COUNT:  # pragma: no cover
+    if sender_account.pending_transfers_count >= MAX_PENDING_TRANSFERS_COUNT:  # pragma: no cover
         reject_transfer(
             error_code='ACC006',
-            message='There are too many prepared transfers.',
-            prepared_transfers_count=sender_account.prepared_transfers_count,
+            message='There are too many pending transfers.',
+            pending_transfers_count=sender_account.pending_transfers_count,
         )
         return
 
     sender_account.locked_amount = new_locked_amount
-    sender_account.prepared_transfers_count += 1
+    sender_account.pending_transfers_count += 1
     pt = PreparedTransfer(
         sender_account=sender_account,
         coordinator_type=coordinator_type,
@@ -276,7 +276,7 @@ def delete_account_if_zeroed(debtor_id: int, creditor_id: int, ignore_after_ts: 
         return
     account = _get_account((debtor_id, creditor_id))
     if (account
-            and account.prepared_transfers_count == 0
+            and account.pending_transfers_count == 0
             and account.locked_amount == 0
             and 0 <= _calc_account_current_balance(account, current_ts) <= TINY_POSITIVE_AMOUNT):
         if account.principal != 0:
@@ -333,7 +333,7 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
         if has_outgoing_transfers:
             account.last_outgoing_transfer_date = current_ts.date()
         account.locked_amount = max(0, account.locked_amount - sum(unlocked_amounts))
-        account.prepared_transfers_count = max(0, account.prepared_transfers_count - len(unlocked_amounts))
+        account.pending_transfers_count = max(0, account.pending_transfers_count - len(unlocked_amounts))
         PendingChange.query.\
             filter(PendingChange.debtor_id == debtor_id).\
             filter(PendingChange.creditor_id == creditor_id).\
@@ -410,7 +410,7 @@ def _get_or_create_account(account_or_pk: AccountId, lock: bool = False) -> Acco
 def _resurrect_account_if_deleted(account: Account) -> None:
     if account.status & Account.STATUS_DELETED_FLAG:
         account.principal = 0
-        account.prepared_transfers_count = 0
+        account.pending_transfers_count = 0
         account.locked_amount = 0
         account.status = 0
         account.interest = 0.0

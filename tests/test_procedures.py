@@ -26,7 +26,7 @@ def test_get_or_create_account(db_session):
     assert a.principal == 0
     assert a.interest == 0.0
     assert a.locked_amount == 0
-    assert a.prepared_transfers_count == 0
+    assert a.pending_transfers_count == 0
     assert a.interest_rate == 0.0
     assert a.interest_rate_last_change_seqnum is None
     assert a.interest_rate_last_change_ts is None
@@ -312,7 +312,7 @@ def test_prepare_transfer_insufficient_funds(db_session):
     )
     a = p.get_account(D_ID, C_ID)
     assert a.locked_amount == 0
-    assert a.prepared_transfers_count == 0
+    assert a.pending_transfers_count == 0
     p.process_pending_changes(D_ID, 1234)
     p.process_pending_changes(D_ID, C_ID)
     assert len(AccountChangeSignal.query.all()) == 2
@@ -369,7 +369,7 @@ def test_prepare_transfer_success(db_session):
     )
     a = p.get_account(D_ID, C_ID)
     assert a.locked_amount == 100
-    assert a.prepared_transfers_count == 1
+    assert a.pending_transfers_count == 1
     p.process_pending_changes(D_ID, 1234)
     p.process_pending_changes(D_ID, C_ID)
     assert len(AccountChangeSignal.query.all()) == 2
@@ -396,7 +396,7 @@ def test_prepare_transfer_success(db_session):
     p.process_pending_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a.locked_amount == 0
-    assert a.prepared_transfers_count == 0
+    assert a.pending_transfers_count == 0
     assert a.principal == 100
     assert a.interest == 0.0
     assert not PreparedTransfer.query.one_or_none()
@@ -427,12 +427,12 @@ def test_commit_prepared_transfer(db_session):
     p.process_pending_changes(D_ID, C_ID)
     a1 = p.get_account(D_ID, 1234)
     assert a1.locked_amount == 0
-    assert a1.prepared_transfers_count == 0
+    assert a1.pending_transfers_count == 0
     assert a1.principal == 40
     assert a1.interest == 0.0
     a2 = p.get_account(D_ID, C_ID)
     assert a2.locked_amount == 0
-    assert a2.prepared_transfers_count == 0
+    assert a2.pending_transfers_count == 0
     assert a2.principal == 60
     assert a2.interest == 0.0
     assert not PreparedTransfer.query.one_or_none()

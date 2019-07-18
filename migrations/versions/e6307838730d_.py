@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: acde8af9190a
+Revision ID: e6307838730d
 Revises: 
-Create Date: 2019-06-16 13:49:20.636179
+Create Date: 2019-07-18 03:40:59.997829
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'acde8af9190a'
+revision = 'e6307838730d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,15 +26,15 @@ def upgrade():
     sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True),
     sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest`gets zeroed and added to the principal once in while (like once per week).'),
-    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks'),
-    sa.Column('prepared_transfers_count', sa.SmallInteger(), nullable=False, comment='The number of `prepared_transfer` records for this account.'),
+    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all transfer locks for this account'),
+    sa.Column('pending_transfers_count', sa.SmallInteger(), nullable=False, comment='The number of pending transfers for this account.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `principal`, `interest_rate`, `interest`, or `status`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. This field is not updated on demurrage payments.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
     sa.CheckConstraint('interest_rate > -100.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('locked_amount >= 0'),
-    sa.CheckConstraint('prepared_transfers_count >= 0'),
+    sa.CheckConstraint('pending_transfers_count >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id')
     )
     op.create_table('account_change_signal',
@@ -67,7 +67,9 @@ def upgrade():
     sa.Column('change_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('principal_delta', sa.BigInteger(), nullable=False),
     sa.Column('interest_delta', sa.BigInteger(), nullable=False),
+    sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.locked_amount`, and `account.pending_transfers_count` must be decremented.'),
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('unlocked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id')
     )
     op.create_table('prepared_transfer_signal',

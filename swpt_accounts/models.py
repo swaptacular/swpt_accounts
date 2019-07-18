@@ -82,13 +82,13 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='The total sum of all pending transfer locks',
+        comment='The total sum of all transfer locks for this account',
     )
-    prepared_transfers_count = db.Column(
+    pending_transfers_count = db.Column(
         db.SmallInteger,
         nullable=False,
         default=0,
-        comment='The number of `prepared_transfer` records for this account.',
+        comment='The number of pending transfers for this account.',
     )
     last_change_seqnum = db.Column(
         db.Integer,
@@ -117,7 +117,7 @@ class Account(db.Model):
     __table_args__ = (
         db.CheckConstraint((interest_rate > -100.0) & (interest_rate <= 100.0)),
         db.CheckConstraint(locked_amount >= 0),
-        db.CheckConstraint(prepared_transfers_count >= 0),
+        db.CheckConstraint(pending_transfers_count >= 0),
     )
 
 
@@ -187,7 +187,7 @@ class PendingChange(db.Model):
     unlocked_amount = db.Column(
         db.BigInteger,
         comment='If not NULL, the value must be subtracted from `account.locked_amount`, and '
-                '`account.prepared_transfers_count` must be decremented.',
+                '`account.pending_transfers_count` must be decremented.',
     )
     inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
