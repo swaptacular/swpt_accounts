@@ -477,13 +477,11 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
         creditor_id=pt.sender_creditor_id,
         principal_delta=-committed_amount,
         unlocked_amount=pt.sender_locked_amount,
-        current_ts=current_ts,
     )
     _insert_pending_change(
         debtor_id=pt.debtor_id,
         creditor_id=pt.recipient_creditor_id,
         principal_delta=committed_amount,
-        current_ts=current_ts,
     )
     db.session.add(CommittedTransferSignal(
         debtor_id=pt.debtor_id,
@@ -523,14 +521,12 @@ def _force_transfer(coordinator_type: str,
         creditor_id=sender_creditor_id,
         principal_delta=-committed_amount,
         interest_delta=sender_interest_delta,
-        current_ts=committed_at_ts,
     )
     _insert_pending_change(
         debtor_id=debtor_id,
         creditor_id=recipient_creditor_id,
         principal_delta=committed_amount,
         interest_delta=recipient_interest_delta,
-        current_ts=committed_at_ts,
     )
 
 
@@ -538,17 +534,14 @@ def _insert_pending_change(debtor_id: int,
                            creditor_id: int,
                            principal_delta: int = 0,
                            interest_delta: int = 0,
-                           unlocked_amount: int = None,
-                           current_ts: datetime = None) -> None:
+                           unlocked_amount: int = None) -> None:
     if principal_delta != 0 or interest_delta != 0 or unlocked_amount is not None:
-        current_ts = current_ts or datetime.now(tz=timezone.utc)
         db.session.add(PendingChange(
             debtor_id=debtor_id,
             creditor_id=creditor_id,
             principal_delta=principal_delta,
             interest_delta=interest_delta,
             unlocked_amount=unlocked_amount,
-            inserted_at_ts=current_ts,
         ))
 
 
