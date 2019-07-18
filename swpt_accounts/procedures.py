@@ -363,7 +363,7 @@ def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int
     )
 
 
-def _insert_account_change_signal(account: Account, current_ts: Optional[datetime] = None) -> None:
+def _insert_account_change_signal(account: Account, current_ts: datetime = None) -> None:
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
     account.last_change_ts = max(account.last_change_ts, current_ts)
