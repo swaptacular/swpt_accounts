@@ -1,5 +1,4 @@
 import math
-from itertools import groupby
 from datetime import datetime, timezone, timedelta
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable
 from decimal import Decimal
@@ -52,8 +51,7 @@ def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
 
 @atomic
 def get_available_balance(debtor_id: int, creditor_id: int, ignore_interest: bool) -> int:
-    avl_balance, _ = _calc_account_avl_balance((debtor_id, creditor_id), ignore_interest)
-    return avl_balance
+    return _calc_account_avl_balance((debtor_id, creditor_id), ignore_interest)
 
 
 @atomic
@@ -236,29 +234,27 @@ def get_accounts_with_pending_changes() -> Iterable[Tuple[int, int]]:
 
 
 @atomic
-def process_transfer_requests(debtor_id: int, sender_creditor_id: int) -> None:
-    requests = TransferRequest.query.\
-        filter_by(debtor_id=debtor_id, sender_creditor_id=sender_creditor_id).\
-        with_for_update(skip_locked=True).\
-        all()
+def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
+    q = TransferRequest.query.filter_by(debtor_id=debtor_id, sender_creditor_id=creditor_id)
+    requests = q.with_for_update(skip_locked=True).all()
     if requests:
-        # TODO: Use `execute_many()`.
+        transfer_request_ids = [r.transfer_request_id for r in requests]
+        sender_account = _get_account((debtor_id, creditor_id), lock=True)
+        new_objects = []
         for request in requests:
-            _prepare_transfer(
+            new_objects.extend(_prepare_transfer(
+                sender_account=sender_account,
+                debtor_id=debtor_id,
                 coordinator_type=request.coordinator_type,
                 coordinator_id=request.coordinator_id,
                 coordinator_request_id=request.coordinator_request_id,
-                debtor_id=request.debtor_id,
+                recipient_creditor_id=request.recipient_creditor_id,
                 min_amount=request.min_amount,
                 max_amount=request.max_amount,
-                sender_creditor_id=request.sender_creditor_id,
-                recipient_creditor_id=request.recipient_creditor_id,
                 ignore_interest=request.ignore_interest,
-            )
-        TransferRequest.query.\
-            filter_by(debtor_id=debtor_id, sender_creditor_id=sender_creditor_id).\
-            filter(TransferRequest.transfer_request_id.in_(r.transfer_request_id for r in requests)).\
-            delete(synchronize_session=False)
+            ))
+        db.session.bulk_save_objects(new_objects)
+        q.filter(TransferRequest.transfer_request_id.in_(transfer_request_ids)).delete(synchronize_session=False)
 
 
 @atomic
@@ -350,8 +346,11 @@ def _create_account(debtor_id: int, creditor_id: int) -> Account:
     return account
 
 
-def _get_account(account_or_pk: AccountId) -> Optional[Account]:
-    account = Account.get_instance(account_or_pk)
+def _get_account(account_or_pk: AccountId, lock: bool = False) -> Optional[Account]:
+    if lock:
+        account = Account.lock_instance(account_or_pk)
+    else:
+        account = Account.get_instance(account_or_pk)
     if account and not account.status & Account.STATUS_DELETED_FLAG:
         return account
     return None
@@ -393,7 +392,7 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
     return current_balance
 
 
-def _calc_account_avl_balance(account_or_pk: AccountId, ignore_interest: bool) -> Tuple[int, AccountId]:
+def _calc_account_avl_balance(account_or_pk: AccountId, ignore_interest: bool) -> int:
     avl_balance = 0
     account = _get_account(account_or_pk)
     if account:
@@ -402,8 +401,7 @@ def _calc_account_avl_balance(account_or_pk: AccountId, ignore_interest: bool) -
         else:
             avl_balance = math.floor(_calc_account_current_balance(account))
         avl_balance -= account.locked_amount
-        account_or_pk = account
-    return avl_balance, account_or_pk
+    return avl_balance
 
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
@@ -521,14 +519,71 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
     _insert_account_change_signal(account, current_ts)
 
 
-def _insert_prepared_transfer(sender_account: Account,
-                              coordinator_type: str,
-                              coordinator_id: int,
-                              coordinator_request_id: int,
-                              recipient_creditor_id: int,
-                              amount: int) -> None:
+def _prepare_transfer(sender_account: Optional[Account],
+                      debtor_id: int,
+                      coordinator_type: str,
+                      coordinator_id: int,
+                      coordinator_request_id: int,
+                      recipient_creditor_id: int,
+                      min_amount: int,
+                      max_amount: int,
+                      ignore_interest: bool) -> list:
+
+    def reject(**kw) -> List[RejectedTransferSignal]:
+        return [RejectedTransferSignal(
+            debtor_id=debtor_id,
+            coordinator_type=coordinator_type,
+            coordinator_id=coordinator_id,
+            coordinator_request_id=coordinator_request_id,
+            details=kw,
+        )]
+
+    if sender_account is None:
+        return reject(
+            error_code='ACC007',
+            message='The sender account does not exist.',
+        )
+    if sender_account.creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
+        return reject(
+            error_code='ACC001',
+            message="The sender account can not be the debtor's account.",
+        )
+    if sender_account.creditor_id == recipient_creditor_id:  # pragma: no cover
+        return reject(
+            error_code='ACC002',
+            message='Recipient and sender accounts are the same.',
+        )
+
+    avl_balance = _calc_account_avl_balance(sender_account, ignore_interest)
+    if avl_balance < min_amount:
+        return reject(
+            error_code='ACC003',
+            message='The available balance is insufficient.',
+            avl_balance=avl_balance,
+        )
+    if not (recipient_creditor_id == ROOT_CREDITOR_ID or _get_account((debtor_id, recipient_creditor_id))):
+        return reject(
+            error_code='ACC004',
+            message='The recipient account does not exist.',
+        )
+
+    amount = min(avl_balance, max_amount)
+    new_locked_amount = sender_account.locked_amount + amount
+    if new_locked_amount > MAX_INT64:  # pragma: no cover
+        return reject(
+            error_code='ACC005',
+            message='The locked amount is too big.',
+            locked_amount=new_locked_amount,
+        )
+    if sender_account.pending_transfers_count >= MAX_PENDING_TRANSFERS_COUNT:  # pragma: no cover
+        return reject(
+            error_code='ACC006',
+            message='There are too many pending transfers.',
+            pending_transfers_count=sender_account.pending_transfers_count,
+        )
+
     current_ts = datetime.now(tz=timezone.utc)
-    sender_account.locked_amount += amount
+    sender_account.locked_amount = new_locked_amount
     sender_account.pending_transfers_count += 1
     sender_account.last_transfer_id += 1
     pt = PreparedTransfer(
@@ -553,84 +608,4 @@ def _insert_prepared_transfer(sender_account: Account,
         coordinator_id=coordinator_id,
         coordinator_request_id=coordinator_request_id,
     )
-    db.session.add(pt)
-    db.session.add(pts)
-
-
-def _prepare_transfer(coordinator_type: str,
-                      coordinator_id: int,
-                      coordinator_request_id: int,
-                      min_amount: int,
-                      max_amount: int,
-                      debtor_id: int,
-                      sender_creditor_id: int,
-                      recipient_creditor_id: int,
-                      ignore_interest: bool) -> None:
-    def reject_transfer(**kw) -> None:
-        db.session.add(RejectedTransferSignal(
-            debtor_id=debtor_id,
-            coordinator_type=coordinator_type,
-            coordinator_id=coordinator_id,
-            coordinator_request_id=coordinator_request_id,
-            details=kw,
-        ))
-
-    if sender_creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
-        reject_transfer(
-            error_code='ACC001',
-            message="The sender account can not be the debtor's account.",
-        )
-        return
-
-    if sender_creditor_id == recipient_creditor_id:  # pragma: no cover
-        reject_transfer(
-            error_code='ACC002',
-            message='Recipient and sender accounts are the same.',
-        )
-        return
-
-    avl_balance, account_or_pk = _calc_account_avl_balance((debtor_id, sender_creditor_id), ignore_interest)
-
-    if avl_balance < min_amount:
-        reject_transfer(
-            error_code='ACC003',
-            message='The available balance is insufficient.',
-            avl_balance=avl_balance,
-        )
-        return
-
-    if not (recipient_creditor_id == ROOT_CREDITOR_ID or _get_account((debtor_id, recipient_creditor_id))):
-        reject_transfer(
-            error_code='ACC004',
-            message='The recipient account does not exist.',
-        )
-        return
-
-    sender_account = _get_or_create_account(account_or_pk)
-    amount = min(avl_balance, max_amount)
-    new_locked_amount = sender_account.locked_amount + amount
-
-    if new_locked_amount > MAX_INT64:  # pragma: no cover
-        reject_transfer(
-            error_code='ACC005',
-            message='The locked amount is too big.',
-            locked_amount=new_locked_amount,
-        )
-        return
-
-    if sender_account.pending_transfers_count >= MAX_PENDING_TRANSFERS_COUNT:  # pragma: no cover
-        reject_transfer(
-            error_code='ACC006',
-            message='There are too many pending transfers.',
-            pending_transfers_count=sender_account.pending_transfers_count,
-        )
-        return
-
-    _insert_prepared_transfer(
-        sender_account=sender_account,
-        coordinator_type=coordinator_type,
-        coordinator_id=coordinator_id,
-        coordinator_request_id=coordinator_request_id,
-        recipient_creditor_id=recipient_creditor_id,
-        amount=amount,
-    )
+    return [pt, pts]
