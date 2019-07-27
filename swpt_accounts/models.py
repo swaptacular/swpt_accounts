@@ -108,6 +108,13 @@ class Account(db.Model):
         comment='Updated on each transfer for which this account is the sender. This field is '
                 'not updated on demurrage payments.',
     )
+    last_transfer_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        default=0,
+        comment='Incremented when a new `prepared_transfer` record is inserted. '
+                'Must never decrease.',
+    )
     status = db.Column(
         db.SmallInteger,
         nullable=False,
@@ -149,7 +156,6 @@ class PreparedTransfer(db.Model):
     transfer_id = db.Column(
         db.BigInteger,
         primary_key=True,
-        autoincrement=True,
         comment='Along with `debtor_id` and `sender_creditor_id` uniquely identifies a transfer',
     )
     coordinator_type = db.Column(

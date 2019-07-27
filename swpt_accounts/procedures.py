@@ -521,6 +521,42 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
     _insert_account_change_signal(account, current_ts)
 
 
+def _insert_prepared_transfer(sender_account: Account,
+                              coordinator_type: str,
+                              coordinator_id: int,
+                              coordinator_request_id: int,
+                              recipient_creditor_id: int,
+                              amount: int) -> None:
+    current_ts = datetime.now(tz=timezone.utc)
+    sender_account.locked_amount += amount
+    sender_account.pending_transfers_count += 1
+    sender_account.last_transfer_id += 1
+    pt = PreparedTransfer(
+        debtor_id=sender_account.debtor_id,
+        sender_creditor_id=sender_account.creditor_id,
+        transfer_id=sender_account.last_transfer_id,
+        coordinator_type=coordinator_type,
+        recipient_creditor_id=recipient_creditor_id,
+        amount=amount,
+        sender_locked_amount=amount,
+        prepared_at_ts=current_ts,
+    )
+    pts = PreparedTransferSignal(
+        debtor_id=pt.debtor_id,
+        sender_creditor_id=pt.sender_creditor_id,
+        transfer_id=pt.transfer_id,
+        coordinator_type=pt.coordinator_type,
+        recipient_creditor_id=pt.recipient_creditor_id,
+        amount=pt.amount,
+        sender_locked_amount=pt.sender_locked_amount,
+        prepared_at_ts=pt.prepared_at_ts,
+        coordinator_id=coordinator_id,
+        coordinator_request_id=coordinator_request_id,
+    )
+    db.session.add(pt)
+    db.session.add(pts)
+
+
 def _prepare_transfer(coordinator_type: str,
                       coordinator_id: int,
                       coordinator_request_id: int,
@@ -590,26 +626,11 @@ def _prepare_transfer(coordinator_type: str,
         )
         return
 
-    sender_account.locked_amount = new_locked_amount
-    sender_account.pending_transfers_count += 1
-    pt = PreparedTransfer(
+    _insert_prepared_transfer(
         sender_account=sender_account,
         coordinator_type=coordinator_type,
-        recipient_creditor_id=recipient_creditor_id,
-        amount=amount,
-        sender_locked_amount=amount,
-    )
-    db.session.add(pt)
-    db.session.flush()
-    db.session.add(PreparedTransferSignal(
-        debtor_id=pt.debtor_id,
-        sender_creditor_id=pt.sender_creditor_id,
-        transfer_id=pt.transfer_id,
-        coordinator_type=pt.coordinator_type,
-        recipient_creditor_id=pt.recipient_creditor_id,
-        amount=pt.amount,
-        sender_locked_amount=pt.sender_locked_amount,
-        prepared_at_ts=pt.prepared_at_ts,
         coordinator_id=coordinator_id,
         coordinator_request_id=coordinator_request_id,
-    ))
+        recipient_creditor_id=recipient_creditor_id,
+        amount=amount,
+    )
