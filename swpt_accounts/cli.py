@@ -24,7 +24,7 @@ def process_transfers(threads):
     # either distribute the processing to several machines, or improve
     # on python's code performance.
 
-    threads = threads or int(environ.get('APP_PENDING_CHANGES_THREADS', '1'))
+    threads = threads or int(environ.get('APP_PROCESS_TRANSFERS_THREADS', '1'))
     app = current_app._get_current_object()
 
     def push_app_context():
