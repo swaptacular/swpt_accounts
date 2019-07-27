@@ -91,11 +91,7 @@ def finalize_prepared_transfer(debtor_id: int,
                                committed_amount: int,
                                transfer_info: dict = {}) -> None:
     assert committed_amount >= 0
-    pt = PreparedTransfer.lock_instance(
-        (debtor_id, sender_creditor_id, transfer_id),
-        db.joinedload('sender_account', innerjoin=True),
-        of=PreparedTransfer,
-    )
+    pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
         if committed_amount == 0:
             _delete_prepared_transfer(pt)
