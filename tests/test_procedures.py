@@ -310,6 +310,7 @@ def test_prepare_transfer_insufficient_funds(db_session):
         recipient_creditor_id=1234,
         ignore_interest=False,
     )
+    p.process_transfer_requests(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a.locked_amount == 0
     assert a.pending_transfers_count == 0
@@ -341,6 +342,7 @@ def test_prepare_transfer_account_does_not_exist(db_session):
         recipient_creditor_id=1234,
         ignore_interest=False,
     )
+    p.process_transfer_requests(D_ID, C_ID)
     rts = RejectedTransferSignal.query.one()
     assert rts.debtor_id == D_ID
     assert rts.coordinator_type == 'test'
@@ -367,6 +369,7 @@ def test_prepare_transfer_success(db_session):
         recipient_creditor_id=1234,
         ignore_interest=False,
     )
+    p.process_transfer_requests(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a.locked_amount == 100
     assert a.pending_transfers_count == 1
@@ -421,6 +424,7 @@ def test_commit_prepared_transfer(db_session):
         recipient_creditor_id=1234,
         ignore_interest=False,
     )
+    p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, 40)
     p.process_pending_changes(D_ID, 1234)

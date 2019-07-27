@@ -121,6 +121,24 @@ class Account(db.Model):
     )
 
 
+class TransferRequest(db.Model):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_request_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    coordinator_id = db.Column(db.BigInteger, nullable=False)
+    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
+    min_amount = db.Column(db.BigInteger, nullable=False)
+    max_amount = db.Column(db.BigInteger, nullable=False)
+    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
+    ignore_interest = db.Column(db.Boolean, nullable=False)
+
+    __table_args__ = (
+        db.CheckConstraint(min_amount > 0),
+        db.CheckConstraint(min_amount <= max_amount),
+    )
+
+
 class PreparedTransfer(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(
