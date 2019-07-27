@@ -76,7 +76,7 @@ class Account(db.Model):
         default=0.0,
         comment='The amount of interest accumulated on the account before `last_change_ts`, '
                 'but not added to the `principal` yet. Can be a negative number. `interest`'
-                'gets zeroed and added to the principal once in while (like once per week).',
+                'gets zeroed and added to the principal once in a while (like once per week).',
     )
     locked_amount = db.Column(
         db.BigInteger,
