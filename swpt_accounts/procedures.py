@@ -51,7 +51,7 @@ def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
 
 @atomic
 def get_available_balance(debtor_id: int, creditor_id: int, ignore_interest: bool) -> int:
-    return _calc_account_avl_balance((debtor_id, creditor_id), ignore_interest)
+    return _get_available_balance((debtor_id, creditor_id), ignore_interest)
 
 
 @atomic
@@ -382,7 +382,7 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
     return current_balance
 
 
-def _calc_account_avl_balance(account_or_pk: AccountId, ignore_interest: bool) -> int:
+def _get_available_balance(account_or_pk: AccountId, ignore_interest: bool) -> int:
     avl_balance = 0
     account = _get_account(account_or_pk)
     if account:
@@ -538,7 +538,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
 
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
-    avl_balance = _calc_account_avl_balance(sender_account, tr.ignore_interest)
+    avl_balance = _get_available_balance(sender_account, tr.ignore_interest)
     if avl_balance < tr.min_amount:
         return reject(
             error_code='ACC004',
