@@ -419,8 +419,8 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
 
 def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, transfer_info: dict) -> None:
     assert committed_amount > 0
-    if committed_amount > pt.amount:  # pragma: no cover
-        committed_amount = pt.amount
+    if committed_amount > pt.sender_locked_amount:  # pragma: no cover
+        committed_amount = pt.sender_locked_amount
     current_ts = datetime.now(tz=timezone.utc)
     _insert_pending_change(
         debtor_id=pt.debtor_id,
@@ -580,7 +580,6 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             transfer_id=sender_account.last_transfer_id,
             coordinator_type=tr.coordinator_type,
             recipient_creditor_id=tr.recipient_creditor_id,
-            amount=amount,
             sender_locked_amount=amount,
             prepared_at_ts=current_ts,
         ),
@@ -590,7 +589,6 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             transfer_id=sender_account.last_transfer_id,
             coordinator_type=tr.coordinator_type,
             recipient_creditor_id=tr.recipient_creditor_id,
-            amount=amount,
             sender_locked_amount=amount,
             prepared_at_ts=current_ts,
             coordinator_id=tr.coordinator_id,

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c45adc348b3e
+Revision ID: 9419f56cf051
 Revises: 
-Create Date: 2019-07-27 16:35:30.324744
+Create Date: 2019-07-27 20:09:52.117475
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'c45adc348b3e'
+revision = '9419f56cf051'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -79,7 +79,6 @@ def upgrade():
     sa.Column('transfer_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('amount', sa.BigInteger(), nullable=False),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
@@ -116,11 +115,9 @@ def upgrade():
     sa.Column('transfer_id', sa.BigInteger(), nullable=False, comment='Along with `debtor_id` and `sender_creditor_id` uniquely identifies a transfer'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, circular.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False, comment='The payee'),
-    sa.Column('amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
-    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment="This amount has been added to sender's `account.locked_amount`."),
+    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment="This amount has been added to sender's `account.locked_amount`. The actual transferred (committed) amount may not exceed this number."),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.CheckConstraint('amount > 0'),
-    sa.CheckConstraint('sender_locked_amount >= 0'),
+    sa.CheckConstraint('sender_locked_amount > 0'),
     sa.ForeignKeyConstraint(['debtor_id', 'sender_creditor_id'], ['account.debtor_id', 'account.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id')
     )

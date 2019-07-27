@@ -170,16 +170,11 @@ class PreparedTransfer(db.Model):
         nullable=False,
         comment='The payee',
     )
-    amount = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The actual transferred (committed) amount may not exceed this number.',
-    )
     sender_locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
-        default=lambda context: context.get_current_parameters()['amount'],
-        comment="This amount has been added to sender's `account.locked_amount`.",
+        comment="This amount has been added to sender's `account.locked_amount`. "
+                "The actual transferred (committed) amount may not exceed this number.",
     )
     prepared_at_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -192,8 +187,7 @@ class PreparedTransfer(db.Model):
             ['account.debtor_id', 'account.creditor_id'],
             ondelete='CASCADE',
         ),
-        db.CheckConstraint(amount > 0),
-        db.CheckConstraint(sender_locked_amount >= 0),
+        db.CheckConstraint(sender_locked_amount > 0),
     )
 
     sender_account = db.relationship(
@@ -227,7 +221,6 @@ class PreparedTransferSignal(Signal):
     transfer_id = db.Column(db.BigInteger, primary_key=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    amount = db.Column(db.BigInteger, nullable=False)
     sender_locked_amount = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
