@@ -234,16 +234,17 @@ def get_accounts_with_pending_changes() -> Iterable[Tuple[int, int]]:
 
 @atomic
 def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
-    q = TransferRequest.query.filter_by(debtor_id=debtor_id, sender_creditor_id=creditor_id)
-    requests = q.with_for_update(skip_locked=True).all()
+    requests = TransferRequest.query.\
+        filter_by(debtor_id=debtor_id, sender_creditor_id=creditor_id).\
+        with_for_update(skip_locked=True).\
+        all()
     if requests:
-        transfer_request_ids = [r.transfer_request_id for r in requests]
         sender_account = _get_account((debtor_id, creditor_id), lock=True)
         new_objects = []
         for request in requests:
             new_objects.extend(_process_transfer_request(request, sender_account))
+            db.session.delete(request)
         db.session.bulk_save_objects(new_objects)
-        q.filter(TransferRequest.transfer_request_id.in_(transfer_request_ids)).delete(synchronize_session=False)
 
 
 @atomic
