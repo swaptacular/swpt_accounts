@@ -569,27 +569,31 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     current_ts = datetime.now(tz=timezone.utc)
     sender_account.locked_amount = new_locked_amount
     sender_account.pending_transfers_count += 1
-    sender_account.last_transfer_id += 1
-    pt = PreparedTransfer(
-        debtor_id=tr.debtor_id,
-        sender_creditor_id=tr.sender_creditor_id,
-        transfer_id=sender_account.last_transfer_id,
-        coordinator_type=tr.coordinator_type,
-        recipient_creditor_id=tr.recipient_creditor_id,
-        amount=amount,
-        sender_locked_amount=amount,
-        prepared_at_ts=current_ts,
-    )
-    pts = PreparedTransferSignal(
-        debtor_id=pt.debtor_id,
-        sender_creditor_id=pt.sender_creditor_id,
-        transfer_id=pt.transfer_id,
-        coordinator_type=pt.coordinator_type,
-        recipient_creditor_id=pt.recipient_creditor_id,
-        amount=pt.amount,
-        sender_locked_amount=pt.sender_locked_amount,
-        prepared_at_ts=pt.prepared_at_ts,
-        coordinator_id=tr.coordinator_id,
-        coordinator_request_id=tr.coordinator_request_id,
-    )
-    return [pt, pts]
+    if sender_account.last_transfer_id < MAX_INT64:
+        sender_account.last_transfer_id += 1
+    else:  # pragma: no cover
+        sender_account.last_transfer_id = MIN_INT64
+    return [
+        PreparedTransfer(
+            debtor_id=tr.debtor_id,
+            sender_creditor_id=tr.sender_creditor_id,
+            transfer_id=sender_account.last_transfer_id,
+            coordinator_type=tr.coordinator_type,
+            recipient_creditor_id=tr.recipient_creditor_id,
+            amount=amount,
+            sender_locked_amount=amount,
+            prepared_at_ts=current_ts,
+        ),
+        PreparedTransferSignal(
+            debtor_id=tr.debtor_id,
+            sender_creditor_id=tr.sender_creditor_id,
+            transfer_id=sender_account.last_transfer_id,
+            coordinator_type=tr.coordinator_type,
+            recipient_creditor_id=tr.recipient_creditor_id,
+            amount=amount,
+            sender_locked_amount=amount,
+            prepared_at_ts=current_ts,
+            coordinator_id=tr.coordinator_id,
+            coordinator_request_id=tr.coordinator_request_id,
+        ),
+    ]
