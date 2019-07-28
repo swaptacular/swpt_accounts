@@ -1,6 +1,5 @@
 import datetime
 import dramatiq
-from sqlalchemy.sql.expression import null
 from sqlalchemy.dialects import postgresql as pg
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
@@ -143,6 +142,11 @@ class TransferRequest(db.Model):
     __table_args__ = (
         db.CheckConstraint(min_amount > 0),
         db.CheckConstraint(min_amount <= max_amount),
+        {
+            'comment': 'Requests to create new `prepared_transfer` records are queued to this '
+                       'table. This allows multiple requests from one sender to be processed at '
+                       'once, reducing the lock contention on `account` records.'
+        }
     )
 
 
@@ -163,7 +167,7 @@ class PreparedTransfer(db.Model):
         nullable=False,
         comment='Indicates which subsystem has initiated the transfer and is responsible for '
                 'finalizing it. The value must be a valid python identifier, all lowercase, '
-                'no double underscores. Example: direct, circular.',
+                'no double underscores. Example: direct, interest, circular.',
     )
     recipient_creditor_id = db.Column(
         db.BigInteger,
@@ -188,6 +192,11 @@ class PreparedTransfer(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(sender_locked_amount > 0),
+        {
+            'comment': 'A prepared transfer represent a guarantee that a particular transfer of '
+                       'funds will be successful if ordered (committed). A record will remain in '
+                       'this table until the transfer has been commited or dismissed.'
+        }
     )
 
     sender_account = db.relationship(
@@ -211,6 +220,11 @@ class PendingChange(db.Model):
 
     __table_args__ = (
         db.CheckConstraint(unlocked_amount >= 0),
+        {
+            'comment': 'Changes to account record amounts are queued to this table. This '
+                       'allows multiple updates to one account to coalesce, thus reducing the '
+                       'lock contention.'
+        }
     )
 
 
