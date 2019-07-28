@@ -515,6 +515,9 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             error_code='ACC001',
             message='The sender account does not exist.',
         )
+    assert sender_account.debtor_id == tr.debtor_id
+    assert sender_account.creditor_id == tr.sender_creditor_id
+
     if tr.sender_creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
         return reject(
             error_code='ACC002',
@@ -525,24 +528,17 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             error_code='ACC003',
             message='Recipient and sender accounts are the same.',
         )
-
-    assert sender_account.debtor_id == tr.debtor_id
-    assert sender_account.creditor_id == tr.sender_creditor_id
     avl_balance = _get_available_balance(sender_account, tr.ignore_interest)
+
     if avl_balance < tr.min_amount:
         return reject(
             error_code='ACC004',
             message='The available balance is insufficient.',
             avl_balance=avl_balance,
         )
-    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and _get_account((tr.debtor_id, tr.recipient_creditor_id)) is None:
-        return reject(
-            error_code='ACC005',
-            message='The recipient account does not exist.',
-        )
-
     amount = min(avl_balance, tr.max_amount)
     new_locked_amount = sender_account.locked_amount + amount
+
     if new_locked_amount > MAX_INT64:  # pragma: no cover
         return reject(
             error_code='ACC006',
@@ -554,6 +550,11 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             error_code='ACC007',
             message='There are too many pending transfers.',
             pending_transfers_count=sender_account.pending_transfers_count,
+        )
+    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and _get_account((tr.debtor_id, tr.recipient_creditor_id)) is None:
+        return reject(
+            error_code='ACC005',
+            message='The recipient account does not exist.',
         )
 
     current_ts = datetime.now(tz=timezone.utc)
