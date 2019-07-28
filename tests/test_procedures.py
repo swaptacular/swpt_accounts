@@ -211,7 +211,7 @@ def test_capitalize_positive_interest(db_session, current_ts):
     p.capitalize_interest(D_ID, C_ID, 0)
     p.process_pending_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
-    assert abs(a.interest) <= p.TINY_POSITIVE_AMOUNT
+    assert abs(a.interest) <= 1.0
     assert 5608 <= a.principal <= 5612
 
 
@@ -232,7 +232,7 @@ def test_capitalize_negative_interest(db_session, current_ts):
     p.capitalize_interest(D_ID, C_ID, 0)
     p.process_pending_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
-    assert abs(a.interest) <= p.TINY_POSITIVE_AMOUNT
+    assert abs(a.interest) <= 1.0
     assert 4408 <= a.principal <= 4412
 
 
@@ -281,9 +281,7 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 1})
     p.delete_account_if_zeroed(D_ID, C_ID)
-    assert p.get_account(D_ID, C_ID) is None
-    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
-    assert p.get_account(D_ID, p.ROOT_CREDITOR_ID).principal == 1
+    assert p.get_account(D_ID, C_ID)
 
 
 def test_resurect_deleted_account(db_session, current_ts):

@@ -11,7 +11,6 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 
-TINY_POSITIVE_AMOUNT = 3  # should be at least `2`
 MAX_PENDING_TRANSFERS_COUNT = 1000
 
 TD_ZERO = timedelta(seconds=0)
@@ -135,12 +134,6 @@ def capitalize_interest(debtor_id: int,
         current_ts = current_ts or datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_account_accumulated_interest(account, current_ts))
 
-        # When the new account principal is positive and very close to
-        # zero, we make it a zero. This behavior allows us to reliably
-        # zero out the principal before deleting the account.
-        if creditor_id != ROOT_CREDITOR_ID and 0 < account.principal + amount <= TINY_POSITIVE_AMOUNT:
-            amount = -account.principal
-
         # Make sure `amount` and `-amount` are within INT64 limits.
         if amount > MAX_INT64:  # pragma: no cover
             amount = MAX_INT64
@@ -197,17 +190,12 @@ def make_debtor_payment(
 @atomic
 def delete_account_if_zeroed(debtor_id: int, creditor_id: int, ignore_after_ts: datetime = None) -> None:
     current_ts = datetime.now(tz=timezone.utc)
-    if ignore_after_ts and current_ts > ignore_after_ts:
-        return
-    account = _get_account((debtor_id, creditor_id))
-    if (account
-            and account.pending_transfers_count == 0
-            and account.locked_amount == 0
-            and 0 <= _calc_account_current_balance(account, current_ts) <= TINY_POSITIVE_AMOUNT):
-        if account.principal != 0:
-            capitalize_interest(debtor_id, creditor_id, 0, current_ts)
-            process_pending_changes(debtor_id, creditor_id)
-        if account.principal == 0:
+    if ignore_after_ts is None or current_ts <= ignore_after_ts:
+        account = _get_account((debtor_id, creditor_id))
+        if (account is not None
+                and account.pending_transfers_count == 0
+                and account.locked_amount == 0
+                and account.principal == 0):
             account.interest = 0.0
             account.status |= Account.STATUS_DELETED_FLAG
             _insert_account_change_signal(account, current_ts)
