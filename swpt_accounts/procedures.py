@@ -510,6 +510,38 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             details=kw,
         )]
 
+    def accept(amount: int) -> List[Union[PreparedTransfer, PreparedTransferSignal]]:
+        assert sender_account is not None
+        current_ts = datetime.now(tz=timezone.utc)
+        sender_account.locked_amount += amount
+        sender_account.pending_transfers_count += 1
+        if sender_account.last_transfer_id < MAX_INT64:
+            sender_account.last_transfer_id += 1
+        else:  # pragma: no cover
+            sender_account.last_transfer_id = MIN_INT64
+        return [
+            PreparedTransfer(
+                debtor_id=tr.debtor_id,
+                sender_creditor_id=tr.sender_creditor_id,
+                transfer_id=sender_account.last_transfer_id,
+                coordinator_type=tr.coordinator_type,
+                recipient_creditor_id=tr.recipient_creditor_id,
+                sender_locked_amount=amount,
+                prepared_at_ts=current_ts,
+            ),
+            PreparedTransferSignal(
+                debtor_id=tr.debtor_id,
+                sender_creditor_id=tr.sender_creditor_id,
+                transfer_id=sender_account.last_transfer_id,
+                coordinator_type=tr.coordinator_type,
+                recipient_creditor_id=tr.recipient_creditor_id,
+                sender_locked_amount=amount,
+                prepared_at_ts=current_ts,
+                coordinator_id=tr.coordinator_id,
+                coordinator_request_id=tr.coordinator_request_id,
+            ),
+        ]
+
     if sender_account is None:
         return reject(
             error_code='ACC001',
@@ -517,72 +549,40 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
         )
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
+    amount = min(_get_available_balance(sender_account, tr.ignore_interest), tr.max_amount)
 
-    if tr.sender_creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
+    if amount < tr.min_amount:
         return reject(
             error_code='ACC002',
+            message='The available balance is insufficient.',
+            avl_balance=amount,
+        )
+    if tr.sender_creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
+        return reject(
+            error_code='ACC003',
             message="The sender account can not be the debtor's account.",
         )
     if tr.sender_creditor_id == tr.recipient_creditor_id:  # pragma: no cover
         return reject(
-            error_code='ACC003',
+            error_code='ACC004',
             message='Recipient and sender accounts are the same.',
         )
-    avl_balance = _get_available_balance(sender_account, tr.ignore_interest)
-
-    if avl_balance < tr.min_amount:
+    if sender_account.locked_amount + amount > MAX_INT64:  # pragma: no cover
         return reject(
-            error_code='ACC004',
-            message='The available balance is insufficient.',
-            avl_balance=avl_balance,
-        )
-    amount = min(avl_balance, tr.max_amount)
-    new_locked_amount = sender_account.locked_amount + amount
-
-    if new_locked_amount > MAX_INT64:  # pragma: no cover
-        return reject(
-            error_code='ACC006',
+            error_code='ACC005',
             message='The locked amount is too big.',
-            locked_amount=new_locked_amount,
+            locked_amount=sender_account.locked_amount + amount,
         )
     if sender_account.pending_transfers_count >= MAX_PENDING_TRANSFERS_COUNT:  # pragma: no cover
         return reject(
-            error_code='ACC007',
+            error_code='ACC006',
             message='There are too many pending transfers.',
             pending_transfers_count=sender_account.pending_transfers_count,
         )
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and _get_account((tr.debtor_id, tr.recipient_creditor_id)) is None:
         return reject(
-            error_code='ACC005',
+            error_code='ACC007',
             message='The recipient account does not exist.',
         )
 
-    current_ts = datetime.now(tz=timezone.utc)
-    sender_account.locked_amount = new_locked_amount
-    sender_account.pending_transfers_count += 1
-    if sender_account.last_transfer_id < MAX_INT64:
-        sender_account.last_transfer_id += 1
-    else:  # pragma: no cover
-        sender_account.last_transfer_id = MIN_INT64
-    return [
-        PreparedTransfer(
-            debtor_id=tr.debtor_id,
-            sender_creditor_id=tr.sender_creditor_id,
-            transfer_id=sender_account.last_transfer_id,
-            coordinator_type=tr.coordinator_type,
-            recipient_creditor_id=tr.recipient_creditor_id,
-            sender_locked_amount=amount,
-            prepared_at_ts=current_ts,
-        ),
-        PreparedTransferSignal(
-            debtor_id=tr.debtor_id,
-            sender_creditor_id=tr.sender_creditor_id,
-            transfer_id=sender_account.last_transfer_id,
-            coordinator_type=tr.coordinator_type,
-            recipient_creditor_id=tr.recipient_creditor_id,
-            sender_locked_amount=amount,
-            prepared_at_ts=current_ts,
-            coordinator_id=tr.coordinator_id,
-            coordinator_request_id=tr.coordinator_request_id,
-        ),
-    ]
+    return accept(amount)
