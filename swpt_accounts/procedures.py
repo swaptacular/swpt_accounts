@@ -535,7 +535,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             message='The available balance is insufficient.',
             avl_balance=avl_balance,
         )
-    if not (tr.recipient_creditor_id == ROOT_CREDITOR_ID or _get_account((tr.debtor_id, tr.recipient_creditor_id))):
+    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and _get_account((tr.debtor_id, tr.recipient_creditor_id)) is None:
         return reject(
             error_code='ACC005',
             message='The recipient account does not exist.',
