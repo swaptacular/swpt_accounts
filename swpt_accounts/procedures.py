@@ -249,44 +249,34 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
 
 @atomic
 def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
-    changes = db.session.query(
-        PendingChange.change_id,
-        PendingChange.principal_delta,
-        PendingChange.interest_delta,
-        PendingChange.unlocked_amount,
-    ).\
-        filter(PendingChange.debtor_id == debtor_id).\
-        filter(PendingChange.creditor_id == creditor_id).\
+    changes = PendingChange.query.\
+        filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         with_for_update(skip_locked=True).\
         all()
     if changes:
         account = _get_or_create_account((debtor_id, creditor_id), lock=True)
         current_ts = datetime.now(tz=timezone.utc)
-        has_outgoing_transfers = any(c.unlocked_amount is not None and c.principal_delta < 0 for c in changes)
-        has_nonzero_deltas = any(c.principal_delta != 0 or c.interest_delta != 0 for c in changes)
-        if has_outgoing_transfers:
-            account.last_outgoing_transfer_date = current_ts.date()
-            assert has_nonzero_deltas
-        if has_nonzero_deltas:
+        current_date = current_ts.date()
+        principal_delta = interest_delta = 0
+        nonzero_deltas = False
+        for change in changes:
+            if change.principal_delta != 0 or change.interest_delta != 0:
+                nonzero_deltas = True
+                principal_delta += change.principal_delta
+                interest_delta += change.interest_delta
+            if change.unlocked_amount is not None:
+                account.locked_amount = max(0, account.locked_amount - change.unlocked_amount)
+                account.pending_transfers_count = max(0, account.pending_transfers_count - 1)
+                if change.principal_delta < 0:
+                    account.last_outgoing_transfer_date = current_date
+            db.session.delete(change)
+        if nonzero_deltas:
             _apply_account_change(
                 account=account,
-                principal_delta=sum(c.principal_delta for c in changes),
-                interest_delta=sum(c.interest_delta for c in changes),
+                principal_delta=principal_delta,
+                interest_delta=interest_delta,
                 current_ts=current_ts,
             )
-
-        # Changing `locked_amount` and `pending_transfers_count` after
-        # the call to `_apply_account_change` is OK, because these
-        # fields are not included in the `AccountChangeSignal`.
-        unlocked_amounts = [c.unlocked_amount for c in changes if c.unlocked_amount is not None]
-        account.locked_amount = max(0, account.locked_amount - sum(unlocked_amounts))
-        account.pending_transfers_count = max(0, account.pending_transfers_count - len(unlocked_amounts))
-
-        PendingChange.query.\
-            filter(PendingChange.debtor_id == debtor_id).\
-            filter(PendingChange.creditor_id == creditor_id).\
-            filter(PendingChange.change_id.in_(c.change_id for c in changes)).\
-            delete(synchronize_session=False)
 
 
 @atomic
