@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1d4014e82e4f
+Revision ID: 0c2cacaa5678
 Revises: 
-Create Date: 2019-07-28 01:35:35.904050
+Create Date: 2019-07-28 16:20:44.809612
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '1d4014e82e4f'
+revision = '0c2cacaa5678'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -36,7 +36,8 @@ def upgrade():
     sa.CheckConstraint('interest_rate > -100.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('pending_transfers_count >= 0'),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id'),
+    comment='Tells who owes what to whom.'
     )
     op.create_table('account_change_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -71,7 +72,8 @@ def upgrade():
     sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.locked_amount`, and `account.pending_transfers_count` must be decremented.'),
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('unlocked_amount >= 0'),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
+    comment='Changes to account record amounts are queued to this table. This allows multiple updates to one account to coalesce, thus reducing the lock contention.'
     )
     op.create_table('prepared_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -107,19 +109,21 @@ def upgrade():
     sa.Column('ignore_interest', sa.Boolean(), nullable=False),
     sa.CheckConstraint('min_amount <= max_amount'),
     sa.CheckConstraint('min_amount > 0'),
-    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_request_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_request_id'),
+    comment='Requests to create new `prepared_transfer` records are queued to this table. This allows multiple requests from one sender to be processed at once, reducing the lock contention on `account` records.'
     )
     op.create_table('prepared_transfer',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False, comment='The payer'),
     sa.Column('transfer_id', sa.BigInteger(), nullable=False, comment='Along with `debtor_id` and `sender_creditor_id` uniquely identifies a transfer'),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, circular.'),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, interest, circular.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False, comment='The payee'),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment="This amount has been added to sender's `account.locked_amount`. The actual transferred (committed) amount may not exceed this number."),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('sender_locked_amount > 0'),
     sa.ForeignKeyConstraint(['debtor_id', 'sender_creditor_id'], ['account.debtor_id', 'account.creditor_id'], ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id'),
+    comment='A prepared transfer represent a guarantee that a particular transfer of funds will be successful if ordered (committed). A record will remain in this table until the transfer has been commited or dismissed.'
     )
     # ### end Alembic commands ###
 

@@ -124,6 +124,9 @@ class Account(db.Model):
         db.CheckConstraint((interest_rate > -100.0) & (interest_rate <= 100.0)),
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(pending_transfers_count >= 0),
+        {
+            'comment': 'Tells who owes what to whom.'
+        }
     )
 
 
