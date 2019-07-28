@@ -65,7 +65,7 @@ class Account(db.Model):
         db.REAL,
         nullable=False,
         default=0.0,
-        comment='Annual rate (in percents) at which interest accumulates on the account',
+        comment='Annual rate (in percents) at which interest accumulates on the account.',
     )
     interest_rate_last_change_seqnum = db.Column(db.Integer)
     interest_rate_last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
@@ -81,7 +81,7 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='The total sum of all pending transfer locks for this account',
+        comment='The total sum of all pending transfer locks for this account.',
     )
     pending_transfers_count = db.Column(
         db.SmallInteger,
@@ -136,9 +136,22 @@ class TransferRequest(db.Model):
     transfer_request_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
-    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
-    min_amount = db.Column(db.BigInteger, nullable=False)
-    max_amount = db.Column(db.BigInteger, nullable=False)
+    coordinator_request_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='Along with `coordinator_type` and `coordinator_id` uniquely identifies the '
+                'initiator of the transfer.',
+    )
+    min_amount = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='`prepared_transfer.sender_locked_amount` must be no smaller than this value.',
+    )
+    max_amount = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='`prepared_transfer.sender_locked_amount` must be no bigger than this value.',
+    )
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     ignore_interest = db.Column(db.Boolean, nullable=False)
 
@@ -158,7 +171,7 @@ class PreparedTransfer(db.Model):
     sender_creditor_id = db.Column(
         db.BigInteger,
         primary_key=True,
-        comment='The payer',
+        comment='The payer.',
     )
     transfer_id = db.Column(
         db.BigInteger,
@@ -175,7 +188,7 @@ class PreparedTransfer(db.Model):
     recipient_creditor_id = db.Column(
         db.BigInteger,
         nullable=False,
-        comment='The payee',
+        comment='The payee.',
     )
     sender_locked_amount = db.Column(
         db.BigInteger,

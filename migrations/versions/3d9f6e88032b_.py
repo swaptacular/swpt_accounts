@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 0c2cacaa5678
+Revision ID: 3d9f6e88032b
 Revises: 
-Create Date: 2019-07-28 16:20:44.809612
+Create Date: 2019-07-28 16:58:30.917460
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '0c2cacaa5678'
+revision = '3d9f6e88032b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,11 +22,11 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False, comment='The total owed amount. Can be negative.'),
-    sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account'),
+    sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account.'),
     sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True),
     sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest`gets zeroed and added to the principal once in a while (like once per week).'),
-    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks for this account'),
+    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks for this account.'),
     sa.Column('pending_transfers_count', sa.SmallInteger(), nullable=False, comment='The number of pending transfers for this account.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `principal`, `interest_rate`, `interest`, or `status`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
@@ -102,9 +102,9 @@ def upgrade():
     sa.Column('transfer_request_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
-    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
-    sa.Column('min_amount', sa.BigInteger(), nullable=False),
-    sa.Column('max_amount', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False, comment='Along with `coordinator_type` and `coordinator_id` uniquely identifies the initiator of the transfer.'),
+    sa.Column('min_amount', sa.BigInteger(), nullable=False, comment='`prepared_transfer.sender_locked_amount` must be no smaller than this value.'),
+    sa.Column('max_amount', sa.BigInteger(), nullable=False, comment='`prepared_transfer.sender_locked_amount` must be no bigger than this value.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('ignore_interest', sa.Boolean(), nullable=False),
     sa.CheckConstraint('min_amount <= max_amount'),
@@ -114,10 +114,10 @@ def upgrade():
     )
     op.create_table('prepared_transfer',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False, comment='The payer'),
+    sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False, comment='The payer.'),
     sa.Column('transfer_id', sa.BigInteger(), nullable=False, comment='Along with `debtor_id` and `sender_creditor_id` uniquely identifies a transfer'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, interest, circular.'),
-    sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False, comment='The payee'),
+    sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False, comment='The payee.'),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment="This amount has been added to sender's `account.locked_amount`. The actual transferred (committed) amount may not exceed this number."),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('sender_locked_amount > 0'),
