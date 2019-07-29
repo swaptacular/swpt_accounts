@@ -190,7 +190,7 @@ def make_debtor_payment(
 def delete_account_if_zeroed(debtor_id: int, creditor_id: int, ignore_after_ts: datetime = None) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     if ignore_after_ts is None or current_ts <= ignore_after_ts:
-        account = _get_account((debtor_id, creditor_id))
+        account = _get_account((debtor_id, creditor_id), lock=True)
         if (account is not None
                 and account.pending_transfers_count == 0
                 and account.locked_amount == 0
