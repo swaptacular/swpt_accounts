@@ -88,7 +88,6 @@ def test_make_debtor_payment(db_session, amount):
     assert cts.sender_creditor_id == p.ROOT_CREDITOR_ID if amount > 0 else C_ID
     assert cts.recipient_creditor_id == C_ID if amount > 0 else p.ROOT_CREDITOR_ID
     assert cts.committed_amount == abs(amount)
-    assert cts.committed_transfer_id is None
     root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
     assert root_change.interest_delta == 0
@@ -443,7 +442,6 @@ def test_commit_prepared_transfer(db_session):
     assert cts.sender_creditor_id == C_ID
     assert cts.recipient_creditor_id == 1234
     assert cts.committed_amount == 40
-    assert cts.committed_transfer_id == pt.transfer_id
 
 
 def test_get_dead_transfers(db_session):

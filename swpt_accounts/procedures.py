@@ -417,7 +417,6 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
         recipient_creditor_id=pt.recipient_creditor_id,
         committed_at_ts=current_ts,
         committed_amount=committed_amount,
-        committed_transfer_id=pt.transfer_id,
         transfer_info=transfer_info,
     ))
     db.session.delete(pt)

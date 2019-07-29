@@ -295,5 +295,4 @@ class CommittedTransferSignal(Signal):
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
-    committed_transfer_id = db.Column(db.BigInteger)
     transfer_info = db.Column(pg.JSON, nullable=False, default={})
