@@ -110,7 +110,7 @@ def set_interest_rate(debtor_id: int,
     # capitalized every once in a while (like once a month).
     assert -100.0 < interest_rate <= 100.0
 
-    account = _get_account((debtor_id, creditor_id))
+    account = _get_account((debtor_id, creditor_id), lock=True)
     if account:
         this_event = (change_seqnum, change_ts)
         prev_event = (account.interest_rate_last_change_seqnum, account.interest_rate_last_change_ts)
