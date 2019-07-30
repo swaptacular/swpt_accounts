@@ -226,10 +226,10 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
         with_for_update(skip_locked=True).\
         all()
     if requests:
-        if creditor_id == ROOT_CREDITOR_ID:
-            sender_account = _get_or_create_account((debtor_id, creditor_id), lock=True)
-        else:
+        if creditor_id != ROOT_CREDITOR_ID:
             sender_account = _get_account((debtor_id, creditor_id), lock=True)
+        else:
+            sender_account = _get_or_create_account((debtor_id, creditor_id), lock=True)
         new_objects = []
         for request in requests:
             new_objects.extend(_process_transfer_request(request, sender_account))
