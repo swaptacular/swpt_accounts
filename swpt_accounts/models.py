@@ -52,6 +52,7 @@ class Account(db.Model):
     STATUS_DELETED_FLAG = 1
     STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 2
     STATUS_OVERFLOWN_FLAG = 4
+    STATUS_OWNED_BY_DEBTOR_FLAG = 8
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -117,7 +118,6 @@ class Account(db.Model):
     status = db.Column(
         db.SmallInteger,
         nullable=False,
-        default=0,
         comment='Additional account status flags.',
     )
     __table_args__ = (

@@ -446,7 +446,7 @@ def test_commit_prepared_transfer(db_session):
     assert cts.committed_amount == 40
 
 
-def test_commit_debtor_transfer(db_session):
+def test_commit_from_debtor_transfer(db_session):
     p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
     p.get_or_create_account(D_ID, C_ID)
     p.prepare_transfer(
@@ -486,6 +486,27 @@ def test_commit_debtor_transfer(db_session):
     assert cts.sender_creditor_id == p.ROOT_CREDITOR_ID
     assert cts.recipient_creditor_id == C_ID
     assert cts.committed_amount == 40
+
+
+def test_commit_to_debtor_transfer(db_session):
+    p.get_or_create_account(D_ID, C_ID)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 100})
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        recipient_creditor_id=p.ROOT_CREDITOR_ID,
+        ignore_interest=False,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
+    p.finalize_prepared_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 40)
+    assert CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one().committed_amount == 40
 
 
 def test_get_dead_transfers(db_session):

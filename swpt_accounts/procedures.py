@@ -18,6 +18,8 @@ TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
+DEFAULT_ACCOUNT_STATUS = 0
+
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
 # demurrage payments come from/to this account.
@@ -308,8 +310,19 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
     ))
 
 
+def _get_account_default_status(debtor_id: int, creditor_id: int) -> int:
+    if creditor_id == ROOT_CREDITOR_ID:
+        return DEFAULT_ACCOUNT_STATUS | Account.STATUS_OWNED_BY_DEBTOR_FLAG
+    else:
+        return DEFAULT_ACCOUNT_STATUS
+
+
 def _create_account(debtor_id: int, creditor_id: int) -> Account:
-    account = Account(debtor_id=debtor_id, creditor_id=creditor_id)
+    account = Account(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        status=_get_account_default_status(debtor_id, creditor_id),
+    )
     with db.retry_on_integrity_error():
         db.session.add(account)
     _insert_account_change_signal(account)
@@ -343,7 +356,7 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         account.principal = 0
         account.pending_transfers_count = 0
         account.locked_amount = 0
-        account.status = 0
+        account.status = _get_account_default_status(account.debtor_id, account.creditor_id)
         account.interest = 0.0
         account.interest_rate = 0.0
         account.interest_rate_last_change_seqnum = None
@@ -540,18 +553,42 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
         )
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
-    amount = min(_get_available_balance(sender_account, tr.ignore_interest), tr.max_amount)
+
+    if tr.sender_creditor_id == tr.recipient_creditor_id:  # pragma: no cover
+        return reject(
+            error_code='ACC003',
+            message='Recipient and sender accounts are the same.',
+        )
+
+    recipient_account = _get_account((tr.debtor_id, tr.recipient_creditor_id))
+    if recipient_account:
+        recipient_account_status = recipient_account.status
+    elif tr.recipient_creditor_id == ROOT_CREDITOR_ID:
+        recipient_account_status = _get_account_default_status(tr.debtor_id, tr.recipient_creditor_id)
+    else:
+        return reject(
+            error_code='ACC006',
+            message='The recipient account does not exist.',
+        )
+
+    avl_balance = _get_available_balance(sender_account, ignore_interest=False)
+
+    # If the recipient account is owned by the debtor, and there is a
+    # negative interest (demurrage) accumulated on sender's account --
+    # it gets ignored. This allows creditors to redeem their claims if
+    # full, given that the negative interest has not been capitalized
+    # yet.
+    if recipient_account_status & Account.STATUS_OWNED_BY_DEBTOR_FLAG:
+        avl_balance_no_interest = _get_available_balance(sender_account, ignore_interest=True)
+        avl_balance = avl_balance_no_interest if tr.ignore_interest else max(avl_balance, avl_balance_no_interest)
+
+    amount = min(avl_balance, tr.max_amount)
 
     if amount < tr.min_amount:
         return reject(
             error_code='ACC002',
             message='The available balance is insufficient.',
             avl_balance=amount,
-        )
-    if tr.sender_creditor_id == tr.recipient_creditor_id:  # pragma: no cover
-        return reject(
-            error_code='ACC003',
-            message='Recipient and sender accounts are the same.',
         )
     if sender_account.locked_amount + amount > MAX_INT64:  # pragma: no cover
         return reject(
@@ -564,11 +601,6 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             error_code='ACC005',
             message='There are too many pending transfers.',
             pending_transfers_count=sender_account.pending_transfers_count,
-        )
-    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and _get_account((tr.debtor_id, tr.recipient_creditor_id)) is None:
-        return reject(
-            error_code='ACC006',
-            message='The recipient account does not exist.',
         )
 
     return accept(amount)
