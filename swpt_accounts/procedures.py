@@ -117,11 +117,6 @@ def change_account_attributes(debtor_id: int,
         prev_event = (account.attributes_last_change_seqnum, account.attributes_last_change_ts)
         if _is_later_event(this_event, prev_event):
             _change_account_attributes(account, interest_rate, is_owned_by_debtor, change_seqnum, change_ts)
-            if creditor_id == ROOT_CREDITOR_ID:
-                # It is a nonsense to accumulate interest on debtor's
-                # own account. Therefore, we only pretend that the
-                # interest rate has been set, while leaving it zero.
-                account.interest_rate = 0.0
 
 
 @atomic
@@ -400,14 +395,20 @@ def _change_account_attributes(
         change_ts: datetime) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     account.interest = float(_calc_account_accumulated_interest(account, current_ts))
-    account.interest_rate = interest_rate
-    account.attributes_last_change_seqnum = change_seqnum
-    account.attributes_last_change_ts = change_ts
+    if account.creditor_id == ROOT_CREDITOR_ID:
+        # It is a nonsense to accumulate interest on debtor's own
+        # account. Therefore, we only pretend that the interest rate
+        # has been set, while leaving it zero.
+        account.interest_rate = 0.0
+    else:
+        account.interest_rate = interest_rate
     account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     if is_owned_by_debtor:
         account.status |= Account.STATUS_OWNED_BY_DEBTOR_FLAG
     else:
         account.status &= ~Account.STATUS_OWNED_BY_DEBTOR_FLAG
+    account.attributes_last_change_seqnum = change_seqnum
+    account.attributes_last_change_ts = change_ts
     _insert_account_change_signal(account, current_ts)
 
 
