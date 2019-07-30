@@ -11,7 +11,7 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 
-MAX_PENDING_TRANSFERS_COUNT = 1000
+MAX_PENDING_TRANSFERS_COUNT = 10000
 
 TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
@@ -226,7 +226,10 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
         with_for_update(skip_locked=True).\
         all()
     if requests:
-        sender_account = _get_account((debtor_id, creditor_id), lock=True)
+        if creditor_id == ROOT_CREDITOR_ID:
+            sender_account = _get_or_create_account((debtor_id, creditor_id), lock=True)
+        else:
+            sender_account = _get_account((debtor_id, creditor_id), lock=True)
         new_objects = []
         for request in requests:
             new_objects.extend(_process_transfer_request(request, sender_account))
@@ -360,6 +363,8 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
 
 
 def _get_available_balance(account_or_pk: AccountId, ignore_interest: bool) -> int:
+    if Account.get_pk_values(account_or_pk)[1] == ROOT_CREDITOR_ID:
+        return MAX_INT64
     avl_balance = 0
     account = _get_account(account_or_pk)
     if account:
@@ -542,11 +547,6 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             error_code='ACC002',
             message='The available balance is insufficient.',
             avl_balance=amount,
-        )
-    if tr.sender_creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
-        return reject(
-            error_code='ACC003',
-            message="The sender account can not be the debtor's account.",
         )
     if tr.sender_creditor_id == tr.recipient_creditor_id:  # pragma: no cover
         return reject(

@@ -189,25 +189,3 @@ def purge_deleted_account(
         creditor_id,
         if_deleted_before,
     )
-
-
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def make_debtor_payment(
-        coordinator_type: str,
-        debtor_id: int,
-        creditor_id: int,
-        amount: int,
-        transfer_info: dict = {}) -> None:
-
-    """Make a payment from the debtor's account to the given `(debtor_id,
-    creditor_id)` account.
-
-    """
-
-    procedures.make_debtor_payment(
-        coordinator_type,
-        debtor_id,
-        creditor_id,
-        amount,
-        transfer_info,
-    )

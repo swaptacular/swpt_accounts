@@ -59,15 +59,6 @@ def test_purge_deleted_account(db_session):
     )
 
 
-def test_make_debtor_payment(db_session):
-    a.make_debtor_payment(
-        coordinator_type='test',
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        amount=50,
-    )
-
-
 def test_delete_account_if_zeroed(db_session):
     a.delete_account_if_zeroed(
         debtor_id=D_ID,

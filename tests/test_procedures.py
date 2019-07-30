@@ -156,6 +156,8 @@ def test_negative_overflow(db_session):
 def test_get_available_balance(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
 
+    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, ignore_interest=True) == MAX_INT64
+    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, ignore_interest=False) == MAX_INT64
     assert p.get_available_balance(D_ID, C_ID, ignore_interest=True) == 0
     assert p.get_available_balance(D_ID, C_ID, ignore_interest=False) == 0
     p.get_or_create_account(D_ID, C_ID)
@@ -441,6 +443,48 @@ def test_commit_prepared_transfer(db_session):
     assert cts.coordinator_type == 'test'
     assert cts.sender_creditor_id == C_ID
     assert cts.recipient_creditor_id == 1234
+    assert cts.committed_amount == 40
+
+
+def test_commit_debtor_transfer(db_session):
+    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
+    p.get_or_create_account(D_ID, C_ID)
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        sender_creditor_id=p.ROOT_CREDITOR_ID,
+        recipient_creditor_id=C_ID,
+        ignore_interest=False,
+    )
+    p.process_transfer_requests(D_ID, p.ROOT_CREDITOR_ID)
+    assert len(RejectedTransferSignal.query.all()) == 0
+    assert len(PreparedTransferSignal.query.all()) == 1
+    pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=p.ROOT_CREDITOR_ID).one()
+    assert pt.debtor_id == D_ID
+    assert pt.sender_creditor_id == p.ROOT_CREDITOR_ID
+    assert pt.recipient_creditor_id == C_ID
+    assert pt.sender_locked_amount == 200
+    p.finalize_prepared_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 40)
+    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
+    p.process_pending_changes(D_ID, C_ID)
+    a1 = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
+    assert a1.locked_amount == 0
+    assert a1.pending_transfers_count == 0
+    assert a1.principal == -40
+    assert a1.interest == 0.0
+    a2 = p.get_account(D_ID, C_ID)
+    assert a2.locked_amount == 0
+    assert a2.pending_transfers_count == 0
+    assert a2.principal == 40
+    assert a2.interest == 0.0
+    cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
+    assert cts.coordinator_type == 'test'
+    assert cts.sender_creditor_id == p.ROOT_CREDITOR_ID
+    assert cts.recipient_creditor_id == C_ID
     assert cts.committed_amount == 40
 
 
