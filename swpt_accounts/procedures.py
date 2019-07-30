@@ -560,7 +560,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
 
     # We must ensure that the recipient account does exist. Notice
     # that transfers to the debtor's account must always be possible,
-    # even when the debtor's account has not been created yet.
+    # even if the debtor's account has not been created yet.
     recipient_account = _get_account((tr.debtor_id, tr.recipient_creditor_id))
     if recipient_account:
         recipient_account_status = recipient_account.status
