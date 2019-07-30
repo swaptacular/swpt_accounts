@@ -12,6 +12,7 @@ atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 
 MAX_PENDING_TRANSFERS_COUNT = 10000
+DEFAULT_ACCOUNT_STATUS = 0
 
 TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
@@ -184,6 +185,12 @@ def make_debtor_payment(
 
 @atomic
 def delete_account_if_zeroed(debtor_id: int, creditor_id: int, ignore_after_ts: datetime = None) -> None:
+    # We must not allow the deletion of the debtor's account, because
+    # transfers to this account should always be possible. Also, it is
+    # probably a good idea to preserve its status.
+    if creditor_id == ROOT_CREDITOR_ID:
+        return
+
     current_ts = datetime.now(tz=timezone.utc)
     if ignore_after_ts is None or current_ts <= ignore_after_ts:
         account = _get_account((debtor_id, creditor_id), lock=True)
@@ -222,10 +229,7 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
         with_for_update(skip_locked=True).\
         all()
     if requests:
-        if creditor_id != ROOT_CREDITOR_ID:
-            sender_account = _get_account((debtor_id, creditor_id), lock=True)
-        else:
-            sender_account = _get_or_create_account((debtor_id, creditor_id), lock=True)
+        sender_account = _get_account((debtor_id, creditor_id), lock=True)
         new_objects = []
         for request in requests:
             new_objects.extend(_process_transfer_request(request, sender_account))
@@ -304,19 +308,14 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
     ))
 
 
-def _get_account_default_status(debtor_id: int, creditor_id: int) -> int:
-    if creditor_id == ROOT_CREDITOR_ID:
-        return Account.STATUS_OWNED_BY_DEBTOR_FLAG
-    else:
-        return 0
-
-
 def _create_account(debtor_id: int, creditor_id: int) -> Account:
     account = Account(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
-        status=_get_account_default_status(debtor_id, creditor_id),
+        status=DEFAULT_ACCOUNT_STATUS,
     )
+    if creditor_id == ROOT_CREDITOR_ID:
+        account.status |= Account.STATUS_OWNED_BY_DEBTOR_FLAG
     with db.retry_on_integrity_error():
         db.session.add(account)
     _insert_account_change_signal(account)
@@ -350,7 +349,7 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         account.principal = 0
         account.pending_transfers_count = 0
         account.locked_amount = 0
-        account.status = _get_account_default_status(account.debtor_id, account.creditor_id)
+        account.status = DEFAULT_ACCOUNT_STATUS
         account.interest = 0.0
         account.interest_rate = 0.0
         account.attributes_last_change_seqnum = None
@@ -569,15 +568,9 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             message='Recipient and sender accounts are the same.',
         )
 
-    # We must ensure that the recipient account does exist. Notice
-    # that transfers to the debtor's account must always be possible,
-    # even if the debtor's account has not been created yet.
     recipient_account = _get_account((tr.debtor_id, tr.recipient_creditor_id))
-    if recipient_account:
-        recipient_account_status = recipient_account.status
-    elif tr.recipient_creditor_id == ROOT_CREDITOR_ID:
-        recipient_account_status = _get_account_default_status(tr.debtor_id, tr.recipient_creditor_id)
-    else:
+
+    if recipient_account is None:
         return reject(
             error_code='ACC003',
             message='The recipient account does not exist.',
@@ -590,7 +583,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     # it gets ignored. This allows creditors to redeem their claims in
     # full, given that the negative interest has not been capitalized
     # yet.
-    if recipient_account_status & Account.STATUS_OWNED_BY_DEBTOR_FLAG:
+    if recipient_account.status & Account.STATUS_OWNED_BY_DEBTOR_FLAG:
         avl_balance_no_interest = _get_available_balance(sender_account, ignore_interest=True)
         avl_balance = avl_balance_no_interest if tr.ignore_interest else max(avl_balance, avl_balance_no_interest)
 

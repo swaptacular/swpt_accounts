@@ -293,6 +293,12 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     assert p.get_account(D_ID, C_ID)
 
 
+def test_delete_debtor_account_failure(db_session, current_ts):
+    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
+    p.delete_account_if_zeroed(D_ID, p.ROOT_CREDITOR_ID)
+    assert p.get_account(D_ID, p.ROOT_CREDITOR_ID)
+
+
 def test_resurect_deleted_account(db_session, current_ts):
     p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
@@ -480,6 +486,7 @@ def test_commit_from_debtor_transfer(db_session):
     p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.process_pending_changes(D_ID, C_ID)
     a1 = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
+    assert a1.status & Account.STATUS_OWNED_BY_DEBTOR_FLAG
     assert a1.locked_amount == 0
     assert a1.pending_transfers_count == 0
     assert a1.principal == -40
@@ -497,6 +504,7 @@ def test_commit_from_debtor_transfer(db_session):
 
 
 def test_commit_to_debtor_transfer(db_session):
+    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
     p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 100})
