@@ -347,7 +347,7 @@ def test_prepare_transfer_account_does_not_exist(db_session):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.details['error_code'] == 'ACC006'
+    assert rts.details['error_code'] == 'ACC003'
 
 
 def test_prepare_transfer_success(db_session):
