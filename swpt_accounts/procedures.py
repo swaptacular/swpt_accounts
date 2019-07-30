@@ -18,8 +18,6 @@ TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
-DEFAULT_ACCOUNT_STATUS = 0
-
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
 # demurrage payments come from/to this account.
@@ -312,9 +310,9 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
 
 def _get_account_default_status(debtor_id: int, creditor_id: int) -> int:
     if creditor_id == ROOT_CREDITOR_ID:
-        return DEFAULT_ACCOUNT_STATUS | Account.STATUS_OWNED_BY_DEBTOR_FLAG
+        return Account.STATUS_OWNED_BY_DEBTOR_FLAG
     else:
-        return DEFAULT_ACCOUNT_STATUS
+        return 0
 
 
 def _create_account(debtor_id: int, creditor_id: int) -> Account:
