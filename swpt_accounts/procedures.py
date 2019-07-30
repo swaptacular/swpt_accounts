@@ -99,11 +99,12 @@ def finalize_prepared_transfer(debtor_id: int,
 
 
 @atomic
-def set_interest_rate(debtor_id: int,
-                      creditor_id: int,
-                      interest_rate: float,
-                      change_seqnum: int,
-                      change_ts: datetime) -> None:
+def change_account_attributes(debtor_id: int,
+                              creditor_id: int,
+                              interest_rate: float,
+                              is_owned_by_debtor: bool,
+                              change_seqnum: int,
+                              change_ts: datetime) -> None:
     # Too big interest rates can cause account balance overflows. To
     # prevent this, the interest rates should be kept within
     # reasonable limits, and the accumulated interest should be
@@ -113,9 +114,9 @@ def set_interest_rate(debtor_id: int,
     account = _get_account((debtor_id, creditor_id), lock=True)
     if account:
         this_event = (change_seqnum, change_ts)
-        prev_event = (account.interest_rate_last_change_seqnum, account.interest_rate_last_change_ts)
+        prev_event = (account.attributes_last_change_seqnum, account.attributes_last_change_ts)
         if _is_later_event(this_event, prev_event):
-            _change_interest_rate(account, interest_rate, change_seqnum, change_ts)
+            _change_account_attributes(account, interest_rate, is_owned_by_debtor, change_seqnum, change_ts)
             if creditor_id == ROOT_CREDITOR_ID:
                 # It is a nonsense to accumulate interest on debtor's
                 # own account. Therefore, we only pretend that the
@@ -357,8 +358,8 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         account.status = _get_account_default_status(account.debtor_id, account.creditor_id)
         account.interest = 0.0
         account.interest_rate = 0.0
-        account.interest_rate_last_change_seqnum = None
-        account.interest_rate_last_change_ts = None
+        account.attributes_last_change_seqnum = None
+        account.attributes_last_change_ts = None
         account.last_outgoing_transfer_date = None
         _insert_account_change_signal(account)
 
@@ -391,13 +392,22 @@ def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -
     return _calc_account_current_balance(account, current_ts) - account.principal
 
 
-def _change_interest_rate(account: Account, interest_rate: float, change_seqnum: int, change_ts: datetime) -> None:
+def _change_account_attributes(
+        account: Account,
+        interest_rate: float,
+        is_owned_by_debtor: bool,
+        change_seqnum: int,
+        change_ts: datetime) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     account.interest = float(_calc_account_accumulated_interest(account, current_ts))
     account.interest_rate = interest_rate
-    account.interest_rate_last_change_seqnum = change_seqnum
-    account.interest_rate_last_change_ts = change_ts
+    account.attributes_last_change_seqnum = change_seqnum
+    account.attributes_last_change_ts = change_ts
     account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    if is_owned_by_debtor:
+        account.status |= Account.STATUS_OWNED_BY_DEBTOR_FLAG
+    else:
+        account.status &= ~Account.STATUS_OWNED_BY_DEBTOR_FLAG
     _insert_account_change_signal(account, current_ts)
 
 

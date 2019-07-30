@@ -68,8 +68,6 @@ class Account(db.Model):
         default=0.0,
         comment='Annual rate (in percents) at which interest accumulates on the account.',
     )
-    interest_rate_last_change_seqnum = db.Column(db.Integer)
-    interest_rate_last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
     interest = db.Column(
         db.FLOAT,
         nullable=False,
@@ -120,6 +118,8 @@ class Account(db.Model):
         nullable=False,
         comment='Additional account status flags.',
     )
+    attributes_last_change_seqnum = db.Column(db.Integer)
+    attributes_last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
     __table_args__ = (
         db.CheckConstraint((interest_rate > -100.0) & (interest_rate <= 100.0)),
         db.CheckConstraint(locked_amount >= 0),

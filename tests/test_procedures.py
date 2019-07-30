@@ -28,8 +28,8 @@ def test_get_or_create_account(db_session):
     assert a.locked_amount == 0
     assert a.pending_transfers_count == 0
     assert a.interest_rate == 0.0
-    assert a.interest_rate_last_change_seqnum is None
-    assert a.interest_rate_last_change_ts is None
+    assert a.attributes_last_change_seqnum is None
+    assert a.attributes_last_change_ts is None
     assert a.last_outgoing_transfer_date is None
     acs = AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert acs.last_outgoing_transfer_date is None
@@ -41,27 +41,35 @@ def test_get_or_create_account(db_session):
 
 def test_set_interest_rate(db_session, current_ts):
     # The account does not exist.
-    p.set_interest_rate(D_ID, C_ID, 7.0, 665, current_ts)
+    p.change_account_attributes(D_ID, C_ID, 7.0, False, 665, current_ts)
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountChangeSignal.query.all()) == 0
 
     # The account does exist.
     p.get_or_create_account(D_ID, C_ID)
-    p.set_interest_rate(D_ID, C_ID, 7.0, 666, current_ts)
+    p.change_account_attributes(D_ID, C_ID, 7.0, False, 666, current_ts)
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
     assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    assert not a.status & Account.STATUS_OWNED_BY_DEBTOR_FLAG
     assert len(AccountChangeSignal.query.all()) == 2
 
     # Older event
-    p.set_interest_rate(D_ID, C_ID, 8.0, 665, current_ts)
+    p.change_account_attributes(D_ID, C_ID, 8.0, False, 665, current_ts)
     assert p.get_account(D_ID, C_ID).interest_rate == 7.0
     assert len(AccountChangeSignal.query.all()) == 2
+
+    # Set is_owned_by_debtor=True attribute
+    p.change_account_attributes(D_ID, C_ID, 9.0, True, 667, current_ts)
+    a = p.get_account(D_ID, C_ID)
+    assert a.interest_rate == 9.0
+    assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    assert len(AccountChangeSignal.query.all()) == 3
 
 
 def test_set_interest_rate_on_self(db_session, current_ts):
     p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
-    p.set_interest_rate(D_ID, p.ROOT_CREDITOR_ID, 7.0, 666, current_ts)
+    p.change_account_attributes(D_ID, p.ROOT_CREDITOR_ID, 7.0, False, 666, current_ts)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert a.interest_rate == 0.0
     assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG

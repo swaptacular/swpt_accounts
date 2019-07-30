@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 089a4aa820f9
+Revision ID: bee08b0faf95
 Revises: 
-Create Date: 2019-07-30 17:52:57.262707
+Create Date: 2019-07-30 21:02:58.232588
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '089a4aa820f9'
+revision = 'bee08b0faf95'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,8 +23,6 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False, comment='The total owed amount. Can be negative.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account.'),
-    sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True),
-    sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest`gets zeroed and added to the principal once in a while (like once per week).'),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks for this account.'),
     sa.Column('pending_transfers_count', sa.SmallInteger(), nullable=False, comment='The number of pending transfers for this account.'),
@@ -33,6 +31,8 @@ def upgrade():
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. This field is not updated on demurrage payments.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. Must never decrease.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
+    sa.Column('attributes_last_change_seqnum', sa.Integer(), nullable=True),
+    sa.Column('attributes_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True),
     sa.CheckConstraint('interest_rate > -100.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('pending_transfers_count >= 0'),
