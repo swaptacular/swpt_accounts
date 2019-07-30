@@ -120,11 +120,13 @@ class Account(db.Model):
     )
     attributes_last_change_seqnum = db.Column(
         db.Integer,
-        comment='Updated on every change of account attributes (the `interest_rate` for example).',
+        comment='Updated on each change of account attributes (the `interest_rate` for example), '
+                'made on a request by the debtor administration subsystem.',
     )
     attributes_last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
-        comment='Updated on every change of account attributes (the `interest_rate` for example).',
+        comment='Updated on each change of account attributes (the `interest_rate` for example), '
+                'made on a request by the debtor administration subsystem.',
     )
     __table_args__ = (
         db.CheckConstraint((interest_rate > -100.0) & (interest_rate <= 100.0)),
