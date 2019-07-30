@@ -550,24 +550,24 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
         )
     if tr.sender_creditor_id == tr.recipient_creditor_id:  # pragma: no cover
         return reject(
-            error_code='ACC004',
+            error_code='ACC003',
             message='Recipient and sender accounts are the same.',
         )
     if sender_account.locked_amount + amount > MAX_INT64:  # pragma: no cover
         return reject(
-            error_code='ACC005',
+            error_code='ACC004',
             message='The locked amount is too big.',
             locked_amount=sender_account.locked_amount + amount,
         )
     if sender_account.pending_transfers_count >= MAX_PENDING_TRANSFERS_COUNT:  # pragma: no cover
         return reject(
-            error_code='ACC006',
+            error_code='ACC005',
             message='There are too many pending transfers.',
             pending_transfers_count=sender_account.pending_transfers_count,
         )
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and _get_account((tr.debtor_id, tr.recipient_creditor_id)) is None:
         return reject(
-            error_code='ACC007',
+            error_code='ACC006',
             message='The recipient account does not exist.',
         )
 
