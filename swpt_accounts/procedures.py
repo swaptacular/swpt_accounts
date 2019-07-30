@@ -575,7 +575,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
 
     # If the recipient account is owned by the debtor, and there is a
     # negative interest (demurrage) accumulated on sender's account --
-    # it gets ignored. This allows creditors to redeem their claims if
+    # it gets ignored. This allows creditors to redeem their claims in
     # full, given that the negative interest has not been capitalized
     # yet.
     if recipient_account_status & Account.STATUS_OWNED_BY_DEBTOR_FLAG:
