@@ -118,8 +118,14 @@ class Account(db.Model):
         nullable=False,
         comment='Additional account status flags.',
     )
-    attributes_last_change_seqnum = db.Column(db.Integer)
-    attributes_last_change_ts = db.Column(db.TIMESTAMP(timezone=True))
+    attributes_last_change_seqnum = db.Column(
+        db.Integer,
+        comment='Updated on every change in account attributes (the `interest_rate` for example).',
+    )
+    attributes_last_change_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        comment='Updated on every change in account attributes (the `interest_rate` for example).',
+    )
     __table_args__ = (
         db.CheckConstraint((interest_rate > -100.0) & (interest_rate <= 100.0)),
         db.CheckConstraint(locked_amount >= 0),
