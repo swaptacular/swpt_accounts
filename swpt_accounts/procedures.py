@@ -105,6 +105,12 @@ def change_account_attributes(debtor_id: int,
                               is_owned_by_debtor: bool,
                               change_seqnum: int,
                               change_ts: datetime) -> None:
+    # We do not allow changing attributes on the debtor's account. For
+    # example, it would stupid to accumulate interest on debtor's own
+    # account. Also, changing the `is_owned_by_debtor` flag is most
+    # probably not a good idea.
+    assert creditor_id != ROOT_CREDITOR_ID
+
     # Too big interest rates can cause account balance overflows. To
     # prevent this, the interest rates should be kept within
     # reasonable limits, and the accumulated interest should be
@@ -366,8 +372,12 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
 
 
 def _get_available_balance(account_or_pk: AccountId, ignore_interest: bool) -> int:
+    # We must make sure that the debtor's account has a virtually
+    # unlimited available balance at all times, because it issuers all
+    # the money in the system.
     if Account.get_pk_values(account_or_pk)[1] == ROOT_CREDITOR_ID:
         return MAX_INT64
+
     avl_balance = 0
     account = _get_account(account_or_pk)
     if account:
@@ -391,13 +401,7 @@ def _change_account_attributes(
         change_ts: datetime) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     account.interest = float(_calc_account_accumulated_interest(account, current_ts))
-
-    # It is a nonsense to accumulate interest on debtor's own
-    # account. Therefore, for the debtor's account we only pretend
-    # that the interest rate has been set, while leaving it zero.
-    if account.creditor_id != ROOT_CREDITOR_ID:
-        account.interest_rate = interest_rate
-
+    account.interest_rate = interest_rate
     account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     if is_owned_by_debtor:
         account.status |= Account.STATUS_OWNED_BY_DEBTOR_FLAG
