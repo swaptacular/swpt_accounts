@@ -89,13 +89,14 @@ def finalize_prepared_transfer(debtor_id: int,
                                transfer_id: int,
                                committed_amount: int,
                                transfer_info: dict = {}) -> None:
-    assert committed_amount >= 0
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
         if committed_amount == 0:
             _delete_prepared_transfer(pt)
-        else:
+        elif committed_amount > 0:
             _commit_prepared_transfer(pt, committed_amount, transfer_info)
+        else:
+            raise Exception('The committed amount is negative.')
 
 
 @atomic
@@ -105,11 +106,12 @@ def change_account_attributes(debtor_id: int,
                               is_owned_by_debtor: bool,
                               change_seqnum: int,
                               change_ts: datetime) -> None:
-    # We do not support changing attributes on the debtor's
-    # account. For example, it is stupid to accumulate interest on
-    # debtor's own account. Also, changing the `is_owned_by_debtor`
-    # flag is most probably not a good idea.
-    assert creditor_id != ROOT_CREDITOR_ID
+    # We do not allow changing attributes on the debtor's account
+    # because: 1) It is a nonsense to accumulate interest on debtor's
+    # own account. 2) Changing the `is_owned_by_debtor` flag is almost
+    # certainly a very bad idea.
+    if creditor_id == ROOT_CREDITOR_ID:
+        raise Exception("Changing attributes on this account is forbidden.")
 
     # Too big interest rates can cause account balance overflows. To
     # prevent this, the interest rates should be kept within

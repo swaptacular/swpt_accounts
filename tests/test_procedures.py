@@ -67,6 +67,11 @@ def test_set_interest_rate(db_session, current_ts):
     assert len(AccountChangeSignal.query.all()) == 3
 
 
+def test_change_attributes_on_debtor_account(db_session, current_ts):
+    with pytest.raises(Exception):
+        p.change_account_attributes(D_ID, p.ROOT_CREDITOR_ID, 7.0, False, 666, current_ts)
+
+
 AMOUNT = 50000
 
 
@@ -396,6 +401,8 @@ def test_prepare_transfer_success(db_session):
     assert pt.sender_locked_amount == pts.sender_locked_amount
 
     # Discard the transfer.
+    with pytest.raises(Exception):
+        p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, -1)
     p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, 0)
     p.process_pending_changes(D_ID, 1234)
     p.process_pending_changes(D_ID, C_ID)
