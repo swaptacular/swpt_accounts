@@ -143,6 +143,7 @@ def capitalize_interest(debtor_id: int,
             amount = MAX_INT64
         if amount < -MAX_INT64:  # pragma: no cover
             amount = -MAX_INT64
+
         if abs(amount) >= positive_threshold:
             make_debtor_payment('interest', debtor_id, creditor_id, amount)
 
