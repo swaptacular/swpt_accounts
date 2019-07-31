@@ -393,11 +393,13 @@ def _change_account_attributes(
         change_ts: datetime) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     account.interest = float(_calc_account_accumulated_interest(account, current_ts))
+
+    # It is a nonsense to accumulate interest on debtor's own
+    # account. Therefore, for the debtor's account we only pretend
+    # that the interest rate has been set, while leaving it zero.
     if account.creditor_id != ROOT_CREDITOR_ID:
-        # It is a nonsense to accumulate interest on debtor's own
-        # account. Therefore, for the debtor's account we only pretend
-        # that the interest rate has been set, while leaving it zero.
         account.interest_rate = interest_rate
+
     account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     if is_owned_by_debtor:
         account.status |= Account.STATUS_OWNED_BY_DEBTOR_FLAG
