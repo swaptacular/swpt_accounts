@@ -525,7 +525,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     def accept(amount: int) -> List[Union[PreparedTransfer, PreparedTransferSignal]]:
         assert sender_account is not None
         current_ts = datetime.now(tz=timezone.utc)
-        sender_account.locked_amount += amount
+        sender_account.locked_amount = min(sender_account.locked_amount + amount, MAX_INT64)
         sender_account.pending_transfers_count += 1
         if sender_account.last_transfer_id < MAX_INT64:
             sender_account.last_transfer_id += 1
@@ -595,15 +595,9 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             message='The available balance is insufficient.',
             avl_balance=amount,
         )
-    if sender_account.locked_amount + amount > MAX_INT64:  # pragma: no cover
-        return reject(
-            error_code='ACC005',
-            message='The locked amount is too big.',
-            locked_amount=sender_account.locked_amount + amount,
-        )
     if sender_account.pending_transfers_count >= MAX_PENDING_TRANSFERS_COUNT:  # pragma: no cover
         return reject(
-            error_code='ACC006',
+            error_code='ACC005',
             message='There are too many pending transfers.',
             pending_transfers_count=sender_account.pending_transfers_count,
         )
