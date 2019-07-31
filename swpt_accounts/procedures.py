@@ -5,13 +5,12 @@ from decimal import Decimal
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, CommittedTransferSignal, PendingChange, TransferRequest, increment_seqnum, \
-    MIN_INT64, MAX_INT64
+    MAX_INT32, MIN_INT64, MAX_INT64
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 
-MAX_PENDING_TRANSFERS_COUNT = 10000
 DEFAULT_ACCOUNT_STATUS = 0
 
 TD_ZERO = timedelta(seconds=0)
@@ -595,7 +594,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             message='The available balance is insufficient.',
             avl_balance=amount,
         )
-    if sender_account.pending_transfers_count >= MAX_PENDING_TRANSFERS_COUNT:  # pragma: no cover
+    if sender_account.pending_transfers_count >= MAX_INT32:  # pragma: no cover
         return reject(
             error_code='ACC005',
             message='There are too many pending transfers.',

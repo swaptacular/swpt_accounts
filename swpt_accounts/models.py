@@ -83,7 +83,7 @@ class Account(db.Model):
         comment='The total sum of all pending transfer locks for this account.',
     )
     pending_transfers_count = db.Column(
-        db.SmallInteger,
+        db.Integer,
         nullable=False,
         default=0,
         comment='The number of pending transfers for this account.',
