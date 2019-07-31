@@ -313,8 +313,6 @@ def _create_account(debtor_id: int, creditor_id: int) -> Account:
         creditor_id=creditor_id,
         status=DEFAULT_ACCOUNT_STATUS,
     )
-    if creditor_id == ROOT_CREDITOR_ID:
-        account.status |= Account.STATUS_OWNED_BY_DEBTOR_FLAG
     with db.retry_on_integrity_error():
         db.session.add(account)
     _insert_account_change_signal(account)
