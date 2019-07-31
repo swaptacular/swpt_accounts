@@ -514,7 +514,7 @@ def test_commit_to_debtor_account(db_session):
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
-    assert pt.sender_locked_amount == 50
+    assert pt.sender_locked_amount == 200
     p.finalize_prepared_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 40)
     assert CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one().committed_amount == 40
 
