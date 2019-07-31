@@ -105,10 +105,10 @@ def change_account_attributes(debtor_id: int,
                               is_owned_by_debtor: bool,
                               change_seqnum: int,
                               change_ts: datetime) -> None:
-    # We do not allow changing attributes on the debtor's account. For
-    # example, it would stupid to accumulate interest on debtor's own
-    # account. Also, changing the `is_owned_by_debtor` flag is most
-    # probably not a good idea.
+    # We do not support changing attributes on the debtor's
+    # account. For example, it is stupid to accumulate interest on
+    # debtor's own account. Also, changing the `is_owned_by_debtor`
+    # flag is most probably not a good idea.
     assert creditor_id != ROOT_CREDITOR_ID
 
     # Too big interest rates can cause account balance overflows. To
@@ -156,12 +156,6 @@ def make_debtor_payment(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert -MAX_INT64 <= amount <= MAX_INT64
 
-    # It could happen that the debtor must pay himself, for example,
-    # when `capitalize_interest` is called for the debtor's
-    # account. In this case we will simply discard the interest
-    # accumulated on the account.
-    is_self_payment = creditor_id == ROOT_CREDITOR_ID
-
     if amount > 0:
         # The debtor pays the creditor.
         _force_transfer(
@@ -170,7 +164,7 @@ def make_debtor_payment(
             sender_creditor_id=ROOT_CREDITOR_ID,
             recipient_creditor_id=creditor_id,
             committed_at_ts=datetime.now(tz=timezone.utc),
-            committed_amount=0 if is_self_payment else amount,
+            committed_amount=amount,
             transfer_info=transfer_info,
             recipient_interest_delta=0 if coordinator_type != 'interest' else -amount,
         )
@@ -182,7 +176,7 @@ def make_debtor_payment(
             sender_creditor_id=creditor_id,
             recipient_creditor_id=ROOT_CREDITOR_ID,
             committed_at_ts=datetime.now(tz=timezone.utc),
-            committed_amount=0 if is_self_payment else -amount,
+            committed_amount=-amount,
             transfer_info=transfer_info,
             sender_interest_delta=0 if coordinator_type != 'interest' else -amount,
         )
@@ -191,8 +185,9 @@ def make_debtor_payment(
 @atomic
 def delete_account_if_zeroed(debtor_id: int, creditor_id: int, ignore_after_ts: datetime = None) -> None:
     # We must not allow the deletion of the debtor's account, because
-    # transfers to this account should always be possible. Also, it is
-    # probably a good idea to preserve its status.
+    # transfers to this account should always be possible. Also, we
+    # want to preserve the status flags (the `STATUS_OVERFLOWN_FLAG`
+    # for example).
     if creditor_id == ROOT_CREDITOR_ID:
         return
 
@@ -375,7 +370,8 @@ def _get_available_balance(account_or_pk: AccountId, ignore_interest: bool) -> i
     # We must make sure that the debtor's account has a virtually
     # unlimited available balance at all times, because it issuers all
     # the money in the system.
-    if Account.get_pk_values(account_or_pk)[1] == ROOT_CREDITOR_ID:
+    debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
+    if creditor_id == ROOT_CREDITOR_ID:
         return MAX_INT64
 
     avl_balance = 0

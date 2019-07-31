@@ -67,11 +67,6 @@ def test_set_interest_rate(db_session, current_ts):
     assert len(AccountChangeSignal.query.all()) == 3
 
 
-def test_change_attributes_on_debtor_account(db_session, current_ts):
-    with pytest.raises(Exception):
-        p.change_account_attributes(D_ID, p.ROOT_CREDITOR_ID, 7.0, False, 666, current_ts)
-
-
 AMOUNT = 50000
 
 
