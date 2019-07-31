@@ -25,7 +25,7 @@ def test_process_transfers_transfer_requests(app, db_session):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
-        ignore_interest=False,
+        always_include_interest=False,
     )
     assert len(TransferRequest.query.all()) == 1
     runner = app.test_cli_runner()
