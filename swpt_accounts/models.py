@@ -160,7 +160,6 @@ class TransferRequest(db.Model):
         comment='`prepared_transfer.sender_locked_amount` must be no bigger than this value.',
     )
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    always_include_interest = db.Column(db.Boolean, nullable=False)
 
     __table_args__ = (
         db.CheckConstraint(min_amount > 0),

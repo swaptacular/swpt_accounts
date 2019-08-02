@@ -309,7 +309,6 @@ def test_prepare_transfer_insufficient_funds(db_session):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
-        always_include_interest=False,
     )
     p.process_transfer_requests(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
@@ -341,7 +340,6 @@ def test_prepare_transfer_account_does_not_exist(db_session):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
-        always_include_interest=False,
     )
     p.process_transfer_requests(D_ID, C_ID)
     rts = RejectedTransferSignal.query.one()
@@ -368,7 +366,6 @@ def test_prepare_transfer_success(db_session):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
-        always_include_interest=False,
     )
     p.process_transfer_requests(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
@@ -423,7 +420,6 @@ def test_commit_prepared_transfer(db_session):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
-        always_include_interest=False,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
@@ -464,30 +460,6 @@ def test_commit_to_debtor_account(db_session):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=p.ROOT_CREDITOR_ID,
-        always_include_interest=False,
-    )
-    p.process_transfer_requests(D_ID, C_ID)
-    pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
-    assert pt.sender_locked_amount == 50
-    p.finalize_prepared_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 40)
-    assert CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one().committed_amount == 40
-
-
-def test_commit_to_debtor_account_with_always_include_interest(db_session):
-    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
-    p.get_or_create_account(D_ID, C_ID)
-    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    q.update({Account.principal: 200, Account.interest: -150.0})
-    p.prepare_transfer(
-        coordinator_type='test',
-        coordinator_id=1,
-        coordinator_request_id=2,
-        min_amount=1,
-        max_amount=200,
-        debtor_id=D_ID,
-        sender_creditor_id=C_ID,
-        recipient_creditor_id=p.ROOT_CREDITOR_ID,
-        always_include_interest=True,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()

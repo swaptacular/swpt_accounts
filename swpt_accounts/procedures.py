@@ -61,8 +61,7 @@ def prepare_transfer(coordinator_type: str,
                      max_amount: int,
                      debtor_id: int,
                      sender_creditor_id: int,
-                     recipient_creditor_id: int,
-                     always_include_interest: bool) -> None:
+                     recipient_creditor_id: int) -> None:
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 < min_amount <= max_amount <= MAX_INT64
@@ -79,7 +78,6 @@ def prepare_transfer(coordinator_type: str,
         max_amount=max_amount,
         sender_creditor_id=sender_creditor_id,
         recipient_creditor_id=recipient_creditor_id,
-        always_include_interest=always_include_interest,
     ))
 
 
