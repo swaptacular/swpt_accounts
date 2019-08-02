@@ -270,7 +270,9 @@ def test_delete_account_negative_balance(db_session):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: -1})
     p.delete_account_if_zeroed(D_ID, C_ID)
-    assert p.get_account(D_ID, C_ID)
+    a = p.get_account(D_ID, C_ID)
+    assert a is not None
+    assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
 
 def test_delete_account_tiny_positive_balance(db_session, current_ts):
@@ -278,7 +280,9 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 1})
     p.delete_account_if_zeroed(D_ID, C_ID)
-    assert p.get_account(D_ID, C_ID)
+    a = p.get_account(D_ID, C_ID)
+    assert a is not None
+    assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
 
 def test_delete_debtor_account_failure(db_session, current_ts):

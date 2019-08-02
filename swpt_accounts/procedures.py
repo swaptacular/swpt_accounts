@@ -11,7 +11,9 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 
-DEFAULT_ACCOUNT_STATUS = 0
+PRISTINE_ACCOUNT_STATUS = 0
+RETAINED_ACCOUNT_STATUS_FLAGS = Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+RESURRECTED_ACCOUNT_STATUS = PRISTINE_ACCOUNT_STATUS & ~RETAINED_ACCOUNT_STATUS_FLAGS
 
 TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
@@ -311,7 +313,7 @@ def _create_account(debtor_id: int, creditor_id: int) -> Account:
     account = Account(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
-        status=DEFAULT_ACCOUNT_STATUS,
+        status=PRISTINE_ACCOUNT_STATUS,
     )
     with db.retry_on_integrity_error():
         db.session.add(account)
@@ -346,7 +348,7 @@ def _resurrect_account_if_deleted(account: Account) -> None:
         account.principal = 0
         account.pending_transfers_count = 0
         account.locked_amount = 0
-        account.status = DEFAULT_ACCOUNT_STATUS
+        account.status = account.status & RETAINED_ACCOUNT_STATUS_FLAGS | RESURRECTED_ACCOUNT_STATUS
         account.interest = 0.0
         account.interest_rate = 0.0
         account.attributes_last_change_seqnum = None
