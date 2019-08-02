@@ -367,7 +367,7 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
     return current_balance
 
 
-def _get_available_balance(account_or_pk: AccountId, ignore_interest: bool) -> int:
+def _get_available_balance(account_or_pk: AccountId, ignore_interest: bool = False) -> int:
     # We must make sure that the debtor's account has a virtually
     # unlimited available balance at all times, because it issuers all
     # the money in the system.
@@ -562,22 +562,20 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
         )
 
     recipient_account = _get_account((tr.debtor_id, tr.recipient_creditor_id))
-
     if recipient_account is None:
         return reject(
             error_code='ACC003',
             message='The recipient account does not exist.',
         )
 
-    avl_balance = _get_available_balance(sender_account, ignore_interest=False)
-    amount = min(avl_balance, tr.max_amount)
-
+    amount = min(_get_available_balance(sender_account), tr.max_amount)
     if amount < tr.min_amount:
         return reject(
             error_code='ACC004',
             message='The available balance is insufficient.',
             avl_balance=amount,
         )
+
     if sender_account.pending_transfers_count >= MAX_INT32:  # pragma: no cover
         return reject(
             error_code='ACC005',
