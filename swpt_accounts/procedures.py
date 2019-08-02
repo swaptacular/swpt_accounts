@@ -102,14 +102,12 @@ def finalize_prepared_transfer(debtor_id: int,
 @atomic
 def change_account_attributes(debtor_id: int,
                               creditor_id: int,
-                              interest_rate: float,
-                              is_owned_by_debtor: bool,
                               change_seqnum: int,
-                              change_ts: datetime) -> None:
+                              change_ts: datetime,
+                              interest_rate: float) -> None:
     # We do not allow changing attributes on the debtor's account
-    # because: 1) It is a nonsense to accumulate interest on debtor's
-    # own account. 2) Changing the `is_owned_by_debtor` flag is almost
-    # certainly a very bad idea.
+    # because it is a nonsense to accumulate interest on debtor's own
+    # account.
     if creditor_id == ROOT_CREDITOR_ID:
         raise Exception("Changing attributes on this account is forbidden.")
 
@@ -124,7 +122,7 @@ def change_account_attributes(debtor_id: int,
         this_event = (change_seqnum, change_ts)
         prev_event = (account.attributes_last_change_seqnum, account.attributes_last_change_ts)
         if _is_later_event(this_event, prev_event):
-            _change_account_attributes(account, interest_rate, is_owned_by_debtor, change_seqnum, change_ts)
+            _change_account_attributes(account, change_seqnum, change_ts, interest_rate)
 
 
 @atomic
@@ -317,8 +315,6 @@ def _create_account(debtor_id: int, creditor_id: int) -> Account:
         creditor_id=creditor_id,
         status=DEFAULT_ACCOUNT_STATUS,
     )
-    if creditor_id == ROOT_CREDITOR_ID:
-        account.status |= Account.STATUS_OWNED_BY_DEBTOR_FLAG
     with db.retry_on_integrity_error():
         db.session.add(account)
     _insert_account_change_signal(account)
@@ -396,18 +392,13 @@ def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -
 
 def _change_account_attributes(
         account: Account,
-        interest_rate: float,
-        is_owned_by_debtor: bool,
         change_seqnum: int,
-        change_ts: datetime) -> None:
+        change_ts: datetime,
+        interest_rate: float) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     account.interest = float(_calc_account_accumulated_interest(account, current_ts))
     account.interest_rate = interest_rate
     account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-    if is_owned_by_debtor:
-        account.status |= Account.STATUS_OWNED_BY_DEBTOR_FLAG
-    else:
-        account.status &= ~Account.STATUS_OWNED_BY_DEBTOR_FLAG
     account.attributes_last_change_seqnum = change_seqnum
     account.attributes_last_change_ts = change_ts
     _insert_account_change_signal(account, current_ts)
@@ -579,16 +570,6 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
         )
 
     avl_balance = _get_available_balance(sender_account, ignore_interest=False)
-
-    # If the recipient account is owned by the debtor, and there is a
-    # negative interest (demurrage) accumulated on sender's account --
-    # it gets ignored. This allows creditors to redeem their claims in
-    # full, given that the negative interest has not been capitalized
-    # yet.
-    if recipient_account.status & Account.STATUS_OWNED_BY_DEBTOR_FLAG and not tr.always_include_interest:
-        avl_balance_no_interest = _get_available_balance(sender_account, ignore_interest=True)
-        avl_balance = max(avl_balance, avl_balance_no_interest)
-
     amount = min(avl_balance, tr.max_amount)
 
     if amount < tr.min_amount:

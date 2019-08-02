@@ -30,10 +30,9 @@ def test_set_interest_rate(db_session):
     a.change_account_attributes(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        interest_rate=10.0,
-        is_owned_by_debtor=False,
         change_seqnum=777,
         change_ts='2019-07-01T00:00:00Z',
+        interest_rate=10.0,
     )
 
 

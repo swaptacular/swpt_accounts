@@ -93,20 +93,18 @@ def finalize_prepared_transfer(
 def change_account_attributes(
         debtor_id: int,
         creditor_id: int,
-        interest_rate: float,
-        is_owned_by_debtor: bool,
         change_seqnum: int,
-        change_ts: str) -> None:
+        change_ts: str,
+        interest_rate: float) -> None:
 
     """Change attributes like the interest rate on a given account."""
 
     procedures.change_account_attributes(
         debtor_id,
         creditor_id,
-        interest_rate,
-        is_owned_by_debtor,
         change_seqnum,
         iso8601.parse_date(change_ts),
+        interest_rate,
     )
 
 

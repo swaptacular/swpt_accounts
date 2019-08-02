@@ -41,35 +41,27 @@ def test_get_or_create_account(db_session):
 
 def test_set_interest_rate(db_session, current_ts):
     # The account does not exist.
-    p.change_account_attributes(D_ID, C_ID, 7.0, False, 665, current_ts)
+    p.change_account_attributes(D_ID, C_ID, 665, current_ts, 7.0)
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountChangeSignal.query.all()) == 0
 
     # The account does exist.
     p.get_or_create_account(D_ID, C_ID)
-    p.change_account_attributes(D_ID, C_ID, 7.0, False, 666, current_ts)
+    p.change_account_attributes(D_ID, C_ID, 666, current_ts, 7.0)
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
     assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-    assert not a.status & Account.STATUS_OWNED_BY_DEBTOR_FLAG
     assert len(AccountChangeSignal.query.all()) == 2
 
     # Older event
-    p.change_account_attributes(D_ID, C_ID, 8.0, False, 665, current_ts)
+    p.change_account_attributes(D_ID, C_ID, 665, current_ts, 8.0)
     assert p.get_account(D_ID, C_ID).interest_rate == 7.0
     assert len(AccountChangeSignal.query.all()) == 2
-
-    # Set is_owned_by_debtor=True attribute
-    p.change_account_attributes(D_ID, C_ID, 9.0, True, 667, current_ts)
-    a = p.get_account(D_ID, C_ID)
-    assert a.interest_rate == 9.0
-    assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-    assert len(AccountChangeSignal.query.all()) == 3
 
 
 def test_change_attributes_on_debtor_account(db_session, current_ts):
     with pytest.raises(Exception):
-        p.change_account_attributes(D_ID, p.ROOT_CREDITOR_ID, 7.0, False, 666, current_ts)
+        p.change_account_attributes(D_ID, p.ROOT_CREDITOR_ID, 666, current_ts, 7.0)
 
 
 AMOUNT = 50000
@@ -458,51 +450,6 @@ def test_commit_prepared_transfer(db_session):
     assert cts.committed_amount == 40
 
 
-def test_commit_to_debtor_owned_account(db_session, current_ts):
-    p.get_or_create_account(D_ID, C_ID)
-    p.get_or_create_account(D_ID, 1234)
-    p.change_account_attributes(D_ID, 1234, 0.0, True, 665, current_ts)
-    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    q.update({Account.principal: 200, Account.interest: -50.0})
-    p.prepare_transfer(
-        coordinator_type='test',
-        coordinator_id=1,
-        coordinator_request_id=2,
-        min_amount=1,
-        max_amount=200,
-        debtor_id=D_ID,
-        sender_creditor_id=C_ID,
-        recipient_creditor_id=1234,
-        always_include_interest=False,
-    )
-    p.process_transfer_requests(D_ID, C_ID)
-    assert len(RejectedTransferSignal.query.all()) == 0
-    assert len(PreparedTransferSignal.query.all()) == 1
-    pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
-    assert pt.debtor_id == D_ID
-    assert pt.sender_creditor_id == C_ID
-    assert pt.recipient_creditor_id == 1234
-    assert pt.sender_locked_amount == 200
-    p.finalize_prepared_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 40)
-    p.process_pending_changes(D_ID, C_ID)
-    p.process_pending_changes(D_ID, 1234)
-    a1 = p.get_account(D_ID, C_ID)
-    assert a1.locked_amount == 0
-    assert a1.pending_transfers_count == 0
-    assert a1.principal == 160
-    assert a1.interest == -50.0
-    a2 = p.get_account(D_ID, 1234)
-    assert a2.locked_amount == 0
-    assert a2.pending_transfers_count == 0
-    assert a2.principal == 40
-    assert a2.interest == 0.0
-    cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
-    assert cts.coordinator_type == 'test'
-    assert cts.sender_creditor_id == C_ID
-    assert cts.recipient_creditor_id == 1234
-    assert cts.committed_amount == 40
-
-
 def test_commit_to_debtor_account(db_session):
     p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
     p.get_or_create_account(D_ID, C_ID)
@@ -521,7 +468,7 @@ def test_commit_to_debtor_account(db_session):
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
-    assert pt.sender_locked_amount == 200
+    assert pt.sender_locked_amount == 50
     p.finalize_prepared_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 40)
     assert CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one().committed_amount == 40
 
