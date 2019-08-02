@@ -49,7 +49,7 @@ def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
 
 
 @atomic
-def get_available_balance(debtor_id: int, creditor_id: int, ignore_interest: bool) -> int:
+def get_available_balance(debtor_id: int, creditor_id: int, ignore_interest: bool = False) -> int:
     return _get_available_balance((debtor_id, creditor_id), ignore_interest)
 
 
