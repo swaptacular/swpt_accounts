@@ -52,8 +52,8 @@ def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
 
 
 @atomic
-def get_available_balance(debtor_id: int, creditor_id: int, ignore_interest: bool = False) -> int:
-    return _get_available_balance((debtor_id, creditor_id), ignore_interest)
+def get_available_balance(debtor_id: int, creditor_id: int) -> int:
+    return _get_available_balance((debtor_id, creditor_id))
 
 
 @atomic
@@ -277,6 +277,7 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
                 account.pending_transfers_count = max(0, account.pending_transfers_count - 1)
                 if change.principal_delta < 0:
                     account.last_outgoing_transfer_date = current_date
+                    assert nonzero_deltas
             db.session.delete(change)
         if nonzero_deltas:
             _apply_account_change(
@@ -388,7 +389,7 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
     return current_balance
 
 
-def _get_available_balance(account_or_pk: AccountId, ignore_interest: bool = False) -> int:
+def _get_available_balance(account_or_pk: AccountId) -> int:
     # We must make sure that the debtor's account has a virtually
     # unlimited available balance at all times, because it issuers all
     # the money in the system.
@@ -396,15 +397,10 @@ def _get_available_balance(account_or_pk: AccountId, ignore_interest: bool = Fal
     if creditor_id == ROOT_CREDITOR_ID:
         return MAX_INT64
 
-    avl_balance = 0
     account = _get_account(account_or_pk)
     if account:
-        if ignore_interest:
-            avl_balance = account.principal
-        else:
-            avl_balance = math.floor(_calc_account_current_balance(account))
-        avl_balance -= account.locked_amount
-    return avl_balance
+        return math.floor(_calc_account_current_balance(account)) - account.locked_amount
+    return 0
 
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
@@ -438,7 +434,6 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
     assert committed_amount > 0
     if committed_amount > pt.sender_locked_amount:  # pragma: no cover
         committed_amount = pt.sender_locked_amount
-    current_ts = datetime.now(tz=timezone.utc)
     _insert_pending_change(
         debtor_id=pt.debtor_id,
         creditor_id=pt.sender_creditor_id,
@@ -450,15 +445,15 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
         creditor_id=pt.recipient_creditor_id,
         principal_delta=committed_amount,
     )
-    db.session.add(CommittedTransferSignal(
+    _insert_committed_transfer_signal(
         debtor_id=pt.debtor_id,
         coordinator_type=pt.coordinator_type,
         sender_creditor_id=pt.sender_creditor_id,
         recipient_creditor_id=pt.recipient_creditor_id,
-        committed_at_ts=current_ts,
+        committed_at_ts=datetime.now(tz=timezone.utc),
         committed_amount=committed_amount,
         transfer_info=transfer_info,
-    ))
+    )
     db.session.delete(pt)
 
 
@@ -474,8 +469,7 @@ def _force_transfer(coordinator_type: str,
                     omit_sender_account_change: bool = False,
                     omit_recipient_account_change: bool = False) -> None:
     assert committed_amount >= 0
-    if committed_amount != 0 and sender_creditor_id != recipient_creditor_id:
-        db.session.add(CommittedTransferSignal(
+    _insert_committed_transfer_signal(
             debtor_id=debtor_id,
             coordinator_type=coordinator_type,
             sender_creditor_id=sender_creditor_id,
@@ -483,7 +477,7 @@ def _force_transfer(coordinator_type: str,
             committed_at_ts=committed_at_ts,
             committed_amount=committed_amount,
             transfer_info=transfer_info,
-        ))
+    )
     if not omit_sender_account_change:
         _insert_pending_change(
             debtor_id=debtor_id,
@@ -512,6 +506,25 @@ def _insert_pending_change(debtor_id: int,
             principal_delta=principal_delta,
             interest_delta=interest_delta,
             unlocked_amount=unlocked_amount,
+        ))
+
+
+def _insert_committed_transfer_signal(debtor_id: int,
+                                      coordinator_type: str,
+                                      sender_creditor_id: int,
+                                      recipient_creditor_id: int,
+                                      committed_at_ts: datetime,
+                                      committed_amount=int,
+                                      transfer_info=dict) -> None:
+    if committed_amount != 0 and sender_creditor_id != recipient_creditor_id:
+        db.session.add(CommittedTransferSignal(
+            debtor_id=debtor_id,
+            coordinator_type=coordinator_type,
+            sender_creditor_id=sender_creditor_id,
+            recipient_creditor_id=recipient_creditor_id,
+            committed_at_ts=committed_at_ts,
+            committed_amount=committed_amount,
+            transfer_info=transfer_info,
         ))
 
 

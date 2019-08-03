@@ -172,42 +172,35 @@ def test_negative_overflow(db_session):
 def test_get_available_balance(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
 
-    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, ignore_interest=True) == MAX_INT64
-    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, ignore_interest=False) == MAX_INT64
-    assert p.get_available_balance(D_ID, C_ID, ignore_interest=True) == 0
+    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID) == MAX_INT64
+    assert p.get_available_balance(D_ID, C_ID) == 0
     assert p.get_available_balance(D_ID, C_ID) == 0
     p.get_or_create_account(D_ID, C_ID)
-    assert p.get_available_balance(D_ID, C_ID, ignore_interest=True) == 0
-    assert p.get_available_balance(D_ID, C_ID, ignore_interest=False) == p.get_available_balance(D_ID, C_ID) == 0
+    assert p.get_available_balance(D_ID, C_ID) == 0
     q.update({
         Account.interest: 100.0,
         Account.principal: 5000,
     })
-    assert p.get_available_balance(D_ID, C_ID, ignore_interest=True) == 5000
     assert p.get_available_balance(D_ID, C_ID) == 5100
     q.update({
         Account.locked_amount: 1000,
     })
-    assert p.get_available_balance(D_ID, C_ID, ignore_interest=True) == 4000
     assert p.get_available_balance(D_ID, C_ID) == 4100
     q.update({
         Account.interest_rate: 10.00,
         Account.last_change_ts: current_ts - timedelta(days=365),
         Account.last_change_seqnum: 666,
     })
-    assert p.get_available_balance(D_ID, C_ID, ignore_interest=True) == 4000
     assert 4608 <= p.get_available_balance(D_ID, C_ID) <= 4610
     q.update({
         Account.interest_rate: -10.00,
         Account.last_change_ts: current_ts - timedelta(days=365),
         Account.last_change_seqnum: 666,
     })
-    assert p.get_available_balance(D_ID, C_ID, ignore_interest=True) == 4000
     assert 3590 <= p.get_available_balance(D_ID, C_ID) <= 3592
     q.update({
         Account.interest: -5100.0,
     })
-    assert p.get_available_balance(D_ID, C_ID, ignore_interest=True) == 4000
     assert p.get_available_balance(D_ID, C_ID) == -1100
 
 
