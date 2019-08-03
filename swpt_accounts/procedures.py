@@ -431,9 +431,9 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
 
 
 def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, transfer_info: dict) -> None:
+    assert pt.sender_locked_amount > 0
     assert committed_amount > 0
-    if committed_amount > pt.sender_locked_amount:  # pragma: no cover
-        committed_amount = pt.sender_locked_amount
+    committed_amount = min(committed_amount, pt.sender_locked_amount)
     _insert_pending_change(
         debtor_id=pt.debtor_id,
         creditor_id=pt.sender_creditor_id,
