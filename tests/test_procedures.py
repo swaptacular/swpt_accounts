@@ -77,19 +77,39 @@ def amount(request):
 
 
 def test_make_debtor_payment(db_session, amount):
+    TRANSFER_INFO = {'transer_data': 123}
     p.get_or_create_account(D_ID, C_ID)
-    p.make_debtor_payment('test', D_ID, C_ID, amount)
+    p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_INFO)
     cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
     assert cts.coordinator_type == 'test'
     assert cts.sender_creditor_id == p.ROOT_CREDITOR_ID if amount > 0 else C_ID
     assert cts.recipient_creditor_id == C_ID if amount > 0 else p.ROOT_CREDITOR_ID
     assert cts.committed_amount == abs(amount)
+    assert cts.transfer_info == TRANSFER_INFO
     root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
     assert root_change.interest_delta == 0
     change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert change.principal_delta == amount
     assert change.interest_delta == 0
+
+
+def test_make_debtor_zero_payment(db_session):
+    p.get_or_create_account(D_ID, C_ID)
+    p.make_debtor_payment('interest', D_ID, C_ID, 0)
+    assert not PendingChange.query.all()
+    assert not CommittedTransferSignal.query.all()
+
+
+def test_make_debtor_omit_creditor_account_change(db_session, amount):
+    p.get_or_create_account(D_ID, C_ID)
+    p.make_debtor_payment('test', D_ID, C_ID, amount, omit_creditor_account_change=True)
+    assert CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
+    changes = PendingChange.query.all()
+    assert len(changes) == 1
+    root_change = changes[0]
+    assert root_change.principal_delta == -amount
+    assert root_change.interest_delta == 0
 
 
 def test_make_debtor_interest_payment(db_session, amount):
@@ -247,20 +267,28 @@ def test_discard_interest_on_self(db_session, current_ts):
 def test_delete_account(db_session, current_ts):
     assert p.get_account(D_ID, C_ID) is None
     p.get_or_create_account(D_ID, C_ID)
-    assert p.get_account(D_ID, C_ID)
-    p.delete_account_if_zeroed(D_ID, C_ID, current_ts - timedelta(days=1000))
-    assert p.get_account(D_ID, C_ID)
-    p.delete_account_if_zeroed(D_ID, C_ID, current_ts + timedelta(days=1000))
+    a = p.get_account(D_ID, C_ID)
+    assert a is not None
+    assert not a.status & Account.STATUS_DELETED_FLAG
+    assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    p.delete_account_if_negligible(D_ID, C_ID, 0, current_ts - timedelta(days=1000))
+    a = p.get_account(D_ID, C_ID)
+    assert a is not None
+    assert not a.status & Account.STATUS_DELETED_FLAG
+    assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    p.delete_account_if_negligible(D_ID, C_ID, 0, current_ts + timedelta(days=1000))
     assert p.get_account(D_ID, C_ID) is None
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    assert q.one().status & Account.STATUS_DELETED_FLAG
+    assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
     assert AccountChangeSignal.query.\
         filter(AccountChangeSignal.debtor_id == D_ID).\
         filter(AccountChangeSignal.creditor_id == C_ID).\
         filter(AccountChangeSignal.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
         one_or_none()
-    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    assert q.one().status & Account.STATUS_DELETED_FLAG
     p.purge_deleted_account(D_ID, C_ID, current_ts - timedelta(days=1000))
     assert q.one().status & Account.STATUS_DELETED_FLAG
+    assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
     p.purge_deleted_account(D_ID, C_ID, current_ts + timedelta(days=1000))
     assert not q.one_or_none()
 
@@ -269,7 +297,7 @@ def test_delete_account_negative_balance(db_session):
     p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: -1})
-    p.delete_account_if_zeroed(D_ID, C_ID)
+    p.delete_account_if_negligible(D_ID, C_ID, MAX_INT64)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
@@ -278,25 +306,47 @@ def test_delete_account_negative_balance(db_session):
 def test_delete_account_tiny_positive_balance(db_session, current_ts):
     p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    q.update({Account.principal: 1})
-    p.delete_account_if_zeroed(D_ID, C_ID)
-    a = p.get_account(D_ID, C_ID)
-    assert a is not None
+    q.update({Account.principal: 2, Account.interest: -1.0})
+    p.delete_account_if_negligible(D_ID, C_ID, 2)
+    assert p.get_account(D_ID, C_ID) is None
+    a = q.one()
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    assert a.principal == 0
+    assert a.interest == 0
+    ct = CommittedTransferSignal.query.one()
+    assert ct.committed_amount == 2
+    changes = PendingChange.query.all()
+    assert len(changes) == 1
+    assert changes[0].creditor_id == p.ROOT_CREDITOR_ID
 
 
 def test_delete_debtor_account_failure(db_session, current_ts):
     p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
-    p.delete_account_if_zeroed(D_ID, p.ROOT_CREDITOR_ID)
+    p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, MAX_INT64)
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID)
 
 
-def test_resurect_deleted_account(db_session, current_ts):
+def test_resurect_deleted_account_create(db_session, current_ts):
     p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
-    p.delete_account_if_zeroed(D_ID, C_ID)
-    assert p.get_or_create_account(D_ID, C_ID).interest_rate == 0.0
+    p.delete_account_if_negligible(D_ID, C_ID, 10)
+    a = p.get_or_create_account(D_ID, C_ID)
+    assert a.interest_rate == 0.0
+    assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+
+
+def test_resurect_deleted_account_transfer(db_session, current_ts):
+    p.get_or_create_account(D_ID, C_ID)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.interest_rate: 10.0})
+    p.delete_account_if_negligible(D_ID, C_ID, 10)
+    p.make_debtor_payment('test', D_ID, C_ID, 1)
+    p.process_pending_changes(D_ID, C_ID)
+    a = p.get_account(D_ID, C_ID)
+    assert a is not None
+    assert a.interest_rate == 0.0
+    assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
 
 def test_prepare_transfer_insufficient_funds(db_session):

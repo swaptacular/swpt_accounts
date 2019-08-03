@@ -153,7 +153,8 @@ def make_debtor_payment(
         debtor_id: int,
         creditor_id: int,
         amount: int,
-        transfer_info: dict = {}) -> None:
+        transfer_info: dict = {},
+        omit_creditor_account_change: bool = False) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert -MAX_INT64 <= amount <= MAX_INT64
@@ -169,6 +170,7 @@ def make_debtor_payment(
             committed_amount=amount,
             transfer_info=transfer_info,
             recipient_interest_delta=0 if coordinator_type != 'interest' else -amount,
+            omit_recipient_account_change=omit_creditor_account_change,
         )
     elif amount < 0:
         # The creditor pays the debtor.
@@ -181,11 +183,16 @@ def make_debtor_payment(
             committed_amount=-amount,
             transfer_info=transfer_info,
             sender_interest_delta=0 if coordinator_type != 'interest' else -amount,
+            omit_sender_account_change=omit_creditor_account_change,
         )
 
 
 @atomic
-def delete_account_if_zeroed(debtor_id: int, creditor_id: int, ignore_after_ts: datetime = None) -> None:
+def delete_account_if_negligible(
+        debtor_id: int,
+        creditor_id: int,
+        negligible_amount: int,
+        ignore_after_ts: datetime = None) -> None:
     # We must not allow the deletion of the debtor's account, because
     # transfers to this account should always be possible. Also, we
     # want to preserve the status flags (the `STATUS_OVERFLOWN_FLAG`
@@ -196,12 +203,22 @@ def delete_account_if_zeroed(debtor_id: int, creditor_id: int, ignore_after_ts: 
     current_ts = datetime.now(tz=timezone.utc)
     if ignore_after_ts is None or current_ts <= ignore_after_ts:
         account = _get_account((debtor_id, creditor_id), lock=True)
-        if (account is not None
-                and account.pending_transfers_count == 0
-                and account.locked_amount == 0
-                and account.principal == 0):
-            account.interest = 0.0
-            account.status |= Account.STATUS_DELETED_FLAG
+        if account:
+            has_valid_principal = account.principal > MIN_INT64
+            has_no_pending_transfers = account.pending_transfers_count == 0 and account.locked_amount == 0
+            current_balance = _calc_account_current_balance(account, current_ts)
+            if has_valid_principal and has_no_pending_transfers and 0 <= current_balance <= negligible_amount:
+                make_debtor_payment(
+                    'delete_account',
+                    debtor_id,
+                    creditor_id,
+                    -account.principal,
+                    omit_creditor_account_change=True,
+                )
+                account.principal = 0
+                account.interest = 0.0
+                account.status |= Account.STATUS_DELETED_FLAG
+            account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
             _insert_account_change_signal(account, current_ts)
 
 
@@ -454,7 +471,9 @@ def _force_transfer(coordinator_type: str,
                     committed_amount: int,
                     transfer_info: dict = {},
                     sender_interest_delta: int = 0,
-                    recipient_interest_delta: int = 0) -> None:
+                    recipient_interest_delta: int = 0,
+                    omit_sender_account_change: bool = False,
+                    omit_recipient_account_change: bool = False) -> None:
     assert committed_amount >= 0
     if committed_amount != 0 and sender_creditor_id != recipient_creditor_id:
         db.session.add(CommittedTransferSignal(
@@ -466,18 +485,20 @@ def _force_transfer(coordinator_type: str,
             committed_amount=committed_amount,
             transfer_info=transfer_info,
         ))
-    _insert_pending_change(
-        debtor_id=debtor_id,
-        creditor_id=sender_creditor_id,
-        principal_delta=-committed_amount,
-        interest_delta=sender_interest_delta,
-    )
-    _insert_pending_change(
-        debtor_id=debtor_id,
-        creditor_id=recipient_creditor_id,
-        principal_delta=committed_amount,
-        interest_delta=recipient_interest_delta,
-    )
+    if not omit_sender_account_change:
+        _insert_pending_change(
+            debtor_id=debtor_id,
+            creditor_id=sender_creditor_id,
+            principal_delta=-committed_amount,
+            interest_delta=sender_interest_delta,
+        )
+    if not omit_recipient_account_change:
+        _insert_pending_change(
+            debtor_id=debtor_id,
+            creditor_id=recipient_creditor_id,
+            principal_delta=committed_amount,
+            interest_delta=recipient_interest_delta,
+        )
 
 
 def _insert_pending_change(debtor_id: int,
