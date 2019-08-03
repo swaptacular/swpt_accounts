@@ -136,29 +136,33 @@ def create_account(
     procedures.get_or_create_account(debtor_id, creditor_id)
 
 
-def delete_account_if_zeroed(
+def delete_account_if_negligible(
         debtor_id: int,
         creditor_id: int,
+        negligible_amount: int,
         ignore_after_ts: datetime) -> None:
 
     """Mark the account as deleted if there are no prepared transfers, and
-    the current balance is zero or positive and very close to zero.
+    the current balance is non-negative and no bigger than
+    `negligible_amount`. Otherwise, marks the account as "scheduled
+    for deletion".
 
     Does nothing if the current timestamp is later than
     `ignore_after_ts`. This is should be used to limit the lifespan of
     the message. (The massage bus can keep the massage for a very long
     time before processing it.)
 
-    Not that even if the account has been marked as deleted, it could
+    Note that even if the account has been marked as deleted, it could
     be "resurrected" by an incoming transfer. Therefore, this function
     does not guarantee that the account will be marked as deleted
     successfully, nor that it will "stay" deleted.
 
     """
 
-    procedures.delete_account_if_zeroed(
+    procedures.delete_account_if_negligible(
         debtor_id,
         creditor_id,
+        negligible_amount,
         iso8601.parse_date(ignore_after_ts),
     )
 
