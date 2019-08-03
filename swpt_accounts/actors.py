@@ -148,14 +148,25 @@ def delete_account_if_negligible(
     for deletion".
 
     Does nothing if the current timestamp is later than
-    `ignore_after_ts`. This is should be used to limit the lifespan of
-    the message. (The massage bus can keep the massage for a very long
-    time before processing it.)
+    `ignore_after_ts`. This parameter is used to limit the lifespan of
+    the message, which otherwise can be retained for a very long time
+    by the massage bus.
 
     Note that even if the account has been marked as deleted, it could
     be "resurrected" by an incoming transfer. Therefore, this function
-    does not guarantee that the account will be marked as deleted
-    successfully, nor that it will "stay" deleted.
+    does not guarantee neither that the account will be marked as
+    deleted successfully, nor that it will "stay" deleted. To achieve
+    a reliable deletion, the following procedure should be followed:
+
+    1. Call `delete_account_if_negligible`.
+
+    2. Wait until an `AccountChangeSignal` is received for the account
+       (it should be marked as "scheduled for deletion"). If the
+       account has not been successfully deleted, wait for some time
+       (depending on the circumstances) and if necessary, notify the
+       user that he should take some actions.
+
+    3. Go to point 1.
 
     """
 

@@ -373,7 +373,7 @@ def _resurrect_account_if_deleted(account: Account, create_account_request: bool
         if create_account_request:
             account.status = PRISTINE_ACCOUNT_STATUS
         else:
-            # Resurrected from an unexpected incoming transfer.
+            # Resurrected by an unexpected incoming transfer.
             account.status = account.status & RETAINED_ACCOUNT_STATUS_FLAGS | RESURRECTED_ACCOUNT_STATUS
         _insert_account_change_signal(account)
 
