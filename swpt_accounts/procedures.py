@@ -47,7 +47,8 @@ def get_account(debtor_id: int, creditor_id: int) -> Optional[Account]:
 def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    return _get_or_create_account((debtor_id, creditor_id))
+
+    return _get_or_create_account((debtor_id, creditor_id), create_account_request=True)
 
 
 @atomic
@@ -331,7 +332,7 @@ def _get_account(account_or_pk: AccountId, lock: bool = False) -> Optional[Accou
     return None
 
 
-def _get_or_create_account(account_or_pk: AccountId, lock: bool = False) -> Account:
+def _get_or_create_account(account_or_pk: AccountId, lock: bool = False, create_account_request=False) -> Account:
     if lock:
         account = Account.lock_instance(account_or_pk)
     else:
@@ -339,21 +340,25 @@ def _get_or_create_account(account_or_pk: AccountId, lock: bool = False) -> Acco
     if account is None:
         debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
         account = _create_account(debtor_id, creditor_id)
-    _resurrect_account_if_deleted(account)
+    _resurrect_account_if_deleted(account, create_account_request)
     return account
 
 
-def _resurrect_account_if_deleted(account: Account) -> None:
+def _resurrect_account_if_deleted(account: Account, create_account_request: bool) -> None:
     if account.status & Account.STATUS_DELETED_FLAG:
         account.principal = 0
         account.pending_transfers_count = 0
         account.locked_amount = 0
-        account.status = account.status & RETAINED_ACCOUNT_STATUS_FLAGS | RESURRECTED_ACCOUNT_STATUS
         account.interest = 0.0
         account.interest_rate = 0.0
         account.attributes_last_change_seqnum = None
         account.attributes_last_change_ts = None
         account.last_outgoing_transfer_date = None
+        if create_account_request:
+            account.status = PRISTINE_ACCOUNT_STATUS
+        else:
+            # Resurrected from an unexpected incoming transfer.
+            account.status = account.status & RETAINED_ACCOUNT_STATUS_FLAGS | RESURRECTED_ACCOUNT_STATUS
         _insert_account_change_signal(account)
 
 
