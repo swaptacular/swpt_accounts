@@ -7,6 +7,8 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
+assert MIN_INT32 + 1 == -MAX_INT32
+assert MIN_INT64 + 1 == -MAX_INT64
 
 
 def get_now_utc():
@@ -132,6 +134,7 @@ class Account(db.Model):
         db.CheckConstraint((interest_rate > -100.0) & (interest_rate <= 100.0)),
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(pending_transfers_count >= 0),
+        db.CheckConstraint(principal > MIN_INT64),
         {
             'comment': 'Tells who owes what to whom.'
         }

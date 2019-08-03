@@ -204,10 +204,9 @@ def delete_account_if_negligible(
     if ignore_after_ts is None or current_ts <= ignore_after_ts:
         account = _get_account((debtor_id, creditor_id), lock=True)
         if account:
-            has_valid_principal = account.principal > MIN_INT64
             has_no_pending_transfers = account.pending_transfers_count == 0 and account.locked_amount == 0
             current_balance = _calc_account_current_balance(account, current_ts)
-            if has_valid_principal and has_no_pending_transfers and 0 <= current_balance <= negligible_amount:
+            if has_no_pending_transfers and 0 <= current_balance <= negligible_amount:
                 make_debtor_payment(
                     'delete_account',
                     debtor_id,
@@ -519,8 +518,8 @@ def _insert_pending_change(debtor_id: int,
 def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:
     account.interest = float(_calc_account_accumulated_interest(account, current_ts) + interest_delta)
     new_principal = account.principal + principal_delta
-    if new_principal < MIN_INT64:
-        account.principal = MIN_INT64
+    if new_principal <= MIN_INT64:
+        account.principal = -MAX_INT64
         account.status |= Account.STATUS_OVERFLOWN_FLAG
     elif new_principal > MAX_INT64:
         account.principal = MAX_INT64
