@@ -156,23 +156,24 @@ def delete_account_if_negligible(
     be "resurrected" by an incoming transfer. Therefore, this function
     does not guarantee neither that the account will be marked as
     deleted successfully, nor that it will "stay" deleted. To achieve
-    a reliable deletion, the following procedure should be followed:
+    a reliable deletion, the following procedure MAY be followed:
 
-    1. Call `delete_account_if_negligible`.
+    1. Call `delete_account_if_negligible` with appropriate values for
+       `negligible_amount` and `ignore_after_ts`.
 
     2. Wait for some time.
 
-    3. Wait until a new `AccountChangeSignal` has been received for
-       the account (it should be marked as "scheduled for deletion").
+    3. Check the current account status (as reported by the last
+       received `AccountChangeSignal` for the account). If the account
+       has been deleted successfully, YOU ARE DONE.
 
-       a) If the account HAS BEEN deleted successfully, YOU ARE DONE.
+    4. If the account owner's action is not required, go to point 1.
 
-       b) If the account HAS NOT BEEN deleted successfully, depending
-          on the circumstances, either notify the user that he should
-          take some actions, or wait for some time and then call
-          `delete_account_if_negligible` again.
+    5. If the account owner hasn't already been prompted to take the
+       required action, prompt the account owner to take the required
+       action.
 
-    4. Go to point 3.
+    6. Go to point 2.
 
     """
 
