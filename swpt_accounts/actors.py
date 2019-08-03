@@ -161,7 +161,7 @@ def delete_account_if_negligible(
     1. Call `delete_account_if_negligible` with appropriate values for
        `negligible_amount` and `ignore_after_ts`.
 
-    2. Wait for some time.
+    2. Wait for some time (depending on the circumstances).
 
     3. Check the current account status (as reported by the last
        received `AccountChangeSignal` for the account). If the account
