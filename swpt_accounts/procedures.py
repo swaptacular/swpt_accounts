@@ -136,13 +136,8 @@ def capitalize_interest(debtor_id: int,
         positive_threshold = max(1, abs(accumulated_interest_threshold))
         current_ts = current_ts or datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_account_accumulated_interest(account, current_ts))
-
-        # Make sure `amount` and `-amount` are within INT64 limits.
-        if amount > MAX_INT64:  # pragma: no cover
-            amount = MAX_INT64
-        if amount < -MAX_INT64:  # pragma: no cover
-            amount = -MAX_INT64
-
+        amount = min(amount, MAX_INT64)
+        amount = max(-MAX_INT64, amount)
         if abs(amount) >= positive_threshold:
             make_debtor_payment('interest', debtor_id, creditor_id, amount)
 
@@ -431,8 +426,8 @@ def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
 
 
 def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, transfer_info: dict) -> None:
-    assert pt.sender_locked_amount > 0
     assert committed_amount > 0
+    assert pt.sender_locked_amount > 0
     committed_amount = min(committed_amount, pt.sender_locked_amount)
     _insert_pending_change(
         debtor_id=pt.debtor_id,
