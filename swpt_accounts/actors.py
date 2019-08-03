@@ -144,12 +144,12 @@ def delete_account_if_negligible(
 
     """Mark the account as deleted if there are no prepared transfers, and
     the current balance is non-negative and no bigger than
-    `negligible_amount`. Otherwise, marks the account as "scheduled
-    for deletion".
+    `negligible_amount`. Otherwise, mark the account as "scheduled for
+    deletion".
 
     Does nothing if the current timestamp is later than
     `ignore_after_ts`. This parameter is used to limit the lifespan of
-    the message, which otherwise can be retained for a very long time
+    the message, which otherwise may be retained for a very long time
     by the massage bus.
 
     Note that even if the account has been marked as deleted, it could
@@ -160,13 +160,19 @@ def delete_account_if_negligible(
 
     1. Call `delete_account_if_negligible`.
 
-    2. Wait until an `AccountChangeSignal` is received for the account
-       (it should be marked as "scheduled for deletion"). If the
-       account has not been successfully deleted, wait for some time
-       (depending on the circumstances) and if necessary, notify the
-       user that he should take some actions.
+    2. Wait for some time.
 
-    3. Go to point 1.
+    3. Wait until a new `AccountChangeSignal` has been received for
+       the account (it should be marked as "scheduled for deletion").
+
+       a) If the account HAS BEEN deleted successfully, YOU ARE DONE.
+
+       b) If the account HAS NOT BEEN deleted successfully, depending
+          on the circumstances, either notify the user that he should
+          take some actions, or wait for some time and then call
+          `delete_account_if_negligible` again.
+
+    4. Go to point 3.
 
     """
 
