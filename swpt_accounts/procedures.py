@@ -592,18 +592,24 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             error_code='ACC003',
             message='The recipient account does not exist.',
         )
+    if (recipient_account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+            and tr.sender_creditor_id != ROOT_CREDITOR_ID):
+        return reject(
+            error_code='ACC004',
+            message='The recipient account is scheduled for deletion.',
+        )
 
     amount = min(_get_available_balance(sender_account), tr.max_amount)
     if amount < tr.min_amount:
         return reject(
-            error_code='ACC004',
+            error_code='ACC005',
             message='The available balance is insufficient.',
             avl_balance=amount,
         )
 
     if sender_account.pending_transfers_count >= MAX_INT32:  # pragma: no cover
         return reject(
-            error_code='ACC005',
+            error_code='ACC006',
             message='There are too many pending transfers.',
             pending_transfers_count=sender_account.pending_transfers_count,
         )

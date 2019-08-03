@@ -302,6 +302,28 @@ def test_delete_account_negative_balance(db_session):
     assert a is not None
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
+    # Verify that incoming transfers are not allowed:
+    p.get_or_create_account(D_ID, 1234)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 200})
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        sender_creditor_id=1234,
+        recipient_creditor_id=C_ID,
+    )
+    p.process_transfer_requests(D_ID, 1234)
+    rts = RejectedTransferSignal.query.one()
+    assert rts.debtor_id == D_ID
+    assert rts.coordinator_type == 'test'
+    assert rts.coordinator_id == 1
+    assert rts.coordinator_request_id == 2
+    assert rts.details['error_code'] == 'ACC004'
+
 
 def test_delete_account_tiny_positive_balance(db_session, current_ts):
     p.get_or_create_account(D_ID, C_ID)
@@ -350,7 +372,7 @@ def test_resurect_deleted_account_transfer(db_session, current_ts):
 
 
 def test_prepare_transfer_insufficient_funds(db_session):
-    assert 1234 != D_ID
+    assert 1234 != C_ID
     p.get_or_create_account(D_ID, 1234)
     p.get_or_create_account(D_ID, C_ID)
     assert len(AccountChangeSignal.query.all()) == 2
