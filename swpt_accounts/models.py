@@ -7,8 +7,6 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
-assert MIN_INT32 + 1 == -MAX_INT32
-assert MIN_INT64 + 1 == -MAX_INT64
 
 
 def get_now_utc():
