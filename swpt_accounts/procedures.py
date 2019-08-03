@@ -588,7 +588,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
 
-    if tr.sender_creditor_id == tr.recipient_creditor_id:  # pragma: no cover
+    if tr.sender_creditor_id == tr.recipient_creditor_id:
         return reject(
             error_code='ACC002',
             message='Recipient and sender accounts are the same.',
@@ -615,7 +615,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             avl_balance=amount,
         )
 
-    if sender_account.pending_transfers_count >= MAX_INT32:  # pragma: no cover
+    if sender_account.pending_transfers_count >= MAX_INT32:
         return reject(
             error_code='ACC006',
             message='There are too many pending transfers.',

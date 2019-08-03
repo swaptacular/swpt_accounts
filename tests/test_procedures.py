@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
-from swpt_accounts.models import MAX_INT64, Account, PendingChange, RejectedTransferSignal, \
+from swpt_accounts.models import MAX_INT32, MAX_INT64, Account, PendingChange, RejectedTransferSignal, \
     PreparedTransfer, PreparedTransferSignal, AccountChangeSignal, CommittedTransferSignal
 
 
@@ -365,7 +365,6 @@ def test_resurect_deleted_account_transfer(db_session, current_ts):
 
 
 def test_prepare_transfer_insufficient_funds(db_session):
-    assert 1234 != C_ID
     p.get_or_create_account(D_ID, 1234)
     p.get_or_create_account(D_ID, C_ID)
     assert len(AccountChangeSignal.query.all()) == 2
@@ -417,6 +416,53 @@ def test_prepare_transfer_account_does_not_exist(db_session):
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
     assert rts.details['error_code'] == 'ACC003'
+
+
+def test_prepare_transfer_to_self(db_session):
+    p.get_or_create_account(D_ID, C_ID)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 100})
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        recipient_creditor_id=C_ID,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    rts = RejectedTransferSignal.query.one()
+    assert rts.debtor_id == D_ID
+    assert rts.coordinator_type == 'test'
+    assert rts.coordinator_id == 1
+    assert rts.coordinator_request_id == 2
+    assert rts.details['error_code'] == 'ACC002'
+
+
+def test_prepare_transfer_too_many_prepared_transfers(db_session):
+    p.get_or_create_account(D_ID, C_ID)
+    p.get_or_create_account(D_ID, 1234)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 100, Account.pending_transfers_count: MAX_INT32})
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        recipient_creditor_id=1234,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    rts = RejectedTransferSignal.query.one()
+    assert rts.debtor_id == D_ID
+    assert rts.coordinator_type == 'test'
+    assert rts.coordinator_id == 1
+    assert rts.coordinator_request_id == 2
+    assert rts.details['error_code'] == 'ACC006'
 
 
 def test_prepare_transfer_success(db_session):
