@@ -165,7 +165,7 @@ def delete_account_if_negligible(
 
     3. Check the current account status (as reported by the last
        received `AccountChangeSignal` for the account). If the account
-       has been deleted successfully, YOU ARE DONE.
+       has a "deleted" status, YOU ARE DONE.
 
     4. If the account owner's action is not required, go to point 1.
 
@@ -174,6 +174,14 @@ def delete_account_if_negligible(
        action.
 
     6. Go to point 2.
+
+    In rare cases, even when the above procedure has been successfully
+    performed, the account will be "resurrected" with a "scheduled for
+    deletion" status. This most probably means that some subsystem
+    continues to actively use the account. In this case, the most
+    appropriate action would be to explicitly call `create_account`,
+    and "legitimate" the use of the account. (This will clear the
+    "scheduled for deletion" flag.)
 
     """
 
