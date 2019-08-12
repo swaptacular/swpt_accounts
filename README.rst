@@ -5,7 +5,7 @@ Swaptacular micro-service that manages user account balances
 
 It implements several public `Dramatiq`_ actors (see
 ``swpt_accounts/actors.py``), and a very simple web API (see
-``swpt_accounts/routes.py``)
+``swpt_accounts/routes.py``).
 
 
 How to run it
