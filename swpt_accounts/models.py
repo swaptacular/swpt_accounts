@@ -134,7 +134,7 @@ class Account(db.Model):
         db.CheckConstraint(pending_transfers_count >= 0),
         db.CheckConstraint(principal > MIN_INT64),
         {
-            'comment': 'Tells who owes what to whom.'
+            'comment': 'Tells who owes what to whom.',
         }
     )
 
@@ -169,7 +169,7 @@ class TransferRequest(db.Model):
         {
             'comment': 'Requests to create new `prepared_transfer` records are queued to this '
                        'table. This allows multiple requests from one sender to be processed at '
-                       'once, reducing the lock contention on `account` records.'
+                       'once, reducing the lock contention on `account` records.',
         }
     )
 
@@ -219,7 +219,7 @@ class PreparedTransfer(db.Model):
         {
             'comment': 'A prepared transfer represent a guarantee that a particular transfer of '
                        'funds will be successful if ordered (committed). A record will remain in '
-                       'this table until the transfer has been commited or dismissed.'
+                       'this table until the transfer has been commited or dismissed.',
         }
     )
 
@@ -247,7 +247,7 @@ class PendingChange(db.Model):
         {
             'comment': 'Changes to account record amounts are queued to this table. This '
                        'allows multiple updates to one account to coalesce, thus reducing the '
-                       'lock contention.'
+                       'lock contention.',
         }
     )
 
