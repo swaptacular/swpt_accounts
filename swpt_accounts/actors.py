@@ -15,10 +15,10 @@ def prepare_transfer(
         sender_creditor_id: int,
         recipient_creditor_id: int) -> None:
 
-    """Try to greedily secure an amount between `min_amount` and
-    `max_amount`, to transfer it from sender's account (`debtor_id`,
-    `sender_creditor_id`) to recipient's account (`debtor_id`,
-    `recipient_creditor_id`).
+    """Try to greedily secure an amount between `min_amount` (> 0) and
+    `max_amount` (>= min_amount), to transfer it from sender's account
+    (`debtor_id`, `sender_creditor_id`) to recipient's account
+    (`debtor_id`, `recipient_creditor_id`).
 
     Before sending a message to this actor, the sender must create a
     Coordinator Request (CR) database record, with a primary key of
