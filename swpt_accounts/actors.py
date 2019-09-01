@@ -33,7 +33,8 @@ def prepare_transfer(
     some point, finalized (using the `finalize_prepared_transfer`
     actor), and the status set to "finalized". The "finalized" CR
     record must not be deleted right away, to avoid problems when the
-    event handler ends up being executed more than once.
+    same `PreparedTransferSignal` is received than once (see the next
+    two paragraphs).
 
     If a `PreparedTransferSignal` is received, but a corresponding CR
     record is not found, the newly prepared transfer must be
