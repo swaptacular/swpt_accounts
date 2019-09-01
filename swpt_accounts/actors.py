@@ -63,8 +63,8 @@ def prepare_transfer(
 
     IMPORTANT NOTES:
 
-    1. "initiated" CR records must not be deleted unless a
-       corresponding `RejectedTransferSignal` is received.
+    1. "initiated" CR records can be deleted whenever considered
+       appropriate.
 
     2. "prepared" CR records must not be deleted. Instead, they should
        be "finalized" first (by sending a message to the
@@ -74,14 +74,14 @@ def prepare_transfer(
        after they have been finalized, they should stay in the
        database for at least few days.
 
-       This is necessary to prevent various possible problems caused
-       by message re-delivery. For example, consider the following
-       scenario: a transfer has been prepared and committed
-       (finalized), but the `PreparedTransferSignal` message is
-       re-delivered a second time. Had the CR record been deleted
-       right away, the already committed prepared transfer would be
-       dismissed, and the fate of the transfer would be decided by the
-       race between the two different finalizing messages.
+       This is necessary in order to prevent problems caused by
+       message re-delivery. Consider the following scenario: a
+       transfer has been prepared and committed (finalized), but the
+       `PreparedTransferSignal` message is re-delivered a second
+       time. Had the CR record been deleted right away, the already
+       committed transfer would be dismissed, and the fate of the
+       transfer would be decided by the race between the two different
+       finalizing messages.
 
     """
 
