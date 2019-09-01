@@ -26,30 +26,62 @@ def prepare_transfer(
     status "initiated". This record will be used to act properly on
     `PreparedTransferSignal` and `RejectedTransferSignal` events.
 
-    On received `PreparedTransferSignal`, the status of the
-    corresponding CR record must be set to "prepared", and the
-    received values for `debtor_id`, `sender_creditor_id`, and
-    `transfer_id` -- recorded. The "prepared" CR record must be, at
-    some point, finalized (using the `finalize_prepared_transfer`
-    actor), and the status set to "finalized". The "finalized" CR
-    record must not be deleted right away, to avoid problems when the
-    same `PreparedTransferSignal` is received than once (see the next
-    two paragraphs).
 
-    If a `PreparedTransferSignal` is received, but a corresponding CR
-    record is not found, the newly prepared transfer must be
-    immediately dismissed (by sending a message to the
-    `finalize_prepared_transfer` actor with a zero `committed_amount`).
+    PreparedTransferSignal
+    ----------------------
+
+    If a `PreparedTransferSignal` is received for an "initiated" CR
+    record, the status of the corresponding CR record must be set to
+    "prepared", and the received values for `debtor_id`,
+    `sender_creditor_id`, and `transfer_id` -- recorded. The
+    "prepared" CR record must be, at some point, finalized (using the
+    `finalize_prepared_transfer` actor), and the status set to
+    "finalized".
 
     If a `PreparedTransferSignal` is received for an already
     "prepared" or "finalized" CR record, the corresponding values of
     `debtor_id`, `sender_creditor_id`, and `transfer_id` must be
     compared. If they are the same, no action should be taken. If they
-    differ, the newly prepared transfer must be immediately dismissed.
+    differ, the newly prepared transfer must be immediately dismissed
+    (by sending a message to the `finalize_prepared_transfer` actor
+    with a zero `committed_amount`).
 
-    If a `RejectedTransferSignal` is received, and the status of the
-    corresponding CR record is "initiated", the CR record must be
-    deleted. Otherwise, no action should be taken.
+    If a `PreparedTransferSignal` is received but a corresponding CR
+    record is not found, the newly prepared transfer must be
+    immediately dismissed.
+
+
+    RejectedTransferSignal
+    ----------------------
+
+    If a `RejectedTransferSignal` is received for an "initiated" CR
+    record, the CR record must be deleted.
+
+    If a `RejectedTransferSignal` is received in any other case, no
+    action should be taken.
+
+
+    IMPORTANT NOTES:
+
+    1. "initiated" CR records must not be deleted unless a
+       corresponding `RejectedTransferSignal` is received.
+
+    2. "prepared" CR records must not be deleted. Instead, they should
+       be "finalized" first (by sending a message to the
+       `finalize_prepared_transfer` actor).
+
+    3. "finalized" CR records must not be deleted right away. Instead,
+       after they have been finalized, they should stay in the
+       database for at least few days.
+
+       This is necessary to prevent various possible problems caused
+       by message re-delivery. For example, consider the following
+       scenario: a transfer has been prepared and committed
+       (finalized), but the `PreparedTransferSignal` message is
+       re-delivered a second time. Had the CR record been deleted
+       right away, the already committed prepared transfer would be
+       dismissed, and the fate of the transfer would be decided by the
+       race between the two different finalizing messages.
 
     """
 
