@@ -1,5 +1,6 @@
 import datetime
 import dramatiq
+from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
@@ -271,6 +272,12 @@ class PreparedTransferSignal(Signal):
 
 
 class RejectedTransferSignal(Signal):
+    class __marshmallow__(Schema):
+        coordinator_type = fields.String()
+        coordinator_id = fields.Integer()
+        coordinator_request_id = fields.Integer()
+        details = fields.Raw()
+
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
