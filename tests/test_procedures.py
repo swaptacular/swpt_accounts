@@ -599,3 +599,10 @@ def test_get_debtor_account_list(db_session):
     assert len(p.get_debtor_account_list(D_ID, start_after=C_ID, limit=100)) == 1
     assert len(p.get_debtor_account_list(D_ID, start_after=C_ID + 1, limit=100)) == 0
     assert len(p.get_debtor_account_list(D_ID, start_after=None, limit=-1)) == 0
+
+
+def test_marshmallow_auto_generated_classes(db_session):
+    assert hasattr(RejectedTransferSignal, '__marshmallow__')
+    assert hasattr(RejectedTransferSignal, '__marshmallow_schema__')
+    assert hasattr(CommittedTransferSignal, '__marshmallow__')
+    assert hasattr(CommittedTransferSignal, '__marshmallow_schema__')
