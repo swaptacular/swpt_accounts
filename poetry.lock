@@ -158,7 +158,7 @@ description = "A Flask extension that adds support for the \"dramatiq\" task pro
 name = "flask-melodramatiq"
 optional = false
 python-versions = "*"
-version = "0.3.6"
+version = "0.3.7"
 
 [package.dependencies]
 Flask = ">=1.0"
@@ -711,7 +711,7 @@ entrypoints = ["589f874b313739ad35be6e0cd7efde2a4e9b6fea91edcc34e58ecbb8dbe56d19
 flake8 = ["19241c1cbc971b9962473e4438a2ca19749a7dd002dd1a946eaba171b4114548", "8e9dfa3cecb2400b3738a42c54c3043e821682b9c840b0448c0503f781130696"]
 flask = ["13f9f196f330c7c2c5d7a5cf91af894110ca0215ac051b5844701f2bfd934d52", "45eb5a6fd193d6cf7e0cf5d8a5b31f83d5faae0293695626f539a823e93b13f6"]
 flask-env = ["6515b2cb2f62dc2743ba2600f4583147128f28a36cb73040a2ab12c54e329f67", "e10ebc8ac8f5d4696f228be8ad528c697c701b706c754fc54c8a5aa784eb73f1"]
-flask-melodramatiq = ["8b59790810880787cdce2ede8fe8797969cfb7ddc1480122355df05168990325"]
+flask-melodramatiq = ["17ff0e48a02c0652a4776abd67cbd6ba8e2de29e36540ded25ab2247ece94dbb"]
 flask-migrate = ["6fb038be63d4c60727d5dfa5f581a6189af5b4e2925bc378697b4f0a40cfb4e1", "a96ff1875a49a40bd3e8ac04fce73fdb0870b9211e6168608cbafa4eb839d502"]
 flask-signalbus = ["6ac4ad0f9b4389d99f8e9915e19b313acf070c5109def4d5283aa83e5e9716b7"]
 flask-sqlalchemy = ["0c9609b0d72871c540a7945ea559c8fdf5455192d2db67219509aed680a3d45a", "8631bbea987bc3eb0f72b1f691d47bd37ceb795e73b59ab48586d76d75a7c605"]
