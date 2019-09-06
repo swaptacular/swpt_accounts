@@ -602,6 +602,7 @@ def test_get_debtor_account_list(db_session):
 
 
 def test_marshmallow_auto_generated_classes(db_session):
+    RejectedTransferSignal.query.all()
     assert hasattr(RejectedTransferSignal, '__marshmallow__')
     assert hasattr(RejectedTransferSignal, '__marshmallow_schema__')
     assert hasattr(CommittedTransferSignal, '__marshmallow__')
