@@ -20,7 +20,7 @@ dramatiq = {git = "https://github.com/epandurski/dramatiq.git", extras = ["rabbi
 pytest = "^4.0"
 pytest-mock = "^1.10"
 iso8601 = "^0.1.12"
-marshmallow = "3.0.0rc7"
+marshmallow = "^3.0.1"
 
 [tool.poetry.dev-dependencies]
 python-dotenv = ">=0.10.1"
