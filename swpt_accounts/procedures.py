@@ -247,6 +247,7 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
         for request in requests:
             new_objects.extend(_process_transfer_request(request, sender_account))
             db.session.delete(request)
+        new_objects.sort(key=lambda o: id(type(o)))
 
         # TODO: `db.session.bulk_save_objects(new_objects)` would be
         # faster here, but it would not automatically flush the
