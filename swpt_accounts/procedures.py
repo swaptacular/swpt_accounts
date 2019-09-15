@@ -247,7 +247,12 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
         for request in requests:
             new_objects.extend(_process_transfer_request(request, sender_account))
             db.session.delete(request)
-        db.session.bulk_save_objects(new_objects)
+
+        # TODO: `db.session.bulk_save_objects(new_objects)` would be
+        # faster here, but it would not automatically flush the
+        # signals. This should be changed when we decide to disable
+        # auto-flushing.
+        db.session.add_all(new_objects)
 
 
 @atomic
