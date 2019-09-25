@@ -45,6 +45,6 @@ def create_app(config_dict={}):
     db.init_app(app)
     migrate.init_app(app, db)
     broker.init_app(app)
-    app.register_blueprint(web_api, url_prefix='/api')
+    app.register_blueprint(web_api, url_prefix='/v1')
     app.cli.add_command(swpt_accounts)
     return app
