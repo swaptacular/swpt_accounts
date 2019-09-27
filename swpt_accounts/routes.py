@@ -25,32 +25,16 @@ class AccountsAPI(MethodView):
         if 'limit' in request.args:
             limit = int(request.args['limit'])
         debtor_account_list = procedures.get_debtor_account_list(debtor_id, start_after, limit)
-        debtor_account_list_json = json.dumps({
-            'self': request.url,
-            'contents': [self._dump_account(a) for a in debtor_account_list],
-        })
+        debtor_account_list_json = json.dumps([account_schema.dump(a) for a in debtor_account_list])
         return debtor_account_list_json, 200, {'Content-Type': 'application/json'}
-
-    @staticmethod
-    def _dump_account(account):
-        d = account_schema.dump(account)
-        d['self'] = str(account.creditor_id)  # the relative URL
-        return d
 
 
 class AccountAPI(MethodView):
     def get(self, debtor_id, creditor_id):
         account = procedures.get_account(debtor_id, creditor_id) or abort(404)
-        account_dict = account_schema.dump(account)
-        account_dict['self'] = request.base_url
-        return json.dumps(account_dict), 200, {'Content-Type': 'application/json'}
+        account_json = json.dumps(account_schema.dump(account))
+        return account_json, 200, {'Content-Type': 'application/json'}
 
 
-web_api.add_url_rule(
-    '/borrowers/<int:debtor_id>/accounts',
-    view_func=AccountsAPI.as_view('show_accounts'),
-)
-web_api.add_url_rule(
-    '/borrowers/<int:debtor_id>/accounts/<int:creditor_id>',
-    view_func=AccountAPI.as_view('show_account'),
-)
+web_api.add_url_rule('/accounts/<int:debtor_id>/', view_func=AccountsAPI.as_view('show_accounts'))
+web_api.add_url_rule('/accounts/<int:debtor_id>/<int:creditor_id>/', view_func=AccountAPI.as_view('show_account'))
