@@ -47,10 +47,10 @@ class AccountAPI(MethodView):
 
 
 web_api.add_url_rule(
-    '/debtors/<int:debtor_id>/accounts',
+    '/borrowers/<int:debtor_id>/accounts',
     view_func=AccountsAPI.as_view('show_accounts'),
 )
 web_api.add_url_rule(
-    '/debtors/<int:debtor_id>/accounts/<int:creditor_id>',
+    '/borrowers/<int:debtor_id>/accounts/<int:creditor_id>',
     view_func=AccountAPI.as_view('show_account'),
 )
