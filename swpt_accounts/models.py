@@ -167,6 +167,12 @@ class TransferRequest(db.Model):
         comment='`prepared_transfer.sender_locked_amount` must be no bigger than this value.',
     )
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
+    minimum_account_balance = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment="Determines the amount that must remain available on sender's account after "
+                "the requested amount has been secured.",
+    )
 
     __table_args__ = (
         db.CheckConstraint(min_amount > 0),

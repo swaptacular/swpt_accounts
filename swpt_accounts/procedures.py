@@ -52,8 +52,8 @@ def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
 
 
 @atomic
-def get_available_balance(debtor_id: int, creditor_id: int) -> int:
-    return _get_available_balance((debtor_id, creditor_id))
+def get_available_balance(debtor_id: int, creditor_id: int, minimum_account_balance: int = 0) -> int:
+    return _get_available_balance((debtor_id, creditor_id), minimum_account_balance)
 
 
 @atomic
@@ -64,13 +64,16 @@ def prepare_transfer(coordinator_type: str,
                      max_amount: int,
                      debtor_id: int,
                      sender_creditor_id: int,
-                     recipient_creditor_id: int) -> None:
+                     recipient_creditor_id: int,
+                     minimum_account_balance: int = 0) -> None:
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 < min_amount <= max_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
     assert MIN_INT64 <= recipient_creditor_id <= MAX_INT64
+    assert MIN_INT64 <= minimum_account_balance <= MAX_INT64
+    assert minimum_account_balance >= 0 or sender_creditor_id == ROOT_CREDITOR_ID
 
     db.session.add(TransferRequest(
         debtor_id=debtor_id,
@@ -81,6 +84,7 @@ def prepare_transfer(coordinator_type: str,
         max_amount=max_amount,
         sender_creditor_id=sender_creditor_id,
         recipient_creditor_id=recipient_creditor_id,
+        minimum_account_balance=minimum_account_balance,
     ))
 
 
@@ -390,18 +394,18 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
     return current_balance
 
 
-def _get_available_balance(account_or_pk: AccountId) -> int:
-    # We must make sure that the debtor's account has a virtually
-    # unlimited available balance at all times, because it issuers all
-    # the money in the system.
+def _get_available_balance(account_or_pk: AccountId, minimum_account_balance: int = 0) -> int:
+    # Make sure that only the debtor's account is allowed to go
+    # negative. (It issues all the money in the system.)
     debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
-    if creditor_id == ROOT_CREDITOR_ID:
-        return MAX_INT64
+    if creditor_id != ROOT_CREDITOR_ID:
+        minimum_account_balance = max(0, minimum_account_balance)
 
     account = _get_account(account_or_pk)
+    available_balance = 0
     if account:
-        return math.floor(_calc_account_current_balance(account)) - account.locked_amount
-    return 0
+        available_balance = math.floor(_calc_account_current_balance(account)) - account.locked_amount
+    return available_balance - minimum_account_balance
 
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
@@ -613,7 +617,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             message='The recipient account is scheduled for deletion.',
         )
 
-    amount = min(_get_available_balance(sender_account), tr.max_amount)
+    amount = min(_get_available_balance(sender_account, tr.minimum_account_balance), tr.max_amount)
     if amount < tr.min_amount:
         return reject(
             error_code='ACC005',

@@ -13,12 +13,18 @@ def prepare_transfer(
         max_amount: int,
         debtor_id: int,
         sender_creditor_id: int,
-        recipient_creditor_id: int) -> None:
+        recipient_creditor_id: int,
+        minimum_account_balance: int = 0) -> None:
 
     """Try to greedily secure an amount between `min_amount` (> 0) and
     `max_amount` (>= min_amount), to transfer it from sender's account
     (`debtor_id`, `sender_creditor_id`) to recipient's account
     (`debtor_id`, `recipient_creditor_id`).
+
+    `minimum_account_balance` determines the amount that must remain
+    available on sender's account after the requested amount has been
+    secured. For normal accounts it should be a non-negative
+    number. For the debtor's account it can be any number.
 
     Before sending a message to this actor, the sender must create a
     Coordinator Request (CR) database record, with a primary key of
@@ -94,6 +100,7 @@ def prepare_transfer(
         debtor_id,
         sender_creditor_id,
         recipient_creditor_id,
+        minimum_account_balance,
     )
 
 
