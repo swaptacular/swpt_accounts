@@ -19,7 +19,7 @@ TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
-INTEREST_RATE_FLOOR = -50
+INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
