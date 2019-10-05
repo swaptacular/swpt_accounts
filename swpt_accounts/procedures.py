@@ -19,6 +19,8 @@ TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
+INTEREST_RATE_FLOOR = -50
+INTEREST_RATE_CEIL = 100.0
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
@@ -120,7 +122,14 @@ def change_account_attributes(debtor_id: int,
     # prevent this, the interest rates should be kept within
     # reasonable limits, and the accumulated interest should be
     # capitalized every once in a while (like once a month).
-    assert -100.0 < interest_rate <= 100.0
+    if interest_rate > INTEREST_RATE_CEIL:
+        raise Exception("Too big positive interest rate.")
+
+    # Too big negative interest rates are dangerous. Chances are that
+    # they are entered either maliciously or by mistake. It is a good
+    # precaution to not allow them at all.
+    if interest_rate < INTEREST_RATE_FLOOR:
+        raise Exception("Too big negative interest rate.")
 
     account = _get_account((debtor_id, creditor_id), lock=True)
     if account:
