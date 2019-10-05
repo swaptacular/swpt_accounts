@@ -53,16 +53,18 @@ def test_set_interest_rate(db_session, current_ts):
     assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     assert len(AccountChangeSignal.query.all()) == 2
 
-    # Incorrect interest rate.
-    with pytest.raises(Exception):
-        p.change_account_attributes(D_ID, C_ID, 667, current_ts, 1e6)
-    with pytest.raises(Exception):
-        p.change_account_attributes(D_ID, C_ID, 667, current_ts, -99.9999999999)
-
     # Older event
     p.change_account_attributes(D_ID, C_ID, 665, current_ts, 8.0)
     assert p.get_account(D_ID, C_ID).interest_rate == 7.0
     assert len(AccountChangeSignal.query.all()) == 2
+
+    # Too big positive interest rate.
+    p.change_account_attributes(D_ID, C_ID, 667, current_ts, 1e9)
+    assert p.get_account(D_ID, C_ID).interest_rate == p.INTEREST_RATE_CEIL
+
+    # Too big negative interest rate.
+    p.change_account_attributes(D_ID, C_ID, 668, current_ts, -99.9999999999)
+    assert p.get_account(D_ID, C_ID).interest_rate == p.INTEREST_RATE_FLOOR
 
 
 def test_change_attributes_on_debtor_account(db_session, current_ts):

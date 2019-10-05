@@ -118,18 +118,18 @@ def change_account_attributes(debtor_id: int,
     if creditor_id == ROOT_CREDITOR_ID:
         raise Exception("Changing attributes on this account is forbidden.")
 
-    # Too big interest rates can cause account balance overflows. To
-    # prevent this, the interest rates should be kept within
-    # reasonable limits, and the accumulated interest should be
+    # Too big positive interest rates can cause account balance
+    # overflows. To prevent this, the interest rates should be kept
+    # within reasonable limits, and the accumulated interest should be
     # capitalized every once in a while (like once a month).
     if interest_rate > INTEREST_RATE_CEIL:
-        raise Exception("Too big positive interest rate.")
+        interest_rate = INTEREST_RATE_CEIL
 
-    # Too big negative interest rates are dangerous. Chances are that
-    # they are entered either maliciously or by mistake. It is a good
-    # precaution to not allow them at all.
+    # Too big negative interest rates are dangerous too. Chances are
+    # that they have been entered either maliciously or by mistake. It
+    # is a good precaution to not allow them at all.
     if interest_rate < INTEREST_RATE_FLOOR:
-        raise Exception("Too big negative interest rate.")
+        interest_rate = INTEREST_RATE_FLOOR
 
     account = _get_account((debtor_id, creditor_id), lock=True)
     if account:
