@@ -303,6 +303,7 @@ def test_delete_account_negative_balance(db_session):
     p.delete_account_if_negligible(D_ID, C_ID, MAX_INT64)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
+    assert not a.status & Account.STATUS_DELETED_FLAG
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
     # Verify that incoming transfers are not allowed:
@@ -326,6 +327,11 @@ def test_delete_account_negative_balance(db_session):
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
     assert rts.details['error_code'] == 'ACC004'
+
+    # Verify that re-creating the account clears STATUS_SCHEDULED_FOR_DELETION_FLAG:
+    a = p.get_or_create_account(D_ID, C_ID)
+    assert not a.status & Account.STATUS_DELETED_FLAG
+    assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
 
 def test_delete_account_tiny_positive_balance(db_session, current_ts):

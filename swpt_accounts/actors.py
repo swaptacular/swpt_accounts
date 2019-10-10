@@ -170,8 +170,10 @@ def create_account(
         debtor_id: int,
         creditor_id: int) -> None:
 
-    """Make sure the account `(debtor_id, creditor_id)` exists. Always
-    sends a confirming `AccountChangeSignal` signal.
+    """Make sure the account `(debtor_id, creditor_id)` exists, and is
+    neither deleted nor scheduled for deletion.
+
+    An `AccountChangeSignal` is always sent as a confirmation.
 
     """
 

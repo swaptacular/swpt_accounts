@@ -392,19 +392,17 @@ def _get_or_create_account(account_or_pk: AccountId, lock: bool = False, create_
         debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
         account = _create_account(debtor_id, creditor_id)
     elif account.status & Account.STATUS_DELETED_FLAG:
-        _resurrect_account(account, create_account_request)
+        _resurrect_deleted_account(account, create_account_request)
     elif create_account_request:
-        # We always send an `AccountChangeSignal` when a request to
-        # create an account is made. This behavior causes least
-        # surprise in case a creditor wants to crate a new account,
-        # not knowing that he already has one.
+        account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         _insert_account_change_signal(account)
 
     assert not account.status & Account.STATUS_DELETED_FLAG
     return account
 
 
-def _resurrect_account(account: Account, create_account_request: bool) -> None:
+def _resurrect_deleted_account(account: Account, create_account_request: bool) -> None:
+    assert account.status & Account.STATUS_DELETED_FLAG
     account.principal = 0
     account.pending_transfers_count = 0
     account.locked_amount = 0
@@ -647,8 +645,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             error_code='ACC003',
             message='The recipient account does not exist.',
         )
-    if (recipient_account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-            and tr.sender_creditor_id != ROOT_CREDITOR_ID):
+    if recipient_account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG:
         return reject(
             error_code='ACC004',
             message='The recipient account is scheduled for deletion.',
