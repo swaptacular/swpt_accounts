@@ -175,6 +175,24 @@ def create_account(
     procedures.get_or_create_account(debtor_id, creditor_id)
 
 
+@broker.actor(queue_name=APP_QUEUE_NAME)
+def zero_out_negative_balance(
+        debtor_id: int,
+        creditor_id: int,
+        last_outgoing_transfer_date: str) -> None:
+
+    """Zero out the balance on the account `(debtor_id, creditor_id)` if
+    the current balance is negative, and account's last outgoing
+    transfer date is less or equal to `last_outgoing_transfer_date`.
+
+    """
+
+    procedures.zero_out_negative_balance(
+        debtor_id,
+        creditor_id,
+        iso8601.parse_date(last_outgoing_transfer_date).date(),
+    )
+
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def delete_account_if_negligible(

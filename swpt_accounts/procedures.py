@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from .extensions import db
@@ -193,6 +193,25 @@ def make_debtor_payment(
             sender_interest_delta=0 if coordinator_type != 'interest' else -amount,
             omit_sender_account_change=omit_creditor_account_change,
         )
+
+
+@atomic
+def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_transfer_date: date) -> None:
+    assert last_outgoing_transfer_date is not None
+
+    # Trying to zero out the debtor's account is a nonsense, because
+    # it would transfer money from the debtor's account to the
+    # debtor's account.
+    if creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
+        return
+
+    account = _get_account((debtor_id, creditor_id), lock=True)
+    if account:
+        account_date = account.last_outgoing_transfer_date
+        account_date_is_ok = account_date is None or account_date <= last_outgoing_transfer_date
+        zero_out_amount = -math.floor(_calc_account_current_balance(account))
+        if account_date_is_ok and zero_out_amount > 0:
+            make_debtor_payment('zero_out_account', debtor_id, creditor_id, zero_out_amount)
 
 
 @atomic

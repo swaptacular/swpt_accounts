@@ -50,6 +50,14 @@ def test_create_account(db_session):
     )
 
 
+def test_zero_out_negative_balance(db_session):
+    a.zero_out_negative_balance(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        last_outgoing_transfer_date='2019-07-01',
+    )
+
+
 def test_purge_deleted_account(db_session):
     a.purge_deleted_account(
         debtor_id=D_ID,

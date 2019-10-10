@@ -615,3 +615,20 @@ def test_marshmallow_auto_generated_classes(db_session):
     assert hasattr(RejectedTransferSignal, '__marshmallow_schema__')
     assert hasattr(CommittedTransferSignal, '__marshmallow__')
     assert hasattr(CommittedTransferSignal, '__marshmallow_schema__')
+
+
+def test_zero_out_negative_balance(db_session, current_ts):
+    p.get_or_create_account(D_ID, C_ID)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({
+        Account.interest: 100.99,
+        Account.principal: -5000,
+    })
+    assert p.get_available_balance(D_ID, C_ID) == -4900
+    p.zero_out_negative_balance(D_ID, C_ID, current_ts.date())
+    p.process_pending_changes(D_ID, C_ID)
+    assert p.get_available_balance(D_ID, C_ID) == 0
+    p.delete_account_if_negligible(D_ID, C_ID, 1)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    assert q.one().status & Account.STATUS_DELETED_FLAG
+    assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
