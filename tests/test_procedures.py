@@ -37,6 +37,8 @@ def test_get_or_create_account(db_session):
     assert acs.principal == a.principal
     assert acs.interest == a.interest
     assert acs.interest_rate == a.interest_rate
+    a = p.get_or_create_account(D_ID, C_ID)
+    assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 2
 
 
 def test_set_interest_rate(db_session, current_ts):

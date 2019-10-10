@@ -387,29 +387,38 @@ def _get_or_create_account(account_or_pk: AccountId, lock: bool = False, create_
         account = Account.lock_instance(account_or_pk)
     else:
         account = Account.get_instance(account_or_pk)
+
     if account is None:
         debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
         account = _create_account(debtor_id, creditor_id)
-    _resurrect_account_if_deleted(account, create_account_request)
+    elif account.status & Account.STATUS_DELETED_FLAG:
+        _resurrect_account(account, create_account_request)
+    elif create_account_request:
+        # We always send an `AccountChangeSignal` when a request to
+        # create an account is made. This behavior causes least
+        # surprise in case a creditor wants to crate a new account,
+        # not knowing that he already has one.
+        _insert_account_change_signal(account)
+
+    assert not account.status & Account.STATUS_DELETED_FLAG
     return account
 
 
-def _resurrect_account_if_deleted(account: Account, create_account_request: bool) -> None:
-    if account.status & Account.STATUS_DELETED_FLAG:
-        account.principal = 0
-        account.pending_transfers_count = 0
-        account.locked_amount = 0
-        account.interest = 0.0
-        account.interest_rate = 0.0
-        account.attributes_last_change_seqnum = None
-        account.attributes_last_change_ts = None
-        account.last_outgoing_transfer_date = None
-        if create_account_request:
-            account.status = PRISTINE_ACCOUNT_STATUS
-        else:
-            # Resurrected by an unexpected incoming transfer.
-            account.status = account.status & RETAINED_ACCOUNT_STATUS_FLAGS | RESURRECTED_ACCOUNT_STATUS
-        _insert_account_change_signal(account)
+def _resurrect_account(account: Account, create_account_request: bool) -> None:
+    account.principal = 0
+    account.pending_transfers_count = 0
+    account.locked_amount = 0
+    account.interest = 0.0
+    account.interest_rate = 0.0
+    account.attributes_last_change_seqnum = None
+    account.attributes_last_change_ts = None
+    account.last_outgoing_transfer_date = None
+    if create_account_request:
+        account.status = PRISTINE_ACCOUNT_STATUS
+    else:
+        # Resurrected by an unexpected incoming transfer.
+        account.status = account.status & RETAINED_ACCOUNT_STATUS_FLAGS | RESURRECTED_ACCOUNT_STATUS
+    _insert_account_change_signal(account)
 
 
 def _calc_account_current_balance(account: Account, current_ts: datetime = None) -> Decimal:
