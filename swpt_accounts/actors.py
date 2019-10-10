@@ -1,4 +1,3 @@
-from datetime import datetime
 import iso8601
 from .extensions import broker, APP_QUEUE_NAME
 from . import procedures
@@ -176,11 +175,13 @@ def create_account(
     procedures.get_or_create_account(debtor_id, creditor_id)
 
 
+
+@broker.actor(queue_name=APP_QUEUE_NAME)
 def delete_account_if_negligible(
         debtor_id: int,
         creditor_id: int,
         negligible_amount: int,
-        ignore_after_ts: datetime) -> None:
+        ignore_after_ts: str) -> None:
 
     """Mark the account as deleted if there are no prepared transfers, and
     the current balance is non-negative and no bigger than
@@ -237,7 +238,7 @@ def delete_account_if_negligible(
 def purge_deleted_account(
         debtor_id: int,
         creditor_id: int,
-        if_deleted_before: datetime) -> None:
+        if_deleted_before: str) -> None:
 
     """Removes the account `(debtor_id, creditor_id)` if it has been
     marked as deleted before the `if_deleted_before` moment.
@@ -255,5 +256,5 @@ def purge_deleted_account(
     procedures.purge_deleted_account(
         debtor_id,
         creditor_id,
-        if_deleted_before,
+        iso8601.parse_date(if_deleted_before),
     )
