@@ -103,7 +103,7 @@ def finalize_prepared_transfer(debtor_id: int,
         elif committed_amount > 0:
             _commit_prepared_transfer(pt, committed_amount, transfer_info)
         else:
-            raise Exception('The committed amount is negative.')
+            raise ValueError('The committed amount is negative.')
 
 
 @atomic
@@ -112,12 +112,6 @@ def change_account_attributes(debtor_id: int,
                               change_seqnum: int,
                               change_ts: datetime,
                               interest_rate: float) -> None:
-    # We do not allow changing attributes on the debtor's account
-    # because it is a nonsense to accumulate interest on debtor's own
-    # account.
-    if creditor_id == ROOT_CREDITOR_ID:
-        raise Exception("Changing attributes on this account is forbidden.")
-
     # Too big positive interest rates can cause account balance
     # overflows. To prevent this, the interest rates should be kept
     # within reasonable limits, and the accumulated interest should be
@@ -161,13 +155,15 @@ def make_debtor_payment(
         debtor_id: int,
         creditor_id: int,
         amount: int,
-        transfer_info: dict = {},
-        omit_creditor_account_change: bool = False) -> None:
+        transfer_info: dict = {}) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert -MAX_INT64 <= amount <= MAX_INT64
 
-    if amount > 0:
+    if creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
+        # The debtor pays himself.
+        pass
+    elif amount > 0:
         # The debtor pays the creditor.
         _force_transfer(
             coordinator_type=coordinator_type,
@@ -178,7 +174,7 @@ def make_debtor_payment(
             committed_amount=amount,
             transfer_info=transfer_info,
             recipient_interest_delta=0 if coordinator_type != 'interest' else -amount,
-            omit_recipient_account_change=omit_creditor_account_change,
+            omit_recipient_account_change=coordinator_type == 'delete_account',
         )
     elif amount < 0:
         # The creditor pays the debtor.
@@ -191,20 +187,13 @@ def make_debtor_payment(
             committed_amount=-amount,
             transfer_info=transfer_info,
             sender_interest_delta=0 if coordinator_type != 'interest' else -amount,
-            omit_sender_account_change=omit_creditor_account_change,
+            omit_sender_account_change=coordinator_type == 'delete_account',
         )
 
 
 @atomic
 def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_transfer_date: date) -> None:
     assert last_outgoing_transfer_date is not None
-
-    # Trying to zero out the debtor's account is a nonsense, because
-    # it would transfer money from the debtor's account to the
-    # debtor's account.
-    if creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
-        return
-
     account = _get_account((debtor_id, creditor_id), lock=True)
     if account:
         account_date = account.last_outgoing_transfer_date
@@ -220,13 +209,9 @@ def delete_account_if_negligible(
         creditor_id: int,
         negligible_amount: int,
         ignore_after_ts: datetime = None) -> None:
-    # We must not allow the deletion of the debtor's account, because
-    # transfers to this account should always be possible. Also, we
-    # want to preserve the status flags (the `STATUS_OVERFLOWN_FLAG`
-    # for example).
-    if creditor_id == ROOT_CREDITOR_ID:
-        return
-
+    assert negligible_amount >= 0
+    if creditor_id == ROOT_CREDITOR_ID and negligible_amount != 0:
+        raise ValueError("When deleting the debtor's account the negligible amount must be zero.")
     current_ts = datetime.now(tz=timezone.utc)
     if ignore_after_ts is None or current_ts <= ignore_after_ts:
         account = _get_account((debtor_id, creditor_id), lock=True)
@@ -234,13 +219,7 @@ def delete_account_if_negligible(
             has_no_pending_transfers = account.pending_transfers_count == 0 and account.locked_amount == 0
             current_balance = _calc_account_current_balance(account, current_ts)
             if has_no_pending_transfers and 0 <= current_balance <= negligible_amount:
-                make_debtor_payment(
-                    'delete_account',
-                    debtor_id,
-                    creditor_id,
-                    -account.principal,
-                    omit_creditor_account_change=True,
-                )
+                make_debtor_payment('delete_account', debtor_id, creditor_id, -account.principal)
                 account.principal = 0
                 account.interest = 0.0
                 account.status |= Account.STATUS_DELETED_FLAG
@@ -420,6 +399,12 @@ def _resurrect_deleted_account(account: Account, create_account_request: bool) -
 
 
 def _calc_account_current_balance(account: Account, current_ts: datetime = None) -> Decimal:
+    if account.creditor_id == ROOT_CREDITOR_ID:
+        # Any interest accumulated on the debtor's account will not be
+        # included in the current balance. Thus, accumulating interest
+        # on the debtor's account is has no real effect.
+        return Decimal(account.principal)
+
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     current_balance = account.principal + Decimal.from_float(account.interest)
     if current_balance > 0:
@@ -430,10 +415,12 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
 
 
 def _get_available_balance(account_or_pk: AccountId, minimum_account_balance: int = 0) -> int:
-    # Make sure that only the debtor's account is allowed to go
-    # negative. (It issues all the money in the system.)
     debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
+
     if creditor_id != ROOT_CREDITOR_ID:
+        # Only the debtor's account is allowed to go deliberately
+        # negative. This is because only the debtor's account is
+        # allowed to issue money.
         minimum_account_balance = max(0, minimum_account_balance)
 
     account = _get_account(account_or_pk)

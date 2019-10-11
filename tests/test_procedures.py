@@ -69,11 +69,6 @@ def test_set_interest_rate(db_session, current_ts):
     assert p.get_account(D_ID, C_ID).interest_rate == p.INTEREST_RATE_FLOOR
 
 
-def test_change_attributes_on_debtor_account(db_session, current_ts):
-    with pytest.raises(Exception):
-        p.change_account_attributes(D_ID, p.ROOT_CREDITOR_ID, 666, current_ts, 7.0)
-
-
 AMOUNT = 50000
 
 
@@ -111,9 +106,9 @@ def test_make_debtor_zero_payment(db_session):
     assert not CommittedTransferSignal.query.all()
 
 
-def test_make_debtor_omit_creditor_account_change(db_session, amount):
+def test_make_debtor_creditor_account_deletion(db_session, amount):
     p.get_or_create_account(D_ID, C_ID)
-    p.make_debtor_payment('test', D_ID, C_ID, amount, omit_creditor_account_change=True)
+    p.make_debtor_payment('delete_account', D_ID, C_ID, amount)
     assert CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
     changes = PendingChange.query.all()
     assert len(changes) == 1
@@ -181,8 +176,20 @@ def test_negative_overflow(db_session):
 
 def test_get_available_balance(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q_root = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
 
+    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID) == 0
     assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, -1000) == 1000
+    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
+    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID) == 0
+    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, -1000) == 1000
+    q_root.update({
+        Account.interest: 100.0,
+        Account.principal: 500,
+    })
+    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID) == 500
+    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, -1000) == 1500
+
     assert p.get_available_balance(D_ID, C_ID, -1000) == 0
     assert p.get_available_balance(D_ID, C_ID) == 0
     p.get_or_create_account(D_ID, C_ID)
@@ -256,7 +263,7 @@ def test_capitalize_negative_interest(db_session, current_ts):
     assert 4408 <= a.principal <= 4412
 
 
-def test_discard_interest_on_self(db_session, current_ts):
+def test_debtor_account_capitalization(db_session, current_ts):
     p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     q.update({Account.interest: 100.0, Account.principal: 50})
@@ -264,7 +271,7 @@ def test_discard_interest_on_self(db_session, current_ts):
     p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert a.principal == 50
-    assert a.interest == 0.0
+    assert a.interest == 100.0
 
 
 def test_delete_account(db_session, current_ts):
@@ -351,10 +358,28 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     assert changes[0].creditor_id == p.ROOT_CREDITOR_ID
 
 
-def test_delete_debtor_account_failure(db_session, current_ts):
+def test_delete_debtor_account(db_session, current_ts):
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
-    p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, MAX_INT64)
-    assert p.get_account(D_ID, p.ROOT_CREDITOR_ID)
+    with pytest.raises(ValueError):
+        p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, 1)
+
+    q.update({Account.principal: 100})
+    p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, 0)
+    a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
+    assert not a.status & Account.STATUS_DELETED_FLAG
+    assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+
+    q.update({Account.principal: -100})
+    p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, 0)
+    a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
+    assert not a.status & Account.STATUS_DELETED_FLAG
+    assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+
+    q.update({Account.principal: 0})
+    p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, 0)
+    a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
+    assert a is None
 
 
 def test_resurect_deleted_account_create(db_session, current_ts):
@@ -521,7 +546,7 @@ def test_prepare_transfer_success(db_session):
     assert pt.sender_locked_amount == pts.sender_locked_amount
 
     # Discard the transfer.
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, -1)
     p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, 0)
     p.process_pending_changes(D_ID, 1234)
