@@ -211,7 +211,7 @@ def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_tr
         account_date_is_ok = account_date is None or account_date <= last_outgoing_transfer_date
         zero_out_amount = -math.floor(_calc_account_current_balance(account))
         if account_date_is_ok and zero_out_amount > 0:
-            make_debtor_payment('zero_out_account', debtor_id, creditor_id, zero_out_amount)
+            make_debtor_payment('zero_out_account', debtor_id, creditor_id, min(zero_out_amount, MAX_INT64))
 
 
 @atomic
