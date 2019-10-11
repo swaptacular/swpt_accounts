@@ -86,3 +86,13 @@ def subscribe(queue_name):  # pragma: no cover
             else:
                 unbind(queue_name, MAIN_EXCHANGE_NAME, routing_key)
                 click.echo(f'Unsubscribed "{queue_name}" from "{MAIN_EXCHANGE_NAME}.{routing_key}".')
+
+
+# TODO: Implement a background task that over the course of 1-4 weeks
+#       walks through all the accounts and sends an
+#       `AccountChangeSignal` for each and every one of them, no
+#       matter changed or not. This is necessary in order to be able
+#       to eventually synchronize unsynchronized other services'
+#       databases. Whithout this feature, a row removed from in the
+#       `account` table will never be deleted in the unsynchronized
+#       replicas.
