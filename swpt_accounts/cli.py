@@ -93,6 +93,6 @@ def subscribe(queue_name):  # pragma: no cover
 #       `AccountChangeSignal` for each and every one of them, no
 #       matter changed or not. This is necessary in order to be able
 #       to eventually synchronize unsynchronized other services'
-#       databases. Whithout this feature, a row removed from in the
-#       `account` table will never be deleted in the unsynchronized
-#       replicas.
+#       databases. Whithout this feature, a row removed/changed from
+#       in the `account` table will never be removed/changed in the
+#       unsynchronized replicas.
