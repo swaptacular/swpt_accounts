@@ -216,36 +216,34 @@ def delete_account_if_negligible(
     the message, which otherwise may be retained for a very long time
     by the massage bus.
 
-    Note that even if the account has been marked as deleted, it could
-    be "resurrected" by an incoming transfer. Therefore, this function
-    does not guarantee neither that the account will be marked as
-    deleted successfully, nor that it will "stay" deleted. To achieve
-    a reliable deletion, the following procedure MAY be followed:
+    Note that `negligible_amount` can (and in some rare cases should)
+    be bigger than `MAX_INT64`. Also, note that even if the account
+    has been successfully marked as deleted, it could be "resurrected"
+    with "scheduled for deletion" status by a delayed incoming
+    transfer. Therefore, this function does not guarantee neither that
+    the account will be marked as deleted successfully, nor that it
+    will "stay" deleted for long. To achieve a reliable deletion, the
+    following procedure SHOULD be followed:
 
     1. Call `delete_account_if_negligible` with appropriate values for
        `negligible_amount` and `ignore_after_ts`.
 
-    2. Wait for some time (depending on the circumstances).
+    2. Wait for some time (one week for example).
 
     3. Check the current account status (as reported by the last
-       received `AccountChangeSignal` for the account). If the account
-       has a "deleted" status, YOU ARE DONE.
+       received `AccountChangeSignal` for the account):
 
-    4. If the account owner's action is not required, go to point 1.
+       a) If the account has a "deleted" status, YOU ARE DONE.
 
-    5. If the account owner hasn't already been prompted to take the
-       required action, prompt the account owner to take the required
-       action.
+       b) Otherwise, continue to point 4.
 
-    6. Go to point 2.
+    4. Check the current account balance:
 
-    In rare cases, even when the above procedure has been successfully
-    performed, the account will be "resurrected" with a "scheduled for
-    deletion" status. This most probably means that some subsystem
-    continues to actively use the account. In this case, the most
-    appropriate action would be to explicitly call `create_account`,
-    and "legitimate" the use of the account. (This will clear the
-    "scheduled for deletion" flag.)
+       a) If it is larger than `negligible_amount`, inform the account
+          owner to take apropriate action (if necessary), and go to
+          point 2.
+
+       b) Otherwise, go to to point 1.
 
     """
 
