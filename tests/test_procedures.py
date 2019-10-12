@@ -361,25 +361,25 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
 def test_delete_debtor_account(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
-    with pytest.raises(ValueError):
-        p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, 1)
+    p.get_or_create_account(D_ID, C_ID)
 
-    q.update({Account.principal: 100})
+    # There is another existing account.
     p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, 0)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert not a.status & Account.STATUS_DELETED_FLAG
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
-    q.update({Account.principal: -100})
-    p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, 0)
-    a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
-    assert not a.status & Account.STATUS_DELETED_FLAG
-    assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    # Delete the other account.
+    p.delete_account_if_negligible(D_ID, C_ID, 0)
+    assert p.get_account(D_ID, C_ID) is None
+    p.purge_deleted_account(D_ID, C_ID, if_deleted_before=current_ts + timedelta(days=10000))
 
-    q.update({Account.principal: 0})
+    # There are no other accounts.
     p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, 0)
-    a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
-    assert a is None
+    assert q.one().status & Account.STATUS_DELETED_FLAG
+    assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    p.purge_deleted_account(D_ID, p.ROOT_CREDITOR_ID, if_deleted_before=current_ts + timedelta(days=10000))
+    assert q.one_or_none() is None
 
 
 def test_resurect_deleted_account_create(db_session, current_ts):

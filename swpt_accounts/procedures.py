@@ -2,6 +2,7 @@ import math
 from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable
 from decimal import Decimal
+from sqlalchemy import func
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, CommittedTransferSignal, PendingChange, TransferRequest, increment_seqnum, \
@@ -210,21 +211,31 @@ def delete_account_if_negligible(
         negligible_amount: int,
         ignore_after_ts: datetime = None) -> None:
     assert negligible_amount >= 0
-    if creditor_id == ROOT_CREDITOR_ID and negligible_amount != 0:
-        raise ValueError("When deleting the debtor's account the negligible amount must be zero.")
     current_ts = datetime.now(tz=timezone.utc)
-    if ignore_after_ts is None or current_ts <= ignore_after_ts:
-        account = _get_account((debtor_id, creditor_id), lock=True)
-        if account:
-            has_no_pending_transfers = account.pending_transfers_count == 0 and account.locked_amount == 0
-            current_balance = _calc_account_current_balance(account, current_ts)
-            if has_no_pending_transfers and 0 <= current_balance <= negligible_amount:
+    if ignore_after_ts and current_ts > ignore_after_ts:
+        return
+
+    account = _get_account((debtor_id, creditor_id), lock=True)
+    if account:
+        def delete_account():
+            account.principal = 0
+            account.interest = 0.0
+            account.status |= Account.STATUS_DELETED_FLAG
+
+        if account.pending_transfers_count == 0 and account.locked_amount == 0:
+            if creditor_id == ROOT_CREDITOR_ID:
+                # The conditions for deleting the debtor's account are
+                # different from the conditions for deleting a normal
+                # account. To delete the debtor's account, it should
+                # be the only account left.
+                if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
+                    delete_account()
+            elif 0 <= _calc_account_current_balance(account, current_ts) <= negligible_amount:
                 make_debtor_payment('delete_account', debtor_id, creditor_id, -account.principal)
-                account.principal = 0
-                account.interest = 0.0
-                account.status |= Account.STATUS_DELETED_FLAG
-            account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-            _insert_account_change_signal(account, current_ts)
+                delete_account()
+
+        account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+        _insert_account_change_signal(account, current_ts)
 
 
 @atomic
