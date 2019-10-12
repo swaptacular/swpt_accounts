@@ -206,24 +206,31 @@ def mark_account_for_deletion(
         ignore_after_ts: str,
         negligible_amount: int = 2) -> None:
 
-    """Mark the account as deleted if there are no prepared transfers, and
-    the current balance is non-negative and no bigger than
-    `negligible_amount`. Otherwise, mark the account as "scheduled for
-    deletion".
+    """Mark the account for deletion.
 
-    Does nothing if the current timestamp is later than
-    `ignore_after_ts`. This parameter is used to limit the lifespan of
-    the message, which otherwise may be retained for a very long time
-    by the massage bus.
+    It it is a "normal" account, it will be marked as deleted if there
+    are no prepared transfers, and the current balance is non-negative
+    and no bigger than `negligible_amount` (`negligible_amount` could
+    be bigger than `MAX_INT64`). Otherwise, the account will be marked
+    as "scheduled for deletion".
 
-    Note that `negligible_amount` can (and in some rare cases should)
-    be bigger than `MAX_INT64`. Also, note that even if the account
-    has been successfully marked as deleted, it could be "resurrected"
-    with "scheduled for deletion" status by a delayed incoming
-    transfer. Therefore, this function does not guarantee neither that
-    the account will be marked as deleted successfully, nor that it
-    will "stay" deleted for long. To achieve a reliable deletion, the
-    following procedure SHOULD be followed:
+    It it is the debtor's account, it will be marked as deleted if
+    there are no prepared transfers and it is the only account left
+    (`negligible_amount` is ignored in this case). Otherwise, the
+    debtor's account will be marked as "scheduled for deletion".
+
+    This function will do nothing if the current timestamp is later
+    than `ignore_after_ts`. This parameter is used to limit the
+    lifespan of the message, which otherwise may be retained for a
+    very long time by the massage bus.
+
+    Note that even if the account has been successfully marked as
+    deleted, it could be "resurrected" (with "scheduled for deletion"
+    status) by a delayed incoming transfer. Therefore, this function
+    does not guarantee neither that the account will be marked as
+    deleted successfully, nor that it will "stay" deleted for long. To
+    achieve a reliable deletion, the following procedure SHOULD be
+    followed:
 
     1. Call `mark_account_for_deletion` with appropriate values for
        `ignore_after_ts` and `negligible_amount`.
@@ -233,18 +240,18 @@ def mark_account_for_deletion(
     3. Check the current account status (as reported by the last
        received `AccountChangeSignal` for the account):
 
-       a) If the account has a "deleted" status (or not present at
-          all), YOU ARE DONE.
+       a) If the account has a "deleted" status (or the account
+          account does not exist), YOU ARE DONE.
 
        b) Otherwise, continue to point 4.
 
-    4. Check the current account balance:
+    4. Decide if it makes sense to call `mark_account_for_deletion`
+       for this account one more time:
 
-       a) If it is larger than `negligible_amount`, inform the account
-          owner to take apropriate action (if necessary), and go to
-          point 2.
+       a) If the answer is "Yes", go to point 1
 
-       b) Otherwise, go to to point 1.
+       b) Otherwise, inform the account owner to take appropriate
+          action (if necessary), and go to point 2.
 
     """
 
