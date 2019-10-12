@@ -36,5 +36,9 @@ class AccountAPI(MethodView):
         return account_json, 200, {'Content-Type': 'application/json'}
 
 
+# TODO: This API should be improved. For example, currently there is
+#       no way to find the debtor IDs of all existing debtors. Also,
+#       there is no way to find the creditor IDs of all creditors to a
+#       given debtor, without obtaining the account details.
 web_api.add_url_rule('/accounts/<int:debtor_id>/', view_func=AccountsAPI.as_view('show_accounts'))
 web_api.add_url_rule('/accounts/<int:debtor_id>/<int:creditor_id>/', view_func=AccountAPI.as_view('show_account'))
