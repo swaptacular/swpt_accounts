@@ -27,7 +27,7 @@ def test_finalize_prepared_transfer(db_session):
 
 
 def test_set_interest_rate(db_session):
-    a.change_account_attributes(
+    a.change_interest_rate(
         debtor_id=D_ID,
         creditor_id=C_ID,
         change_seqnum=777,

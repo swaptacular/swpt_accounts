@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5b9e11c0116f
+Revision ID: 773cf552741c
 Revises: 
-Create Date: 2019-08-03 14:34:04.116202
+Create Date: 2019-10-12 20:08:13.925772
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '5b9e11c0116f'
+revision = '773cf552741c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -31,8 +31,8 @@ def upgrade():
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. This field is not updated on demurrage payments.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. Must never decrease.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
-    sa.Column('attributes_last_change_seqnum', sa.Integer(), nullable=True, comment='Updated on each change of account attributes (the `interest_rate` for example), made on a request by the debtor administration subsystem.'),
-    sa.Column('attributes_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='Updated on each change of account attributes (the `interest_rate` for example), made on a request by the debtor administration subsystem.'),
+    sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True, comment='Updated on each change of account attributes (the `interest_rate` for example), made on a request by the debtor administration subsystem.'),
+    sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='Updated on each change of account attributes (the `interest_rate` for example), made on a request by the debtor administration subsystem.'),
     sa.CheckConstraint('interest_rate > -100.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('pending_transfers_count >= 0'),
@@ -106,6 +106,7 @@ def upgrade():
     sa.Column('min_amount', sa.BigInteger(), nullable=False, comment='`prepared_transfer.sender_locked_amount` must be no smaller than this value.'),
     sa.Column('max_amount', sa.BigInteger(), nullable=False, comment='`prepared_transfer.sender_locked_amount` must be no bigger than this value.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('minimum_account_balance', sa.BigInteger(), nullable=False, comment="Determines the amount that must remain available on sender's account after the requested amount has been secured."),
     sa.CheckConstraint('min_amount <= max_amount'),
     sa.CheckConstraint('min_amount > 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_request_id'),

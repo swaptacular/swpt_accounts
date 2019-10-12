@@ -127,16 +127,16 @@ def finalize_prepared_transfer(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def change_account_attributes(
+def change_interest_rate(
         debtor_id: int,
         creditor_id: int,
         change_seqnum: int,
         change_ts: str,
         interest_rate: float) -> None:
 
-    """Change attributes like the interest rate on a given account."""
+    """Change the interest rate on a given account."""
 
-    procedures.change_account_attributes(
+    procedures.change_interest_rate(
         debtor_id,
         creditor_id,
         change_seqnum,

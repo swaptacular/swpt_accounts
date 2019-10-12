@@ -28,8 +28,8 @@ def test_get_or_create_account(db_session):
     assert a.locked_amount == 0
     assert a.pending_transfers_count == 0
     assert a.interest_rate == 0.0
-    assert a.attributes_last_change_seqnum is None
-    assert a.attributes_last_change_ts is None
+    assert a.interest_rate_last_change_seqnum is None
+    assert a.interest_rate_last_change_ts is None
     assert a.last_outgoing_transfer_date is None
     acs = AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert acs.last_outgoing_transfer_date is None
@@ -43,29 +43,29 @@ def test_get_or_create_account(db_session):
 
 def test_set_interest_rate(db_session, current_ts):
     # The account does not exist.
-    p.change_account_attributes(D_ID, C_ID, 665, current_ts, 7.0)
+    p.change_interest_rate(D_ID, C_ID, 665, current_ts, 7.0)
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountChangeSignal.query.all()) == 0
 
     # The account does exist.
     p.get_or_create_account(D_ID, C_ID)
-    p.change_account_attributes(D_ID, C_ID, 666, current_ts, 7.0)
+    p.change_interest_rate(D_ID, C_ID, 666, current_ts, 7.0)
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
     assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     assert len(AccountChangeSignal.query.all()) == 2
 
     # Older event
-    p.change_account_attributes(D_ID, C_ID, 665, current_ts, 8.0)
+    p.change_interest_rate(D_ID, C_ID, 665, current_ts, 8.0)
     assert p.get_account(D_ID, C_ID).interest_rate == 7.0
     assert len(AccountChangeSignal.query.all()) == 2
 
     # Too big positive interest rate.
-    p.change_account_attributes(D_ID, C_ID, 667, current_ts, 1e9)
+    p.change_interest_rate(D_ID, C_ID, 667, current_ts, 1e9)
     assert p.get_account(D_ID, C_ID).interest_rate == p.INTEREST_RATE_CEIL
 
     # Too big negative interest rate.
-    p.change_account_attributes(D_ID, C_ID, 668, current_ts, -99.9999999999)
+    p.change_interest_rate(D_ID, C_ID, 668, current_ts, -99.9999999999)
     assert p.get_account(D_ID, C_ID).interest_rate == p.INTEREST_RATE_FLOOR
 
 
