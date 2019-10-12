@@ -205,14 +205,14 @@ def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_tr
 
 
 @atomic
-def delete_account_if_negligible(
+def mark_account_for_deletion(
         debtor_id: int,
         creditor_id: int,
-        negligible_amount: int,
-        ignore_after_ts: datetime = None) -> None:
+        ignore_after_ts: datetime,
+        negligible_amount: int) -> None:
     assert negligible_amount >= 0
     current_ts = datetime.now(tz=timezone.utc)
-    if ignore_after_ts and current_ts > ignore_after_ts:
+    if current_ts > ignore_after_ts:
         return
 
     account = _get_account((debtor_id, creditor_id), lock=True)

@@ -66,10 +66,10 @@ def test_purge_deleted_account(db_session):
     )
 
 
-def test_delete_account_if_negligible(db_session):
-    a.delete_account_if_negligible(
+def test_mark_account_for_deletion(db_session):
+    a.mark_account_for_deletion(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        negligible_amount=100,
         ignore_after_ts='2000-01-01T00:00:00Z',
+        negligible_amount=100,
     )

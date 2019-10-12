@@ -281,12 +281,12 @@ def test_delete_account(db_session, current_ts):
     assert a is not None
     assert not a.status & Account.STATUS_DELETED_FLAG
     assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    p.delete_account_if_negligible(D_ID, C_ID, 0, current_ts - timedelta(days=1000))
+    p.mark_account_for_deletion(D_ID, C_ID, current_ts - timedelta(days=1000), 0)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
     assert not a.status & Account.STATUS_DELETED_FLAG
     assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    p.delete_account_if_negligible(D_ID, C_ID, 0, current_ts + timedelta(days=1000))
+    p.mark_account_for_deletion(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
     assert p.get_account(D_ID, C_ID) is None
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     assert q.one().status & Account.STATUS_DELETED_FLAG
@@ -303,11 +303,11 @@ def test_delete_account(db_session, current_ts):
     assert not q.one_or_none()
 
 
-def test_delete_account_negative_balance(db_session):
+def test_delete_account_negative_balance(db_session, current_ts):
     p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: -1})
-    p.delete_account_if_negligible(D_ID, C_ID, MAX_INT64)
+    p.mark_account_for_deletion(D_ID, C_ID, current_ts + timedelta(days=1000), MAX_INT64)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
     assert not a.status & Account.STATUS_DELETED_FLAG
@@ -345,7 +345,7 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 2, Account.interest: -1.0})
-    p.delete_account_if_negligible(D_ID, C_ID, 2)
+    p.mark_account_for_deletion(D_ID, C_ID, current_ts + timedelta(days=1000), 2)
     assert p.get_account(D_ID, C_ID) is None
     a = q.one()
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
@@ -359,26 +359,27 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
 
 
 def test_delete_debtor_account(db_session, current_ts):
+    future_ts = current_ts + timedelta(days=1000)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
     p.get_or_create_account(D_ID, C_ID)
 
     # There is another existing account.
-    p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, 0)
+    p.mark_account_for_deletion(D_ID, p.ROOT_CREDITOR_ID, future_ts, 0)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert not a.status & Account.STATUS_DELETED_FLAG
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
     # Delete the other account.
-    p.delete_account_if_negligible(D_ID, C_ID, 0)
+    p.mark_account_for_deletion(D_ID, C_ID, future_ts, 0)
     assert p.get_account(D_ID, C_ID) is None
-    p.purge_deleted_account(D_ID, C_ID, if_deleted_before=current_ts + timedelta(days=10000))
+    p.purge_deleted_account(D_ID, C_ID, if_deleted_before=future_ts)
 
     # There are no other accounts.
-    p.delete_account_if_negligible(D_ID, p.ROOT_CREDITOR_ID, 0)
+    p.mark_account_for_deletion(D_ID, p.ROOT_CREDITOR_ID, future_ts, 0)
     assert q.one().status & Account.STATUS_DELETED_FLAG
     assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    p.purge_deleted_account(D_ID, p.ROOT_CREDITOR_ID, if_deleted_before=current_ts + timedelta(days=10000))
+    p.purge_deleted_account(D_ID, p.ROOT_CREDITOR_ID, if_deleted_before=future_ts)
     assert q.one_or_none() is None
 
 
@@ -386,7 +387,7 @@ def test_resurect_deleted_account_create(db_session, current_ts):
     p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
-    p.delete_account_if_negligible(D_ID, C_ID, 10)
+    p.mark_account_for_deletion(D_ID, C_ID, current_ts + timedelta(days=1000), 10)
     a = p.get_or_create_account(D_ID, C_ID)
     assert a.interest_rate == 0.0
     assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
@@ -396,7 +397,7 @@ def test_resurect_deleted_account_transfer(db_session, current_ts):
     p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
-    p.delete_account_if_negligible(D_ID, C_ID, 10)
+    p.mark_account_for_deletion(D_ID, C_ID, current_ts + timedelta(days=1000), 10)
     p.make_debtor_payment('test', D_ID, C_ID, 1)
     p.process_pending_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
@@ -661,7 +662,7 @@ def test_zero_out_negative_balance(db_session, current_ts):
     p.zero_out_negative_balance(D_ID, C_ID, current_ts.date())
     p.process_pending_changes(D_ID, C_ID)
     assert p.get_available_balance(D_ID, C_ID) == 0
-    p.delete_account_if_negligible(D_ID, C_ID, 1)
+    p.mark_account_for_deletion(D_ID, C_ID, current_ts + timedelta(days=1000), 1)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     assert q.one().status & Account.STATUS_DELETED_FLAG
     assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG

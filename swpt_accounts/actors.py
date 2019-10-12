@@ -200,11 +200,11 @@ def zero_out_negative_balance(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def delete_account_if_negligible(
+def mark_account_for_deletion(
         debtor_id: int,
         creditor_id: int,
-        negligible_amount: int,
-        ignore_after_ts: str) -> None:
+        ignore_after_ts: str,
+        negligible_amount: int = 2) -> None:
 
     """Mark the account as deleted if there are no prepared transfers, and
     the current balance is non-negative and no bigger than
@@ -225,15 +225,16 @@ def delete_account_if_negligible(
     will "stay" deleted for long. To achieve a reliable deletion, the
     following procedure SHOULD be followed:
 
-    1. Call `delete_account_if_negligible` with appropriate values for
-       `negligible_amount` and `ignore_after_ts`.
+    1. Call `mark_account_for_deletion` with appropriate values for
+       `ignore_after_ts` and `negligible_amount`.
 
     2. Wait for some time (one week for example).
 
     3. Check the current account status (as reported by the last
        received `AccountChangeSignal` for the account):
 
-       a) If the account has a "deleted" status, YOU ARE DONE.
+       a) If the account has a "deleted" status (or not present at
+          all), YOU ARE DONE.
 
        b) Otherwise, continue to point 4.
 
@@ -247,11 +248,11 @@ def delete_account_if_negligible(
 
     """
 
-    procedures.delete_account_if_negligible(
+    procedures.mark_account_for_deletion(
         debtor_id,
         creditor_id,
-        negligible_amount,
         iso8601.parse_date(ignore_after_ts),
+        negligible_amount,
     )
 
 
