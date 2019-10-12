@@ -405,7 +405,7 @@ def _resurrect_deleted_account(account: Account, create_account_request: bool) -
         # happen when we have a pre-existing prepared transfer with
         # the deleted account as a recipient, and then the prepared
         # transfer gets committed. Note that in this case we should
-        # the `STATUS_SCHEDULED_FOR_DELETION_FLAG` on the account.
+        # set the `STATUS_SCHEDULED_FOR_DELETION_FLAG` on the account.
         account.status = PRISTINE_ACCOUNT_STATUS | Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
     _insert_account_change_signal(account)
 
