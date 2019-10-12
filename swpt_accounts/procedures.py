@@ -393,7 +393,11 @@ def _resurrect_deleted_account(account: Account, create_account_request: bool) -
     if create_account_request:
         account.status = PRISTINE_ACCOUNT_STATUS
     else:
-        # Resurrected by an unexpected incoming transfer.
+        # The account is resurrected by an incoming transfer. This can
+        # happen when we have a pre-existing prepared transfer with
+        # the deleted account as a recipient, and then the prepared
+        # transfer gets committed. Note that in this case we preserve
+        # the `STATUS_SCHEDULED_FOR_DELETION_FLAG` on the account.
         account.status = account.status & RETAINED_ACCOUNT_STATUS_FLAGS | RESURRECTED_ACCOUNT_STATUS
     _insert_account_change_signal(account)
 
