@@ -13,9 +13,6 @@ atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 
 PRISTINE_ACCOUNT_STATUS = 0
-RETAINED_ACCOUNT_STATUS_FLAGS = Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-RESURRECTED_ACCOUNT_STATUS = PRISTINE_ACCOUNT_STATUS & ~RETAINED_ACCOUNT_STATUS_FLAGS
-
 TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
@@ -407,9 +404,9 @@ def _resurrect_deleted_account(account: Account, create_account_request: bool) -
         # The account is resurrected by an incoming transfer. This can
         # happen when we have a pre-existing prepared transfer with
         # the deleted account as a recipient, and then the prepared
-        # transfer gets committed. Note that in this case we preserve
+        # transfer gets committed. Note that in this case we should
         # the `STATUS_SCHEDULED_FOR_DELETION_FLAG` on the account.
-        account.status = account.status & RETAINED_ACCOUNT_STATUS_FLAGS | RESURRECTED_ACCOUNT_STATUS
+        account.status = PRISTINE_ACCOUNT_STATUS | Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
     _insert_account_change_signal(account)
 
 
