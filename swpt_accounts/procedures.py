@@ -214,25 +214,33 @@ def mark_account_for_deletion(
 
     account = _get_account((debtor_id, creditor_id), lock=True)
     if account:
-        def delete_account():
+        def mark_as_deleted():
             account.principal = 0
             account.interest = 0.0
-            account.status |= Account.STATUS_DELETED_FLAG
+            account.status |= Account.STATUS_DELETED_FLAG | Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+            _insert_account_change_signal(account, current_ts)
 
-        if account.pending_transfers_count == 0 and account.locked_amount == 0:
-            if creditor_id == ROOT_CREDITOR_ID:
-                # The conditions for deleting the debtor's account are
-                # different from the conditions for deleting a normal
-                # account. To delete the debtor's account, it should
-                # be the only account left.
-                if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
-                    delete_account()
-            elif 0 <= _calc_account_current_balance(account, current_ts) <= negligible_amount:
-                make_debtor_payment('delete_account', debtor_id, creditor_id, -account.principal)
-                delete_account()
+        def mark_as_scheduled_for_deletion():
+            account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+            _insert_account_change_signal(account, current_ts)
 
-        account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-        _insert_account_change_signal(account, current_ts)
+        def query_accounts_count():
+            return db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar()
+
+        has_no_prepared_transfers = account.pending_transfers_count == 0 and account.locked_amount == 0
+        if creditor_id == ROOT_CREDITOR_ID:
+            # The conditions for deleting the debtor's account are
+            # different from the conditions for deleting a normal
+            # account. Also, the debtor's account should not be marked
+            # as "scheduled for deletion" in case the conditions are
+            # not met.
+            if has_no_prepared_transfers and query_accounts_count() == 1:
+                mark_as_deleted()
+        elif has_no_prepared_transfers and 0 <= _calc_account_current_balance(account, current_ts) <= negligible_amount:
+            make_debtor_payment('delete_account', debtor_id, creditor_id, -account.principal)
+            mark_as_deleted()
+        else:
+            mark_as_scheduled_for_deletion()
 
 
 @atomic

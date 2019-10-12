@@ -368,7 +368,7 @@ def test_delete_debtor_account(db_session, current_ts):
     p.mark_account_for_deletion(D_ID, p.ROOT_CREDITOR_ID, future_ts, 0)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert not a.status & Account.STATUS_DELETED_FLAG
-    assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
     # Delete the other account.
     p.mark_account_for_deletion(D_ID, C_ID, future_ts, 0)

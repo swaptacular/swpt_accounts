@@ -216,8 +216,8 @@ def mark_account_for_deletion(
 
     It it is the debtor's account, it will be marked as deleted if
     there are no prepared transfers and it is the only account left
-    (`negligible_amount` is ignored in this case). Otherwise, the
-    debtor's account will be marked as "scheduled for deletion".
+    (`negligible_amount` is ignored in this case). Otherwise, nothing
+    will be done.
 
     This function will do nothing if the current timestamp is later
     than `ignore_after_ts`. This parameter is used to limit the
