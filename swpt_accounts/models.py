@@ -302,7 +302,7 @@ class AccountChangeSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     change_seqnum = db.Column(db.Integer, primary_key=True)
-    change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    change_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
     principal = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
