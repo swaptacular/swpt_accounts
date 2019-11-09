@@ -8,6 +8,8 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
+INTEREST_RATE_FLOOR = -50.0
+INTEREST_RATE_CEIL = 100.0
 
 
 def get_now_utc():
@@ -132,7 +134,7 @@ class Account(db.Model):
         comment='Updated on each change of the `interest_rate`.',
     )
     __table_args__ = (
-        db.CheckConstraint((interest_rate > -100.0) & (interest_rate <= 100.0)),
+        db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(pending_transfers_count >= 0),
         db.CheckConstraint(principal > MIN_INT64),

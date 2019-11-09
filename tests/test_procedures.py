@@ -2,8 +2,9 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
-from swpt_accounts.models import MAX_INT32, MAX_INT64, Account, PendingChange, RejectedTransferSignal, \
-    PreparedTransfer, PreparedTransferSignal, AccountChangeSignal, CommittedTransferSignal
+from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
+    Account, PendingChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
+    AccountChangeSignal, CommittedTransferSignal
 
 
 def test_version(db_session):
@@ -62,11 +63,11 @@ def test_set_interest_rate(db_session, current_ts):
 
     # Too big positive interest rate.
     p.change_interest_rate(D_ID, C_ID, 667, current_ts, 1e9)
-    assert p.get_account(D_ID, C_ID).interest_rate == p.INTEREST_RATE_CEIL
+    assert p.get_account(D_ID, C_ID).interest_rate == INTEREST_RATE_CEIL
 
     # Too big negative interest rate.
     p.change_interest_rate(D_ID, C_ID, 668, current_ts, -99.9999999999)
-    assert p.get_account(D_ID, C_ID).interest_rate == p.INTEREST_RATE_FLOOR
+    assert p.get_account(D_ID, C_ID).interest_rate == INTEREST_RATE_FLOOR
 
 
 AMOUNT = 50000

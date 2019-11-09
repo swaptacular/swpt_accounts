@@ -6,7 +6,7 @@ from sqlalchemy import func
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, CommittedTransferSignal, PendingChange, TransferRequest, increment_seqnum, \
-    MAX_INT32, MIN_INT64, MAX_INT64
+    MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -17,8 +17,6 @@ TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
-INTEREST_RATE_FLOOR = -50.0
-INTEREST_RATE_CEIL = 100.0
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
