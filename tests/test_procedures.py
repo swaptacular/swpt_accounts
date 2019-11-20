@@ -88,8 +88,8 @@ def test_make_debtor_payment(db_session, amount):
     p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_INFO)
     cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
     assert cts.coordinator_type == 'test'
-    assert cts.sender_creditor_id == p.ROOT_CREDITOR_ID if amount > 0 else C_ID
-    assert cts.recipient_creditor_id == C_ID if amount > 0 else p.ROOT_CREDITOR_ID
+    assert cts.sender_creditor_id == (p.ROOT_CREDITOR_ID if amount > 0 else C_ID)
+    assert cts.recipient_creditor_id == (C_ID if amount > 0 else p.ROOT_CREDITOR_ID)
     assert cts.committed_amount == abs(amount)
     assert cts.transfer_info == TRANSFER_INFO
     root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
