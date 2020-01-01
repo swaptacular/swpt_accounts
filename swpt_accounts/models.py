@@ -280,7 +280,7 @@ class PendingAccountChange(db.Model):
         comment='If not NULL, the value must be subtracted from `account.locked_amount`, and '
                 '`account.pending_transfers_count` must be decremented.',
     )
-    inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     __table_args__ = (
         db.CheckConstraint(or_(principal_delta == 0, transfer_info != null())),
