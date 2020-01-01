@@ -304,6 +304,16 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
                 if change.principal_delta < 0:
                     account.last_outgoing_transfer_date = current_date
                     assert nonzero_deltas
+            if change.principal_delta != 0:
+                _insert_committed_transfer_signal(
+                    debtor_id=change.debtor_id,
+                    coordinator_type=change.coordinator_type,
+                    creditor_id=change.creditor_id,
+                    other_creditor_id=change.other_creditor_id,
+                    committed_at_ts=change.committed_at_ts,
+                    committed_amount=change.principal_delta,
+                    transfer_info=change.transfer_info,
+                )
             db.session.delete(change)
         if nonzero_deltas:
             _apply_account_change(
@@ -501,15 +511,6 @@ def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, trans
         transfer_info=transfer_info,
         principal_delta=committed_amount,
     )
-    _insert_committed_transfer_signal(
-        debtor_id=pt.debtor_id,
-        coordinator_type=pt.coordinator_type,
-        sender_creditor_id=pt.sender_creditor_id,
-        recipient_creditor_id=pt.recipient_creditor_id,
-        committed_at_ts=committed_at_ts,
-        committed_amount=committed_amount,
-        transfer_info=transfer_info,
-    )
     db.session.delete(pt)
 
 
@@ -524,16 +525,7 @@ def _force_transfer(coordinator_type: str,
                     recipient_interest_delta: int = 0,
                     omit_sender_account_change: bool = False,
                     omit_recipient_account_change: bool = False) -> None:
-    assert committed_amount >= 0
-    _insert_committed_transfer_signal(
-            debtor_id=debtor_id,
-            coordinator_type=coordinator_type,
-            sender_creditor_id=sender_creditor_id,
-            recipient_creditor_id=recipient_creditor_id,
-            committed_at_ts=committed_at_ts,
-            committed_amount=committed_amount,
-            transfer_info=transfer_info,
-    )
+    assert committed_amount > 0
     if not omit_sender_account_change:
         _insert_pending_change(
             debtor_id=debtor_id,
@@ -583,21 +575,20 @@ def _insert_pending_change(debtor_id: int,
 
 def _insert_committed_transfer_signal(debtor_id: int,
                                       coordinator_type: str,
-                                      sender_creditor_id: int,
-                                      recipient_creditor_id: int,
+                                      creditor_id: int,
+                                      other_creditor_id: int,
                                       committed_at_ts: datetime,
                                       committed_amount: int,
                                       transfer_info: dict) -> None:
-    if committed_amount != 0 and sender_creditor_id != recipient_creditor_id:
-        db.session.add(CommittedTransferSignal(
-            debtor_id=debtor_id,
-            coordinator_type=coordinator_type,
-            sender_creditor_id=sender_creditor_id,
-            recipient_creditor_id=recipient_creditor_id,
-            committed_at_ts=committed_at_ts,
-            committed_amount=committed_amount,
-            transfer_info=transfer_info,
-        ))
+    db.session.add(CommittedTransferSignal(
+        debtor_id=debtor_id,
+        coordinator_type=coordinator_type,
+        creditor_id=creditor_id,
+        other_creditor_id=other_creditor_id,
+        committed_at_ts=committed_at_ts,
+        committed_amount=committed_amount,
+        transfer_info=transfer_info,
+    ))
 
 
 def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:

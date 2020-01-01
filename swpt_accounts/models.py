@@ -343,8 +343,12 @@ class CommittedTransferSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
-    sender_creditor_id = db.Column(db.BigInteger, nullable=False)
-    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
+    creditor_id = db.Column(db.BigInteger, nullable=False)
+    other_creditor_id = db.Column(db.BigInteger, nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_info = db.Column(pg.JSON, nullable=False, default={})
+
+    __table_args__ = (
+        db.CheckConstraint(committed_amount != 0),
+    )
