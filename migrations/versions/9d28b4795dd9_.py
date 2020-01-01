@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 8da544a478c3
+Revision ID: 9d28b4795dd9
 Revises: 
-Create Date: 2019-11-10 14:45:09.671069
+Create Date: 2020-01-01 18:48:40.548916
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '8da544a478c3'
+revision = '9d28b4795dd9'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -67,10 +67,14 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('change_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('principal_delta', sa.BigInteger(), nullable=False),
-    sa.Column('interest_delta', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
+    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='The other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, this is irrelevant.'),
+    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the transfer was committed.'),
+    sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=True, comment='Notes from the sender. Can be any object that the sender wants the recipient to see. Can be NULL only if `principal_delta` is zero.'),
+    sa.Column('principal_delta', sa.BigInteger(), nullable=False, comment='The change in `account.principal`.'),
+    sa.Column('interest_delta', sa.BigInteger(), nullable=False, comment='The change in `account.interest`.'),
     sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.locked_amount`, and `account.pending_transfers_count` must be decremented.'),
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('principal_delta = 0 OR transfer_info IS NOT NULL'),
     sa.CheckConstraint('unlocked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
     comment='Changes to account record amounts are queued to this table. This allows multiple updates to one account to coalesce, thus reducing the lock contention.'

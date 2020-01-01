@@ -2,6 +2,7 @@ import datetime
 import dramatiq
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
+from sqlalchemy.sql.expression import null, or_
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
 MIN_INT32 = -1 << 31
@@ -244,16 +245,42 @@ class PendingChange(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     change_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    principal_delta = db.Column(db.BigInteger, nullable=False)
-    interest_delta = db.Column(db.BigInteger, nullable=False)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    other_creditor_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The other party in the transfer. When `principal_delta` is positive, '
+                'this is the sender. When `principal_delta` is negative, this is the '
+                'recipient. When `principal_delta` is zero, this is irrelevant.',
+    )
+    committed_at_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        comment='The moment at which the transfer was committed.',
+    )
+    transfer_info = db.Column(
+        pg.JSON,
+        comment='Notes from the sender. Can be any object that the sender wants the recipient '
+                'to see. Can be NULL only if `principal_delta` is zero.',
+    )
+    principal_delta = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The change in `account.principal`.',
+    )
+    interest_delta = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='The change in `account.interest`.',
+    )
     unlocked_amount = db.Column(
         db.BigInteger,
         comment='If not NULL, the value must be subtracted from `account.locked_amount`, and '
                 '`account.pending_transfers_count` must be decremented.',
     )
-    inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     __table_args__ = (
+        db.CheckConstraint(or_(principal_delta == 0, transfer_info != null())),
         db.CheckConstraint(unlocked_amount >= 0),
         {
             'comment': 'Changes to account record amounts are queued to this table. This '
