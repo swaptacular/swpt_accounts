@@ -40,7 +40,7 @@ def process_transfers(threads):
 
     pool1 = ThreadPool(threads, initializer=push_app_context)
     for account_pk in procedures.get_accounts_with_pending_changes():
-        pool1.apply_async(procedures.process_pending_changes, account_pk, error_callback=log_error)
+        pool1.apply_async(procedures.process_pending_account_changes, account_pk, error_callback=log_error)
     pool1.close()
     pool1.join()
 

@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
-    Account, PendingChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
+    Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountChangeSignal, CommittedTransferSignal
 
 
@@ -87,15 +87,15 @@ def test_make_debtor_payment(db_session, amount):
     p.get_or_create_account(D_ID, C_ID)
     p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_INFO)
 
-    root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
+    root_change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
     assert root_change.interest_delta == 0
-    change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
+    change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert change.principal_delta == amount
     assert change.interest_delta == 0
 
-    p.process_pending_changes(D_ID, C_ID)
-    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     assert len(CommittedTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 2
     cts1 = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert cts1.coordinator_type == 'test'
@@ -115,7 +115,7 @@ def test_make_debtor_payment(db_session, amount):
     assert cts2.new_account_principal == -amount
 
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_INFO)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID, transfer_seqnum=2).one()
     assert cts.committed_amount == 2 * amount
     assert cts.new_account_principal == 3 * amount
@@ -124,43 +124,43 @@ def test_make_debtor_payment(db_session, amount):
 def test_make_debtor_zero_payment(db_session):
     p.get_or_create_account(D_ID, C_ID)
     p.make_debtor_payment('interest', D_ID, C_ID, 0)
-    assert not PendingChange.query.all()
-    p.process_pending_changes(D_ID, C_ID)
-    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
+    assert not PendingAccountChange.query.all()
+    p.process_pending_account_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     assert not CommittedTransferSignal.query.all()
 
 
 def test_make_debtor_creditor_account_deletion(db_session, amount):
     p.get_or_create_account(D_ID, C_ID)
     p.make_debtor_payment('delete_account', D_ID, C_ID, amount)
-    changes = PendingChange.query.all()
+    changes = PendingAccountChange.query.all()
     assert len(changes) == 1
     root_change = changes[0]
     assert root_change.principal_delta == -amount
     assert root_change.interest_delta == 0
-    p.process_pending_changes(D_ID, C_ID)
-    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     assert CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
 
 
 def test_make_debtor_interest_payment(db_session, amount):
     p.get_or_create_account(D_ID, C_ID)
     p.make_debtor_payment('interest', D_ID, C_ID, amount)
-    root_change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
+    root_change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
     assert root_change.interest_delta == 0
-    change = PendingChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
+    change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert change.principal_delta == amount
     assert change.interest_delta == -amount
 
 
-def test_process_pending_changes(db_session):
+def test_process_pending_account_changes(db_session):
     p.get_or_create_account(D_ID, C_ID)
     assert len(p.get_accounts_with_pending_changes()) == 0
     p.make_debtor_payment('test', D_ID, C_ID, 10000)
     assert len(p.get_accounts_with_pending_changes()) == 2
-    p.process_pending_changes(D_ID, C_ID)
-    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     assert AccountChangeSignal.query.filter_by(
         debtor_id=D_ID,
         creditor_id=C_ID,
@@ -180,11 +180,11 @@ def test_positive_overflow(db_session):
     p.get_or_create_account(D_ID, C_ID)
 
     p.make_debtor_payment('test', D_ID, C_ID, MAX_INT64)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     assert not p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
 
     p.make_debtor_payment('test', D_ID, C_ID, 1)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
 
 
@@ -192,11 +192,11 @@ def test_negative_overflow(db_session):
     p.get_or_create_account(D_ID, C_ID)
 
     p.make_debtor_payment('test', D_ID, C_ID, -MAX_INT64)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     assert not p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
 
     p.make_debtor_payment('test', D_ID, C_ID, -2)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
 
 
@@ -259,10 +259,10 @@ def test_capitalize_positive_interest(db_session, current_ts):
         Account.last_change_seqnum: 666,
     })
     p.capitalize_interest(D_ID, C_ID, 10000000)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID).interest == 100.0
     p.capitalize_interest(D_ID, C_ID, 0)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert abs(a.interest) <= 1.0
     assert 5608 <= a.principal <= 5612
@@ -280,10 +280,10 @@ def test_capitalize_negative_interest(db_session, current_ts):
         Account.last_change_seqnum: 666,
     })
     p.capitalize_interest(D_ID, C_ID, 10000000)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID).interest == -100.0
     p.capitalize_interest(D_ID, C_ID, 0)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert abs(a.interest) <= 1.0
     assert 4408 <= a.principal <= 4412
@@ -294,7 +294,7 @@ def test_debtor_account_capitalization(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     q.update({Account.interest: 100.0, Account.principal: 50})
     p.capitalize_interest(D_ID, p.ROOT_CREDITOR_ID, 0, current_ts)
-    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
+    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert a.principal == 50
     assert a.interest == 100.0
@@ -377,11 +377,11 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
     assert a.principal == 0
     assert a.interest == 0
-    changes = PendingChange.query.all()
+    changes = PendingAccountChange.query.all()
     assert len(changes) == 1
     assert changes[0].creditor_id == p.ROOT_CREDITOR_ID
-    p.process_pending_changes(D_ID, C_ID)
-    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     ct = CommittedTransferSignal.query.one()
     assert ct.committed_amount == 2
 
@@ -427,7 +427,7 @@ def test_resurect_deleted_account_transfer(db_session, current_ts):
     q.update({Account.interest_rate: 10.0})
     p.mark_account_for_deletion(D_ID, C_ID, current_ts + timedelta(days=1000), 10)
     p.make_debtor_payment('test', D_ID, C_ID, 1)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
     assert a.interest_rate == 0.0
@@ -452,8 +452,8 @@ def test_prepare_transfer_insufficient_funds(db_session):
     a = p.get_account(D_ID, C_ID)
     assert a.locked_amount == 0
     assert a.pending_transfers_count == 0
-    p.process_pending_changes(D_ID, 1234)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, 1234)
+    p.process_pending_account_changes(D_ID, C_ID)
     assert len(AccountChangeSignal.query.all()) == 2
     assert len(PreparedTransfer.query.all()) == 0
     assert len(PreparedTransferSignal.query.all()) == 0
@@ -556,8 +556,8 @@ def test_prepare_transfer_success(db_session):
     a = p.get_account(D_ID, C_ID)
     assert a.locked_amount == 100
     assert a.pending_transfers_count == 1
-    p.process_pending_changes(D_ID, 1234)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, 1234)
+    p.process_pending_account_changes(D_ID, C_ID)
     assert len(AccountChangeSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
     pts = PreparedTransferSignal.query.one()
@@ -578,8 +578,8 @@ def test_prepare_transfer_success(db_session):
     with pytest.raises(ValueError):
         p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, -1)
     p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, 0)
-    p.process_pending_changes(D_ID, 1234)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, 1234)
+    p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a.locked_amount == 0
     assert a.pending_transfers_count == 0
@@ -609,8 +609,8 @@ def test_commit_prepared_transfer(db_session):
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, 40)
-    p.process_pending_changes(D_ID, 1234)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, 1234)
+    p.process_pending_account_changes(D_ID, C_ID)
     a1 = p.get_account(D_ID, 1234)
     assert a1.locked_amount == 0
     assert a1.pending_transfers_count == 0
@@ -658,8 +658,8 @@ def test_commit_to_debtor_account(db_session):
     assert pt.sender_locked_amount == 50
     p.finalize_prepared_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 40)
 
-    p.process_pending_changes(D_ID, p.ROOT_CREDITOR_ID)
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     assert len(CommittedTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 2
     cts1 = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert cts1.committed_amount == -40
@@ -702,7 +702,7 @@ def test_zero_out_negative_balance(db_session, current_ts):
     })
     assert p.get_available_balance(D_ID, C_ID) == -4900
     p.zero_out_negative_balance(D_ID, C_ID, current_ts.date())
-    p.process_pending_changes(D_ID, C_ID)
+    p.process_pending_account_changes(D_ID, C_ID)
     assert p.get_available_balance(D_ID, C_ID) == 0
     p.mark_account_for_deletion(D_ID, C_ID, current_ts + timedelta(days=1000), 1)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)

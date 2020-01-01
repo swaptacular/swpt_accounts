@@ -5,7 +5,7 @@ from decimal import Decimal
 from sqlalchemy import func
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal, PendingChange, TransferRequest, increment_seqnum, \
+    AccountChangeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, increment_seqnum, \
     MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 T = TypeVar('T')
@@ -95,7 +95,7 @@ def finalize_prepared_transfer(debtor_id: int,
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
         if committed_amount == 0:
-            _insert_pending_change(
+            _insert_pending_account_change(
                 debtor_id=pt.debtor_id,
                 creditor_id=pt.sender_creditor_id,
                 coordinator_type=pt.coordinator_type,
@@ -273,7 +273,7 @@ def get_accounts_with_transfer_requests() -> Iterable[Tuple[int, int]]:
 
 @atomic
 def get_accounts_with_pending_changes() -> Iterable[Tuple[int, int]]:
-    return set(db.session.query(PendingChange.debtor_id, PendingChange.creditor_id).all())
+    return set(db.session.query(PendingAccountChange.debtor_id, PendingAccountChange.creditor_id).all())
 
 
 @atomic
@@ -298,8 +298,8 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
 
 
 @atomic
-def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
-    changes = PendingChange.query.\
+def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
+    changes = PendingAccountChange.query.\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         with_for_update(skip_locked=True).\
         all()
@@ -516,7 +516,7 @@ def _execute_transfer(coordinator_type: str,
                       omit_recipient_account_change: bool = False) -> None:
     assert committed_amount > 0
     if not omit_sender_account_change:
-        _insert_pending_change(
+        _insert_pending_account_change(
             debtor_id=debtor_id,
             creditor_id=sender_creditor_id,
             coordinator_type=coordinator_type,
@@ -528,7 +528,7 @@ def _execute_transfer(coordinator_type: str,
             unlocked_amount=sender_unlocked_amount,
         )
     if not omit_recipient_account_change:
-        _insert_pending_change(
+        _insert_pending_account_change(
             debtor_id=debtor_id,
             creditor_id=recipient_creditor_id,
             coordinator_type=coordinator_type,
@@ -540,17 +540,17 @@ def _execute_transfer(coordinator_type: str,
         )
 
 
-def _insert_pending_change(debtor_id: int,
-                           creditor_id: int,
-                           coordinator_type: str,
-                           other_creditor_id: int,
-                           committed_at_ts: datetime = None,
-                           transfer_info: dict = None,
-                           principal_delta: int = 0,
-                           interest_delta: int = 0,
-                           unlocked_amount: int = None) -> None:
+def _insert_pending_account_change(debtor_id: int,
+                                   creditor_id: int,
+                                   coordinator_type: str,
+                                   other_creditor_id: int,
+                                   committed_at_ts: datetime = None,
+                                   transfer_info: dict = None,
+                                   principal_delta: int = 0,
+                                   interest_delta: int = 0,
+                                   unlocked_amount: int = None) -> None:
     if principal_delta != 0 or interest_delta != 0 or unlocked_amount is not None:
-        db.session.add(PendingChange(
+        db.session.add(PendingAccountChange(
             debtor_id=debtor_id,
             creditor_id=creditor_id,
             coordinator_type=coordinator_type,

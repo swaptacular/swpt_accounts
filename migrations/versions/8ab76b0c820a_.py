@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9b9076c3db23
+Revision ID: 8ab76b0c820a
 Revises: 
-Create Date: 2020-01-01 22:53:17.373660
+Create Date: 2020-01-01 23:26:51.161236
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '9b9076c3db23'
+revision = '8ab76b0c820a'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -67,7 +67,7 @@ def upgrade():
     sa.CheckConstraint('committed_amount != 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_seqnum')
     )
-    op.create_table('pending_change',
+    op.create_table('pending_account_change',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('change_id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -142,7 +142,7 @@ def downgrade():
     op.drop_table('transfer_request')
     op.drop_table('rejected_transfer_signal')
     op.drop_table('prepared_transfer_signal')
-    op.drop_table('pending_change')
+    op.drop_table('pending_account_change')
     op.drop_table('committed_transfer_signal')
     op.drop_table('account_change_signal')
     op.drop_table('account')
