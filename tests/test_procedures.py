@@ -104,6 +104,7 @@ def test_make_debtor_payment(db_session, amount):
     assert cts1.committed_amount == amount
     assert cts1.transfer_info == TRANSFER_INFO
     assert cts1.transfer_seqnum == 1
+    assert cts1.new_account_principal == amount
     cts2 = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert cts2.coordinator_type == 'test'
     assert cts2.creditor_id == p.ROOT_CREDITOR_ID
@@ -111,11 +112,13 @@ def test_make_debtor_payment(db_session, amount):
     assert cts2.committed_amount == -amount
     assert cts2.transfer_info == TRANSFER_INFO
     assert cts2.transfer_seqnum == 1
+    assert cts2.new_account_principal == -amount
 
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_INFO)
     p.process_pending_changes(D_ID, C_ID)
     cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID, transfer_seqnum=2).one()
     assert cts.committed_amount == 2 * amount
+    assert cts.new_account_principal == 3 * amount
 
 
 def test_make_debtor_zero_payment(db_session):
