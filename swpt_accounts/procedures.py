@@ -95,11 +95,27 @@ def finalize_prepared_transfer(debtor_id: int,
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
         if committed_amount == 0:
-            _delete_prepared_transfer(pt)
+            _insert_pending_change(
+                debtor_id=pt.debtor_id,
+                creditor_id=pt.sender_creditor_id,
+                coordinator_type=pt.coordinator_type,
+                other_creditor_id=pt.recipient_creditor_id,
+                unlocked_amount=pt.sender_locked_amount,
+            )
         elif committed_amount > 0:
-            _commit_prepared_transfer(pt, committed_amount, transfer_info)
+            _force_transfer(
+                coordinator_type=pt.coordinator_type,
+                debtor_id=debtor_id,
+                sender_creditor_id=pt.sender_creditor_id,
+                recipient_creditor_id=pt.recipient_creditor_id,
+                committed_at_ts=datetime.now(tz=timezone.utc),
+                committed_amount=min(committed_amount, pt.sender_locked_amount),
+                transfer_info=transfer_info,
+                sender_unlocked_amount=pt.sender_locked_amount,
+            )
         else:
             raise ValueError('The committed amount is negative.')
+        db.session.delete(pt)
 
 
 @atomic
@@ -476,44 +492,6 @@ def _change_interest_rate(
     _insert_account_change_signal(account, current_ts)
 
 
-def _delete_prepared_transfer(pt: PreparedTransfer) -> None:
-    _insert_pending_change(
-        debtor_id=pt.debtor_id,
-        creditor_id=pt.sender_creditor_id,
-        coordinator_type=pt.coordinator_type,
-        other_creditor_id=pt.recipient_creditor_id,
-        unlocked_amount=pt.sender_locked_amount,
-    )
-    db.session.delete(pt)
-
-
-def _commit_prepared_transfer(pt: PreparedTransfer, committed_amount: int, transfer_info: dict) -> None:
-    assert committed_amount > 0
-    assert pt.sender_locked_amount > 0
-    committed_amount = min(committed_amount, pt.sender_locked_amount)
-    committed_at_ts = datetime.now(tz=timezone.utc)
-    _insert_pending_change(
-        debtor_id=pt.debtor_id,
-        creditor_id=pt.sender_creditor_id,
-        coordinator_type=pt.coordinator_type,
-        other_creditor_id=pt.recipient_creditor_id,
-        committed_at_ts=committed_at_ts,
-        transfer_info=transfer_info,
-        principal_delta=-committed_amount,
-        unlocked_amount=pt.sender_locked_amount,
-    )
-    _insert_pending_change(
-        debtor_id=pt.debtor_id,
-        creditor_id=pt.recipient_creditor_id,
-        coordinator_type=pt.coordinator_type,
-        other_creditor_id=pt.sender_creditor_id,
-        committed_at_ts=committed_at_ts,
-        transfer_info=transfer_info,
-        principal_delta=committed_amount,
-    )
-    db.session.delete(pt)
-
-
 def _force_transfer(coordinator_type: str,
                     debtor_id: int,
                     sender_creditor_id: int,
@@ -521,6 +499,7 @@ def _force_transfer(coordinator_type: str,
                     committed_at_ts: datetime,
                     committed_amount: int,
                     transfer_info: dict = {},
+                    sender_unlocked_amount: int = None,
                     sender_interest_delta: int = 0,
                     recipient_interest_delta: int = 0,
                     omit_sender_account_change: bool = False,
@@ -536,6 +515,7 @@ def _force_transfer(coordinator_type: str,
             transfer_info=transfer_info,
             principal_delta=-committed_amount,
             interest_delta=sender_interest_delta,
+            unlocked_amount=sender_unlocked_amount,
         )
     if not omit_recipient_account_change:
         _insert_pending_change(
