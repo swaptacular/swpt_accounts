@@ -46,7 +46,7 @@ def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
-    return _get_or_create_account((debtor_id, creditor_id), create_account_request=True)
+    return _get_or_create_account(debtor_id, creditor_id, create_account_request=True)
 
 
 @atomic
@@ -103,7 +103,7 @@ def finalize_prepared_transfer(debtor_id: int,
                 unlocked_amount=pt.sender_locked_amount,
             )
         elif committed_amount > 0:
-            _force_transfer(
+            _execute_transfer(
                 coordinator_type=pt.coordinator_type,
                 debtor_id=debtor_id,
                 sender_creditor_id=pt.sender_creditor_id,
@@ -177,7 +177,7 @@ def make_debtor_payment(
         pass
     elif amount > 0:
         # The debtor pays the creditor.
-        _force_transfer(
+        _execute_transfer(
             coordinator_type=coordinator_type,
             debtor_id=debtor_id,
             sender_creditor_id=ROOT_CREDITOR_ID,
@@ -190,7 +190,7 @@ def make_debtor_payment(
         )
     elif amount < 0:
         # The creditor pays the debtor.
-        _force_transfer(
+        _execute_transfer(
             coordinator_type=coordinator_type,
             debtor_id=debtor_id,
             sender_creditor_id=creditor_id,
@@ -304,7 +304,7 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
         with_for_update(skip_locked=True).\
         all()
     if changes:
-        account = _get_or_create_account((debtor_id, creditor_id), lock=True)
+        account = _get_or_create_account(debtor_id, creditor_id, lock=True)
         current_ts = datetime.now(tz=timezone.utc)
         current_date = current_ts.date()
         principal_delta = interest_delta = 0
@@ -401,14 +401,16 @@ def _get_account(account_or_pk: AccountId, lock: bool = False) -> Optional[Accou
     return None
 
 
-def _get_or_create_account(account_or_pk: AccountId, lock: bool = False, create_account_request=False) -> Account:
+def _get_or_create_account(debtor_id: int,
+                           creditor_id: int,
+                           lock: bool = False,
+                           create_account_request=False) -> Account:
     if lock:
-        account = Account.lock_instance(account_or_pk)
+        account = Account.lock_instance((debtor_id, creditor_id))
     else:
-        account = Account.get_instance(account_or_pk)
+        account = Account.get_instance((debtor_id, creditor_id))
 
     if account is None:
-        debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
         account = _create_account(debtor_id, creditor_id)
     elif account.status & Account.STATUS_DELETED_FLAG:
         _resurrect_deleted_account(account, create_account_request)
@@ -492,18 +494,18 @@ def _change_interest_rate(
     _insert_account_change_signal(account, current_ts)
 
 
-def _force_transfer(coordinator_type: str,
-                    debtor_id: int,
-                    sender_creditor_id: int,
-                    recipient_creditor_id,
-                    committed_at_ts: datetime,
-                    committed_amount: int,
-                    transfer_info: dict = {},
-                    sender_unlocked_amount: int = None,
-                    sender_interest_delta: int = 0,
-                    recipient_interest_delta: int = 0,
-                    omit_sender_account_change: bool = False,
-                    omit_recipient_account_change: bool = False) -> None:
+def _execute_transfer(coordinator_type: str,
+                      debtor_id: int,
+                      sender_creditor_id: int,
+                      recipient_creditor_id,
+                      committed_at_ts: datetime,
+                      committed_amount: int,
+                      transfer_info: dict = {},
+                      sender_unlocked_amount: int = None,
+                      sender_interest_delta: int = 0,
+                      recipient_interest_delta: int = 0,
+                      omit_sender_account_change: bool = False,
+                      omit_recipient_account_change: bool = False) -> None:
     assert committed_amount > 0
     if not omit_sender_account_change:
         _insert_pending_change(
