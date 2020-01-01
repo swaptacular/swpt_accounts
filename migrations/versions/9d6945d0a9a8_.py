@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 8ab76b0c820a
+Revision ID: 9d6945d0a9a8
 Revises: 
-Create Date: 2020-01-01 23:26:51.161236
+Create Date: 2020-01-02 00:10:11.442189
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '8ab76b0c820a'
+revision = '9d6945d0a9a8'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -29,7 +29,7 @@ def upgrade():
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `principal`, `interest_rate`, `interest`, or `status`.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. This field is not updated on demurrage payments.'),
-    sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. Must never decrease.'),
+    sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted.'),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `committed_transfer_signal` record is inserted. Must never decrease.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
     sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True, comment='Updated on each change of the `interest_rate`.'),
@@ -73,11 +73,11 @@ def upgrade():
     sa.Column('change_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='The other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, this is irrelevant.'),
-    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the transfer was committed.'),
     sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=True, comment='Notes from the sender. Can be any object that the sender wants the recipient to see. Can be NULL only if `principal_delta` is zero.'),
     sa.Column('principal_delta', sa.BigInteger(), nullable=False, comment='The change in `account.principal`.'),
     sa.Column('interest_delta', sa.BigInteger(), nullable=False, comment='The change in `account.interest`.'),
     sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.locked_amount`, and `account.pending_transfers_count` must be decremented.'),
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('principal_delta = 0 OR transfer_info IS NOT NULL'),
     sa.CheckConstraint('unlocked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),

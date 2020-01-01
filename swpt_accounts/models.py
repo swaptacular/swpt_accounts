@@ -118,8 +118,7 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='Incremented when a new `prepared_transfer` record is inserted. Must never '
-                'decrease.',
+        comment='Incremented when a new `prepared_transfer` record is inserted.',
     )
     transfer_seqnum = db.Column(
         db.BigInteger,
@@ -261,11 +260,6 @@ class PendingAccountChange(db.Model):
                 'this is the sender. When `principal_delta` is negative, this is the '
                 'recipient. When `principal_delta` is zero, this is irrelevant.',
     )
-    committed_at_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        comment='The moment at which the transfer was committed.',
-    )
     transfer_info = db.Column(
         pg.JSON,
         comment='Notes from the sender. Can be any object that the sender wants the recipient '
@@ -286,6 +280,7 @@ class PendingAccountChange(db.Model):
         comment='If not NULL, the value must be subtracted from `account.locked_amount`, and '
                 '`account.pending_transfers_count` must be decremented.',
     )
+    inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     __table_args__ = (
         db.CheckConstraint(or_(principal_delta == 0, transfer_info != null())),
