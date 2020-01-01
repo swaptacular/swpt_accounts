@@ -321,14 +321,22 @@ def process_pending_changes(debtor_id: int, creditor_id: int) -> None:
                     account.last_outgoing_transfer_date = current_date
                     assert nonzero_deltas
             if change.principal_delta != 0:
+                account.transfer_seqnum += 1
+                new_account_principal = account.principal + principal_delta
+                if new_account_principal <= MIN_INT64:
+                    new_account_principal = -MAX_INT64
+                if new_account_principal > MAX_INT64:
+                    new_account_principal = MAX_INT64
                 _insert_committed_transfer_signal(
                     debtor_id=change.debtor_id,
-                    coordinator_type=change.coordinator_type,
                     creditor_id=change.creditor_id,
+                    transfer_seqnum=account.transfer_seqnum,
+                    coordinator_type=change.coordinator_type,
                     other_creditor_id=change.other_creditor_id,
                     committed_at_ts=change.committed_at_ts,
                     committed_amount=change.principal_delta,
                     transfer_info=change.transfer_info,
+                    new_account_principal=new_account_principal,
                 )
             db.session.delete(change)
         if nonzero_deltas:
@@ -556,20 +564,24 @@ def _insert_pending_change(debtor_id: int,
 
 
 def _insert_committed_transfer_signal(debtor_id: int,
-                                      coordinator_type: str,
                                       creditor_id: int,
+                                      transfer_seqnum: int,
+                                      coordinator_type: str,
                                       other_creditor_id: int,
                                       committed_at_ts: datetime,
                                       committed_amount: int,
-                                      transfer_info: dict) -> None:
+                                      transfer_info: dict,
+                                      new_account_principal: int) -> None:
     db.session.add(CommittedTransferSignal(
         debtor_id=debtor_id,
-        coordinator_type=coordinator_type,
         creditor_id=creditor_id,
+        transfer_seqnum=transfer_seqnum,
+        coordinator_type=coordinator_type,
         other_creditor_id=other_creditor_id,
         committed_at_ts=committed_at_ts,
         committed_amount=committed_amount,
         transfer_info=transfer_info,
+        new_account_principal=new_account_principal,
     ))
 
 

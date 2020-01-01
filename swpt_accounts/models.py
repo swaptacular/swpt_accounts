@@ -118,8 +118,15 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='Incremented when a new `prepared_transfer` record is inserted. '
-                'Must never decrease.',
+        comment='Incremented when a new `prepared_transfer` record is inserted. Must never '
+                'decrease.',
+    )
+    transfer_seqnum = db.Column(
+        db.BigInteger,
+        nullable=False,
+        default=0,
+        comment='Incremented when a new `committed_transfer_signal` record is inserted. Must '
+                'never decrease.',
     )
     status = db.Column(
         db.SmallInteger,
@@ -139,6 +146,7 @@ class Account(db.Model):
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(pending_transfers_count >= 0),
         db.CheckConstraint(principal > MIN_INT64),
+        db.CheckConstraint(transfer_seqnum >= 0),
         {
             'comment': 'Tells who owes what to whom.',
         }
@@ -341,13 +349,14 @@ class AccountChangeSignal(Signal):
 
 class CommittedTransferSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
-    creditor_id = db.Column(db.BigInteger, nullable=False)
     other_creditor_id = db.Column(db.BigInteger, nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_info = db.Column(pg.JSON, nullable=False, default={})
+    new_account_principal = db.Column(db.BigInteger, nullable=False)
 
     __table_args__ = (
         db.CheckConstraint(committed_amount != 0),

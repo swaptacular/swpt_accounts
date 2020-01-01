@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3b87d0a4af0b
+Revision ID: 9b9076c3db23
 Revises: 
-Create Date: 2020-01-01 20:41:35.893290
+Create Date: 2020-01-01 22:53:17.373660
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '3b87d0a4af0b'
+revision = '9b9076c3db23'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -30,6 +30,7 @@ def upgrade():
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. This field is not updated on demurrage payments.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. Must never decrease.'),
+    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `committed_transfer_signal` record is inserted. Must never decrease.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
     sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True, comment='Updated on each change of the `interest_rate`.'),
     sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='Updated on each change of the `interest_rate`.'),
@@ -37,6 +38,7 @@ def upgrade():
     sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('pending_transfers_count >= 0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
+    sa.CheckConstraint('transfer_seqnum >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id'),
     comment='Tells who owes what to whom.'
     )
@@ -54,15 +56,16 @@ def upgrade():
     )
     op.create_table('committed_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False),
+    sa.Column('new_account_principal', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('committed_amount != 0'),
-    sa.PrimaryKeyConstraint('debtor_id', 'signal_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_seqnum')
     )
     op.create_table('pending_change',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
