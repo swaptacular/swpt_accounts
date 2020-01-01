@@ -559,8 +559,8 @@ def _insert_committed_transfer_signal(debtor_id: int,
                                       sender_creditor_id: int,
                                       recipient_creditor_id: int,
                                       committed_at_ts: datetime,
-                                      committed_amount=int,
-                                      transfer_info=dict) -> None:
+                                      committed_amount: int,
+                                      transfer_info: dict) -> None:
     if committed_amount != 0 and sender_creditor_id != recipient_creditor_id:
         db.session.add(CommittedTransferSignal(
             debtor_id=debtor_id,
