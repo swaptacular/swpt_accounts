@@ -19,6 +19,7 @@ TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 DELETE_ACCOUNT = 'delete_account'
 INTEREST = 'interest'
+ZERO_OUT_ACCOUNT = 'zero_out_account'
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
@@ -225,7 +226,7 @@ def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_tr
         account_date_is_ok = account_date is None or account_date <= last_outgoing_transfer_date
         zero_out_amount = -math.floor(_calc_account_current_balance(account))
         if account_date_is_ok and zero_out_amount > 0:
-            make_debtor_payment('zero_out_account', debtor_id, creditor_id, min(zero_out_amount, MAX_INT64))
+            make_debtor_payment(ZERO_OUT_ACCOUNT, debtor_id, creditor_id, min(zero_out_amount, MAX_INT64))
 
 
 @atomic
