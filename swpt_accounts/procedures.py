@@ -160,7 +160,7 @@ def capitalize_interest(debtor_id: int,
         amount = min(amount, MAX_INT64)
         amount = max(-MAX_INT64, amount)
         if abs(amount) >= positive_threshold:
-            make_debtor_payment(INTEREST, debtor_id, creditor_id, amount)
+            make_debtor_payment(INTEREST, debtor_id, creditor_id, amount, current_ts=current_ts)
 
 
 @atomic
@@ -175,6 +175,9 @@ def make_debtor_payment(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert -MAX_INT64 <= amount <= MAX_INT64
     current_ts = current_ts or datetime.now(tz=timezone.utc)
+    is_account_deletion = coordinator_type == DELETE_ACCOUNT
+    is_interest_payment = coordinator_type == INTEREST
+    interest_delta = -amount if is_interest_payment else 0
 
     if creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
         # The debtor pays himself.
@@ -189,12 +192,12 @@ def make_debtor_payment(
             committed_at_ts=current_ts,
             committed_amount=amount,
             transfer_info=transfer_info,
-            recipient_interest_delta=0 if coordinator_type != INTEREST else -amount,
+            recipient_interest_delta=interest_delta,
 
             # We must not insert a `PendingAccountChange` record when
             # an account is getting zeroed out for deletion, otherwise
             # the account would be resurrected immediately.
-            omit_recipient_account_change=coordinator_type == DELETE_ACCOUNT,
+            omit_recipient_account_change=is_account_deletion,
         )
     elif amount < 0:
         # The creditor pays the debtor.
@@ -206,10 +209,10 @@ def make_debtor_payment(
             committed_at_ts=current_ts,
             committed_amount=-amount,
             transfer_info=transfer_info,
-            sender_interest_delta=0 if coordinator_type != INTEREST else -amount,
+            sender_interest_delta=interest_delta,
 
             # See the corresponding comment for `omit_recipient_account_change`.
-            omit_sender_account_change=coordinator_type == DELETE_ACCOUNT,
+            omit_sender_account_change=is_account_deletion,
         )
 
 
