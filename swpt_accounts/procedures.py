@@ -271,6 +271,7 @@ def mark_account_for_deletion(
                 _insert_committed_transfer_signal(
                     debtor_id=debtor_id,
                     creditor_id=creditor_id,
+                    transfer_epoch=account.creation_date,
                     transfer_seqnum=account.transfer_seqnum,
                     coordinator_type=DELETE_ACCOUNT,
                     other_creditor_id=ROOT_CREDITOR_ID,
@@ -285,12 +286,24 @@ def mark_account_for_deletion(
 
 
 @atomic
-def purge_deleted_account(debtor_id: int, creditor_id: int, if_deleted_before: datetime) -> None:
-    Account.query.\
+def purge_deleted_account(debtor_id: int,
+                          creditor_id: int,
+                          if_deleted_before: datetime,
+                          allow_hasty_purges: bool = False) -> None:
+    query = Account.query.\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
-        filter(Account.last_change_ts < if_deleted_before).\
-        delete(synchronize_session=False)
+        filter(Account.last_change_ts < if_deleted_before)
+    if not allow_hasty_purges:
+        # When one account is created, deleted, purged, and re-created
+        # in a single day, the `creation_date` of the re-created
+        # account will be the same as the `creation_date` of the
+        # deleted account. This must be avoided, because we use the
+        # creation date to differentiate `CommittedTransferSignal`s
+        # from different "epochs" (the `transfer_epoch` column).
+        yesterday = date.today() - timedelta(days=1)
+        query = query.filter(Account.creation_date < yesterday)
+    query.delete(synchronize_session=False)
 
 
 @atomic
@@ -357,6 +370,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 _insert_committed_transfer_signal(
                     debtor_id=change.debtor_id,
                     creditor_id=change.creditor_id,
+                    transfer_epoch=account.creation_date,
                     transfer_seqnum=account.transfer_seqnum,
                     coordinator_type=change.coordinator_type,
                     other_creditor_id=change.other_creditor_id,
@@ -592,6 +606,7 @@ def _insert_pending_account_change(debtor_id: int,
 
 def _insert_committed_transfer_signal(debtor_id: int,
                                       creditor_id: int,
+                                      transfer_epoch: date,
                                       transfer_seqnum: int,
                                       coordinator_type: str,
                                       other_creditor_id: int,
@@ -602,6 +617,7 @@ def _insert_committed_transfer_signal(debtor_id: int,
     db.session.add(CommittedTransferSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
+        transfer_epoch=transfer_epoch,
         transfer_seqnum=transfer_seqnum,
         coordinator_type=coordinator_type,
         other_creditor_id=other_creditor_id,

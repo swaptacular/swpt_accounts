@@ -322,10 +322,13 @@ def test_delete_account(db_session, current_ts):
         filter(AccountChangeSignal.creditor_id == C_ID).\
         filter(AccountChangeSignal.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
         one_or_none()
-    p.purge_deleted_account(D_ID, C_ID, current_ts - timedelta(days=1000))
+    p.purge_deleted_account(D_ID, C_ID, current_ts - timedelta(days=1000), allow_hasty_purges=True)
     assert q.one().status & Account.STATUS_DELETED_FLAG
     assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    p.purge_deleted_account(D_ID, C_ID, current_ts + timedelta(days=1000))
+    p.purge_deleted_account(D_ID, C_ID, current_ts + timedelta(days=1000), allow_hasty_purges=False)
+    assert q.one().status & Account.STATUS_DELETED_FLAG
+    assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    p.purge_deleted_account(D_ID, C_ID, current_ts + timedelta(days=1000), allow_hasty_purges=True)
     assert not q.one_or_none()
 
 
@@ -413,13 +416,13 @@ def test_delete_debtor_account(db_session, current_ts):
     # Delete the other account.
     p.mark_account_for_deletion(D_ID, C_ID, future_ts, 0)
     assert p.get_account(D_ID, C_ID) is None
-    p.purge_deleted_account(D_ID, C_ID, if_deleted_before=future_ts)
+    p.purge_deleted_account(D_ID, C_ID, if_deleted_before=future_ts, allow_hasty_purges=True)
 
     # There are no other accounts.
     p.mark_account_for_deletion(D_ID, p.ROOT_CREDITOR_ID, future_ts, 0)
     assert q.one().status & Account.STATUS_DELETED_FLAG
     assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    p.purge_deleted_account(D_ID, p.ROOT_CREDITOR_ID, if_deleted_before=future_ts)
+    p.purge_deleted_account(D_ID, p.ROOT_CREDITOR_ID, if_deleted_before=future_ts, allow_hasty_purges=True)
     assert q.one_or_none() is None
 
 

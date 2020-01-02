@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9d6945d0a9a8
+Revision ID: b4c38589d552
 Revises: 
-Create Date: 2020-01-02 00:10:11.442189
+Create Date: 2020-01-02 20:27:02.263427
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '9d6945d0a9a8'
+revision = 'b4c38589d552'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,6 +21,7 @@ def upgrade():
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False, comment='The total owed amount. Can be negative.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account.'),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest`gets zeroed and added to the principal once in a while (like once per week).'),
@@ -57,6 +58,7 @@ def upgrade():
     op.create_table('committed_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_epoch', sa.DATE(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
@@ -65,7 +67,7 @@ def upgrade():
     sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.Column('new_account_principal', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('committed_amount != 0'),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_seqnum')
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_epoch', 'transfer_seqnum')
     )
     op.create_table('pending_account_change',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),

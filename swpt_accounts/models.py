@@ -64,6 +64,7 @@ class Account(db.Model):
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
+    creation_date = db.Column(db.DATE, nullable=False, default=get_now_utc)
     principal = db.Column(
         db.BigInteger,
         nullable=False,
@@ -345,6 +346,7 @@ class AccountChangeSignal(Signal):
 class CommittedTransferSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_epoch = db.Column(db.DATE, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
     other_creditor_id = db.Column(db.BigInteger, nullable=False)

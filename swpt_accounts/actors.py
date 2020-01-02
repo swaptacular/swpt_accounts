@@ -274,11 +274,16 @@ def purge_deleted_account(
 
     Some time should be allowed to pass between the marking of an
     account as "deleted", and its actual removal from the database.
-    This is necessary to protect against the rare case when after the
-    removal from the database, the account is quickly re-created with
-    an older timestamp (due to un-synchronized system clocks). Since
-    accounts that are marked as deleted behave exactly as removed,
-    there is no rush to actually remove them from the database.
+    This is necessary to protect against the case when after the
+    removal from the database, the account is quickly re-created, with
+    its counters reset. The delay should be long enough to allow all
+    messages that were queued to the message-bus at the time of
+    marking the account as "deleted", to be successfully processed
+    before the purge.
+
+    Since accounts that are marked as deleted behave exactly as if
+    they were removed, there is no rush to actually remove them from
+    the database.
 
     """
 
