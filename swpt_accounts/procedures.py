@@ -17,6 +17,7 @@ TD_ZERO = timedelta(seconds=0)
 TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
+DELETE_ACCOUNT = 'delete_account'
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
@@ -167,10 +168,12 @@ def make_debtor_payment(
         debtor_id: int,
         creditor_id: int,
         amount: int,
-        transfer_info: dict = {}) -> None:
+        transfer_info: dict = {},
+        current_ts: datetime = None) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert -MAX_INT64 <= amount <= MAX_INT64
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
 
     if creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
         # The debtor pays himself.
@@ -182,11 +185,15 @@ def make_debtor_payment(
             debtor_id=debtor_id,
             sender_creditor_id=ROOT_CREDITOR_ID,
             recipient_creditor_id=creditor_id,
-            committed_at_ts=datetime.now(tz=timezone.utc),
+            committed_at_ts=current_ts,
             committed_amount=amount,
             transfer_info=transfer_info,
             recipient_interest_delta=0 if coordinator_type != 'interest' else -amount,
-            omit_recipient_account_change=coordinator_type == 'delete_account',
+
+            # We must not insert a `PendingAccountChange` record when
+            # an account is getting zeroed out for deletion, otherwise
+            # the account would be resurrected immediately.
+            omit_recipient_account_change=coordinator_type == DELETE_ACCOUNT,
         )
     elif amount < 0:
         # The creditor pays the debtor.
@@ -195,11 +202,13 @@ def make_debtor_payment(
             debtor_id=debtor_id,
             sender_creditor_id=creditor_id,
             recipient_creditor_id=ROOT_CREDITOR_ID,
-            committed_at_ts=datetime.now(tz=timezone.utc),
+            committed_at_ts=current_ts,
             committed_amount=-amount,
             transfer_info=transfer_info,
             sender_interest_delta=0 if coordinator_type != 'interest' else -amount,
-            omit_sender_account_change=coordinator_type == 'delete_account',
+
+            # See the corresponding comment for `omit_recipient_account_change`.
+            omit_sender_account_change=coordinator_type == DELETE_ACCOUNT,
         )
 
 
@@ -251,7 +260,20 @@ def mark_account_for_deletion(
             if has_no_prepared_transfers and query_accounts_count() == 1:
                 mark_as_deleted()
         elif has_no_prepared_transfers and 0 <= _calc_account_current_balance(account, current_ts) <= negligible_amount:
-            make_debtor_payment('delete_account', debtor_id, creditor_id, -account.principal)
+            if account.principal != 0:
+                make_debtor_payment(DELETE_ACCOUNT, debtor_id, creditor_id, -account.principal, current_ts=current_ts)
+                account.transfer_seqnum += 1
+                _insert_committed_transfer_signal(
+                    debtor_id=debtor_id,
+                    creditor_id=creditor_id,
+                    transfer_seqnum=account.transfer_seqnum,
+                    coordinator_type=DELETE_ACCOUNT,
+                    other_creditor_id=ROOT_CREDITOR_ID,
+                    committed_at_ts=current_ts,
+                    committed_amount=-account.principal,
+                    transfer_info={},
+                    new_account_principal=0,
+                )
             mark_as_deleted()
         else:
             mark_as_scheduled_for_deletion()

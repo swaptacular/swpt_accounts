@@ -375,6 +375,7 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     assert p.get_account(D_ID, C_ID) is None
     a = q.one()
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    assert a.status & Account.STATUS_DELETED_FLAG
     assert a.principal == 0
     assert a.interest == 0
     changes = PendingAccountChange.query.all()
@@ -382,8 +383,19 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     assert changes[0].creditor_id == p.ROOT_CREDITOR_ID
     p.process_pending_account_changes(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
-    ct = CommittedTransferSignal.query.one()
-    assert ct.committed_amount == 2
+
+    assert len(CommittedTransferSignal.query.all()) == 2
+    cts1 = CommittedTransferSignal.query.filter_by(creditor_id=C_ID).one()
+    assert cts1.committed_amount == -2
+    assert cts1.new_account_principal == 0
+    cts2 = CommittedTransferSignal.query.filter_by(creditor_id=p.ROOT_CREDITOR_ID).one()
+    assert cts2.committed_amount == 2
+    assert cts1.new_account_principal == 0
+    a = q.one()
+    assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    assert a.status & Account.STATUS_DELETED_FLAG
+    assert a.principal == 0
+    assert a.interest == 0
 
 
 def test_delete_debtor_account(db_session, current_ts):
