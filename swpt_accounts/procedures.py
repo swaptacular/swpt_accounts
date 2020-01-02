@@ -18,6 +18,7 @@ TD_SECOND = timedelta(seconds=1)
 TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 DELETE_ACCOUNT = 'delete_account'
+INTEREST = 'interest'
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
@@ -159,7 +160,7 @@ def capitalize_interest(debtor_id: int,
         amount = min(amount, MAX_INT64)
         amount = max(-MAX_INT64, amount)
         if abs(amount) >= positive_threshold:
-            make_debtor_payment('interest', debtor_id, creditor_id, amount)
+            make_debtor_payment(INTEREST, debtor_id, creditor_id, amount)
 
 
 @atomic
@@ -188,7 +189,7 @@ def make_debtor_payment(
             committed_at_ts=current_ts,
             committed_amount=amount,
             transfer_info=transfer_info,
-            recipient_interest_delta=0 if coordinator_type != 'interest' else -amount,
+            recipient_interest_delta=0 if coordinator_type != INTEREST else -amount,
 
             # We must not insert a `PendingAccountChange` record when
             # an account is getting zeroed out for deletion, otherwise
@@ -205,7 +206,7 @@ def make_debtor_payment(
             committed_at_ts=current_ts,
             committed_amount=-amount,
             transfer_info=transfer_info,
-            sender_interest_delta=0 if coordinator_type != 'interest' else -amount,
+            sender_interest_delta=0 if coordinator_type != INTEREST else -amount,
 
             # See the corresponding comment for `omit_recipient_account_change`.
             omit_sender_account_change=coordinator_type == DELETE_ACCOUNT,
