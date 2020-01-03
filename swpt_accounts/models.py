@@ -11,6 +11,7 @@ MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
+DATE_2020_01_01 = datetime.date(2020, 1, 1)
 
 
 def get_now_utc():
@@ -19,6 +20,13 @@ def get_now_utc():
 
 def increment_seqnum(n):
     return MIN_INT32 if n == MAX_INT32 else n + 1
+
+
+def date_to_int24(date: datetime.date) -> int:
+    days = (date - DATE_2020_01_01).days
+    assert days >= 0
+    assert days >> 24 == 0
+    return days
 
 
 class Signal(db.Model):
@@ -64,7 +72,7 @@ class Account(db.Model):
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(db.DATE, nullable=False, default=get_now_utc)
+    creation_date = db.Column(db.DATE, nullable=False)
     principal = db.Column(
         db.BigInteger,
         nullable=False,
@@ -118,13 +126,13 @@ class Account(db.Model):
     last_transfer_id = db.Column(
         db.BigInteger,
         nullable=False,
-        default=0,
+        default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
         comment='Incremented when a new `prepared_transfer` record is inserted.',
     )
     transfer_seqnum = db.Column(
         db.BigInteger,
         nullable=False,
-        default=0,
+        default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
         comment='Incremented when a new `committed_transfer_signal` record is inserted. Must '
                 'never decrease.',
     )
@@ -346,8 +354,8 @@ class AccountChangeSignal(Signal):
 class CommittedTransferSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_epoch = db.Column(db.DATE, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    transfer_epoch = db.Column(db.DATE, nullable=False)
     coordinator_type = db.Column(db.String(30), nullable=False)
     other_creditor_id = db.Column(db.BigInteger, nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)

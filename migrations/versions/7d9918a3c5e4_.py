@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: b4c38589d552
+Revision ID: 7d9918a3c5e4
 Revises: 
-Create Date: 2020-01-02 20:27:02.263427
+Create Date: 2020-01-03 13:22:43.775990
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'b4c38589d552'
+revision = '7d9918a3c5e4'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -58,8 +58,8 @@ def upgrade():
     op.create_table('committed_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_epoch', sa.DATE(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_epoch', sa.DATE(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -67,7 +67,7 @@ def upgrade():
     sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.Column('new_account_principal', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('committed_amount != 0'),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_epoch', 'transfer_seqnum')
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_seqnum')
     )
     op.create_table('pending_account_change',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),

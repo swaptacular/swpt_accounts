@@ -1,10 +1,10 @@
 import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal
+    AccountChangeSignal, CommittedTransferSignal, date_to_int24
 
 
 def test_version(db_session):
@@ -18,6 +18,12 @@ def current_ts():
 
 D_ID = -1
 C_ID = 1
+
+
+def test_date_to_int24():
+    assert date_to_int24(date(2020, 1, 1)) == 0
+    assert date_to_int24(date(2020, 1, 2)) == 1
+    assert 365 * 7000 < date_to_int24(date(9020, 12, 31)) < 366 * 7000
 
 
 def test_get_or_create_account(db_session):
@@ -98,25 +104,28 @@ def test_make_debtor_payment(db_session, amount):
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     assert len(CommittedTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 2
     cts1 = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
+    transfer_seqnum1 = (date_to_int24(cts1.transfer_epoch) << 40) + 1
     assert cts1.coordinator_type == 'test'
     assert cts1.creditor_id == C_ID
     assert cts1.other_creditor_id == p.ROOT_CREDITOR_ID
     assert cts1.committed_amount == amount
     assert cts1.transfer_info == TRANSFER_INFO
-    assert cts1.transfer_seqnum == 1
+    assert cts1.transfer_seqnum == transfer_seqnum1
     assert cts1.new_account_principal == amount
     cts2 = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
+    transfer_seqnum2 = (date_to_int24(cts2.transfer_epoch) << 40) + 1
     assert cts2.coordinator_type == 'test'
     assert cts2.creditor_id == p.ROOT_CREDITOR_ID
     assert cts2.other_creditor_id == C_ID
     assert cts2.committed_amount == -amount
     assert cts2.transfer_info == TRANSFER_INFO
-    assert cts2.transfer_seqnum == 1
+    assert cts2.transfer_seqnum == transfer_seqnum2
     assert cts2.new_account_principal == -amount
 
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_INFO)
     p.process_pending_account_changes(D_ID, C_ID)
-    cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID, transfer_seqnum=2).one()
+    cts = CommittedTransferSignal.query.filter_by(
+        debtor_id=D_ID, creditor_id=C_ID, transfer_seqnum=transfer_seqnum1 + 1).one()
     assert cts.committed_amount == 2 * amount
     assert cts.new_account_principal == 3 * amount
 

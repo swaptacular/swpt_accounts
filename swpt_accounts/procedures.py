@@ -6,7 +6,7 @@ from sqlalchemy import func
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, increment_seqnum, \
-    MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+    get_now_utc, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -433,6 +433,7 @@ def _create_account(debtor_id: int, creditor_id: int) -> Account:
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         status=PRISTINE_ACCOUNT_STATUS,
+        creation_date=get_now_utc().date(),
     )
     with db.retry_on_integrity_error():
         db.session.add(account)
