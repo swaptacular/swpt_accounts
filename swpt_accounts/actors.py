@@ -77,7 +77,10 @@ def prepare_transfer(
 
     3. "finalized" CR records must not be deleted right away. Instead,
        after they have been finalized, they should stay in the
-       database for at least few days.
+       database for some time. The delay should be long enough to
+       allow all messages that were queued to the message-bus at the
+       time of finalization to be successfully processed before the
+       deletion.
 
        This is necessary in order to prevent problems caused by
        message re-delivery. Consider the following scenario: a
@@ -274,11 +277,9 @@ def purge_deleted_account(
 
     Some time should be allowed to pass between the marking of an
     account as "deleted", and its actual removal from the database.
-    This is necessary to protect against the case when after the
-    removal from the database, the account is quickly re-created, with
-    its counters reset. The delay should be long enough to allow all
-    messages that were queued to the message-bus at the time of
-    marking the account as "deleted", to be successfully processed
+    This is necessary to protect against various edge cases. The delay
+    should be long enough to allow all prepared transfers at the time
+    of marking the account as "deleted", to be successfully finalized
     before the purge.
 
     Since accounts that are marked as deleted behave exactly as if
