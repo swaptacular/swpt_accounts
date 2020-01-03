@@ -14,11 +14,11 @@ INTEREST_RATE_CEIL = 100.0
 DATE_2020_01_01 = datetime.date(2020, 1, 1)
 
 
-def get_now_utc():
+def get_now_utc() -> datetime.datetime:
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
 
-def increment_seqnum(n):
+def increment_seqnum(n: int) -> int:
     return MIN_INT32 if n == MAX_INT32 else n + 1
 
 
