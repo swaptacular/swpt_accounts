@@ -225,7 +225,7 @@ def mark_account_for_deletion(
     This function will do nothing if the current timestamp is later
     than `ignore_after_ts`. This parameter is used to limit the
     lifespan of the message, which otherwise may be retained for a
-    very long time by the massage bus.
+    quite long time by the message bus.
 
     Note that even if the account has been successfully marked as
     deleted, it could be "resurrected" (with "scheduled for deletion"
