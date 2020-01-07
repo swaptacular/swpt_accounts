@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7d9918a3c5e4
+Revision ID: ce329ddadf9b
 Revises: 
-Create Date: 2020-01-03 13:22:43.775990
+Create Date: 2020-01-07 21:00:10.116070
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '7d9918a3c5e4'
+revision = 'ce329ddadf9b'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -31,15 +31,15 @@ def upgrade():
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. This field is not updated on demurrage payments.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted.'),
-    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `committed_transfer_signal` record is inserted. Must never decrease.'),
+    sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `committed_transfer_signal` record is inserted. Must never decrease.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
     sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True, comment='Updated on each change of the `interest_rate`.'),
     sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='Updated on each change of the `interest_rate`.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
+    sa.CheckConstraint('last_transfer_seqnum >= 0'),
     sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('pending_transfers_count >= 0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
-    sa.CheckConstraint('transfer_seqnum >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id'),
     comment='Tells who owes what to whom.'
     )
@@ -51,6 +51,7 @@ def upgrade():
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
+    sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True),
     sa.Column('status', sa.SmallInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_seqnum', 'change_ts')

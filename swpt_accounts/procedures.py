@@ -267,12 +267,12 @@ def mark_account_for_deletion(
         elif has_no_prepared_transfers and 0 <= _calc_account_current_balance(account, current_ts) <= negligible_amount:
             if account.principal != 0:
                 make_debtor_payment(DELETE_ACCOUNT, debtor_id, creditor_id, -account.principal, current_ts=current_ts)
-                account.transfer_seqnum += 1
+                account.last_transfer_seqnum += 1
                 _insert_committed_transfer_signal(
                     debtor_id=debtor_id,
                     creditor_id=creditor_id,
                     transfer_epoch=account.creation_date,
-                    transfer_seqnum=account.transfer_seqnum,
+                    transfer_seqnum=account.last_transfer_seqnum,
                     coordinator_type=DELETE_ACCOUNT,
                     other_creditor_id=ROOT_CREDITOR_ID,
                     committed_at_ts=current_ts,
@@ -361,7 +361,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     account.last_outgoing_transfer_date = current_date
                     assert nonzero_deltas
             if change.principal_delta != 0:
-                account.transfer_seqnum += 1
+                account.last_transfer_seqnum += 1
                 new_account_principal = account.principal + principal_delta
                 if new_account_principal <= MIN_INT64:
                     new_account_principal = -MAX_INT64
@@ -371,7 +371,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     debtor_id=change.debtor_id,
                     creditor_id=change.creditor_id,
                     transfer_epoch=account.creation_date,
-                    transfer_seqnum=account.transfer_seqnum,
+                    transfer_seqnum=account.last_transfer_seqnum,
                     coordinator_type=change.coordinator_type,
                     other_creditor_id=change.other_creditor_id,
                     committed_at_ts=change.inserted_at_ts,
@@ -423,6 +423,7 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
         principal=account.principal,
         interest=account.interest,
         interest_rate=account.interest_rate,
+        last_transfer_seqnum=account.last_transfer_seqnum,
         last_outgoing_transfer_date=account.last_outgoing_transfer_date,
         status=account.status,
     ))

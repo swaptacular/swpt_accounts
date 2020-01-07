@@ -129,7 +129,7 @@ class Account(db.Model):
         default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
         comment='Incremented when a new `prepared_transfer` record is inserted.',
     )
-    transfer_seqnum = db.Column(
+    last_transfer_seqnum = db.Column(
         db.BigInteger,
         nullable=False,
         default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
@@ -154,7 +154,7 @@ class Account(db.Model):
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(pending_transfers_count >= 0),
         db.CheckConstraint(principal > MIN_INT64),
-        db.CheckConstraint(transfer_seqnum >= 0),
+        db.CheckConstraint(last_transfer_seqnum >= 0),
         {
             'comment': 'Tells who owes what to whom.',
         }
@@ -347,6 +347,7 @@ class AccountChangeSignal(Signal):
     principal = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
+    last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     last_outgoing_transfer_date = db.Column(db.DATE)
     status = db.Column(db.SmallInteger, nullable=False)
 
