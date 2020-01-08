@@ -616,6 +616,12 @@ def _insert_committed_transfer_signal(debtor_id: int,
                                       committed_amount: int,
                                       transfer_info: dict,
                                       new_account_principal: int) -> None:
+    if creditor_id == ROOT_CREDITOR_ID:
+        # Because the debtor's account does not have a real owning
+        # creditor, we do not need to send a notification for the
+        # transfer.
+        return
+
     db.session.add(CommittedTransferSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
