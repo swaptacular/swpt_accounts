@@ -377,7 +377,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     committed_at_ts=change.inserted_at_ts,
                     committed_amount=change.principal_delta,
                     transfer_info=change.transfer_info,
-                    new_account_principal=_contain_int64_overflow(account.principal + principal_delta),
+                    new_account_principal=_contain_principal_overflow(account.principal + principal_delta),
                 )
             db.session.delete(change)
 
@@ -412,7 +412,7 @@ def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int
     )
 
 
-def _contain_int64_overflow(value: int) -> int:
+def _contain_principal_overflow(value: int) -> int:
     if value <= MIN_INT64:
         return -MAX_INT64
     if value > MAX_INT64:
@@ -655,7 +655,7 @@ def _insert_committed_transfer_signal(
 def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:
     account.interest = float(_calc_account_accumulated_interest(account, current_ts) + interest_delta)
     principal_possibly_overflown = account.principal + principal_delta
-    principal = _contain_int64_overflow(principal_possibly_overflown)
+    principal = _contain_principal_overflow(principal_possibly_overflown)
     if principal != principal_possibly_overflown:
         account.status |= Account.STATUS_OVERFLOWN_FLAG
     account.principal = principal
