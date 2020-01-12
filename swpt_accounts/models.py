@@ -349,6 +349,7 @@ class AccountChangeSignal(Signal):
     interest_rate = db.Column(db.REAL, nullable=False)
     last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     last_outgoing_transfer_date = db.Column(db.DATE)
+    creation_date = db.Column(db.DATE, nullable=False)
     status = db.Column(db.SmallInteger, nullable=False)
 
 
@@ -363,7 +364,3 @@ class CommittedTransferSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_info = db.Column(pg.JSON, nullable=False, default={})
     new_account_principal = db.Column(db.BigInteger, nullable=False)
-
-    __table_args__ = (
-        db.CheckConstraint(committed_amount != 0),
-    )
