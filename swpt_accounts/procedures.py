@@ -171,9 +171,8 @@ def capitalize_interest(
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))
         current_ts = current_ts or datetime.now(tz=timezone.utc)
-        amount = math.floor(_calc_account_accumulated_interest(account, current_ts))
-        amount = min(amount, MAX_INT64)
-        amount = max(-MAX_INT64, amount)
+        amount_possibly_overflown = math.floor(_calc_account_accumulated_interest(account, current_ts))
+        amount = _contain_principal_overflow(amount_possibly_overflown)
         if abs(amount) >= positive_threshold:
             make_debtor_payment(INTEREST, debtor_id, creditor_id, amount, current_ts=current_ts)
 
