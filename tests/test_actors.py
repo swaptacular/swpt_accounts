@@ -47,6 +47,7 @@ def test_create_account(db_session):
     a.create_account(
         debtor_id=D_ID,
         creditor_id=C_ID,
+        ignore_after_ts='2099-12-31T00:00:00Z',
     )
 
 

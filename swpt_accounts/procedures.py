@@ -45,6 +45,12 @@ def get_account(debtor_id: int, creditor_id: int) -> Optional[Account]:
 
 
 @atomic
+def create_account(debtor_id: int, creditor_id: int, ignore_after_ts: datetime) -> None:
+    if datetime.now(tz=timezone.utc) <= ignore_after_ts:
+        get_or_create_account(debtor_id, creditor_id)
+
+
+@atomic
 def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -245,6 +251,7 @@ def mark_account_for_deletion(
         ignore_after_ts: datetime,
         negligible_amount: int) -> None:
     assert negligible_amount >= 0
+
     current_ts = datetime.now(tz=timezone.utc)
     if current_ts > ignore_after_ts:
         return

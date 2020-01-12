@@ -171,16 +171,26 @@ def capitalize_interest(
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def create_account(
         debtor_id: int,
-        creditor_id: int) -> None:
+        creditor_id: int,
+        ignore_after_ts: str) -> None:
 
     """Make sure the account `(debtor_id, creditor_id)` exists, and is
     neither deleted nor scheduled for deletion.
 
     An `AccountChangeSignal` is always sent as a confirmation.
 
+    This function will do nothing if the current timestamp is later
+    than `ignore_after_ts`. This parameter is used to limit the
+    lifespan of the message, which otherwise may be retained for a
+    quite long time by the message bus.
+
     """
 
-    procedures.get_or_create_account(debtor_id, creditor_id)
+    procedures.create_account(
+        debtor_id,
+        creditor_id,
+        iso8601.parse_date(ignore_after_ts),
+    )
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
