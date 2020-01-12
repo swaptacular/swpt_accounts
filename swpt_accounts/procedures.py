@@ -441,6 +441,7 @@ def _create_account(debtor_id: int, creditor_id: int) -> Account:
     )
     with db.retry_on_integrity_error():
         db.session.add(account)
+    _insert_account_change_signal(account)
     return account
 
 
@@ -467,10 +468,8 @@ def _get_or_create_account(
 
     if account is None:
         account = _create_account(debtor_id, creditor_id)
-        _insert_account_change_signal(account)
     elif account.status & Account.STATUS_DELETED_FLAG:
         _resurrect_deleted_account(account, create_account_request)
-        _insert_account_change_signal(account)
     elif create_account_request:
         account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         _insert_account_change_signal(account)
@@ -498,6 +497,7 @@ def _resurrect_deleted_account(account: Account, create_account_request: bool) -
         # transfer gets committed. Note that in this case we should
         # set the `STATUS_SCHEDULED_FOR_DELETION_FLAG` on the account.
         account.status = PRISTINE_ACCOUNT_STATUS | Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    _insert_account_change_signal(account)
 
 
 def _calc_account_current_balance(account: Account, current_ts: datetime = None) -> Decimal:
