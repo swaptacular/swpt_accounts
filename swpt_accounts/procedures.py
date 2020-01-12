@@ -5,7 +5,7 @@ from decimal import Decimal
 from sqlalchemy import func
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, PurgedAccountSignal, \
+    AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, \
     increment_seqnum, get_now_utc, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 T = TypeVar('T')
@@ -316,7 +316,7 @@ def purge_deleted_account(
         # from different "epochs" (the `transfer_epoch` column).
         if allow_hasty_purges or account.creation_date < yesterday:
             db.session.delete(account)
-            db.session.add(PurgedAccountSignal(
+            db.session.add(AccountPurgeSignal(
                 debtor_id=debtor_id,
                 creditor_id=creditor_id,
                 creation_date=account.creation_date,

@@ -4,7 +4,7 @@ from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal, PurgedAccountSignal, date_to_int24
+    AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, date_to_int24
 
 
 def test_version(db_session):
@@ -334,10 +334,10 @@ def test_delete_account(db_session, current_ts):
     assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
     p.purge_deleted_account(D_ID, C_ID, current_ts + timedelta(days=1000), allow_hasty_purges=True)
     assert not q.one_or_none()
-    pas = PurgedAccountSignal.query.one()
-    assert pas.debtor_id == D_ID
-    assert pas.creditor_id == C_ID
-    assert pas.creation_date == creation_date
+    aps = AccountPurgeSignal.query.one()
+    assert aps.debtor_id == D_ID
+    assert aps.creditor_id == C_ID
+    assert aps.creation_date == creation_date
 
 
 def test_delete_account_negative_balance(db_session, current_ts):

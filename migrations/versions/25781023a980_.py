@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1c4160574800
+Revision ID: 25781023a980
 Revises: 
-Create Date: 2020-01-12 21:02:07.885827
+Create Date: 2020-01-12 21:13:55.041592
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '1c4160574800'
+revision = '25781023a980'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -57,6 +57,12 @@ def upgrade():
     sa.Column('status', sa.SmallInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_seqnum', 'change_ts')
     )
+    op.create_table('account_purge_signal',
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=False),
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'creation_date')
+    )
     op.create_table('committed_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -97,12 +103,6 @@ def upgrade():
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id')
-    )
-    op.create_table('purged_account_signal',
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creation_date', sa.DATE(), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'creation_date')
     )
     op.create_table('rejected_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -150,10 +150,10 @@ def downgrade():
     op.drop_table('prepared_transfer')
     op.drop_table('transfer_request')
     op.drop_table('rejected_transfer_signal')
-    op.drop_table('purged_account_signal')
     op.drop_table('prepared_transfer_signal')
     op.drop_table('pending_account_change')
     op.drop_table('committed_transfer_signal')
+    op.drop_table('account_purge_signal')
     op.drop_table('account_change_signal')
     op.drop_table('account')
     # ### end Alembic commands ###
