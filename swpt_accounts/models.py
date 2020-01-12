@@ -321,17 +321,13 @@ class PendingAccountChange(db.Model):
 
 
 class PreparedTransferSignal(Signal):
-    # These fields are taken from `PreparedTransfer`.
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_id = db.Column(db.BigInteger, primary_key=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
-    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    sender_locked_amount = db.Column(db.BigInteger, nullable=False)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
+    sender_locked_amount = db.Column(db.BigInteger, nullable=False)
 
     @property
     def event_name(self):  # pragma: no cover

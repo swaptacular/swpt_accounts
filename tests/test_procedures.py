@@ -586,7 +586,6 @@ def test_prepare_transfer_success(db_session):
     assert pts.coordinator_id == 1
     assert pts.coordinator_request_id == 2
     assert pts.sender_creditor_id == C_ID
-    assert pts.recipient_creditor_id == 1234
     assert pts.sender_locked_amount == 100
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     assert pt.transfer_id == pts.transfer_id

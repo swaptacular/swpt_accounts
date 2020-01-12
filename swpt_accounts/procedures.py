@@ -708,11 +708,9 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
                 sender_creditor_id=tr.sender_creditor_id,
                 transfer_id=sender_account.last_transfer_id,
                 coordinator_type=tr.coordinator_type,
-                recipient_creditor_id=tr.recipient_creditor_id,
-                sender_locked_amount=amount,
-                prepared_at_ts=current_ts,
                 coordinator_id=tr.coordinator_id,
                 coordinator_request_id=tr.coordinator_request_id,
+                sender_locked_amount=amount,
             ),
         ]
 
