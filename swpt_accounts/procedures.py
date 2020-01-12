@@ -112,7 +112,7 @@ def finalize_prepared_transfer(
         elif committed_amount > 0:
             _execute_transfer(
                 coordinator_type=pt.coordinator_type,
-                debtor_id=debtor_id,
+                debtor_id=pt.debtor_id,
                 sender_creditor_id=pt.sender_creditor_id,
                 recipient_creditor_id=pt.recipient_creditor_id,
                 committed_at_ts=datetime.now(tz=timezone.utc),
@@ -277,7 +277,7 @@ def mark_account_for_deletion(
             if account.principal != 0:
                 make_debtor_payment(DELETE_ACCOUNT, debtor_id, creditor_id, -account.principal, current_ts=current_ts)
                 _insert_committed_transfer_signal(
-                    account,
+                    account=account,
                     coordinator_type=DELETE_ACCOUNT,
                     other_creditor_id=ROOT_CREDITOR_ID,
                     committed_at_ts=current_ts,
@@ -354,7 +354,8 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         account = _get_or_create_account(debtor_id, creditor_id, lock=True)
         current_ts = datetime.now(tz=timezone.utc)
         current_date = current_ts.date()
-        principal_delta = interest_delta = 0
+        principal_delta = 0
+        interest_delta = 0
         nonzero_deltas = False
         for change in changes:
             if change.principal_delta != 0 or change.interest_delta != 0:
@@ -368,13 +369,9 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     account.last_outgoing_transfer_date = current_date
                     assert nonzero_deltas
             if change.principal_delta != 0:
-                new_account_principal = account.principal + principal_delta
-                if new_account_principal <= MIN_INT64:
-                    new_account_principal = -MAX_INT64
-                if new_account_principal > MAX_INT64:
-                    new_account_principal = MAX_INT64
+                new_account_principal = _contain_int64_overflow(account.principal + principal_delta)
                 _insert_committed_transfer_signal(
-                    account,
+                    account=account,
                     coordinator_type=change.coordinator_type,
                     other_creditor_id=change.other_creditor_id,
                     committed_at_ts=change.inserted_at_ts,
@@ -412,6 +409,14 @@ def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int
         or other_seqnum is None
         or 0 < (seqnum - other_seqnum) % 0x100000000 < 0x80000000
     )
+
+
+def _contain_int64_overflow(value: int) -> int:
+    if value <= MIN_INT64:
+        return -MAX_INT64
+    if value > MAX_INT64:
+        return MAX_INT64
+    return value
 
 
 def _insert_account_change_signal(account: Account, current_ts: datetime = None) -> None:
@@ -647,15 +652,11 @@ def _insert_committed_transfer_signal(
 
 def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:
     account.interest = float(_calc_account_accumulated_interest(account, current_ts) + interest_delta)
-    new_principal = account.principal + principal_delta
-    if new_principal <= MIN_INT64:
-        account.principal = -MAX_INT64
+    principal_possibly_overflown = account.principal + principal_delta
+    principal = _contain_int64_overflow(principal_possibly_overflown)
+    if principal != principal_possibly_overflown:
         account.status |= Account.STATUS_OVERFLOWN_FLAG
-    elif new_principal > MAX_INT64:
-        account.principal = MAX_INT64
-        account.status |= Account.STATUS_OVERFLOWN_FLAG
-    else:
-        account.principal = new_principal
+    account.principal = principal
     _insert_account_change_signal(account, current_ts)
 
 
