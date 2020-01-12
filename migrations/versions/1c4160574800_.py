@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 4fa207716c50
+Revision ID: 1c4160574800
 Revises: 
-Create Date: 2020-01-12 16:12:06.358739
+Create Date: 2020-01-12 21:02:07.885827
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '4fa207716c50'
+revision = '1c4160574800'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -23,18 +23,18 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False, comment='The total owed amount. Can be negative.'),
-    sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account.'),
-    sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest`gets zeroed and added to the principal once in a while (like once per week).'),
-    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks for this account.'),
-    sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of pending transfers for this account.'),
-    sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every change in `principal`, `interest_rate`, `interest`, or `status`.'),
-    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='Updated on every increment of `last_change_seqnum`. Must never decrease.'),
-    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. This field is not updated on demurrage payments.'),
-    sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted.'),
-    sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `committed_transfer_signal` record is inserted. Must never decrease.'),
+    sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account. Can be negative.'),
+    sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True, comment='The value of the `change_seqnum` attribute, received with the most recent `change_interest_rate` signal. It is used to decide whether to change the interest rate when a (potentially old) `change_interest_rate` signal is received.'),
+    sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The value of the `change_ts` attribute, received with the most recent `change_interest_rate` signal. It is used to decide whether to change the interest rate when a (potentially old) `change_interest_rate` signal is received.'),
+    sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest` gets zeroed and added to the principal once in a while (like once per week).'),
+    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
+    sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
+    sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every meaningful change on the account. Every change in `principal`, `interest_rate`, `interest`, or `status` is considered meaningful. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
+    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last meaningful change on the account happened. Must never decrease. Every change in `principal`, `interest_rate`, `interest`, or `status` is considered meaningful.'),
+    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. It is not updated on interest/demurrage payments. This field is used to determine when an account with negative balance can be zeroed out for deletion.'),
+    sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column.'),
+    sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `committed_transfer_signal` record is inserted. It is used to generate sequential numbers for the `committed_transfer_signal.transfer_seqnum`. column. Must never decrease.'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status flags.'),
-    sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True, comment='Updated on each change of the `interest_rate`.'),
-    sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='Updated on each change of the `interest_rate`.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_seqnum >= 0'),
     sa.CheckConstraint('locked_amount >= 0'),

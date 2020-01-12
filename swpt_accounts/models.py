@@ -86,6 +86,20 @@ class Account(db.Model):
         comment='Annual rate (in percents) at which interest accumulates on the account. Can '
                 'be negative.',
     )
+    interest_rate_last_change_seqnum = db.Column(
+        db.Integer,
+        comment='The value of the `change_seqnum` attribute, received with the most recent '
+                '`change_interest_rate` signal. It is used to decide whether to change the '
+                'interest rate when a (potentially old) `change_interest_rate` signal is '
+                'received.',
+    )
+    interest_rate_last_change_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        comment='The value of the `change_ts` attribute, received with the most recent '
+                '`change_interest_rate` signal. It is used to decide whether to change the '
+                'interest rate when a (potentially old) `change_interest_rate` signal is '
+                'received.',
+    )
     interest = db.Column(
         db.FLOAT,
         nullable=False,
@@ -112,14 +126,19 @@ class Account(db.Model):
         db.Integer,
         nullable=False,
         default=1,
-        comment='Incremented (with wrapping) on every change in `principal`, `interest_rate`, '
-                '`interest`, or `status`.',
+        comment='Incremented (with wrapping) on every meaningful change on the account. Every '
+                'change in `principal`, `interest_rate`, `interest`, or `status` is considered '
+                'meaningful. This column, along with the `last_change_ts` column, allows to '
+                'reliably determine the correct order of changes, even if they occur in a very '
+                'short period of time.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=get_now_utc,
-        comment='Updated on every increment of `last_change_seqnum`. Must never decrease.',
+        comment='The moment at which the last meaningful change on the account happened. Must '
+                'never decrease. Every change in `principal`, `interest_rate`, `interest`, or '
+                '`status` is considered meaningful.',
     )
     last_outgoing_transfer_date = db.Column(
         db.DATE,
@@ -147,14 +166,6 @@ class Account(db.Model):
         db.SmallInteger,
         nullable=False,
         comment='Additional account status flags.',
-    )
-    interest_rate_last_change_seqnum = db.Column(
-        db.Integer,
-        comment='Updated on each change of the `interest_rate`.',
-    )
-    interest_rate_last_change_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        comment='Updated on each change of the `interest_rate`.',
     )
     __table_args__ = (
         db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
