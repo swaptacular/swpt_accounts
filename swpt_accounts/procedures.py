@@ -441,7 +441,6 @@ def _create_account(debtor_id: int, creditor_id: int) -> Account:
     )
     with db.retry_on_integrity_error():
         db.session.add(account)
-    _insert_account_change_signal(account)
     return account
 
 
@@ -468,6 +467,7 @@ def _get_or_create_account(
 
     if account is None:
         account = _create_account(debtor_id, creditor_id)
+        _insert_account_change_signal(account)
     elif account.status & Account.STATUS_DELETED_FLAG:
         _resurrect_deleted_account(account, create_account_request)
         _insert_account_change_signal(account)
