@@ -285,6 +285,8 @@ def purge_deleted_account(
     """Removes the account `(debtor_id, creditor_id)` if it has been
     marked as deleted before the `if_deleted_before` moment.
 
+    An `AccountPurgeSignal` is always sent as a confirmation.
+
     Some time should be allowed to pass between the marking of an
     account as "deleted", and its actual removal from the database.
     This is necessary to protect against various edge cases. The delay
