@@ -83,27 +83,30 @@ class Account(db.Model):
         db.REAL,
         nullable=False,
         default=0.0,
-        comment='Annual rate (in percents) at which interest accumulates on the account.',
+        comment='Annual rate (in percents) at which interest accumulates on the account. Can '
+                'be negative.',
     )
     interest = db.Column(
         db.FLOAT,
         nullable=False,
         default=0.0,
         comment='The amount of interest accumulated on the account before `last_change_ts`, '
-                'but not added to the `principal` yet. Can be a negative number. `interest`'
+                'but not added to the `principal` yet. Can be a negative number. `interest` '
                 'gets zeroed and added to the principal once in a while (like once per week).',
     )
     locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='The total sum of all pending transfer locks for this account.',
+        comment='The total sum of all pending transfer locks for this account. This value '
+                'has been reserved and must be subtracted from the available amount, to '
+                'avoid double-spending.',
     )
     pending_transfers_count = db.Column(
         db.Integer,
         nullable=False,
         default=0,
-        comment='The number of pending transfers for this account.',
+        comment='The number of `pending_transfer` records for this account.',
     )
     last_change_seqnum = db.Column(
         db.Integer,
@@ -120,21 +123,25 @@ class Account(db.Model):
     )
     last_outgoing_transfer_date = db.Column(
         db.DATE,
-        comment='Updated on each transfer for which this account is the sender. This field is '
-                'not updated on demurrage payments.',
+        comment='Updated on each transfer for which this account is the sender. It is not updated '
+                'on interest/demurrage payments. This field is used to determine when an account '
+                'with negative balance can be zeroed out for deletion.',
     )
     last_transfer_id = db.Column(
         db.BigInteger,
         nullable=False,
         default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
-        comment='Incremented when a new `prepared_transfer` record is inserted.',
+        comment='Incremented when a new `prepared_transfer` record is inserted. It is used '
+                'to generate sequential numbers for the `prepared_transfer.transfer_id` '
+                'column.',
     )
     last_transfer_seqnum = db.Column(
         db.BigInteger,
         nullable=False,
         default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
-        comment='Incremented when a new `committed_transfer_signal` record is inserted. Must '
-                'never decrease.',
+        comment='Incremented when a new `committed_transfer_signal` record is inserted. It is used '
+                'to generate sequential numbers for the `committed_transfer_signal.transfer_seqnum`. '
+                'column. Must never decrease.',
     )
     status = db.Column(
         db.SmallInteger,
