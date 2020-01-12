@@ -120,6 +120,7 @@ def test_make_debtor_payment(db_session, amount):
         debtor_id=D_ID, creditor_id=C_ID, transfer_seqnum=transfer_seqnum1 + 1).one()
     assert cts.committed_amount == 2 * amount
     assert cts.new_account_principal == 3 * amount
+    assert p.get_or_create_account(D_ID, C_ID).last_outgoing_transfer_date is None
 
 
 def test_make_debtor_zero_payment(db_session):
@@ -599,6 +600,7 @@ def test_prepare_transfer_success(db_session):
     assert a.pending_transfers_count == 0
     assert a.principal == 100
     assert a.interest == 0.0
+    assert a.last_outgoing_transfer_date is None
     assert not PreparedTransfer.query.one_or_none()
     assert len(AccountChangeSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
@@ -630,11 +632,13 @@ def test_commit_prepared_transfer(db_session):
     assert a1.pending_transfers_count == 0
     assert a1.principal == 40
     assert a1.interest == 0.0
+    assert a1.last_outgoing_transfer_date is None
     a2 = p.get_account(D_ID, C_ID)
     assert a2.locked_amount == 0
     assert a2.pending_transfers_count == 0
     assert a2.principal == 60
     assert a2.interest == 0.0
+    assert a2.last_outgoing_transfer_date is not None
     assert not PreparedTransfer.query.one_or_none()
     assert len(AccountChangeSignal.query.all()) == 4
     assert len(RejectedTransferSignal.query.all()) == 0
