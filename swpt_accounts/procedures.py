@@ -455,7 +455,7 @@ def _get_account(account_or_pk: AccountId, lock: bool = False) -> Optional[Accou
 def _get_or_create_account(debtor_id: int,
                            creditor_id: int,
                            lock: bool = False,
-                           create_account_request=False) -> Account:
+                           create_account_request: bool = False) -> Account:
     if lock:
         account = Account.lock_instance((debtor_id, creditor_id))
     else:
