@@ -329,6 +329,7 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
         filter_by(debtor_id=debtor_id, sender_creditor_id=creditor_id).\
         with_for_update(skip_locked=True).\
         all()
+
     if requests:
         sender_account = _get_account((debtor_id, creditor_id), lock=True)
         new_objects = []
