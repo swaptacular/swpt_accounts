@@ -5,8 +5,8 @@ from decimal import Decimal
 from sqlalchemy import func
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, increment_seqnum, \
-    get_now_utc, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+    AccountChangeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, PurgedAccountSignal, \
+    increment_seqnum, get_now_utc, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -297,20 +297,23 @@ def purge_deleted_account(
         if_deleted_before: datetime,
         allow_hasty_purges: bool = False) -> None:
 
-    query = Account.query.\
-        filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
-        filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
-        filter(Account.last_change_ts < if_deleted_before)
-    if not allow_hasty_purges:
+    account = Account.lock_instance((debtor_id, creditor_id))
+    if account and account.status & Account.STATUS_DELETED_FLAG and account.last_change_ts < if_deleted_before:
+        yesterday = date.today() - timedelta(days=1)
+
         # When one account is created, deleted, purged, and re-created
         # in a single day, the `creation_date` of the re-created
         # account will be the same as the `creation_date` of the
         # deleted account. This must be avoided, because we use the
         # creation date to differentiate `CommittedTransferSignal`s
         # from different "epochs" (the `transfer_epoch` column).
-        yesterday = date.today() - timedelta(days=1)
-        query = query.filter(Account.creation_date < yesterday)
-    query.delete(synchronize_session=False)
+        if allow_hasty_purges or account.creation_date < yesterday:
+            db.session.delete(account)
+            db.session.add(PurgedAccountSignal(
+                debtor_id=debtor_id,
+                creditor_id=creditor_id,
+                creation_date=account.creation_date,
+            ))
 
 
 @atomic

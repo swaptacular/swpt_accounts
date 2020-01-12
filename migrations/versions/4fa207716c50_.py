@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 39e1354a59f5
+Revision ID: 4fa207716c50
 Revises: 
-Create Date: 2020-01-12 15:46:26.896197
+Create Date: 2020-01-12 16:12:06.358739
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '39e1354a59f5'
+revision = '4fa207716c50'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -98,6 +98,12 @@ def upgrade():
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id')
     )
+    op.create_table('purged_account_signal',
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=False),
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'creation_date')
+    )
     op.create_table('rejected_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -144,6 +150,7 @@ def downgrade():
     op.drop_table('prepared_transfer')
     op.drop_table('transfer_request')
     op.drop_table('rejected_transfer_signal')
+    op.drop_table('purged_account_signal')
     op.drop_table('prepared_transfer_signal')
     op.drop_table('pending_account_change')
     op.drop_table('committed_transfer_signal')

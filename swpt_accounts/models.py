@@ -364,3 +364,9 @@ class CommittedTransferSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_info = db.Column(pg.JSON, nullable=False, default={})
     new_account_principal = db.Column(db.BigInteger, nullable=False)
+
+
+class PurgedAccountSignal(Signal):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    creation_date = db.Column(db.DATE, primary_key=True)
