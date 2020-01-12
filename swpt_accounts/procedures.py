@@ -350,13 +350,14 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         with_for_update(skip_locked=True).\
         all()
+
     if changes:
+        nonzero_deltas = False
+        principal_delta = 0
+        interest_delta = 0
         account = _get_or_create_account(debtor_id, creditor_id, lock=True)
         current_ts = datetime.now(tz=timezone.utc)
         current_date = current_ts.date()
-        principal_delta = 0
-        interest_delta = 0
-        nonzero_deltas = False
         for change in changes:
             if change.principal_delta != 0 or change.interest_delta != 0:
                 nonzero_deltas = True
@@ -367,9 +368,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 account.pending_transfers_count = max(0, account.pending_transfers_count - 1)
                 if change.principal_delta < 0:
                     account.last_outgoing_transfer_date = current_date
-                    assert nonzero_deltas
             if change.principal_delta != 0:
-                new_account_principal = _contain_int64_overflow(account.principal + principal_delta)
                 _insert_committed_transfer_signal(
                     account=account,
                     coordinator_type=change.coordinator_type,
@@ -377,9 +376,10 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     committed_at_ts=change.inserted_at_ts,
                     committed_amount=change.principal_delta,
                     transfer_info=change.transfer_info,
-                    new_account_principal=new_account_principal,
+                    new_account_principal=_contain_int64_overflow(account.principal + principal_delta),
                 )
             db.session.delete(change)
+
         if nonzero_deltas:
             _apply_account_change(
                 account=account,
@@ -630,6 +630,7 @@ def _insert_committed_transfer_signal(
         transfer_info: dict,
         new_account_principal: int) -> None:
 
+    assert committed_amount != 0
     account.last_transfer_seqnum += 1
 
     # We do not send notifications for transfers from/to the debtor's
