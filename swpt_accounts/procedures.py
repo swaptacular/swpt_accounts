@@ -171,8 +171,8 @@ def capitalize_interest(
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))
         current_ts = current_ts or datetime.now(tz=timezone.utc)
-        amount_possibly_overflown = math.floor(_calc_account_accumulated_interest(account, current_ts))
-        amount = _contain_principal_overflow(amount_possibly_overflown)
+        amount = math.floor(_calc_account_accumulated_interest(account, current_ts))
+        amount = _contain_principal_overflow(amount)
         if abs(amount) >= positive_threshold:
             make_debtor_payment(INTEREST, debtor_id, creditor_id, amount, current_ts=current_ts)
 
@@ -239,8 +239,9 @@ def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_tr
         account_date = account.last_outgoing_transfer_date
         account_date_is_ok = account_date is None or account_date <= last_outgoing_transfer_date
         zero_out_amount = -math.floor(_calc_account_current_balance(account))
+        zero_out_amount = _contain_principal_overflow(zero_out_amount)
         if account_date_is_ok and zero_out_amount > 0:
-            make_debtor_payment(ZERO_OUT_ACCOUNT, debtor_id, creditor_id, min(zero_out_amount, MAX_INT64))
+            make_debtor_payment(ZERO_OUT_ACCOUNT, debtor_id, creditor_id, zero_out_amount)
 
 
 @atomic
