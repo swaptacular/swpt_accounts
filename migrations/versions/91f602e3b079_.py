@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9e18b1178b03
+Revision ID: 91f602e3b079
 Revises: 
-Create Date: 2020-01-12 22:02:51.061106
+Create Date: 2020-01-13 00:00:26.156187
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '9e18b1178b03'
+revision = '91f602e3b079'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -27,7 +27,7 @@ def upgrade():
     sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True, comment='The value of the `change_seqnum` attribute, received with the most recent `change_interest_rate` signal. It is used to decide whether to change the interest rate when a (potentially old) `change_interest_rate` signal is received.'),
     sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The value of the `change_ts` attribute, received with the most recent `change_interest_rate` signal. It is used to decide whether to change the interest rate when a (potentially old) `change_interest_rate` signal is received.'),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest` gets zeroed and added to the principal once in a while (like once per week).'),
-    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
+    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.sender_locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every meaningful change on the account. Every change in `principal`, `interest_rate`, `interest`, or `status` is considered meaningful. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last meaningful change on the account happened. Must never decrease. Every change in `principal`, `interest_rate`, `interest`, or `status` is considered meaningful.'),
@@ -80,17 +80,17 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('change_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='The other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, this is irrelevant.'),
-    sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=True, comment='Notes from the sender. Can be any object that the sender wants the recipient to see. Can be NULL only if `principal_delta` is zero.'),
     sa.Column('principal_delta', sa.BigInteger(), nullable=False, comment='The change in `account.principal`.'),
     sa.Column('interest_delta', sa.BigInteger(), nullable=False, comment='The change in `account.interest`.'),
     sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.locked_amount`, and `account.pending_transfers_count` must be decremented.'),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
+    sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=True, comment='Notes from the sender. Can be any JSON object that the sender wants the recipient to see. If the account change represents a committed transfer, the notes will be included in the generated `on_committed_transfer_signal` event. Can be NULL only if `principal_delta` is zero.'),
+    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='If the account change represents a committed transfer, this is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, the value is irrelevant.'),
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('principal_delta = 0 OR transfer_info IS NOT NULL'),
     sa.CheckConstraint('unlocked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
-    comment='Changes to account record amounts are queued to this table. This allows multiple updates to one account to coalesce, thus reducing the lock contention.'
+    comment='Represents a pending change to a given account. Pending updates to `account.principal`, `account.interest`, and `account.locked_amount` are queued to this table, before being processed, because this allows multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'
     )
     op.create_table('prepared_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -117,25 +117,25 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_request_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
-    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False, comment='Along with `coordinator_type` and `coordinator_id` uniquely identifies the initiator of the transfer.'),
-    sa.Column('min_amount', sa.BigInteger(), nullable=False, comment='`prepared_transfer.sender_locked_amount` must be no smaller than this value.'),
-    sa.Column('max_amount', sa.BigInteger(), nullable=False, comment='`prepared_transfer.sender_locked_amount` must be no bigger than this value.'),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it (coordinates the transfer). The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, interest, circular.'),
+    sa.Column('coordinator_id', sa.BigInteger(), nullable=False, comment='Along with `coordinator_type`, uniquely identifies who initiated the transfer.'),
+    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False, comment="Along with `coordinator_type` and `coordinator_id` uniquely identifies the transfer request from the coordinator's point of view. When the transfer is prepared, those three values will be included in the generated `on_prepared_{coordinator_type}_transfer_signal` event, so that the coordinator can match the event with the originating transfer request."),
+    sa.Column('min_amount', sa.BigInteger(), nullable=False, comment='The minimum amount that should be secured for the transfer. (`prepared_transfer.sender_locked_amount` will be no smaller than this value.)'),
+    sa.Column('max_amount', sa.BigInteger(), nullable=False, comment='The maximum amount that should be secured for the transfer, if possible. (`prepared_transfer.sender_locked_amount` will be no bigger than this value.)'),
+    sa.Column('minimum_account_balance', sa.BigInteger(), nullable=False, comment="Determines the amount that must remain available on sender's account after the requested amount has been secured. This is useful when the coordinator does not want to expend everything available on the account."),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('minimum_account_balance', sa.BigInteger(), nullable=False, comment="Determines the amount that must remain available on sender's account after the requested amount has been secured."),
     sa.CheckConstraint('min_amount <= max_amount'),
     sa.CheckConstraint('min_amount > 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_request_id'),
-    comment='Requests to create new `prepared_transfer` records are queued to this table. This allows multiple requests from one sender to be processed at once, reducing the lock contention on `account` records.'
+    comment='Represents a request to secure (prepare) some amount for transfer, if it is available on a given account. If the request is fulfilled, a new row will be inserted in the `prepared_transfer` table. Requests are queued to this table, before being processed, because this allows many requests from one sender to be processed at once, reducing the lock contention on `account` table rows.'
     )
     op.create_table('prepared_transfer',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False, comment='The payer.'),
-    sa.Column('transfer_id', sa.BigInteger(), nullable=False, comment='Along with `debtor_id` and `sender_creditor_id` uniquely identifies a transfer'),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it. The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, interest, circular.'),
-    sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False, comment='The payee.'),
-    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment="This amount has been added to sender's `account.locked_amount`. The actual transferred (committed) amount may not exceed this number."),
+    sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
+    sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('sender_locked_amount > 0'),
     sa.ForeignKeyConstraint(['debtor_id', 'sender_creditor_id'], ['account.debtor_id', 'account.creditor_id'], ondelete='CASCADE'),

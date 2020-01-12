@@ -9,7 +9,6 @@ from .models import Account
 class AccountSchema(ModelSchema):
     class Meta:
         model = Account
-        exclude = ['prepared_transfers']
 
 
 account_schema = AccountSchema()

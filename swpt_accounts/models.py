@@ -112,8 +112,9 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='The total sum of all pending transfer locks for this account. This value '
-                'has been reserved and must be subtracted from the available amount, to '
+        comment='The total sum of all pending transfer locks (the total sum of the values of '
+                'the `pending_transfer.sender_locked_amount` column) for this account. This '
+                'value has been reserved and must be subtracted from the available amount, to '
                 'avoid double-spending.',
     )
     pending_transfers_count = db.Column(
@@ -183,78 +184,75 @@ class TransferRequest(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_request_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    coordinator_type = db.Column(db.String(30), nullable=False)
-    coordinator_id = db.Column(db.BigInteger, nullable=False)
+    coordinator_type = db.Column(
+        db.String(30),
+        nullable=False,
+        comment='Indicates which subsystem has initiated the transfer and is responsible for '
+                'finalizing it (coordinates the transfer). The value must be a valid python '
+                'identifier, all lowercase, no double underscores. Example: direct, interest, '
+                'circular.',
+    )
+    coordinator_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='Along with `coordinator_type`, uniquely identifies who initiated the transfer.',
+    )
     coordinator_request_id = db.Column(
         db.BigInteger,
         nullable=False,
-        comment='Along with `coordinator_type` and `coordinator_id` uniquely identifies the '
-                'initiator of the transfer.',
+        comment="Along with `coordinator_type` and `coordinator_id` uniquely identifies the "
+                "transfer request from the coordinator's point of view. When the transfer is "
+                "prepared, those three values will be included in the generated "
+                "`on_prepared_{coordinator_type}_transfer_signal` event, so that the "
+                "coordinator can match the event with the originating transfer request.",
     )
     min_amount = db.Column(
         db.BigInteger,
         nullable=False,
-        comment='`prepared_transfer.sender_locked_amount` must be no smaller than this value.',
+        comment='The minimum amount that should be secured for the transfer. '
+                '(`prepared_transfer.sender_locked_amount` will be no smaller than this value.)',
     )
     max_amount = db.Column(
         db.BigInteger,
         nullable=False,
-        comment='`prepared_transfer.sender_locked_amount` must be no bigger than this value.',
+        comment='The maximum amount that should be secured for the transfer, if possible. '
+                '(`prepared_transfer.sender_locked_amount` will be no bigger than this value.)',
     )
-    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     minimum_account_balance = db.Column(
         db.BigInteger,
         nullable=False,
         comment="Determines the amount that must remain available on sender's account after "
-                "the requested amount has been secured.",
+                "the requested amount has been secured. This is useful when the coordinator "
+                "does not want to expend everything available on the account.",
     )
+    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
 
     __table_args__ = (
         db.CheckConstraint(min_amount > 0),
         db.CheckConstraint(min_amount <= max_amount),
         {
-            'comment': 'Requests to create new `prepared_transfer` records are queued to this '
-                       'table. This allows multiple requests from one sender to be processed at '
-                       'once, reducing the lock contention on `account` records.',
+            'comment': 'Represents a request to secure (prepare) some amount for transfer, if '
+                       'it is available on a given account. If the request is fulfilled, a new '
+                       'row will be inserted in the `prepared_transfer` table. Requests are '
+                       'queued to this table, before being processed, because this allows many '
+                       'requests from one sender to be processed at once, reducing the lock '
+                       'contention on `account` table rows.',
         }
     )
 
 
 class PreparedTransfer(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    sender_creditor_id = db.Column(
-        db.BigInteger,
-        primary_key=True,
-        comment='The payer.',
-    )
-    transfer_id = db.Column(
-        db.BigInteger,
-        primary_key=True,
-        comment='Along with `debtor_id` and `sender_creditor_id` uniquely identifies a transfer',
-    )
-    coordinator_type = db.Column(
-        db.String(30),
-        nullable=False,
-        comment='Indicates which subsystem has initiated the transfer and is responsible for '
-                'finalizing it. The value must be a valid python identifier, all lowercase, '
-                'no double underscores. Example: direct, interest, circular.',
-    )
-    recipient_creditor_id = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The payee.',
-    )
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     sender_locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
-        comment="This amount has been added to sender's `account.locked_amount`. "
-                "The actual transferred (committed) amount may not exceed this number.",
+        comment="The actual transferred (committed) amount may not exceed this number.",
     )
-    prepared_at_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=get_now_utc,
-    )
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['debtor_id', 'sender_creditor_id'],
@@ -269,29 +267,11 @@ class PreparedTransfer(db.Model):
         }
     )
 
-    sender_account = db.relationship(
-        'Account',
-        backref=db.backref('prepared_transfers'),
-    )
-
 
 class PendingAccountChange(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     change_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    coordinator_type = db.Column(db.String(30), nullable=False)
-    other_creditor_id = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The other party in the transfer. When `principal_delta` is positive, '
-                'this is the sender. When `principal_delta` is negative, this is the '
-                'recipient. When `principal_delta` is zero, this is irrelevant.',
-    )
-    transfer_info = db.Column(
-        pg.JSON,
-        comment='Notes from the sender. Can be any object that the sender wants the recipient '
-                'to see. Can be NULL only if `principal_delta` is zero.',
-    )
     principal_delta = db.Column(
         db.BigInteger,
         nullable=False,
@@ -307,15 +287,33 @@ class PendingAccountChange(db.Model):
         comment='If not NULL, the value must be subtracted from `account.locked_amount`, and '
                 '`account.pending_transfers_count` must be decremented.',
     )
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    transfer_info = db.Column(
+        pg.JSON,
+        comment='Notes from the sender. Can be any JSON object that the sender wants the '
+                'recipient to see. If the account change represents a committed transfer, '
+                'the notes will be included in the generated `on_committed_transfer_signal` '
+                'event. Can be NULL only if `principal_delta` is zero.',
+    )
+    other_creditor_id = db.Column(
+        db.BigInteger,
+        nullable=False,
+        comment='If the account change represents a committed transfer, this is the other '
+                'party in the transfer. When `principal_delta` is positive, this is the '
+                'sender. When `principal_delta` is negative, this is the recipient. When '
+                '`principal_delta` is zero, the value is irrelevant.',
+    )
     inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     __table_args__ = (
         db.CheckConstraint(or_(principal_delta == 0, transfer_info != null())),
         db.CheckConstraint(unlocked_amount >= 0),
         {
-            'comment': 'Changes to account record amounts are queued to this table. This '
-                       'allows multiple updates to one account to coalesce, thus reducing the '
-                       'lock contention.',
+            'comment': 'Represents a pending change to a given account. Pending updates to '
+                       '`account.principal`, `account.interest`, and `account.locked_amount` are '
+                       'queued to this table, before being processed, because this allows '
+                       'multiple updates to one account to coalesce, reducing the lock '
+                       'contention on `account` table rows.',
         }
     )
 
