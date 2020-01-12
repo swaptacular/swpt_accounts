@@ -58,15 +58,17 @@ def get_available_balance(debtor_id: int, creditor_id: int, minimum_account_bala
 
 
 @atomic
-def prepare_transfer(coordinator_type: str,
-                     coordinator_id: int,
-                     coordinator_request_id: int,
-                     min_amount: int,
-                     max_amount: int,
-                     debtor_id: int,
-                     sender_creditor_id: int,
-                     recipient_creditor_id: int,
-                     minimum_account_balance: int = 0) -> None:
+def prepare_transfer(
+        coordinator_type: str,
+        coordinator_id: int,
+        coordinator_request_id: int,
+        min_amount: int,
+        max_amount: int,
+        debtor_id: int,
+        sender_creditor_id: int,
+        recipient_creditor_id: int,
+        minimum_account_balance: int = 0) -> None:
+
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 < min_amount <= max_amount <= MAX_INT64
@@ -90,11 +92,13 @@ def prepare_transfer(coordinator_type: str,
 
 
 @atomic
-def finalize_prepared_transfer(debtor_id: int,
-                               sender_creditor_id: int,
-                               transfer_id: int,
-                               committed_amount: int,
-                               transfer_info: dict = {}) -> None:
+def finalize_prepared_transfer(
+        debtor_id: int,
+        sender_creditor_id: int,
+        transfer_id: int,
+        committed_amount: int,
+        transfer_info: dict = {}) -> None:
+
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
         if committed_amount == 0:
@@ -122,11 +126,13 @@ def finalize_prepared_transfer(debtor_id: int,
 
 
 @atomic
-def change_interest_rate(debtor_id: int,
-                         creditor_id: int,
-                         change_seqnum: int,
-                         change_ts: datetime,
-                         interest_rate: float) -> None:
+def change_interest_rate(
+        debtor_id: int,
+        creditor_id: int,
+        change_seqnum: int,
+        change_ts: datetime,
+        interest_rate: float) -> None:
+
     # Too big positive interest rates can cause account balance
     # overflows. To prevent this, the interest rates should be kept
     # within reasonable limits, and the accumulated interest should be
@@ -149,10 +155,12 @@ def change_interest_rate(debtor_id: int,
 
 
 @atomic
-def capitalize_interest(debtor_id: int,
-                        creditor_id: int,
-                        accumulated_interest_threshold: int = 0,
-                        current_ts: datetime = None) -> None:
+def capitalize_interest(
+        debtor_id: int,
+        creditor_id: int,
+        accumulated_interest_threshold: int = 0,
+        current_ts: datetime = None) -> None:
+
     account = _get_account((debtor_id, creditor_id), lock=True)
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))
@@ -172,6 +180,7 @@ def make_debtor_payment(
         amount: int,
         transfer_info: dict = {},
         current_ts: datetime = None) -> None:
+
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert -MAX_INT64 <= amount <= MAX_INT64
@@ -286,10 +295,12 @@ def mark_account_for_deletion(
 
 
 @atomic
-def purge_deleted_account(debtor_id: int,
-                          creditor_id: int,
-                          if_deleted_before: datetime,
-                          allow_hasty_purges: bool = False) -> None:
+def purge_deleted_account(
+        debtor_id: int,
+        creditor_id: int,
+        if_deleted_before: datetime,
+        allow_hasty_purges: bool = False) -> None:
+
     query = Account.query.\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
@@ -452,10 +463,12 @@ def _get_account(account_or_pk: AccountId, lock: bool = False) -> Optional[Accou
     return None
 
 
-def _get_or_create_account(debtor_id: int,
-                           creditor_id: int,
-                           lock: bool = False,
-                           create_account_request: bool = False) -> Account:
+def _get_or_create_account(
+        debtor_id: int,
+        creditor_id: int,
+        lock: bool = False,
+        create_account_request: bool = False) -> Account:
+
     if lock:
         account = Account.lock_instance((debtor_id, creditor_id))
     else:
@@ -536,6 +549,7 @@ def _change_interest_rate(
         change_seqnum: int,
         change_ts: datetime,
         interest_rate: float) -> None:
+
     current_ts = datetime.now(tz=timezone.utc)
     account.interest = float(_calc_account_accumulated_interest(account, current_ts))
     account.interest_rate = interest_rate
@@ -545,18 +559,20 @@ def _change_interest_rate(
     _insert_account_change_signal(account, current_ts)
 
 
-def _execute_transfer(coordinator_type: str,
-                      debtor_id: int,
-                      sender_creditor_id: int,
-                      recipient_creditor_id,
-                      committed_at_ts: datetime,
-                      committed_amount: int,
-                      transfer_info: dict = {},
-                      sender_unlocked_amount: int = None,
-                      sender_interest_delta: int = 0,
-                      recipient_interest_delta: int = 0,
-                      omit_sender_account_change: bool = False,
-                      omit_recipient_account_change: bool = False) -> None:
+def _execute_transfer(
+        coordinator_type: str,
+        debtor_id: int,
+        sender_creditor_id: int,
+        recipient_creditor_id,
+        committed_at_ts: datetime,
+        committed_amount: int,
+        transfer_info: dict = {},
+        sender_unlocked_amount: int = None,
+        sender_interest_delta: int = 0,
+        recipient_interest_delta: int = 0,
+        omit_sender_account_change: bool = False,
+        omit_recipient_account_change: bool = False) -> None:
+
     assert committed_amount > 0
     if not omit_sender_account_change:
         _insert_pending_account_change(
@@ -583,15 +599,17 @@ def _execute_transfer(coordinator_type: str,
         )
 
 
-def _insert_pending_account_change(debtor_id: int,
-                                   creditor_id: int,
-                                   coordinator_type: str,
-                                   other_creditor_id: int,
-                                   inserted_at_ts: datetime = None,
-                                   transfer_info: dict = None,
-                                   principal_delta: int = 0,
-                                   interest_delta: int = 0,
-                                   unlocked_amount: int = None) -> None:
+def _insert_pending_account_change(
+        debtor_id: int,
+        creditor_id: int,
+        coordinator_type: str,
+        other_creditor_id: int,
+        inserted_at_ts: datetime = None,
+        transfer_info: dict = None,
+        principal_delta: int = 0,
+        interest_delta: int = 0,
+        unlocked_amount: int = None) -> None:
+
     if principal_delta != 0 or interest_delta != 0 or unlocked_amount is not None:
         db.session.add(PendingAccountChange(
             debtor_id=debtor_id,
@@ -606,16 +624,18 @@ def _insert_pending_account_change(debtor_id: int,
         ))
 
 
-def _insert_committed_transfer_signal(debtor_id: int,
-                                      creditor_id: int,
-                                      transfer_epoch: date,
-                                      transfer_seqnum: int,
-                                      coordinator_type: str,
-                                      other_creditor_id: int,
-                                      committed_at_ts: datetime,
-                                      committed_amount: int,
-                                      transfer_info: dict,
-                                      new_account_principal: int) -> None:
+def _insert_committed_transfer_signal(
+        debtor_id: int,
+        creditor_id: int,
+        transfer_epoch: date,
+        transfer_seqnum: int,
+        coordinator_type: str,
+        other_creditor_id: int,
+        committed_at_ts: datetime,
+        committed_amount: int,
+        transfer_info: dict,
+        new_account_principal: int) -> None:
+
     if creditor_id == ROOT_CREDITOR_ID:
         # Because the debtor's account does not have a real owning
         # creditor, we do not need to send a notification for the
