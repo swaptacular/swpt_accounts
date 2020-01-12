@@ -240,10 +240,9 @@ def mark_account_for_deletion(
     Note that even if the account has been successfully marked as
     deleted, it could be "resurrected" (with "scheduled for deletion"
     status) by a delayed incoming transfer. Therefore, this function
-    does not guarantee neither that the account will be marked as
-    deleted successfully, nor that it will "stay" deleted for long. To
-    achieve a reliable deletion, the following procedure SHOULD be
-    followed:
+    does not guarantee that the account will be marked as deleted
+    successfully, or that it will "stay" deleted for long. To achieve
+    a reliable deletion, the following procedure SHOULD be followed:
 
     1. Call `mark_account_for_deletion` with appropriate values for
        `ignore_after_ts` and `negligible_amount`.
