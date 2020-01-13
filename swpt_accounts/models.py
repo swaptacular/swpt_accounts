@@ -153,22 +153,30 @@ class Account(db.Model):
         default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
         comment='Incremented when a new `prepared_transfer` record is inserted. It is used '
                 'to generate sequential numbers for the `prepared_transfer.transfer_id` '
-                'column.',
+                'column. '
+                'When the account is created, `last_transfer_id` has its lower 40 bits set '
+                'to zero, and its higher 24 bits calculated from the value of `creation_date` '
+                '(the number of days since Jan 1st, 2020).',
     )
     last_transfer_seqnum = db.Column(
         db.BigInteger,
         nullable=False,
         default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
         comment='Incremented when a new `committed_transfer_signal` record is inserted. It is used '
-                'to generate sequential numbers for the `committed_transfer_signal.transfer_seqnum`. '
-                'column. Must never decrease. When the account is created, `last_transfer_seqnum` '
-                'has its lowest 40 bits set to zero, and its highest 24 bits calculated from the '
-                'value of `creation_date`.',
+                'to generate sequential numbers for the `committed_transfer_signal.transfer_seqnum` '
+                'column. Must never decrease. '
+                'When the account is created, `last_transfer_seqnum` has its lower 40 bits set '
+                'to zero, and its higher 24 bits calculated from the value of `creation_date` '
+                '(the number of days since Jan 1st, 2020).',
     )
     status = db.Column(
         db.SmallInteger,
         nullable=False,
-        comment='Additional account status flags.',
+        comment="Additional account status bits: "
+                f"{STATUS_DELETED_FLAG} - deleted, "
+                f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "
+                f"{STATUS_OVERFLOWN_FLAG} - overflown, "
+                f"{STATUS_SCHEDULED_FOR_DELETION_FLAG} - scheduled for deletion.",
     )
     __table_args__ = (
         db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
