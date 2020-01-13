@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 402019f10bde
+Revision ID: 4ad137cddf8d
 Revises: 
-Create Date: 2020-01-13 02:10:22.905612
+Create Date: 2020-01-13 02:23:03.551528
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '402019f10bde'
+revision = '4ad137cddf8d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade():
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creation_date', sa.DATE(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=False, comment='The date at which the account was created. This also becomes the value of the `committed_transfer_signal.transfer_epoch` column for each committed transfer for the account.'),
     sa.Column('principal', sa.BigInteger(), nullable=False, comment='The total owed amount. Can be negative.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account. Can be negative.'),
     sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True, comment='The value of the `change_seqnum` attribute, received with the most recent `change_interest_rate` signal. It is used to decide whether to change the interest rate when a (potentially old) `change_interest_rate` signal is received.'),

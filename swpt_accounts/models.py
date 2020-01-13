@@ -66,7 +66,13 @@ class Account(db.Model):
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(db.DATE, nullable=False)
+    creation_date = db.Column(
+        db.DATE,
+        nullable=False,
+        comment='The date at which the account was created. This also becomes the value of '
+                'the `committed_transfer_signal.transfer_epoch` column for each committed '
+                'transfer for the account.',
+    )
     principal = db.Column(
         db.BigInteger,
         nullable=False,
