@@ -6,7 +6,7 @@ authors = ["Evgeni Pandurski <epandurski@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.5"
+python = "^3.7"
 pudb = "*"
 web-pdb = "*"
 gunicorn = "*"
@@ -21,6 +21,7 @@ pytest = "^4.0"
 pytest-mock = "^1.10"
 iso8601 = "^0.1.12"
 marshmallow = "^3.0.1"
+swpt_lib = {git = "https://github.com/epandurski/swpt_lib.git"}
 
 [tool.poetry.dev-dependencies]
 python-dotenv = ">=0.10.1"

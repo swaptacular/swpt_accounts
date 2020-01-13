@@ -15,7 +15,6 @@ python-editor = ">=0.3"
 [[package]]
 category = "main"
 description = "An unobtrusive argparse wrapper with natural syntax"
-marker = "extra == \"watch\""
 name = "argh"
 optional = false
 python-versions = "*"
@@ -56,7 +55,7 @@ version = "0.12.17"
 [[package]]
 category = "main"
 description = "Foreign Function Interface for Python calling C code."
-marker = "sys_platform == \"win32\" and platform_python_implementation == \"CPython\" and extra == \"watch\""
+marker = "sys_platform == \"win32\" and platform_python_implementation == \"CPython\""
 name = "cffi"
 optional = false
 python-versions = "*"
@@ -108,6 +107,7 @@ watchdog_gevent = "0.1"
 reference = "d45e9f7daee5d95c5789ae4ce95c4a486f040bb9"
 type = "git"
 url = "https://github.com/epandurski/dramatiq.git"
+
 [[package]]
 category = "dev"
 description = "Discover and load entry points from installed packages."
@@ -204,7 +204,6 @@ SQLAlchemy = ">=0.8.0"
 [[package]]
 category = "main"
 description = "Coroutine-based network library"
-marker = "extra == \"watch\""
 name = "gevent"
 optional = false
 python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
@@ -217,7 +216,7 @@ greenlet = ">=0.4.14"
 [[package]]
 category = "main"
 description = "Lightweight in-process concurrent programming"
-marker = "extra == \"watch\" and platform_python_implementation == \"CPython\""
+marker = "platform_python_implementation == \"CPython\""
 name = "greenlet"
 optional = false
 python-versions = "*"
@@ -359,20 +358,7 @@ six = "*"
 
 [[package]]
 category = "main"
-description = "Object-oriented filesystem paths"
-marker = "python_version < \"3.6\""
-name = "pathlib2"
-optional = false
-python-versions = "*"
-version = "2.3.4"
-
-[package.dependencies]
-six = "*"
-
-[[package]]
-category = "main"
 description = "File system general utilities"
-marker = "extra == \"watch\""
 name = "pathtools"
 optional = false
 python-versions = "*"
@@ -381,7 +367,6 @@ version = "0.1.2"
 [[package]]
 category = "main"
 description = "Pika Python AMQP Client Library"
-marker = "extra == \"rabbitmq\""
 name = "pika"
 optional = false
 python-versions = "*"
@@ -445,10 +430,10 @@ version = "2.5.0"
 [[package]]
 category = "main"
 description = "C parser in Python"
-marker = "sys_platform == \"win32\" and platform_python_implementation == \"CPython\" and extra == \"watch\""
+marker = "sys_platform == \"win32\" and platform_python_implementation == \"CPython\""
 name = "pycparser"
 optional = false
-python-versions = "*"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "2.19"
 
 [[package]]
@@ -497,10 +482,6 @@ wcwidth = "*"
 [package.dependencies.more-itertools]
 python = ">=2.8"
 version = ">=4.0.0"
-
-[package.dependencies.pathlib2]
-python = "<3.6"
-version = ">=2.2.0"
 
 [[package]]
 category = "dev"
@@ -587,7 +568,6 @@ version = "0.1.11"
 [[package]]
 category = "main"
 description = "YAML parser and emitter for Python"
-marker = "extra == \"watch\""
 name = "pyyaml"
 optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
@@ -610,6 +590,22 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "1.3.8"
 
 [[package]]
+category = "main"
+description = ""
+name = "swpt-lib"
+optional = false
+python-versions = "^3.7"
+version = "0.1.0"
+
+[package.dependencies]
+flask = "^1.1"
+sqlalchemy = "^1.3"
+
+[package.source]
+reference = "b413832e262fbc230710870a054da2fe97008b8c"
+type = "git"
+url = "https://github.com/epandurski/swpt_lib.git"
+[[package]]
 category = "dev"
 description = "a fork of Python 2 and 3 ast modules with type comment support"
 name = "typed-ast"
@@ -628,7 +624,6 @@ version = "2.0.1"
 [[package]]
 category = "main"
 description = "Filesystem events monitoring"
-marker = "extra == \"watch\""
 name = "watchdog"
 optional = false
 python-versions = "*"
@@ -642,7 +637,6 @@ pathtools = ">=0.1.1"
 [[package]]
 category = "main"
 description = "A gevent-based observer for watchdog."
-marker = "extra == \"watch\""
 name = "watchdog-gevent"
 optional = false
 python-versions = "*"
@@ -692,8 +686,8 @@ version = "0.6.0"
 more-itertools = "*"
 
 [metadata]
-content-hash = "bc2f1cb457a03f439d79c45d4d46950cb39f916c3016e3af51360b5fc46c38d7"
-python-versions = "^3.5"
+content-hash = "e7cf7ca8eaaa0af92289ebedc9ee7bebef7a4227c9d1fc601895f58e1242a5f5"
+python-versions = "^3.7"
 
 [metadata.hashes]
 alembic = ["4a4811119efbdc5259d1f4c8f6de977b36ad3bcc919f59a29c2960c5ef9149e4"]
@@ -731,7 +725,6 @@ more-itertools = ["409cd48d4db7052af495b09dec721011634af3753ae1ef92d2b32f73a745f
 mypy = ["2afe51527b1f6cdc4a5f34fc90473109b22bf7f21086ba3e9451857cf11489e6", "56a16df3e0abb145d8accd5dbb70eba6c4bd26e2f89042b491faa78c9635d1e2", "5764f10d27b2e93c84f70af5778941b8f4aa1379b2430f85c827e0f5464e8714", "5bbc86374f04a3aa817622f98e40375ccb28c4836f36b66706cf3c6ccce86eda", "6a9343089f6377e71e20ca734cd8e7ac25d36478a9df580efabfe9059819bf82", "6c9851bc4a23dc1d854d3f5dfd5f20a016f8da86bcdbb42687879bb5f86434b0", "b8e85956af3fcf043d6f87c91cbe8705073fc67029ba6e22d3468bfee42c4823", "b9a0af8fae490306bc112229000aa0c2ccc837b49d29a5c42e088c132a2334dd", "bbf643528e2a55df2c1587008d6e3bda5c0445f1240dfa85129af22ae16d7a9a", "c46ab3438bd21511db0f2c612d89d8344154c0c9494afc7fbc932de514cf8d15", "f7a83d6bd805855ef83ec605eb01ab4fa42bcef254b13631e451cbb44914a9b0"]
 mypy-extensions = ["37e0e956f41369209a3d5f34580150bcacfabaa57b33a15c0b25f4b5725e0812", "b16cabe759f55e3409a7d231ebd2841378fb0c27a5d1994719e340e4f429ac3e"]
 packaging = ["a7ac867b97fdc07ee80a8058fe4435ccd274ecc3b0ed61d852d7d53055528cf9", "c491ca87294da7cc01902edbe30a5bc6c4c28172b5138ab4e4aa1b9d7bfaeafe"]
-pathlib2 = ["2156525d6576d21c4dcaddfa427fae887ef89a7a9de5cbfe0728b3aafa78427e", "446014523bb9be5c28128c4d2a10ad6bb60769e78bd85658fe44a450674e0ef8"]
 pathtools = ["7c35c5421a39bb82e58018febd90e3b6e5db34c5443aaaf742b3f33d4655f1c0"]
 pika = ["4e1a1a6585a41b2341992ec32aadb7a919d649eb82904fd8e4a4e0871c8cf3af", "9fa76ba4b65034b878b2b8de90ff8660a59d925b087c5bb88f8fdbb4b64a1dbf"]
 pluggy = ["0825a152ac059776623854c1543d65a4ad408eb3d33ee114dff91e57ec6ae6fc", "b9817417e95936bf75d85d3f8767f7df6cdde751fc40aed3bb3074cbcb77757c"]
@@ -756,6 +749,7 @@ python-json-logger = ["b7a31162f2a01965a5efb94453ce69230ed208468b0bbc7fdfc56e6d8
 pyyaml = ["0113bc0ec2ad727182326b61326afa3d1d8280ae1122493553fd6f4397f33df9", "01adf0b6c6f61bd11af6e10ca52b7d4057dd0be0343eb9283c878cf3af56aee4", "5124373960b0b3f4aa7df1707e63e9f109b5263eca5976c66e08b1c552d4eaf8", "5ca4f10adbddae56d824b2c09668e91219bb178a1eee1faa56af6f99f11bf696", "7907be34ffa3c5a32b60b95f4d95ea25361c951383a894fec31be7252b2b6f34", "7ec9b2a4ed5cad025c2278a1e6a19c011c80a3caaac804fd2d329e9cc2c287c9", "87ae4c829bb25b9fe99cf71fbb2140c448f534e24c998cc60f39ae4f94396a73", "9de9919becc9cc2ff03637872a440195ac4241c80536632fffeb6a1e25a74299", "a5a85b10e450c66b49f98846937e8cfca1db3127a9d5d1e31ca45c3d0bef4c5b", "b0997827b4f6a7c286c01c5f60384d218dca4ed7d9efa945c3e1aa623d5709ae", "b631ef96d3222e62861443cc89d6563ba3eeb816eeb96b2629345ab795e53681", "bf47c0607522fdbca6c9e817a6e81b08491de50f3766a7a0e6a5be7905961b41", "f81025eddd0327c7d4cfe9b62cf33190e1e736cc6e97502b3ec425f574b3e7a8"]
 six = ["3350809f0555b11f552448330d0b52d5f24c91a322ea4a15ef22629740f3761c", "d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73"]
 sqlalchemy = ["2f8ff566a4d3a92246d367f2e9cd6ed3edeef670dcd6dda6dfdc9efed88bcd80"]
+swpt-lib = []
 typed-ast = ["132eae51d6ef3ff4a8c47c393a4ef5ebf0d1aecc96880eb5d6c8ceab7017cc9b", "18141c1484ab8784006c839be8b985cfc82a2e9725837b0ecfa0203f71c4e39d", "2baf617f5bbbfe73fd8846463f5aeafc912b5ee247f410700245d68525ec584a", "3d90063f2cbbe39177e9b4d888e45777012652d6110156845b828908c51ae462", "4304b2218b842d610aa1a1d87e1dc9559597969acc62ce717ee4dfeaa44d7eee", "4983ede548ffc3541bae49a82675996497348e55bafd1554dc4e4a5d6eda541a", "5315f4509c1476718a4825f45a203b82d7fdf2a6f5f0c8f166435975b1c9f7d4", "6cdfb1b49d5345f7c2b90d638822d16ba62dc82f7616e9b4caa10b72f3f16649", "7b325f12635598c604690efd7a0197d0b94b7d7778498e76e0710cd582fd1c7a", "8d3b0e3b8626615826f9a626548057c5275a9733512b137984a68ba1598d3d2f", "8f8631160c79f53081bd23446525db0bc4c5616f78d04021e6e434b286493fd7", "912de10965f3dc89da23936f1cc4ed60764f712e5fa603a09dd904f88c996760", "b010c07b975fe853c65d7bbe9d4ac62f1c69086750a574f6292597763781ba18", "c908c10505904c48081a5415a1e295d8403e353e0c14c42b6d67f8f97fae6616", "c94dd3807c0c0610f7c76f078119f4ea48235a953512752b9175f9f98f5ae2bd", "ce65dee7594a84c466e79d7fb7d3303e7295d16a83c22c7c4037071b059e2c21", "eaa9cfcb221a8a4c2889be6f93da141ac777eb8819f077e1d09fb12d00a09a93", "f3376bc31bad66d46d44b4e6522c5c21976bf9bca4ef5987bb2bf727f4506cbb", "f9202fa138544e13a4ec1a6792c35834250a85958fde1251b6a22e07d1260ae7"]
 urwid = ["644d3e3900867161a2fc9287a9762753d66bd194754679adb26aede559bcccbc"]
 watchdog = ["7e65882adb7746039b6f3876ee174952f8eaaa34491ba34333ddf1fe35de4162"]

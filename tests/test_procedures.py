@@ -1,10 +1,11 @@
 import pytest
-from datetime import date, datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta
+from swpt_lib.utils import date_to_int24
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
-    AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, date_to_int24
+    AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal
 
 
 def test_version(db_session):
@@ -18,12 +19,6 @@ def current_ts():
 
 D_ID = -1
 C_ID = 1
-
-
-def test_date_to_int24():
-    assert date_to_int24(date(2020, 1, 1)) == 0
-    assert date_to_int24(date(2020, 1, 2)) == 1
-    assert 365 * 7000 < date_to_int24(date(9020, 12, 31)) < 366 * 7000
 
 
 def test_get_or_create_account(db_session):

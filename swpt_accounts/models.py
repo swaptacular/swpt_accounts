@@ -3,6 +3,7 @@ import dramatiq
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, or_
+from swpt_lib.utils import date_to_int24
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
 MIN_INT32 = -1 << 31
@@ -20,13 +21,6 @@ def get_now_utc() -> datetime.datetime:
 
 def increment_seqnum(n: int) -> int:
     return MIN_INT32 if n == MAX_INT32 else n + 1
-
-
-def date_to_int24(date: datetime.date) -> int:
-    days = (date - DATE_2020_01_01).days
-    assert days >= 0
-    assert days >> 24 == 0
-    return days
 
 
 class Signal(db.Model):
@@ -161,7 +155,9 @@ class Account(db.Model):
         default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
         comment='Incremented when a new `committed_transfer_signal` record is inserted. It is used '
                 'to generate sequential numbers for the `committed_transfer_signal.transfer_seqnum`. '
-                'column. Must never decrease.',
+                'column. Must never decrease. When the account is created, `last_transfer_seqnum` '
+                'has its lowest 40 bits set to zero, and its highest 24 bits calculated from the '
+                'value of `creation_date`.',
     )
     status = db.Column(
         db.SmallInteger,
