@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 2b401690cc33
+Revision ID: 28cc8320ad2f
 Revises: 
-Create Date: 2020-01-13 15:07:32.712839
+Create Date: 2020-01-13 15:18:47.909076
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '2b401690cc33'
+revision = '28cc8320ad2f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,7 +22,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False, comment='The date at which the account was created. This also becomes the value of the `committed_transfer_signal.transfer_epoch` column for each committed transfer for the account.'),
-    sa.Column('principal', sa.BigInteger(), nullable=False, comment='The total owed amount. Can be negative.'),
+    sa.Column('principal', sa.BigInteger(), nullable=False, comment='The owed amount, without the interest. Can be negative.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account. Can be negative.'),
     sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True, comment='The value of the `change_seqnum` attribute, received with the most recent `change_interest_rate` signal. It is used to decide whether to change the interest rate when a (potentially old) `change_interest_rate` signal is received.'),
     sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The value of the `change_ts` attribute, received with the most recent `change_interest_rate` signal. It is used to decide whether to change the interest rate when a (potentially old) `change_interest_rate` signal is received.'),
@@ -117,17 +117,17 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_request_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it (coordinates the transfer). The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, interest, circular.'),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it (coordinating the transfer). The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, interest, circular.'),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False, comment='Along with `coordinator_type`, uniquely identifies who initiated the transfer.'),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False, comment="Along with `coordinator_type` and `coordinator_id` uniquely identifies the transfer request from the coordinator's point of view. When the transfer is prepared, those three values will be included in the generated `on_prepared_{coordinator_type}_transfer_signal` event, so that the coordinator can match the event with the originating transfer request."),
     sa.Column('min_amount', sa.BigInteger(), nullable=False, comment='The minimum amount that should be secured for the transfer. (`prepared_transfer.sender_locked_amount` will be no smaller than this value.)'),
     sa.Column('max_amount', sa.BigInteger(), nullable=False, comment='The maximum amount that should be secured for the transfer, if possible. (`prepared_transfer.sender_locked_amount` will be no bigger than this value.)'),
-    sa.Column('minimum_account_balance', sa.BigInteger(), nullable=False, comment="Determines the amount that must remain available on sender's account after the requested amount has been secured. This is useful when the coordinator does not want to expend everything available on the account."),
+    sa.Column('minimum_account_balance', sa.BigInteger(), nullable=False, comment="Determines the amount that must remain available on the sender's account after the requested amount has been secured. This is useful when the coordinator does not want to expend everything available on the account."),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('min_amount <= max_amount'),
     sa.CheckConstraint('min_amount > 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_request_id'),
-    comment='Represents a request to secure (prepare) some amount for transfer, if it is available on a given account. If the request is fulfilled, a new row will be inserted in the `prepared_transfer` table. Requests are queued to this table, before being processed, because this allows many requests from one sender to be processed at once, reducing the lock contention on `account` table rows.'
+    comment='Represents a request to secure (prepare) some amount for transfer, if it is available on a given account. If the request is fulfilled, a new row will be inserted in the `prepared_transfer` table. Requests are queued to the `transfer_request` table, before being processed, because this allows many requests from one sender to be processed at once, reducing the lock contention on `account` table rows.'
     )
     op.create_table('prepared_transfer',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),

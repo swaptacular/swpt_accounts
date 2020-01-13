@@ -77,7 +77,7 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=0,
-        comment='The total owed amount. Can be negative.',
+        comment='The owed amount, without the interest. Can be negative.',
     )
     interest_rate = db.Column(
         db.REAL,
@@ -152,8 +152,7 @@ class Account(db.Model):
         nullable=False,
         default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
         comment='Incremented when a new `prepared_transfer` record is inserted. It is used '
-                'to generate sequential numbers for the `prepared_transfer.transfer_id` '
-                'column. '
+                'to generate sequential numbers for the `prepared_transfer.transfer_id` column. '
                 'When the account is created, `last_transfer_id` has its lower 40 bits set '
                 'to zero, and its higher 24 bits calculated from the value of `creation_date` '
                 '(the number of days since Jan 1st, 2020).',
@@ -198,7 +197,7 @@ class TransferRequest(db.Model):
         db.String(30),
         nullable=False,
         comment='Indicates which subsystem has initiated the transfer and is responsible for '
-                'finalizing it (coordinates the transfer). The value must be a valid python '
+                'finalizing it (coordinating the transfer). The value must be a valid python '
                 'identifier, all lowercase, no double underscores. Example: direct, interest, '
                 'circular.',
     )
@@ -231,7 +230,7 @@ class TransferRequest(db.Model):
     minimum_account_balance = db.Column(
         db.BigInteger,
         nullable=False,
-        comment="Determines the amount that must remain available on sender's account after "
+        comment="Determines the amount that must remain available on the sender's account after "
                 "the requested amount has been secured. This is useful when the coordinator "
                 "does not want to expend everything available on the account.",
     )
@@ -244,9 +243,9 @@ class TransferRequest(db.Model):
             'comment': 'Represents a request to secure (prepare) some amount for transfer, if '
                        'it is available on a given account. If the request is fulfilled, a new '
                        'row will be inserted in the `prepared_transfer` table. Requests are '
-                       'queued to this table, before being processed, because this allows many '
-                       'requests from one sender to be processed at once, reducing the lock '
-                       'contention on `account` table rows.',
+                       'queued to the `transfer_request` table, before being processed, because '
+                       'this allows many requests from one sender to be processed at once, '
+                       'reducing the lock contention on `account` table rows.',
         }
     )
 
