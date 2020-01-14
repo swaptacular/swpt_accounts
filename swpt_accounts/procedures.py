@@ -482,7 +482,6 @@ def _get_or_create_account(
         account = Account.lock_instance((debtor_id, creditor_id))
     else:
         account = Account.get_instance((debtor_id, creditor_id))
-
     if account is None:
         account = _create_account(debtor_id, creditor_id)
     elif account.status & Account.STATUS_DELETED_FLAG:
