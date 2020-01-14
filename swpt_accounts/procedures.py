@@ -313,8 +313,9 @@ def purge_deleted_account(
         # account will be the same as the `creation_date` of the
         # deleted account. This must be avoided, because we use the
         # creation date to differentiate `CommittedTransferSignal`s
-        # from different "epochs" (the `transfer_epoch` column).
-        if allow_hasty_purges or account.creation_date < yesterday:
+        # from different "epochs" (the `transfer_epoch` column). The
+        # `allow_hasty_purges` parameter exists used only for testing.
+        if account.creation_date < yesterday or allow_hasty_purges:
             db.session.delete(account)
             db.session.add(AccountPurgeSignal(
                 debtor_id=debtor_id,
