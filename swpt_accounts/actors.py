@@ -39,9 +39,8 @@ def prepare_transfer(
     record, the status of the corresponding CR record must be set to
     "prepared", and the received values for `debtor_id`,
     `sender_creditor_id`, and `transfer_id` -- recorded. The
-    "prepared" CR record must be, at some point, finalized (using the
-    `finalize_prepared_transfer` actor), and the status set to
-    "finalized".
+    "prepared" CR record must be, at some point, finalized (committed
+    or dismissed), and the status set to "finalized".
 
     If a `PreparedTransferSignal` is received for an already
     "prepared" or "finalized" CR record, the corresponding values of
@@ -75,21 +74,21 @@ def prepare_transfer(
        be "finalized" first (by sending a message to the
        `finalize_prepared_transfer` actor).
 
-    3. "finalized" CR records must not be deleted right away. Instead,
-       after they have been finalized, they should stay in the
-       database for some time. The delay should be long enough to
-       allow all messages that were queued to the message-bus at the
-       time of finalization to be successfully processed before the
-       deletion.
+    3. "finalized" CR records, which have been committed (i.e. not
+       dismissed), MUST NOT be deleted right away. Instead, after they
+       have been committed, they should stay in the database for some
+       time. The delay should be long enough to allow all other
+       messages that were queued to the message-bus at the time of
+       commit to be successfully processed before the deletion.
 
        This is necessary in order to prevent problems caused by
        message re-delivery. Consider the following scenario: a
        transfer has been prepared and committed (finalized), but the
        `PreparedTransferSignal` message is re-delivered a second
        time. Had the CR record been deleted right away, the already
-       committed transfer would be dismissed, and the fate of the
-       transfer would be decided by the race between the two different
-       finalizing messages.
+       committed transfer would be dismissed the second time, and the
+       fate of the transfer would be decided by the race between the
+       two different finalizing messages.
 
     """
 
