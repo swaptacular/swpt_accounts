@@ -3,6 +3,7 @@ from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from sqlalchemy import func
+from swpt_lib.utils import is_later_event
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, \
@@ -13,9 +14,6 @@ atomic: Callable[[T], T] = db.atomic
 AccountId = Union[Account, Tuple[int, int]]
 
 PRISTINE_ACCOUNT_STATUS = 0
-TD_ZERO = timedelta(seconds=0)
-TD_SECOND = timedelta(seconds=1)
-TD_MINUS_SECOND = -TD_SECOND
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 DELETE_ACCOUNT = 'delete_account'
 INTEREST = 'interest'
@@ -154,9 +152,9 @@ def change_interest_rate(
 
     account = _get_account((debtor_id, creditor_id), lock=True)
     if account:
-        this_event = (change_seqnum, change_ts)
-        prev_event = (account.interest_rate_last_change_seqnum, account.interest_rate_last_change_ts)
-        if _is_later_event(this_event, prev_event):
+        this_event = (change_ts, change_seqnum)
+        prev_event = (account.interest_rate_last_change_ts, account.interest_rate_last_change_seqnum)
+        if is_later_event(this_event, prev_event):
             _change_interest_rate(account, change_seqnum, change_ts, interest_rate)
 
 
@@ -407,20 +405,6 @@ def get_dead_transfers(if_prepared_before: datetime = None) -> List[PreparedTran
     return PreparedTransfer.query.\
         filter(PreparedTransfer.prepared_at_ts < if_prepared_before).\
         all()
-
-
-def _is_later_event(event: Tuple[int, datetime], other_event: Tuple[Optional[int], Optional[datetime]]) -> bool:
-    seqnum, ts = event
-    other_seqnum, other_ts = other_event
-    if other_ts:
-        advance = ts - other_ts
-    else:
-        advance = TD_ZERO
-    return advance >= TD_MINUS_SECOND and (
-        advance > TD_SECOND
-        or other_seqnum is None
-        or 0 < (seqnum - other_seqnum) % 0x100000000 < 0x80000000
-    )
 
 
 def _contain_principal_overflow(value: int) -> int:
