@@ -296,6 +296,59 @@ def mark_account_for_deletion(
 
 
 @atomic
+def configure_account(
+        debtor_id: int,
+        creditor_id: int,
+        is_scheduled_for_deletion: bool,
+        negligible_amount: float) -> None:
+
+    # TODO: Kill the `create_account_request` parameter.
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert negligible_amount >= 2.0
+    account = _get_or_create_account(debtor_id, creditor_id, lock=True)
+    if is_scheduled_for_deletion:
+        assert creditor_id != ROOT_CREDITOR_ID
+        account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    else:
+        account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    account.negligible_amount = negligible_amount
+    _insert_account_change_signal(account)
+
+
+@atomic
+def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
+    account = _get_account((debtor_id, creditor_id), lock=True)
+    if account and account.pending_transfers_count == 0 and account.locked_amount == 0:
+        # The conditions for deleting the debtor's account are
+        # different from the conditions for deleting a normal account:
+        # The debtor's account can be deleted only when it is the only
+        # account left.
+        if creditor_id == ROOT_CREDITOR_ID:
+            if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
+                _mark_account_as_deleted(account)
+            return
+
+        current_ts = datetime.now(tz=timezone.utc)
+        has_negligible_balance = 0 <= _calc_account_current_balance(account, current_ts) <= account.negligible_amount
+        is_scheduled_for_deletion = account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+        if has_negligible_balance and is_scheduled_for_deletion:
+            if account.principal != 0:
+                make_debtor_payment(DELETE_ACCOUNT, debtor_id, creditor_id, -account.principal, current_ts=current_ts)
+                _insert_committed_transfer_signal(
+                    account=account,
+                    coordinator_type=DELETE_ACCOUNT,
+                    other_creditor_id=ROOT_CREDITOR_ID,
+                    committed_at_ts=current_ts,
+                    committed_amount=-account.principal,
+                    transfer_info={},
+                    new_account_principal=0,
+                )
+            _mark_account_as_deleted(account, current_ts)
+
+
+@atomic
 def purge_deleted_account(
         debtor_id: int,
         creditor_id: int,
@@ -646,6 +699,14 @@ def _insert_committed_transfer_signal(
             transfer_info=transfer_info,
             new_account_principal=new_account_principal,
         ))
+
+
+def _mark_account_as_deleted(account: Account, current_ts: datetime = None):
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
+    account.principal = 0
+    account.interest = 0.0
+    account.status |= Account.STATUS_DELETED_FLAG
+    _insert_account_change_signal(account, current_ts)
 
 
 def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:
