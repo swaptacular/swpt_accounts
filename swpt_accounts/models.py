@@ -188,14 +188,14 @@ class Account(db.Model):
     config_last_change_seqnum = db.Column(
         db.Integer,
         comment='The value of the `change_seqnum` attribute, received with the most recent '
-                '`config_account` signal. It is used to decide whether to update the '
-                'configuration when a (potentially old) `config_account` signal is received.',
+                '`configure_account` signal. It is used to decide whether to update the '
+                'configuration when a (potentially old) `configure_account` signal is received.',
     )
     config_last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         comment='The value of the `change_ts` attribute, received with the most recent '
-                '`config_account` signal. It is used to decide whether to update the '
-                'configuration when a (potentially old) `config_account` signal is received.',
+                '`configure_account` signal. It is used to decide whether to update the '
+                'configuration when a (potentially old) `configure_account` signal is received.',
     )
     __table_args__ = (
         db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
