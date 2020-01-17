@@ -128,18 +128,18 @@ class Account(db.Model):
         nullable=False,
         default=1,
         comment='Incremented (with wrapping) on every meaningful change on the account. Every '
-                'change in `principal`, `interest_rate`, `interest`, or `status` is considered '
-                'meaningful. This column, along with the `last_change_ts` column, allows to '
-                'reliably determine the correct order of changes, even if they occur in a very '
-                'short period of time.',
+                'change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or  '
+                '`status` is considered meaningful. This column, along with the `last_change_ts` '
+                'column, allows to reliably determine the correct order of changes, even if '
+                'they occur in a very short period of time.',
     )
     last_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=get_now_utc,
         comment='The moment at which the last meaningful change on the account happened. Must '
-                'never decrease. Every change in `principal`, `interest_rate`, `interest`, or '
-                '`status` is considered meaningful.',
+                'never decrease. Every change in `principal`, `interest_rate`, `interest`, '
+                '`negligible_amount`, or `status` is considered meaningful.',
     )
     last_outgoing_transfer_date = db.Column(
         db.DATE,
@@ -394,6 +394,7 @@ class AccountChangeSignal(Signal):
     last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     last_outgoing_transfer_date = db.Column(db.DATE)
     creation_date = db.Column(db.DATE, nullable=False)
+    negligible_amount = db.Column(db.REAL, nullable=False)
     status = db.Column(db.SmallInteger, nullable=False)
 
 

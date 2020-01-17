@@ -430,6 +430,7 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
         last_transfer_seqnum=account.last_transfer_seqnum,
         last_outgoing_transfer_date=account.last_outgoing_transfer_date,
         creation_date=account.creation_date,
+        negligible_amount=account.negligible_amount,
         status=account.status,
     ))
 
