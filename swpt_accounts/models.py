@@ -177,12 +177,33 @@ class Account(db.Model):
                 f"{STATUS_OVERFLOWN_FLAG} - overflown, "
                 f"{STATUS_SCHEDULED_FOR_DELETION_FLAG} - scheduled for deletion.",
     )
+    negligible_amount = db.Column(
+        db.REAL,
+        nullable=False,
+        default=2.0,
+        comment='An amount that is considered negligible. It is used to decide whether '
+                'performing a small transfer is worth it. In principal, it can also be '
+                'used to tell the relative worth of a single unit on different accounts.',
+    )
+    config_last_change_seqnum = db.Column(
+        db.Integer,
+        comment='The value of the `change_seqnum` attribute, received with the most recent '
+                '`config_account` signal. It is used to decide whether to update the '
+                'configuration when a (potentially old) `config_account` signal is received.',
+    )
+    config_last_change_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        comment='The value of the `change_ts` attribute, received with the most recent '
+                '`config_account` signal. It is used to decide whether to update the '
+                'configuration when a (potentially old) `config_account` signal is received.',
+    )
     __table_args__ = (
         db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(pending_transfers_count >= 0),
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(last_transfer_seqnum >= 0),
+        db.CheckConstraint(negligible_amount >= 2.0),
         {
             'comment': 'Tells who owes what to whom.',
         }

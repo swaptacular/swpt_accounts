@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 28cc8320ad2f
+Revision ID: acb57862d4bb
 Revises: 
-Create Date: 2020-01-13 15:18:47.909076
+Create Date: 2020-01-17 16:19:26.288778
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '28cc8320ad2f'
+revision = 'acb57862d4bb'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -35,9 +35,13 @@ def upgrade():
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 2020).'),
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `committed_transfer_signal` record is inserted. It is used to generate sequential numbers for the `committed_transfer_signal.transfer_seqnum` column. Must never decrease. When the account is created, `last_transfer_seqnum` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 2020).'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status bits: 1 - deleted, 2 - established interest rate, 4 - overflown, 8 - scheduled for deletion.'),
+    sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to decide whether performing a small transfer is worth it. In principal, it can also be used to tell the relative worth of a single unit on different accounts.'),
+    sa.Column('config_last_change_seqnum', sa.Integer(), nullable=True, comment='The value of the `change_seqnum` attribute, received with the most recent `config_account` signal. It is used to decide whether to update the configuration when a (potentially old) `config_account` signal is received.'),
+    sa.Column('config_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The value of the `change_ts` attribute, received with the most recent `config_account` signal. It is used to decide whether to update the configuration when a (potentially old) `config_account` signal is received.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_seqnum >= 0'),
     sa.CheckConstraint('locked_amount >= 0'),
+    sa.CheckConstraint('negligible_amount >= 2.0'),
     sa.CheckConstraint('pending_transfers_count >= 0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id'),
