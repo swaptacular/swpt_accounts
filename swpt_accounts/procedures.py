@@ -299,6 +299,8 @@ def mark_account_for_deletion(
 def configure_account(
         debtor_id: int,
         creditor_id: int,
+        change_ts: datetime,
+        change_seqnum: int,
         is_scheduled_for_deletion: bool,
         negligible_amount: float) -> None:
 
@@ -308,13 +310,18 @@ def configure_account(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert negligible_amount >= 2.0
     account = _get_or_create_account(debtor_id, creditor_id, lock=True)
-    if is_scheduled_for_deletion:
-        assert creditor_id != ROOT_CREDITOR_ID
-        account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    else:
-        account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    account.negligible_amount = negligible_amount
-    _insert_account_change_signal(account)
+    this_event = (change_ts, change_seqnum)
+    prev_event = (account.config_last_change_ts, account.config_last_change_seqnum)
+    if is_later_event(this_event, prev_event):
+        if is_scheduled_for_deletion:
+            assert creditor_id != ROOT_CREDITOR_ID
+            account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+        else:
+            account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+        account.negligible_amount = negligible_amount
+        account.config_last_change_ts = change_ts
+        account.config_last_change_seqnum = change_seqnum
+        _insert_account_change_signal(account)
 
 
 @atomic
