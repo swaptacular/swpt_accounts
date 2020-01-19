@@ -43,11 +43,14 @@ def test_capitalize_interest(db_session):
     )
 
 
-def test_create_account(db_session):
-    a.create_account(
+def test_configure_account(db_session):
+    a.configure_account(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        ignore_after_ts='2099-12-31T00:00:00Z',
+        change_ts='2099-12-31T00:00:00Z',
+        change_seqnum=0,
+        is_scheduled_for_deletion=True,
+        negligible_amount=500.0,
     )
 
 
@@ -67,10 +70,8 @@ def test_purge_deleted_account(db_session):
     )
 
 
-def test_mark_account_for_deletion(db_session):
-    a.mark_account_for_deletion(
+def test_try_to_delete_account(db_session):
+    a.try_to_delete_account(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        ignore_after_ts='2000-01-01T00:00:00Z',
-        negligible_amount=100,
     )

@@ -168,27 +168,28 @@ def capitalize_interest(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def create_account(
+def configure_account(
         debtor_id: int,
         creditor_id: int,
-        ignore_after_ts: str) -> None:
+        change_ts: str,
+        change_seqnum: int,
+        is_scheduled_for_deletion: bool = False,
+        negligible_amount: float = 2.0) -> None:
 
-    """Make sure the account `(debtor_id, creditor_id)` exists, and is
-    neither deleted nor scheduled for deletion.
+    """Make sure the account `(debtor_id, creditor_id)` exists, then
+    update its configuration settings.
 
     An `AccountChangeSignal` is always sent as a confirmation.
 
-    This function will do nothing if the current timestamp is later
-    than `ignore_after_ts`. This parameter is used to limit the
-    lifespan of the message, which otherwise may be retained for a
-    quite long time by the message bus.
-
     """
 
-    procedures.create_account(
+    procedures.configure_account(
         debtor_id,
         creditor_id,
-        iso8601.parse_date(ignore_after_ts),
+        iso8601.parse_date(change_ts),
+        change_seqnum,
+        is_scheduled_for_deletion,
+        negligible_amount,
     )
 
 
@@ -212,65 +213,34 @@ def zero_out_negative_balance(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def mark_account_for_deletion(
+def try_to_delete_account(
         debtor_id: int,
-        creditor_id: int,
-        ignore_after_ts: str,
-        negligible_amount: int = 2) -> None:
+        creditor_id: int) -> None:
 
-    """Mark the account for deletion.
+    """Mark the account as deleted, if possible.
 
-    It it is a "normal" account, it will be marked as deleted if there
-    are no prepared transfers, and the current balance is non-negative
-    and no bigger than `negligible_amount` (`negligible_amount` could
-    be bigger than `MAX_INT64`). Otherwise, the account will be marked
-    as "scheduled for deletion".
+    If it is a "normal" account, it will be marked as deleted if it
+    has been scheduled for deletion, there are no prepared transfers,
+    and the current balance is non-negative and no bigger than
+    `account.negligible_amount`.
 
-    It it is the debtor's account, it will be marked as deleted if
+    If it is the debtor's account, it will be marked as deleted if
     there are no prepared transfers and it is the only account left
-    (`negligible_amount` is ignored in this case). Otherwise, nothing
-    will be done.
+    (`account.negligible_amount` is ignored in this case).
 
-    This function will do nothing if the current timestamp is later
-    than `ignore_after_ts`. This parameter is used to limit the
-    lifespan of the message, which otherwise may be retained for a
-    quite long time by the message bus.
-
-    Note that even if the account has been successfully marked as
+    Note that when a "normal" account has been successfully marked as
     deleted, it could be "resurrected" (with "scheduled for deletion"
     status) by a delayed incoming transfer. Therefore, this function
     does not guarantee that the account will be marked as deleted
     successfully, or that it will "stay" deleted for long. To achieve
-    a reliable deletion, the following procedure SHOULD be followed:
-
-    1. Call `mark_account_for_deletion` with appropriate values for
-       `ignore_after_ts` and `negligible_amount`.
-
-    2. Wait for some time (one week for example).
-
-    3. Check the current account status (as reported by the last
-       received `AccountChangeSignal` for the account):
-
-       a) If the account has a "deleted" status (or the account
-          account does not exist), YOU ARE DONE.
-
-       b) Otherwise, continue to point 4.
-
-    4. Decide if it makes sense to call `mark_account_for_deletion`
-       for this account one more time:
-
-       a) If the answer is "Yes", go to point 1
-
-       b) Otherwise, inform the account owner to take appropriate
-          action (if necessary), and go to point 2.
+    a reliable deletion, this function may need to be called
+    repeatedly, until the account has been purged from the database.
 
     """
 
-    procedures.mark_account_for_deletion(
+    procedures.try_to_delete_account(
         debtor_id,
         creditor_id,
-        iso8601.parse_date(ignore_after_ts),
-        negligible_amount,
     )
 
 

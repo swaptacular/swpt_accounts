@@ -301,8 +301,8 @@ def configure_account(
         creditor_id: int,
         change_ts: datetime,
         change_seqnum: int,
-        is_scheduled_for_deletion: bool,
-        negligible_amount: float) -> None:
+        is_scheduled_for_deletion: bool = False,
+        negligible_amount: float = 2.0) -> None:
 
     # TODO: Kill the `create_account_request` parameter.
 
@@ -326,6 +326,9 @@ def configure_account(
 
 @atomic
 def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+
     account = _get_account((debtor_id, creditor_id), lock=True)
     if account and account.pending_transfers_count == 0 and account.locked_amount == 0:
         # The conditions for deleting the debtor's account are

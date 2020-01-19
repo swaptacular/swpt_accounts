@@ -182,8 +182,7 @@ class Account(db.Model):
         nullable=False,
         default=2.0,
         comment='An amount that is considered negligible. It is used to decide whether '
-                'performing a small transfer is worth it. In principal, it can also be '
-                'used to tell the relative worth of a single unit on different accounts.',
+                'an account can be safely deleted or not.',
     )
     config_last_change_seqnum = db.Column(
         db.Integer,
