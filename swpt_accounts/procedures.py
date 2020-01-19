@@ -43,12 +43,6 @@ def get_account(debtor_id: int, creditor_id: int) -> Optional[Account]:
 
 
 @atomic
-def create_account(debtor_id: int, creditor_id: int, ignore_after_ts: datetime) -> None:
-    if datetime.now(tz=timezone.utc) <= ignore_after_ts:
-        get_or_create_account(debtor_id, creditor_id)
-
-
-@atomic
 def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -240,59 +234,6 @@ def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_tr
         zero_out_amount = _contain_principal_overflow(zero_out_amount)
         if account_date_is_ok and zero_out_amount > 0:
             make_debtor_payment(ZERO_OUT_ACCOUNT, debtor_id, creditor_id, zero_out_amount)
-
-
-@atomic
-def mark_account_for_deletion(
-        debtor_id: int,
-        creditor_id: int,
-        ignore_after_ts: datetime,
-        negligible_amount: int) -> None:
-    assert negligible_amount >= 0
-
-    current_ts = datetime.now(tz=timezone.utc)
-    if current_ts > ignore_after_ts:
-        return
-
-    account = _get_account((debtor_id, creditor_id), lock=True)
-    if account:
-        def mark_as_deleted():
-            account.principal = 0
-            account.interest = 0.0
-            account.status |= Account.STATUS_DELETED_FLAG | Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-            _insert_account_change_signal(account, current_ts)
-
-        def mark_as_scheduled_for_deletion():
-            account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-            _insert_account_change_signal(account, current_ts)
-
-        def query_accounts_count():
-            return db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar()
-
-        has_no_prepared_transfers = account.pending_transfers_count == 0 and account.locked_amount == 0
-        if creditor_id == ROOT_CREDITOR_ID:
-            # The conditions for deleting the debtor's account are
-            # different from the conditions for deleting a normal
-            # account. Also, the debtor's account should not be marked
-            # as "scheduled for deletion" in case the conditions are
-            # not met.
-            if has_no_prepared_transfers and query_accounts_count() == 1:
-                mark_as_deleted()
-        elif has_no_prepared_transfers and 0 <= _calc_account_current_balance(account, current_ts) <= negligible_amount:
-            if account.principal != 0:
-                make_debtor_payment(DELETE_ACCOUNT, debtor_id, creditor_id, -account.principal, current_ts=current_ts)
-                _insert_committed_transfer_signal(
-                    account=account,
-                    coordinator_type=DELETE_ACCOUNT,
-                    other_creditor_id=ROOT_CREDITOR_ID,
-                    committed_at_ts=current_ts,
-                    committed_amount=-account.principal,
-                    transfer_info={},
-                    new_account_principal=0,
-                )
-            mark_as_deleted()
-        else:
-            mark_as_scheduled_for_deletion()
 
 
 @atomic
