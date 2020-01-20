@@ -205,8 +205,8 @@ def test_get_available_balance(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q_root = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
 
-    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID) == 0
-    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, -1000) == 1000
+    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID) is None
+    assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, -1000) is None
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID) == 0
     assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, -1000) == 1000
@@ -217,8 +217,8 @@ def test_get_available_balance(db_session, current_ts):
     assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID) == 500
     assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, -1000) == 1500
 
-    assert p.get_available_balance(D_ID, C_ID, -1000) == 0
-    assert p.get_available_balance(D_ID, C_ID) == 0
+    assert p.get_available_balance(D_ID, C_ID, -1000) is None
+    assert p.get_available_balance(D_ID, C_ID) is None
     p.configure_account(D_ID, C_ID, current_ts, 0)
     assert p.get_available_balance(D_ID, C_ID) == 0
     q.update({

@@ -8,7 +8,7 @@ C_ID = 1
 
 def test_process_transfers_pending_changes(app, db_session):
     p.make_debtor_payment('test', D_ID, C_ID, 1000)
-    assert p.get_available_balance(D_ID, C_ID) == 0
+    assert p.get_available_balance(D_ID, C_ID) is None
     runner = app.test_cli_runner()
     result = runner.invoke(args=['swpt_accounts', 'process_transfers'])
     assert not result.output

@@ -11,7 +11,6 @@ from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedT
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
-AccountId = Union[Account, Tuple[int, int]]
 
 PRISTINE_ACCOUNT_STATUS = 0
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
@@ -38,13 +37,22 @@ def get_debtor_account_list(debtor_id: int, start_after: int = None, limit: bool
 
 
 @atomic
-def get_account(debtor_id: int, creditor_id: int) -> Optional[Account]:
-    return _get_account((debtor_id, creditor_id))
+def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optional[Account]:
+    if lock:
+        account = Account.lock_instance((debtor_id, creditor_id))
+    else:
+        account = Account.get_instance((debtor_id, creditor_id))
+    if account and not account.status & Account.STATUS_DELETED_FLAG:
+        return account
+    return None
 
 
 @atomic
-def get_available_balance(debtor_id: int, creditor_id: int, minimum_account_balance: int = 0) -> int:
-    return _get_available_balance((debtor_id, creditor_id), minimum_account_balance)
+def get_available_balance(debtor_id: int, creditor_id: int, minimum_account_balance: int = 0) -> Optional[int]:
+    account = get_account(debtor_id, creditor_id)
+    if account:
+        return _get_available_balance(account, minimum_account_balance)
+    return None
 
 
 @atomic
@@ -136,7 +144,7 @@ def change_interest_rate(
     if interest_rate < INTEREST_RATE_FLOOR:
         interest_rate = INTEREST_RATE_FLOOR
 
-    account = _get_account((debtor_id, creditor_id), lock=True)
+    account = get_account(debtor_id, creditor_id, lock=True)
     if account:
         this_event = (change_ts, change_seqnum)
         prev_event = (account.interest_rate_last_change_ts, account.interest_rate_last_change_seqnum)
@@ -151,7 +159,7 @@ def capitalize_interest(
         accumulated_interest_threshold: int = 0,
         current_ts: datetime = None) -> None:
 
-    account = _get_account((debtor_id, creditor_id), lock=True)
+    account = get_account(debtor_id, creditor_id, lock=True)
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))
         current_ts = current_ts or datetime.now(tz=timezone.utc)
@@ -218,7 +226,7 @@ def make_debtor_payment(
 @atomic
 def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_transfer_date: date) -> None:
     assert last_outgoing_transfer_date is not None
-    account = _get_account((debtor_id, creditor_id), lock=True)
+    account = get_account(debtor_id, creditor_id, lock=True)
     if account:
         account_date = account.last_outgoing_transfer_date
         account_date_is_ok = account_date is None or account_date <= last_outgoing_transfer_date
@@ -239,8 +247,6 @@ def configure_account(
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert change_ts is not None
-    assert change_seqnum is not None
     assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
     assert negligible_amount >= 2.0
 
@@ -266,7 +272,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
-    account = _get_account((debtor_id, creditor_id), lock=True)
+    account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.pending_transfers_count == 0 and account.locked_amount == 0:
         # The conditions for deleting the debtor's account are
         # different from the conditions for deleting a normal account:
@@ -340,7 +346,7 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
         all()
 
     if requests:
-        sender_account = _get_account((debtor_id, creditor_id), lock=True)
+        sender_account = get_account(debtor_id, creditor_id, lock=True)
         new_objects = []
         for request in requests:
             new_objects.extend(_process_transfer_request(request, sender_account))
@@ -449,16 +455,6 @@ def _create_account(debtor_id: int, creditor_id: int, send_account_change_signal
     return account
 
 
-def _get_account(account_or_pk: AccountId, lock: bool = False) -> Optional[Account]:
-    if lock:
-        account = Account.lock_instance(account_or_pk)
-    else:
-        account = Account.get_instance(account_or_pk)
-    if account and not account.status & Account.STATUS_DELETED_FLAG:
-        return account
-    return None
-
-
 def _get_or_create_account(
         debtor_id: int,
         creditor_id: int,
@@ -514,19 +510,14 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
     return current_balance
 
 
-def _get_available_balance(account_or_pk: AccountId, minimum_account_balance: int = 0) -> int:
-    debtor_id, creditor_id = Account.get_pk_values(account_or_pk)
-
-    if creditor_id != ROOT_CREDITOR_ID:
+def _get_available_balance(account: Account, minimum_account_balance: int = 0) -> int:
+    if account.creditor_id != ROOT_CREDITOR_ID:
         # Only the debtor's account is allowed to go deliberately
         # negative. This is because only the debtor's account is
         # allowed to issue money.
         minimum_account_balance = max(0, minimum_account_balance)
 
-    account = _get_account(account_or_pk)
-    available_balance = 0
-    if account:
-        available_balance = math.floor(_calc_account_current_balance(account)) - account.locked_amount
+    available_balance = math.floor(_calc_account_current_balance(account)) - account.locked_amount
     return available_balance - minimum_account_balance
 
 
@@ -719,7 +710,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             message='Recipient and sender accounts are the same.',
         )
 
-    recipient_account = _get_account((tr.debtor_id, tr.recipient_creditor_id))
+    recipient_account = get_account(tr.debtor_id, tr.recipient_creditor_id)
     if recipient_account is None:
         return reject(
             error_code='ACC003',
