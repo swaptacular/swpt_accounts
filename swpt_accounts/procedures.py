@@ -273,28 +273,34 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
     account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.pending_transfers_count == 0 and account.locked_amount == 0:
         if creditor_id == ROOT_CREDITOR_ID:
-            # The debtor's account should be marked as deleted only
-            # when it is the only account left.
+            # The debtor's account can be marked as deleted only when
+            # it is the only account left.
             if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
                 _mark_account_as_deleted(account)
-            return
-
-        current_ts = datetime.now(tz=timezone.utc)
-        has_negligible_balance = 0 <= _calc_account_current_balance(account, current_ts) <= account.negligible_amount
-        is_scheduled_for_deletion = account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-        if has_negligible_balance and is_scheduled_for_deletion:
-            if account.principal != 0:
-                make_debtor_payment(DELETE_ACCOUNT, debtor_id, creditor_id, -account.principal, current_ts=current_ts)
-                _insert_committed_transfer_signal(
-                    account=account,
-                    coordinator_type=DELETE_ACCOUNT,
-                    other_creditor_id=ROOT_CREDITOR_ID,
-                    committed_at_ts=current_ts,
-                    committed_amount=-account.principal,
-                    transfer_info={},
-                    new_account_principal=0,
-                )
-            _mark_account_as_deleted(account, current_ts)
+        else:
+            current_ts = datetime.now(tz=timezone.utc)
+            current_balance = _calc_account_current_balance(account, current_ts)
+            has_negligible_balance = 0 <= current_balance <= account.negligible_amount
+            is_scheduled_for_deletion = account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+            if has_negligible_balance and is_scheduled_for_deletion:
+                if account.principal != 0:
+                    make_debtor_payment(
+                        DELETE_ACCOUNT,
+                        debtor_id,
+                        creditor_id,
+                        -account.principal,
+                        current_ts=current_ts,
+                    )
+                    _insert_committed_transfer_signal(
+                        account=account,
+                        coordinator_type=DELETE_ACCOUNT,
+                        other_creditor_id=ROOT_CREDITOR_ID,
+                        committed_at_ts=current_ts,
+                        committed_amount=-account.principal,
+                        transfer_info={},
+                        new_account_principal=0,
+                    )
+                _mark_account_as_deleted(account, current_ts)
 
 
 @atomic
