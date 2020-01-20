@@ -478,12 +478,6 @@ def _get_or_create_account(
 
 def _resurrect_deleted_account(account: Account) -> None:
     assert account.status & Account.STATUS_DELETED_FLAG
-
-    # The account is resurrected by an incoming transfer. This can
-    # happen when we have a pre-existing prepared transfer with the
-    # deleted account as a recipient, and then the prepared transfer
-    # gets committed. Note that in this case we should preserve the
-    # `STATUS_SCHEDULED_FOR_DELETION_FLAG`.
     account.principal = 0
     account.pending_transfers_count = 0
     account.locked_amount = 0
