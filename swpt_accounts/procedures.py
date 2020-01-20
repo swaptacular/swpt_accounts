@@ -38,10 +38,7 @@ def get_debtor_account_list(debtor_id: int, start_after: int = None, limit: bool
 
 @atomic
 def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optional[Account]:
-    if lock:
-        account = Account.lock_instance((debtor_id, creditor_id))
-    else:
-        account = Account.get_instance((debtor_id, creditor_id))
+    account = _get_account_instance(debtor_id, creditor_id, lock)
     if account and not account.status & Account.STATUS_DELETED_FLAG:
         return account
     return None
@@ -308,7 +305,7 @@ def purge_deleted_account(
         if_deleted_before: datetime,
         allow_hasty_purges: bool = False) -> None:
 
-    account = Account.lock_instance((debtor_id, creditor_id))
+    account = _get_account_instance(debtor_id, creditor_id, True)
     if account and account.status & Account.STATUS_DELETED_FLAG and account.last_change_ts < if_deleted_before:
         yesterday = date.today() - timedelta(days=1)
 
@@ -455,16 +452,21 @@ def _create_account(debtor_id: int, creditor_id: int, send_account_change_signal
     return account
 
 
+def _get_account_instance(debtor_id: int, creditor_id: int, lock: bool = False) -> Optional[Account]:
+    if lock:
+        account = Account.lock_instance((debtor_id, creditor_id))
+    else:
+        account = Account.get_instance((debtor_id, creditor_id))
+    return account
+
+
 def _get_or_create_account(
         debtor_id: int,
         creditor_id: int,
         lock: bool = False,
         send_account_creation_signal: bool = True) -> Account:
 
-    if lock:
-        account = Account.lock_instance((debtor_id, creditor_id))
-    else:  # pragma: no cover
-        account = Account.get_instance((debtor_id, creditor_id))
+    account = _get_account_instance(debtor_id, creditor_id, lock)
     if account is None:
         account = _create_account(debtor_id, creditor_id, send_account_creation_signal)
     elif account.status & Account.STATUS_DELETED_FLAG:
