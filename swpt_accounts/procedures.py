@@ -253,7 +253,8 @@ def configure_account(
     if is_later_event(this_event, prev_event):
         # When a new account is created, this block is guaranteed to
         # be executed, because `account.config_last_change_ts` for
-        # newly created accounts is always `None`.
+        # newly created accounts is always `None`, which means that
+        # `is_later_event(this_event, prev_event)` is `True`.
         if is_scheduled_for_deletion:
             account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         else:
