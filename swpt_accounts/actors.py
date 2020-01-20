@@ -4,6 +4,49 @@ from . import procedures
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
+def configure_account(
+        debtor_id: int,
+        creditor_id: int,
+        change_ts: str,
+        change_seqnum: int,
+        is_scheduled_for_deletion: bool = False,
+        negligible_amount: float = 2.0) -> None:
+
+    """Make sure the account `(debtor_id, creditor_id)` exists, then
+    update its configuration settings.
+
+    * `change_ts` is the current timestamp. For a given account, later
+      calls to `configure_account` should have later or equal
+      timestamps compared to earlier calls.
+
+    * `change_seqnum` is the 32-bit sequential number of the call. For
+      a given account, later calls to `configure_account` should have
+      bigger sequential numbers compared to earlier calls (except for
+      the possible 32-bit integer wrapping, in case of an integer
+      overflow).
+
+    * `is_scheduled_for_deletion` determines whether the account is
+      scheduled for deletion.
+
+    * `negligible_amount` is the maximum account balance that should
+       be considered negligible. It is used to decide whether an
+       account can be safely deleted. Should be at least `2.0`.
+
+    An `AccountChangeSignal` is always sent as a confirmation.
+
+    """
+
+    procedures.configure_account(
+        debtor_id,
+        creditor_id,
+        iso8601.parse_date(change_ts),
+        change_seqnum,
+        is_scheduled_for_deletion,
+        negligible_amount,
+    )
+
+
+@broker.actor(queue_name=APP_QUEUE_NAME)
 def prepare_transfer(
         coordinator_type: str,
         coordinator_id: int,
@@ -115,7 +158,8 @@ def finalize_prepared_transfer(
 
     """Execute a prepared transfer.
 
-    To dismiss the transfer, `committed_amount` should be `0`.
+    `committed_amount` should be non-negative. To dismiss the
+    transfer, `committed_amount` should be `0`.
 
     """
 
@@ -164,32 +208,6 @@ def capitalize_interest(
         debtor_id,
         creditor_id,
         accumulated_interest_threshold,
-    )
-
-
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def configure_account(
-        debtor_id: int,
-        creditor_id: int,
-        change_ts: str,
-        change_seqnum: int,
-        is_scheduled_for_deletion: bool = False,
-        negligible_amount: float = 2.0) -> None:
-
-    """Make sure the account `(debtor_id, creditor_id)` exists, then
-    update its configuration settings.
-
-    An `AccountChangeSignal` is always sent as a confirmation.
-
-    """
-
-    procedures.configure_account(
-        debtor_id,
-        creditor_id,
-        iso8601.parse_date(change_ts),
-        change_seqnum,
-        is_scheduled_for_deletion,
-        negligible_amount,
     )
 
 

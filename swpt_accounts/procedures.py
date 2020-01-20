@@ -273,8 +273,8 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
     account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.pending_transfers_count == 0 and account.locked_amount == 0:
         if creditor_id == ROOT_CREDITOR_ID:
-            # The debtor's account will be deleted only when it is the
-            # only account left.
+            # The debtor's account should be marked as deleted only
+            # when it is the only account left.
             if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
                 _mark_account_as_deleted(account)
             return
