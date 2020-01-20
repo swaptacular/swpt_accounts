@@ -38,7 +38,7 @@ def get_debtor_account_list(debtor_id: int, start_after: int = None, limit: bool
 
 @atomic
 def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optional[Account]:
-    account = _get_account_instance(debtor_id, creditor_id, lock)
+    account = _get_account_instance(debtor_id, creditor_id, lock=lock)
     if account and not account.status & Account.STATUS_DELETED_FLAG:
         return account
     return None
@@ -272,11 +272,9 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
 
     account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.pending_transfers_count == 0 and account.locked_amount == 0:
-        # The conditions for deleting the debtor's account are
-        # different from the conditions for deleting a normal account:
-        # The debtor's account can be deleted only when it is the only
-        # account left.
         if creditor_id == ROOT_CREDITOR_ID:
+            # The debtor's account will be deleted only when it is the
+            # only account left.
             if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
                 _mark_account_as_deleted(account)
             return
@@ -306,7 +304,7 @@ def purge_deleted_account(
         if_deleted_before: datetime,
         allow_hasty_purges: bool = False) -> None:
 
-    account = _get_account_instance(debtor_id, creditor_id, True)
+    account = _get_account_instance(debtor_id, creditor_id, lock=True)
     if account and account.status & Account.STATUS_DELETED_FLAG and account.last_change_ts < if_deleted_before:
         yesterday = date.today() - timedelta(days=1)
 
@@ -439,7 +437,7 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
     ))
 
 
-def _create_account(debtor_id: int, creditor_id: int, send_account_change_signal: bool = True) -> Account:
+def _create_account(debtor_id: int, creditor_id: int) -> Account:
     account = Account(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
@@ -448,8 +446,6 @@ def _create_account(debtor_id: int, creditor_id: int, send_account_change_signal
     )
     with db.retry_on_integrity_error():
         db.session.add(account)
-    if send_account_change_signal:
-        _insert_account_change_signal(account)
     return account
 
 
@@ -467,13 +463,13 @@ def _get_or_create_account(
         lock: bool = False,
         send_account_creation_signal: bool = True) -> Account:
 
-    account = _get_account_instance(debtor_id, creditor_id, lock)
+    account = _get_account_instance(debtor_id, creditor_id, lock=lock)
     if account is None:
-        account = _create_account(debtor_id, creditor_id, send_account_creation_signal)
-    elif account.status & Account.STATUS_DELETED_FLAG:
+        account = _create_account(debtor_id, creditor_id)
+        if send_account_creation_signal:
+            _insert_account_change_signal(account)
+    if account.status & Account.STATUS_DELETED_FLAG:
         _resurrect_deleted_account(account)
-
-    assert not account.status & Account.STATUS_DELETED_FLAG
     return account
 
 
@@ -488,6 +484,7 @@ def _resurrect_deleted_account(account: Account) -> None:
     account.interest_rate_last_change_ts = None
     account.last_outgoing_transfer_date = None
     account.status = PRISTINE_ACCOUNT_STATUS | account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    assert not account.status & Account.STATUS_DELETED_FLAG
     _insert_account_change_signal(account)
 
 
