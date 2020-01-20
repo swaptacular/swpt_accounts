@@ -21,8 +21,9 @@ D_ID = -1
 C_ID = 1
 
 
-def test_get_or_create_account(db_session):
-    a = p.get_or_create_account(D_ID, C_ID)
+@pytest.mark.skip
+def test_configure_account(db_session, current_ts):
+    a = p.configure_account(D_ID, C_ID, current_ts, 0)
     assert isinstance(a, Account)
     assert a.status == 0
     assert a.principal == 0
@@ -39,7 +40,9 @@ def test_get_or_create_account(db_session):
     assert acs.principal == a.principal
     assert acs.interest == a.interest
     assert acs.interest_rate == a.interest_rate
-    a = p.get_or_create_account(D_ID, C_ID)
+    a = p.configure_account(D_ID, C_ID, current_ts, 0)
+    assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 1
+    a = p.configure_account(D_ID, C_ID, current_ts, 1)
     assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 2
 
 
@@ -365,9 +368,9 @@ def test_delete_account_negative_balance(db_session, current_ts):
     assert rts.details['error_code'] == 'ACC004'
 
     # Verify that re-creating the account clears STATUS_SCHEDULED_FOR_DELETION_FLAG:
-    a = p.get_or_create_account(D_ID, C_ID)
-    assert not a.status & Account.STATUS_DELETED_FLAG
-    assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
+    assert not q.one().status & Account.STATUS_DELETED_FLAG
+    assert not q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
 
 def test_delete_account_tiny_positive_balance(db_session, current_ts):
@@ -429,11 +432,11 @@ def test_resurect_deleted_account_create(db_session, current_ts):
     p.get_or_create_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
-    p.configure_account(D_ID, C_ID, current_ts, 0, is_scheduled_for_deletion=True)
+    p.configure_account(D_ID, C_ID, current_ts, 0, is_scheduled_for_deletion=True, negligible_amount=10.0)
     p.try_to_delete_account(D_ID, C_ID)
-    a = p.get_or_create_account(D_ID, C_ID)
-    assert a.interest_rate == 0.0
-    assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
+    assert q.one().interest_rate == 0.0
+    assert not q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
 
 def test_resurect_deleted_account_transfer(db_session, current_ts):

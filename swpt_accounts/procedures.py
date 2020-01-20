@@ -47,7 +47,7 @@ def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
-    return _get_or_create_account(debtor_id, creditor_id, create_account_request=True)
+    return _get_or_create_account(debtor_id, creditor_id)
 
 
 @atomic
@@ -245,7 +245,8 @@ def configure_account(
         is_scheduled_for_deletion: bool = False,
         negligible_amount: float = 2.0) -> None:
 
-    # TODO: Kill the `create_account_request` parameter.
+    # TODO: Do not create a new account when is_scheduled_for_deletion is True
+    # TODO: Do send more than one `AccountChangeSignal`.
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -465,8 +466,7 @@ def _get_account(account_or_pk: AccountId, lock: bool = False) -> Optional[Accou
 def _get_or_create_account(
         debtor_id: int,
         creditor_id: int,
-        lock: bool = False,
-        create_account_request: bool = False) -> Account:
+        lock: bool = False) -> Account:
 
     if lock:
         account = Account.lock_instance((debtor_id, creditor_id))
@@ -475,17 +475,20 @@ def _get_or_create_account(
     if account is None:
         account = _create_account(debtor_id, creditor_id)
     elif account.status & Account.STATUS_DELETED_FLAG:
-        _resurrect_deleted_account(account, create_account_request)
-    elif create_account_request:
-        account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-        _insert_account_change_signal(account)
+        _resurrect_deleted_account(account)
 
     assert not account.status & Account.STATUS_DELETED_FLAG
     return account
 
 
-def _resurrect_deleted_account(account: Account, create_account_request: bool) -> None:
+def _resurrect_deleted_account(account: Account) -> None:
     assert account.status & Account.STATUS_DELETED_FLAG
+
+    # The account is resurrected by an incoming transfer. This can
+    # happen when we have a pre-existing prepared transfer with the
+    # deleted account as a recipient, and then the prepared transfer
+    # gets committed. Note that in this case we should preserve the
+    # `STATUS_SCHEDULED_FOR_DELETION_FLAG`.
     account.principal = 0
     account.pending_transfers_count = 0
     account.locked_amount = 0
@@ -494,15 +497,7 @@ def _resurrect_deleted_account(account: Account, create_account_request: bool) -
     account.interest_rate_last_change_seqnum = None
     account.interest_rate_last_change_ts = None
     account.last_outgoing_transfer_date = None
-    if create_account_request:
-        account.status = PRISTINE_ACCOUNT_STATUS
-    else:
-        # The account is resurrected by an incoming transfer. This can
-        # happen when we have a pre-existing prepared transfer with
-        # the deleted account as a recipient, and then the prepared
-        # transfer gets committed. Note that in this case we should
-        # set the `STATUS_SCHEDULED_FOR_DELETION_FLAG` on the account.
-        account.status = PRISTINE_ACCOUNT_STATUS | Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+    account.status = PRISTINE_ACCOUNT_STATUS | account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
     _insert_account_change_signal(account)
 
 
