@@ -21,9 +21,9 @@ D_ID = -1
 C_ID = 1
 
 
-@pytest.mark.skip
 def test_configure_account(db_session, current_ts):
-    a = p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    a = p.get_account(D_ID, C_ID)
     assert isinstance(a, Account)
     assert a.status == 0
     assert a.principal == 0
@@ -53,7 +53,7 @@ def test_set_interest_rate(db_session, current_ts):
     assert len(AccountChangeSignal.query.all()) == 0
 
     # The account does exist.
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     p.change_interest_rate(D_ID, C_ID, 666, current_ts, 7.0)
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
@@ -86,9 +86,9 @@ def amount(request):
     raise Exception()
 
 
-def test_make_debtor_payment(db_session, amount):
+def test_make_debtor_payment(db_session, current_ts, amount):
     TRANSFER_INFO = {'transer_data': 123}
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_INFO)
 
     root_change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
@@ -118,11 +118,11 @@ def test_make_debtor_payment(db_session, amount):
         debtor_id=D_ID, creditor_id=C_ID, transfer_seqnum=transfer_seqnum1 + 1).one()
     assert cts.committed_amount == 2 * amount
     assert cts.new_account_principal == 3 * amount
-    assert p.get_or_create_account(D_ID, C_ID).last_outgoing_transfer_date is None
+    assert p.get_account(D_ID, C_ID).last_outgoing_transfer_date is None
 
 
-def test_make_debtor_zero_payment(db_session):
-    p.get_or_create_account(D_ID, C_ID)
+def test_make_debtor_zero_payment(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     p.make_debtor_payment('interest', D_ID, C_ID, 0)
     assert not PendingAccountChange.query.all()
     p.process_pending_account_changes(D_ID, C_ID)
@@ -130,8 +130,8 @@ def test_make_debtor_zero_payment(db_session):
     assert not CommittedTransferSignal.query.all()
 
 
-def test_make_debtor_creditor_account_deletion(db_session, amount):
-    p.get_or_create_account(D_ID, C_ID)
+def test_make_debtor_creditor_account_deletion(db_session, current_ts, amount):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     p.make_debtor_payment('delete_account', D_ID, C_ID, amount)
     changes = PendingAccountChange.query.all()
     assert len(changes) == 1
@@ -144,8 +144,8 @@ def test_make_debtor_creditor_account_deletion(db_session, amount):
     assert len(CommittedTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 0
 
 
-def test_make_debtor_interest_payment(db_session, amount):
-    p.get_or_create_account(D_ID, C_ID)
+def test_make_debtor_interest_payment(db_session, current_ts, amount):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     p.make_debtor_payment('interest', D_ID, C_ID, amount)
     root_change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
@@ -155,8 +155,8 @@ def test_make_debtor_interest_payment(db_session, amount):
     assert change.interest_delta == -amount
 
 
-def test_process_pending_account_changes(db_session):
-    p.get_or_create_account(D_ID, C_ID)
+def test_process_pending_account_changes(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     assert len(p.get_accounts_with_pending_changes()) == 0
     p.make_debtor_payment('test', D_ID, C_ID, 10000)
     assert len(p.get_accounts_with_pending_changes()) == 2
@@ -177,8 +177,8 @@ def test_process_pending_account_changes(db_session):
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID).principal == -10000
 
 
-def test_positive_overflow(db_session):
-    p.get_or_create_account(D_ID, C_ID)
+def test_positive_overflow(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
 
     p.make_debtor_payment('test', D_ID, C_ID, MAX_INT64)
     p.process_pending_account_changes(D_ID, C_ID)
@@ -189,8 +189,8 @@ def test_positive_overflow(db_session):
     assert p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
 
 
-def test_negative_overflow(db_session):
-    p.get_or_create_account(D_ID, C_ID)
+def test_negative_overflow(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
 
     p.make_debtor_payment('test', D_ID, C_ID, -MAX_INT64)
     p.process_pending_account_changes(D_ID, C_ID)
@@ -207,7 +207,7 @@ def test_get_available_balance(db_session, current_ts):
 
     assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID) == 0
     assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, -1000) == 1000
-    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID) == 0
     assert p.get_available_balance(D_ID, p.ROOT_CREDITOR_ID, -1000) == 1000
     q_root.update({
@@ -219,7 +219,7 @@ def test_get_available_balance(db_session, current_ts):
 
     assert p.get_available_balance(D_ID, C_ID, -1000) == 0
     assert p.get_available_balance(D_ID, C_ID) == 0
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     assert p.get_available_balance(D_ID, C_ID) == 0
     q.update({
         Account.interest: 100.0,
@@ -251,7 +251,7 @@ def test_get_available_balance(db_session, current_ts):
 def test_capitalize_positive_interest(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
 
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     q.update({
         Account.interest: 100.0,
         Account.principal: 5000,
@@ -272,7 +272,7 @@ def test_capitalize_positive_interest(db_session, current_ts):
 def test_capitalize_negative_interest(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
 
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     q.update({
         Account.interest: -100.0,
         Account.principal: 5000,
@@ -291,7 +291,7 @@ def test_capitalize_negative_interest(db_session, current_ts):
 
 
 def test_debtor_account_capitalization(db_session, current_ts):
-    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     q.update({Account.interest: 100.0, Account.principal: 50})
     p.capitalize_interest(D_ID, p.ROOT_CREDITOR_ID, 0, current_ts)
@@ -303,13 +303,13 @@ def test_debtor_account_capitalization(db_session, current_ts):
 
 def test_delete_account(db_session, current_ts):
     assert p.get_account(D_ID, C_ID) is None
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     a = p.get_account(D_ID, C_ID)
     creation_date = a.creation_date
     assert a is not None
     assert not a.status & Account.STATUS_DELETED_FLAG
     assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    p.configure_account(D_ID, C_ID, current_ts, 0, is_scheduled_for_deletion=True)
+    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True)
     p.try_to_delete_account(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID) is None
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
@@ -335,10 +335,10 @@ def test_delete_account(db_session, current_ts):
 
 
 def test_delete_account_negative_balance(db_session, current_ts):
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: -1})
-    p.configure_account(D_ID, C_ID, current_ts, 0, is_scheduled_for_deletion=True, negligible_amount=MAX_INT64)
+    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True, negligible_amount=MAX_INT64)
     p.try_to_delete_account(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
@@ -346,7 +346,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
     # Verify that incoming transfers are not allowed:
-    p.get_or_create_account(D_ID, 1234)
+    p.configure_account(D_ID, 1234, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 200})
     p.prepare_transfer(
@@ -374,10 +374,10 @@ def test_delete_account_negative_balance(db_session, current_ts):
 
 
 def test_delete_account_tiny_positive_balance(db_session, current_ts):
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 2, Account.interest: -1.0})
-    p.configure_account(D_ID, C_ID, current_ts, 0, is_scheduled_for_deletion=True, negligible_amount=2.0)
+    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True, negligible_amount=2.0)
     p.try_to_delete_account(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID) is None
     a = q.one()
@@ -405,8 +405,8 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
 def test_delete_debtor_account(db_session, current_ts):
     future_ts = current_ts + timedelta(days=1000)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
-    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
 
     # There is another existing account.
     p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID)
@@ -415,7 +415,7 @@ def test_delete_debtor_account(db_session, current_ts):
     assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
     # Delete the other account.
-    p.configure_account(D_ID, C_ID, current_ts, 0, is_scheduled_for_deletion=True)
+    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True)
     p.try_to_delete_account(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID) is None
     p.purge_deleted_account(D_ID, C_ID, if_deleted_before=future_ts, allow_hasty_purges=True)
@@ -429,10 +429,10 @@ def test_delete_debtor_account(db_session, current_ts):
 
 
 def test_resurect_deleted_account_create(db_session, current_ts):
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
-    p.configure_account(D_ID, C_ID, current_ts, 0, is_scheduled_for_deletion=True, negligible_amount=10.0)
+    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True, negligible_amount=10.0)
     p.try_to_delete_account(D_ID, C_ID)
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
     assert q.one().interest_rate == 0.0
@@ -440,10 +440,10 @@ def test_resurect_deleted_account_create(db_session, current_ts):
 
 
 def test_resurect_deleted_account_transfer(db_session, current_ts):
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
-    p.configure_account(D_ID, C_ID, current_ts, 0, is_scheduled_for_deletion=True, negligible_amount=10.0)
+    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True, negligible_amount=10.0)
     p.try_to_delete_account(D_ID, C_ID)
     assert not p.get_account(D_ID, C_ID)
     p.make_debtor_payment('test', D_ID, C_ID, 1)
@@ -454,9 +454,9 @@ def test_resurect_deleted_account_transfer(db_session, current_ts):
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
 
-def test_prepare_transfer_insufficient_funds(db_session):
-    p.get_or_create_account(D_ID, 1234)
-    p.get_or_create_account(D_ID, C_ID)
+def test_prepare_transfer_insufficient_funds(db_session, current_ts):
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     assert len(AccountChangeSignal.query.all()) == 2
     p.prepare_transfer(
         coordinator_type='test',
@@ -485,8 +485,8 @@ def test_prepare_transfer_insufficient_funds(db_session):
     assert rts.coordinator_request_id == 2
 
 
-def test_prepare_transfer_account_does_not_exist(db_session):
-    p.get_or_create_account(D_ID, C_ID)
+def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 100})
     p.prepare_transfer(
@@ -508,8 +508,8 @@ def test_prepare_transfer_account_does_not_exist(db_session):
     assert rts.details['error_code'] == 'ACC003'
 
 
-def test_prepare_transfer_to_self(db_session):
-    p.get_or_create_account(D_ID, C_ID)
+def test_prepare_transfer_to_self(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 100})
     p.prepare_transfer(
@@ -531,9 +531,9 @@ def test_prepare_transfer_to_self(db_session):
     assert rts.details['error_code'] == 'ACC002'
 
 
-def test_prepare_transfer_too_many_prepared_transfers(db_session):
-    p.get_or_create_account(D_ID, C_ID)
-    p.get_or_create_account(D_ID, 1234)
+def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 1234, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 100, Account.pending_transfers_count: MAX_INT32})
     p.prepare_transfer(
@@ -555,10 +555,10 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session):
     assert rts.details['error_code'] == 'ACC006'
 
 
-def test_prepare_transfer_success(db_session):
+def test_prepare_transfer_success(db_session, current_ts):
     assert 1234 != C_ID
-    p.get_or_create_account(D_ID, 1234)
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 1234, current_ts, 0)
     assert len(AccountChangeSignal.query.all()) == 2
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 100})
@@ -612,9 +612,9 @@ def test_prepare_transfer_success(db_session):
     assert len(CommittedTransferSignal.query.all()) == 0
 
 
-def test_commit_prepared_transfer(db_session):
-    p.get_or_create_account(D_ID, 1234)
-    p.get_or_create_account(D_ID, C_ID)
+def test_commit_prepared_transfer(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 1234, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 100})
     p.prepare_transfer(
@@ -661,9 +661,9 @@ def test_commit_prepared_transfer(db_session):
     assert cts2.committed_amount == 40
 
 
-def test_commit_to_debtor_account(db_session):
-    p.get_or_create_account(D_ID, p.ROOT_CREDITOR_ID)
-    p.get_or_create_account(D_ID, C_ID)
+def test_commit_to_debtor_account(db_session, current_ts):
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 200, Account.interest: -150.0})
     p.prepare_transfer(
@@ -692,9 +692,9 @@ def test_get_dead_transfers(db_session):
     assert p.get_dead_transfers() == []
 
 
-def test_get_debtor_account_list(db_session):
-    p.get_or_create_account(D_ID, C_ID)
-    p.get_or_create_account(D_ID, C_ID + 1)
+def test_get_debtor_account_list(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, C_ID + 1, current_ts, 0)
     accounts = p.get_debtor_account_list(D_ID, start_after=None, limit=None)
     assert len(accounts) == 2
     assert accounts[0].creditor_id == C_ID
@@ -715,7 +715,7 @@ def test_marshmallow_auto_generated_classes(db_session):
 
 
 def test_zero_out_negative_balance(db_session, current_ts):
-    p.get_or_create_account(D_ID, C_ID)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({
         Account.interest: 100.99,
@@ -725,7 +725,7 @@ def test_zero_out_negative_balance(db_session, current_ts):
     p.zero_out_negative_balance(D_ID, C_ID, current_ts.date())
     p.process_pending_account_changes(D_ID, C_ID)
     assert p.get_available_balance(D_ID, C_ID) == 0
-    p.configure_account(D_ID, C_ID, current_ts, 0, is_scheduled_for_deletion=True)
+    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True)
     p.try_to_delete_account(D_ID, C_ID)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     assert q.one().status & Account.STATUS_DELETED_FLAG

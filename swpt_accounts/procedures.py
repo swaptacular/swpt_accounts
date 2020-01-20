@@ -7,7 +7,7 @@ from swpt_lib.utils import is_later_event
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, \
-    increment_seqnum, get_now_utc, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+    increment_seqnum, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -40,14 +40,6 @@ def get_debtor_account_list(debtor_id: int, start_after: int = None, limit: bool
 @atomic
 def get_account(debtor_id: int, creditor_id: int) -> Optional[Account]:
     return _get_account((debtor_id, creditor_id))
-
-
-@atomic
-def get_or_create_account(debtor_id: int, creditor_id: int) -> Account:
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-
-    return _get_or_create_account(debtor_id, creditor_id)
 
 
 @atomic
@@ -245,18 +237,21 @@ def configure_account(
         is_scheduled_for_deletion: bool = False,
         negligible_amount: float = 2.0) -> None:
 
-    # TODO: Do not create a new account when is_scheduled_for_deletion is True
-    # TODO: Do send more than one `AccountChangeSignal`.
-
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert change_ts is not None
+    assert change_seqnum is not None
+    assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
     assert negligible_amount >= 2.0
-    account = _get_or_create_account(debtor_id, creditor_id, lock=True)
+
+    account = _get_or_create_account(debtor_id, creditor_id, lock=True, send_account_creation_signal=False)
     this_event = (change_ts, change_seqnum)
     prev_event = (account.config_last_change_ts, account.config_last_change_seqnum)
     if is_later_event(this_event, prev_event):
+        # When a new account is created, this block is guaranteed to
+        # be executed, because `account.config_last_change_ts` for
+        # newly created accounts is always `None`.
         if is_scheduled_for_deletion:
-            assert creditor_id != ROOT_CREDITOR_ID
             account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         else:
             account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
@@ -440,16 +435,17 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
     ))
 
 
-def _create_account(debtor_id: int, creditor_id: int) -> Account:
+def _create_account(debtor_id: int, creditor_id: int, send_account_change_signal: bool = True) -> Account:
     account = Account(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         status=PRISTINE_ACCOUNT_STATUS,
-        creation_date=get_now_utc().date(),
+        creation_date=datetime.now(tz=timezone.utc).date(),
     )
     with db.retry_on_integrity_error():
         db.session.add(account)
-    _insert_account_change_signal(account)
+    if send_account_change_signal:
+        _insert_account_change_signal(account)
     return account
 
 
@@ -466,14 +462,15 @@ def _get_account(account_or_pk: AccountId, lock: bool = False) -> Optional[Accou
 def _get_or_create_account(
         debtor_id: int,
         creditor_id: int,
-        lock: bool = False) -> Account:
+        lock: bool = False,
+        send_account_creation_signal: bool = True) -> Account:
 
     if lock:
         account = Account.lock_instance((debtor_id, creditor_id))
-    else:
+    else:  # pragma: no cover
         account = Account.get_instance((debtor_id, creditor_id))
     if account is None:
-        account = _create_account(debtor_id, creditor_id)
+        account = _create_account(debtor_id, creditor_id, send_account_creation_signal)
     elif account.status & Account.STATUS_DELETED_FLAG:
         _resurrect_deleted_account(account)
 

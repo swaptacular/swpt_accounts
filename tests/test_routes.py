@@ -1,6 +1,7 @@
 import json
 import pytest
-from swpt_accounts.procedures import get_or_create_account
+from datetime import datetime, timezone
+from swpt_accounts.procedures import configure_account, get_account
 
 
 @pytest.fixture(scope='function')
@@ -10,7 +11,8 @@ def client(app, db_session):
 
 @pytest.fixture(scope='function')
 def account():
-    return get_or_create_account(1, 1)
+    configure_account(1, 1, datetime.now(tz=timezone.utc), 0)
+    return get_account(1, 1)
 
 
 def test_get_accounts(client, account):
