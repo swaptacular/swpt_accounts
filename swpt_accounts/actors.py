@@ -34,6 +34,13 @@ def configure_account(
 
     An `AccountChangeSignal` is always sent as a confirmation.
 
+    NOTE: In order to decide whether to update the configuration when
+    a (potentially old) `configure_account` signal is received, the
+    implementation compares the `change_ts` of the current call, to
+    the `change_ts` of the latest call. Only if they are equal, the
+    `change_seqnum`s are compared as well (correctly dealing with
+    possible integer wrapping).
+
     """
 
     procedures.configure_account(
