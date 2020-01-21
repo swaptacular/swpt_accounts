@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: e00444bae88f
+Revision ID: 8824029d6331
 Revises: 
-Create Date: 2020-01-19 22:52:50.127096
+Create Date: 2020-01-21 13:07:53.644453
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'e00444bae88f'
+revision = '8824029d6331'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -24,8 +24,6 @@ def upgrade():
     sa.Column('creation_date', sa.DATE(), nullable=False, comment='The date at which the account was created. This also becomes the value of the `committed_transfer_signal.transfer_epoch` column for each committed transfer for the account.'),
     sa.Column('principal', sa.BigInteger(), nullable=False, comment='The owed amount, without the interest. Can be negative.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account. Can be negative.'),
-    sa.Column('interest_rate_last_change_seqnum', sa.Integer(), nullable=True, comment='The value of the `change_seqnum` attribute, received with the most recent `change_interest_rate` signal. It is used to decide whether to change the interest rate when a (potentially old) `change_interest_rate` signal is received.'),
-    sa.Column('interest_rate_last_change_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The value of the `change_ts` attribute, received with the most recent `change_interest_rate` signal. It is used to decide whether to change the interest rate when a (potentially old) `change_interest_rate` signal is received.'),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest` gets zeroed and added to the principal once in a while (like once per week).'),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.sender_locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),

@@ -121,13 +121,7 @@ def finalize_prepared_transfer(
 
 
 @atomic
-def change_interest_rate(
-        debtor_id: int,
-        creditor_id: int,
-        change_seqnum: int,
-        change_ts: datetime,
-        interest_rate: float) -> None:
-
+def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float) -> None:
     # Too big positive interest rates can cause account balance
     # overflows. To prevent this, the interest rates should be kept
     # within reasonable limits, and the accumulated interest should be
@@ -142,11 +136,13 @@ def change_interest_rate(
         interest_rate = INTEREST_RATE_FLOOR
 
     account = get_account(debtor_id, creditor_id, lock=True)
-    if account:
-        this_event = (change_ts, change_seqnum)
-        prev_event = (account.interest_rate_last_change_ts, account.interest_rate_last_change_seqnum)
-        if is_later_event(this_event, prev_event):
-            _change_interest_rate(account, change_seqnum, change_ts, interest_rate)
+    if account and not (account.interest_rate == interest_rate
+                        and account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG):
+        current_ts = datetime.now(tz=timezone.utc)
+        account.interest = float(_calc_account_accumulated_interest(account, current_ts))
+        account.interest_rate = interest_rate
+        account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+        _insert_account_change_signal(account, current_ts)
 
 
 @atomic
@@ -486,8 +482,6 @@ def _resurrect_deleted_account(account: Account) -> None:
     account.locked_amount = 0
     account.interest = 0.0
     account.interest_rate = 0.0
-    account.interest_rate_last_change_seqnum = None
-    account.interest_rate_last_change_ts = None
     account.last_outgoing_transfer_date = None
     account.status = PRISTINE_ACCOUNT_STATUS | account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
     assert not account.status & Account.STATUS_DELETED_FLAG
@@ -523,21 +517,6 @@ def _get_available_balance(account: Account, minimum_account_balance: int = 0) -
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
     return _calc_account_current_balance(account, current_ts) - account.principal
-
-
-def _change_interest_rate(
-        account: Account,
-        change_seqnum: int,
-        change_ts: datetime,
-        interest_rate: float) -> None:
-
-    current_ts = datetime.now(tz=timezone.utc)
-    account.interest = float(_calc_account_accumulated_interest(account, current_ts))
-    account.interest_rate = interest_rate
-    account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-    account.interest_rate_last_change_seqnum = change_seqnum
-    account.interest_rate_last_change_ts = change_ts
-    _insert_account_change_signal(account, current_ts)
 
 
 def _execute_transfer(

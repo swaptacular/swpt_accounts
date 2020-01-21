@@ -86,20 +86,6 @@ class Account(db.Model):
         comment='Annual rate (in percents) at which interest accumulates on the account. Can '
                 'be negative.',
     )
-    interest_rate_last_change_seqnum = db.Column(
-        db.Integer,
-        comment='The value of the `change_seqnum` attribute, received with the most recent '
-                '`change_interest_rate` signal. It is used to decide whether to change the '
-                'interest rate when a (potentially old) `change_interest_rate` signal is '
-                'received.',
-    )
-    interest_rate_last_change_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        comment='The value of the `change_ts` attribute, received with the most recent '
-                '`change_interest_rate` signal. It is used to decide whether to change the '
-                'interest rate when a (potentially old) `change_interest_rate` signal is '
-                'received.',
-    )
     interest = db.Column(
         db.FLOAT,
         nullable=False,

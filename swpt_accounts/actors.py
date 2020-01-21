@@ -176,17 +176,13 @@ def finalize_prepared_transfer(
 def change_interest_rate(
         debtor_id: int,
         creditor_id: int,
-        change_seqnum: int,
-        change_ts: str,
         interest_rate: float) -> None:
 
-    """Change the interest rate on a given account."""
+    """Change the interest rate on the account `(debtor_id, creditor_id)`."""
 
     procedures.change_interest_rate(
         debtor_id,
         creditor_id,
-        change_seqnum,
-        iso8601.parse_date(change_ts),
         interest_rate,
     )
 
