@@ -246,8 +246,8 @@ def configure_account(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT32 <= change_seqnum <= MAX_INT32
     assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
-    assert negligible_amount >= 2.0
 
+    negligible_amount = max(2.0, negligible_amount)
     account = _get_or_create_account(debtor_id, creditor_id, lock=True, send_account_creation_signal=False)
     this_event = (change_ts, change_seqnum)
     prev_event = (account.config_last_change_ts, account.config_last_change_seqnum)
