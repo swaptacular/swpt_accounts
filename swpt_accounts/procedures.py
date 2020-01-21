@@ -247,7 +247,6 @@ def configure_account(
     assert MIN_INT32 <= change_seqnum <= MAX_INT32
     assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
 
-    negligible_amount = max(2.0, negligible_amount)
     account = _get_or_create_account(debtor_id, creditor_id, lock=True, send_account_creation_signal=False)
     this_event = (change_ts, change_seqnum)
     prev_event = (account.config_last_change_ts, account.config_last_change_seqnum)
@@ -260,7 +259,7 @@ def configure_account(
             account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         else:
             account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-        account.negligible_amount = negligible_amount
+        account.negligible_amount = max(2.0, negligible_amount)
         account.config_last_change_ts = change_ts
         account.config_last_change_seqnum = change_seqnum
         _insert_account_change_signal(account)
