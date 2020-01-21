@@ -511,8 +511,8 @@ def _get_available_balance(account: Account, minimum_account_balance: int = 0) -
         # allowed to issue money.
         minimum_account_balance = max(0, minimum_account_balance)
 
-    available_balance = math.floor(_calc_account_current_balance(account)) - account.locked_amount
-    return available_balance - minimum_account_balance
+    current_balance = math.floor(_calc_account_current_balance(account))
+    return current_balance - minimum_account_balance - account.locked_amount
 
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
