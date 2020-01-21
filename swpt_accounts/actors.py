@@ -17,13 +17,13 @@ def configure_account(
 
     * `change_ts` is the current timestamp. For a given account, later
       calls to `configure_account` should have later or equal
-      timestamps compared to earlier calls.
+      timestamps, compared to earlier calls.
 
-    * `change_seqnum` is the 32-bit sequential number of the call. For
-      a given account, later calls to `configure_account` should have
-      bigger sequential numbers compared to earlier calls (except for
-      the possible 32-bit integer wrapping, in case of an integer
-      overflow).
+    * `change_seqnum` is the sequential number of the call (a signed
+      32-bit integer). For a given account, later calls to
+      `configure_account` should have bigger sequential numbers,
+      compared to earlier calls (except for the possible signed 32-bit
+      integer wrapping, in case of an overflow).
 
     * `is_scheduled_for_deletion` determines whether the account is
       scheduled for deletion.
