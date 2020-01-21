@@ -245,10 +245,10 @@ def configure_account(
 
     account = _get_or_create_account(debtor_id, creditor_id, lock=True, send_account_creation_signal=False)
     this_event = (change_ts, change_seqnum)
-    prev_event = (account.config_last_change_ts, account.config_last_change_seqnum)
+    prev_event = (account.last_config_change_ts, account.last_config_change_seqnum)
     if is_later_event(this_event, prev_event):
         # When a new account is created, this block is guaranteed to
-        # be executed, because `account.config_last_change_ts` for
+        # be executed, because `account.last_config_change_ts` for
         # newly created accounts is always `None`, which means that
         # `is_later_event(this_event, prev_event)` is `True`.
         if is_scheduled_for_deletion:
@@ -256,8 +256,8 @@ def configure_account(
         else:
             account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         account.negligible_amount = max(2.0, negligible_amount)
-        account.config_last_change_ts = change_ts
-        account.config_last_change_seqnum = change_seqnum
+        account.last_config_change_ts = change_ts
+        account.last_config_change_seqnum = change_seqnum
         _insert_account_change_signal(account)
 
 

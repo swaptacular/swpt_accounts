@@ -170,15 +170,15 @@ class Account(db.Model):
         comment='An amount that is considered negligible. It is used to decide whether '
                 'an account can be safely deleted or not.',
     )
-    config_last_change_seqnum = db.Column(
-        db.Integer,
-        comment='The value of the `change_seqnum` attribute, received with the most recent '
+    last_config_change_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        comment='The value of the `change_ts` attribute, received with the most recent '
                 '`configure_account` signal. It is used to decide whether to update the '
                 'configuration when a (potentially old) `configure_account` signal is received.',
     )
-    config_last_change_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        comment='The value of the `change_ts` attribute, received with the most recent '
+    last_config_change_seqnum = db.Column(
+        db.Integer,
+        comment='The value of the `change_seqnum` attribute, received with the most recent '
                 '`configure_account` signal. It is used to decide whether to update the '
                 'configuration when a (potentially old) `configure_account` signal is received.',
     )
