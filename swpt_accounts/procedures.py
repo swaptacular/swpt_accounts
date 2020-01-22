@@ -480,10 +480,6 @@ def _get_or_create_account(
 
 def _resurrect_deleted_account(account: Account) -> None:
     assert account.status & Account.STATUS_DELETED_FLAG
-    assert account.principal == 0
-    assert account.interest == 0.0
-    assert account.pending_transfers_count == 0
-    assert account.locked_amount == 0
     account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     account.status &= ~Account.STATUS_DELETED_FLAG
     assert not account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
