@@ -247,7 +247,7 @@ def configure_account(
     assert MIN_INT32 <= change_seqnum <= MAX_INT32
     assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
 
-    account = _get_or_create_account(debtor_id, creditor_id, send_account_creation_signal=False)
+    account = _lock_or_create_account(debtor_id, creditor_id, send_account_creation_signal=False)
     this_event = (change_ts, change_seqnum)
     prev_event = (account.last_config_change_ts, account.last_config_change_seqnum)
     if is_later_event(this_event, prev_event):
@@ -374,7 +374,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         nonzero_deltas = False
         principal_delta = 0
         interest_delta = 0
-        account = _get_or_create_account(debtor_id, creditor_id)
+        account = _lock_or_create_account(debtor_id, creditor_id)
         current_ts = datetime.now(tz=timezone.utc)
         current_date = current_ts.date()
         for change in changes:
@@ -464,7 +464,7 @@ def _get_account_instance(debtor_id: int, creditor_id: int, lock: bool = False) 
     return account
 
 
-def _get_or_create_account(debtor_id: int, creditor_id: int, send_account_creation_signal: bool = True) -> Account:
+def _lock_or_create_account(debtor_id: int, creditor_id: int, send_account_creation_signal: bool = True) -> Account:
     account = _get_account_instance(debtor_id, creditor_id, lock=True)
     if account is None:
         account = _create_account(debtor_id, creditor_id)
