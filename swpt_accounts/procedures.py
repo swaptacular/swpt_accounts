@@ -464,11 +464,7 @@ def _get_account_instance(debtor_id: int, creditor_id: int, lock: bool = False) 
     return account
 
 
-def _get_or_create_account(
-        debtor_id: int,
-        creditor_id: int,
-        send_account_creation_signal: bool = True) -> Account:
-
+def _get_or_create_account(debtor_id: int, creditor_id: int, send_account_creation_signal: bool = True) -> Account:
     account = _get_account_instance(debtor_id, creditor_id, lock=True)
     if account is None:
         account = _create_account(debtor_id, creditor_id)
