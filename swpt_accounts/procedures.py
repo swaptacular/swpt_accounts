@@ -139,6 +139,10 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float)
     if account and not (account.interest_rate == interest_rate
                         and account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG):
         current_ts = datetime.now(tz=timezone.utc)
+
+        # Before changing the interest rate, we must not forget to
+        # calculate the interest accumulated after the last account
+        # change. (For that, we must use the old interest rate).
         account.interest = float(_calc_account_accumulated_interest(account, current_ts))
         account.interest_rate = interest_rate
         account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
@@ -251,16 +255,14 @@ def configure_account(
         # be executed, because `account.last_config_change_ts` for
         # newly created accounts is always `None`, which means that
         # `is_later_event(this_event, prev_event)` is `True`.
-        current_ts = datetime.now(tz=timezone.utc)
-        account.interest = float(_calc_account_accumulated_interest(account, current_ts))
-        account.last_config_change_ts = change_ts
-        account.last_config_change_seqnum = change_seqnum
-        account.negligible_amount = max(2.0, negligible_amount)
         if is_scheduled_for_deletion:
             account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         else:
             account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-        _insert_account_change_signal(account, current_ts)
+        account.negligible_amount = max(2.0, negligible_amount)
+        account.last_config_change_ts = change_ts
+        account.last_config_change_seqnum = change_seqnum
+        _apply_account_change(account, 0, 0, datetime.now(tz=timezone.utc))
 
 
 @atomic
