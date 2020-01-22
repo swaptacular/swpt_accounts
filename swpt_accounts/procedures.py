@@ -598,8 +598,8 @@ def _insert_committed_transfer_signal(
     account.last_transfer_seqnum += 1
 
     # We do not send notifications for transfers from/to the debtor's
-    # account, because the debtor's account account does not have a
-    # real owning creditor.
+    # account, because the debtor's account does not have a real
+    # owning creditor.
     if account.creditor_id != ROOT_CREDITOR_ID:
         db.session.add(CommittedTransferSignal(
             debtor_id=account.debtor_id,
