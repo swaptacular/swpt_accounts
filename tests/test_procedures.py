@@ -421,18 +421,20 @@ def test_delete_debtor_account(db_session, current_ts):
     assert q.one_or_none() is None
 
 
-def test_resurect_deleted_account_create(db_session, current_ts):
+def test_resurrect_deleted_account_create(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
     p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True, negligible_amount=10.0)
     p.try_to_delete_account(D_ID, C_ID)
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
-    assert q.one().interest_rate == 0.0
+    assert q.one().interest_rate == 10.0
+    assert not q.one().status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    assert not q.one().status & Account.STATUS_DELETED_FLAG
     assert not q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
 
-def test_resurect_deleted_account_transfer(db_session, current_ts):
+def test_resurrect_deleted_account_transfer(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
@@ -443,7 +445,9 @@ def test_resurect_deleted_account_transfer(db_session, current_ts):
     p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
-    assert a.interest_rate == 0.0
+    assert a.interest_rate == 10.0
+    assert not a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    assert not a.status & Account.STATUS_DELETED_FLAG
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
 
