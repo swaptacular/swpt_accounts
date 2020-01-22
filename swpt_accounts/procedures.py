@@ -542,6 +542,46 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
     _insert_account_change_signal(account, current_ts)
 
 
+def _make_debtor_payment(
+        coordinator_type: str,
+        account: Account,
+        amount: int,
+        transfer_info: dict = {},
+        current_ts: datetime = None) -> None:
+
+    assert -MAX_INT64 <= amount <= MAX_INT64
+    if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:
+        current_ts = current_ts or datetime.now(tz=timezone.utc)
+        _insert_pending_account_change(
+            debtor_id=account.debtor_id,
+            creditor_id=ROOT_CREDITOR_ID,
+            coordinator_type=coordinator_type,
+            other_creditor_id=account.creditor_id,
+            inserted_at_ts=current_ts,
+            transfer_info=transfer_info,
+            principal_delta=-amount,
+        )
+        _insert_committed_transfer_signal(
+            account=account,
+            coordinator_type=coordinator_type,
+            other_creditor_id=ROOT_CREDITOR_ID,
+            committed_at_ts=current_ts,
+            committed_amount=amount,
+            transfer_info=transfer_info,
+            new_account_principal=_contain_principal_overflow(account.principal + amount),
+        )
+        if coordinator_type != DELETE_ACCOUNT:
+            # We do not need to update the account principal and
+            # interest when deleting an account, because they are
+            # getting zeroed out anyway.
+            _apply_account_change(
+                account=account,
+                principal_delta=amount,
+                interest_delta=-amount if coordinator_type == INTEREST else 0,
+                current_ts=current_ts,
+            )
+
+
 def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Account]) -> list:
 
     def reject(**kw) -> List[RejectedTransferSignal]:
