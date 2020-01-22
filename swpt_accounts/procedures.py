@@ -163,7 +163,7 @@ def capitalize_interest(
         amount = math.floor(_calc_account_accumulated_interest(account, current_ts))
         amount = _contain_principal_overflow(amount)
         if abs(amount) >= positive_threshold:
-            make_debtor_payment(INTEREST, debtor_id, creditor_id, amount, current_ts=current_ts)
+            _make_debtor_payment(INTEREST, account, amount, current_ts=current_ts)
 
 
 @atomic
@@ -178,46 +178,48 @@ def make_debtor_payment(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert -MAX_INT64 <= amount <= MAX_INT64
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
-    is_account_deletion = coordinator_type == DELETE_ACCOUNT
-    is_interest_payment = coordinator_type == INTEREST
-    interest_delta = -amount if is_interest_payment else 0
+    account = _lock_or_create_account(debtor_id, creditor_id)
+    _make_debtor_payment(coordinator_type, account, amount, transfer_info, current_ts)
 
-    if creditor_id == ROOT_CREDITOR_ID:  # pragma: no cover
-        # The debtor pays himself.
-        pass
-    elif amount > 0:
-        # The debtor pays the creditor.
-        _execute_transfer(
+
+def _make_debtor_payment(
+        coordinator_type: str,
+        account: Account,
+        amount: int,
+        transfer_info: dict = {},
+        current_ts: datetime = None) -> None:
+
+    assert -MAX_INT64 <= amount <= MAX_INT64
+    if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:
+        current_ts = current_ts or datetime.now(tz=timezone.utc)
+        _insert_pending_account_change(
+            debtor_id=account.debtor_id,
+            creditor_id=ROOT_CREDITOR_ID,
             coordinator_type=coordinator_type,
-            debtor_id=debtor_id,
-            sender_creditor_id=ROOT_CREDITOR_ID,
-            recipient_creditor_id=creditor_id,
+            other_creditor_id=account.creditor_id,
+            inserted_at_ts=current_ts,
+            transfer_info=transfer_info,
+            principal_delta=-amount,
+        )
+        _insert_committed_transfer_signal(
+            account=account,
+            coordinator_type=coordinator_type,
+            other_creditor_id=ROOT_CREDITOR_ID,
             committed_at_ts=current_ts,
             committed_amount=amount,
             transfer_info=transfer_info,
-            recipient_interest_delta=interest_delta,
-
-            # We must not insert a `PendingAccountChange` record when
-            # an account is getting zeroed out for deletion, otherwise
-            # the account would be resurrected immediately.
-            omit_recipient_account_change=is_account_deletion,
+            new_account_principal=_contain_principal_overflow(account.principal + amount),
         )
-    elif amount < 0:
-        # The creditor pays the debtor.
-        _execute_transfer(
-            coordinator_type=coordinator_type,
-            debtor_id=debtor_id,
-            sender_creditor_id=creditor_id,
-            recipient_creditor_id=ROOT_CREDITOR_ID,
-            committed_at_ts=current_ts,
-            committed_amount=-amount,
-            transfer_info=transfer_info,
-            sender_interest_delta=interest_delta,
-
-            # See the corresponding comment for `omit_recipient_account_change`.
-            omit_sender_account_change=is_account_deletion,
-        )
+        if coordinator_type != DELETE_ACCOUNT:
+            # We do not need to update the account principal and
+            # interest when deleting an account, because they are
+            # getting zeroed out anyway.
+            _apply_account_change(
+                account=account,
+                principal_delta=amount,
+                interest_delta=-amount if coordinator_type == INTEREST else 0,
+                current_ts=current_ts,
+            )
 
 
 @atomic
@@ -230,7 +232,7 @@ def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_tr
         zero_out_amount = -math.floor(_calc_account_current_balance(account))
         zero_out_amount = _contain_principal_overflow(zero_out_amount)
         if account_date_is_ok and zero_out_amount > 0:
-            make_debtor_payment(ZERO_OUT_ACCOUNT, debtor_id, creditor_id, zero_out_amount)
+            _make_debtor_payment(ZERO_OUT_ACCOUNT, account, zero_out_amount)
 
 
 @atomic
@@ -284,22 +286,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
             is_scheduled_for_deletion = account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
             if has_negligible_balance and is_scheduled_for_deletion:
                 if account.principal != 0:
-                    make_debtor_payment(
-                        DELETE_ACCOUNT,
-                        debtor_id,
-                        creditor_id,
-                        -account.principal,
-                        current_ts=current_ts,
-                    )
-                    _insert_committed_transfer_signal(
-                        account=account,
-                        coordinator_type=DELETE_ACCOUNT,
-                        other_creditor_id=ROOT_CREDITOR_ID,
-                        committed_at_ts=current_ts,
-                        committed_amount=-account.principal,
-                        transfer_info={},
-                        new_account_principal=0,
-                    )
+                    _make_debtor_payment(DELETE_ACCOUNT, account, -account.principal, current_ts=current_ts)
                 _mark_account_as_deleted(account, current_ts)
 
 
@@ -365,6 +352,8 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
 
 @atomic
 def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
     changes = PendingAccountChange.query.\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         with_for_update(skip_locked=True).\

@@ -87,9 +87,10 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     root_change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
     assert root_change.interest_delta == 0
-    change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
-    assert change.principal_delta == amount
-    assert change.interest_delta == 0
+    assert len(PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 0
+    a = p.get_account(D_ID, C_ID)
+    assert a.principal == amount
+    assert a.interest == 0
 
     p.process_pending_account_changes(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
@@ -126,6 +127,13 @@ def test_make_debtor_zero_payment(db_session, current_ts):
 def test_make_debtor_creditor_account_deletion(db_session, current_ts, amount):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.make_debtor_payment('delete_account', D_ID, C_ID, amount)
+    cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
+    cts.debtor_id == D_ID
+    cts.creditor_id == C_ID
+    cts.coordinator_type == 'delete_account'
+    cts.other_creditor_id == p.ROOT_CREDITOR_ID
+    cts.committed_amount == amount
+    cts.new_account_principal == 0
     changes = PendingAccountChange.query.all()
     assert len(changes) == 1
     root_change = changes[0]
@@ -134,7 +142,6 @@ def test_make_debtor_creditor_account_deletion(db_session, current_ts, amount):
     assert root_change.interest_delta == 0
     p.process_pending_account_changes(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
-    assert len(CommittedTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 0
 
 
 def test_make_debtor_interest_payment(db_session, current_ts, amount):
@@ -143,30 +150,31 @@ def test_make_debtor_interest_payment(db_session, current_ts, amount):
     root_change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
     assert root_change.interest_delta == 0
-    change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
-    assert change.principal_delta == amount
-    assert change.interest_delta == -amount
+    assert not PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()
+    assert p.get_account(D_ID, C_ID).principal == amount
+    assert p.get_account(D_ID, C_ID).interest == -amount
+    cts = CommittedTransferSignal.query.filter_by(debtor_id=D_ID).one()
+    cts.debtor_id == D_ID
+    cts.creditor_id == C_ID
+    cts.coordinator_type == 'interest'
+    cts.other_creditor_id == p.ROOT_CREDITOR_ID
+    cts.committed_amount == amount
+    cts.new_account_principal == amount
 
 
 def test_process_pending_account_changes(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     assert len(p.get_accounts_with_pending_changes()) == 0
     p.make_debtor_payment('test', D_ID, C_ID, 10000)
-    assert len(p.get_accounts_with_pending_changes()) == 2
-    p.process_pending_account_changes(D_ID, C_ID)
+    assert len(p.get_accounts_with_pending_changes()) == 1
+    assert p.get_account(D_ID, p.ROOT_CREDITOR_ID) is None
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
-    assert AccountChangeSignal.query.filter_by(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        principal=10000,
-    ).one_or_none()
     assert AccountChangeSignal.query.filter_by(
         debtor_id=D_ID,
         creditor_id=p.ROOT_CREDITOR_ID,
         principal=-10000,
     ).one_or_none()
     assert len(p.get_accounts_with_pending_changes()) == 0
-    assert p.get_account(D_ID, C_ID).principal == 10000
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID).principal == -10000
 
 
