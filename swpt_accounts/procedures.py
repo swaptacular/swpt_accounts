@@ -251,14 +251,16 @@ def configure_account(
         # be executed, because `account.last_config_change_ts` for
         # newly created accounts is always `None`, which means that
         # `is_later_event(this_event, prev_event)` is `True`.
+        current_ts = datetime.now(tz=timezone.utc)
+        account.interest = float(_calc_account_accumulated_interest(account, current_ts))
+        account.last_config_change_ts = change_ts
+        account.last_config_change_seqnum = change_seqnum
+        account.negligible_amount = max(2.0, negligible_amount)
         if is_scheduled_for_deletion:
             account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         else:
             account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-        account.negligible_amount = max(2.0, negligible_amount)
-        account.last_config_change_ts = change_ts
-        account.last_config_change_seqnum = change_seqnum
-        _insert_account_change_signal(account)
+        _insert_account_change_signal(account, current_ts)
 
 
 @atomic
