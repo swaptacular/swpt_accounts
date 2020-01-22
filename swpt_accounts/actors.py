@@ -16,12 +16,12 @@ def configure_account(
     update its configuration settings.
 
     * `change_ts` is the current timestamp. For a given account, later
-      calls to `configure_account` should have later or equal
+      calls to `configure_account` MUST have later or equal
       timestamps, compared to earlier calls.
 
     * `change_seqnum` is the sequential number of the call (a signed
       32-bit integer). For a given account, later calls to
-      `configure_account` should have bigger sequential numbers,
+      `configure_account` SHOULD have bigger sequential numbers,
       compared to earlier calls (except for the possible signed 32-bit
       integer wrapping, in case of an overflow).
 
@@ -30,7 +30,7 @@ def configure_account(
 
     * `negligible_amount` is the maximum account balance that should
        be considered negligible. It is used to decide whether an
-       account can be safely deleted. Should be at least `2.0`.
+       account can be safely deleted. SHOULD be at least `2.0`.
 
     An `AccountChangeSignal` is always sent as a confirmation.
 
@@ -120,7 +120,7 @@ def prepare_transfer(
     1. "initiated" CR records can be deleted whenever considered
        appropriate.
 
-    2. "prepared" CR records must not be deleted. Instead, they should
+    2. "prepared" CR records MUST NOT be deleted. Instead, they should
        be "finalized" first (by sending a message to the
        `finalize_prepared_transfer` actor).
 
