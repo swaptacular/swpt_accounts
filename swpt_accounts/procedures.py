@@ -476,17 +476,10 @@ def _get_or_create_account(
         if send_account_creation_signal:
             _insert_account_change_signal(account)
     if account.status & Account.STATUS_DELETED_FLAG:
-        _resurrect_deleted_account(account)
+        account.status &= ~Account.STATUS_DELETED_FLAG
+        account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+        _insert_account_change_signal(account)
     return account
-
-
-def _resurrect_deleted_account(account: Account) -> None:
-    assert account.status & Account.STATUS_DELETED_FLAG
-    account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-    account.status &= ~Account.STATUS_DELETED_FLAG
-    assert not account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-    assert not account.status & Account.STATUS_DELETED_FLAG
-    _insert_account_change_signal(account)
 
 
 def _calc_account_current_balance(account: Account, current_ts: datetime = None) -> Decimal:
