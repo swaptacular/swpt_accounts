@@ -96,6 +96,7 @@ def finalize_prepared_transfer(
 
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
+        assert pt.sender_locked_amount > 0
         if committed_amount == 0:
             _insert_pending_account_change(
                 debtor_id=pt.debtor_id,
@@ -105,15 +106,26 @@ def finalize_prepared_transfer(
                 unlocked_amount=pt.sender_locked_amount,
             )
         elif committed_amount > 0:
-            _execute_transfer(
-                coordinator_type=pt.coordinator_type,
+            current_ts = datetime.now(tz=timezone.utc)
+            committed_amount = min(committed_amount, pt.sender_locked_amount)
+            _insert_pending_account_change(
                 debtor_id=pt.debtor_id,
-                sender_creditor_id=pt.sender_creditor_id,
-                recipient_creditor_id=pt.recipient_creditor_id,
-                committed_at_ts=datetime.now(tz=timezone.utc),
-                committed_amount=min(committed_amount, pt.sender_locked_amount),
+                creditor_id=pt.sender_creditor_id,
+                coordinator_type=pt.coordinator_type,
+                other_creditor_id=pt.recipient_creditor_id,
+                inserted_at_ts=current_ts,
                 transfer_info=transfer_info,
-                sender_unlocked_amount=pt.sender_locked_amount,
+                principal_delta=-committed_amount,
+                unlocked_amount=pt.sender_locked_amount,
+            )
+            _insert_pending_account_change(
+                debtor_id=pt.debtor_id,
+                creditor_id=pt.recipient_creditor_id,
+                coordinator_type=pt.coordinator_type,
+                other_creditor_id=pt.sender_creditor_id,
+                inserted_at_ts=current_ts,
+                transfer_info=transfer_info,
+                principal_delta=committed_amount,
             )
         else:
             raise ValueError('The committed amount is negative.')
@@ -180,46 +192,6 @@ def make_debtor_payment(
     assert -MAX_INT64 <= amount <= MAX_INT64
     account = _lock_or_create_account(debtor_id, creditor_id)
     _make_debtor_payment(coordinator_type, account, amount, transfer_info, current_ts)
-
-
-def _make_debtor_payment(
-        coordinator_type: str,
-        account: Account,
-        amount: int,
-        transfer_info: dict = {},
-        current_ts: datetime = None) -> None:
-
-    assert -MAX_INT64 <= amount <= MAX_INT64
-    if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:
-        current_ts = current_ts or datetime.now(tz=timezone.utc)
-        _insert_pending_account_change(
-            debtor_id=account.debtor_id,
-            creditor_id=ROOT_CREDITOR_ID,
-            coordinator_type=coordinator_type,
-            other_creditor_id=account.creditor_id,
-            inserted_at_ts=current_ts,
-            transfer_info=transfer_info,
-            principal_delta=-amount,
-        )
-        _insert_committed_transfer_signal(
-            account=account,
-            coordinator_type=coordinator_type,
-            other_creditor_id=ROOT_CREDITOR_ID,
-            committed_at_ts=current_ts,
-            committed_amount=amount,
-            transfer_info=transfer_info,
-            new_account_principal=_contain_principal_overflow(account.principal + amount),
-        )
-        if coordinator_type != DELETE_ACCOUNT:
-            # We do not need to update the account principal and
-            # interest when deleting an account, because they are
-            # getting zeroed out anyway.
-            _apply_account_change(
-                account=account,
-                principal_delta=amount,
-                interest_delta=-amount if coordinator_type == INTEREST else 0,
-                current_ts=current_ts,
-            )
 
 
 @atomic
@@ -495,46 +467,6 @@ def _get_available_balance(account: Account, minimum_account_balance: int = 0) -
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
     return _calc_account_current_balance(account, current_ts) - account.principal
-
-
-def _execute_transfer(
-        coordinator_type: str,
-        debtor_id: int,
-        sender_creditor_id: int,
-        recipient_creditor_id,
-        committed_at_ts: datetime,
-        committed_amount: int,
-        transfer_info: dict = {},
-        sender_unlocked_amount: int = None,
-        sender_interest_delta: int = 0,
-        recipient_interest_delta: int = 0,
-        omit_sender_account_change: bool = False,
-        omit_recipient_account_change: bool = False) -> None:
-
-    assert committed_amount > 0
-    if not omit_sender_account_change:
-        _insert_pending_account_change(
-            debtor_id=debtor_id,
-            creditor_id=sender_creditor_id,
-            coordinator_type=coordinator_type,
-            other_creditor_id=recipient_creditor_id,
-            inserted_at_ts=committed_at_ts,
-            transfer_info=transfer_info,
-            principal_delta=-committed_amount,
-            interest_delta=sender_interest_delta,
-            unlocked_amount=sender_unlocked_amount,
-        )
-    if not omit_recipient_account_change:
-        _insert_pending_account_change(
-            debtor_id=debtor_id,
-            creditor_id=recipient_creditor_id,
-            coordinator_type=coordinator_type,
-            other_creditor_id=sender_creditor_id,
-            inserted_at_ts=committed_at_ts,
-            transfer_info=transfer_info,
-            principal_delta=committed_amount,
-            interest_delta=recipient_interest_delta,
-        )
 
 
 def _insert_pending_account_change(
