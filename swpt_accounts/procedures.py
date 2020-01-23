@@ -598,10 +598,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
         current_ts = datetime.now(tz=timezone.utc)
         sender_account.locked_amount = min(sender_account.locked_amount + amount, MAX_INT64)
         sender_account.pending_transfers_count += 1
-        if sender_account.last_transfer_id < MAX_INT64:
-            sender_account.last_transfer_id += 1
-        else:  # pragma: no cover
-            sender_account.last_transfer_id = MIN_INT64
+        sender_account.last_transfer_id += 1
         return [
             PreparedTransfer(
                 debtor_id=tr.debtor_id,
