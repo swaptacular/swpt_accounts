@@ -37,6 +37,14 @@ def get_debtor_account_list(debtor_id: int, start_after: int = None, limit: bool
 
 
 @atomic
+def get_dead_transfers(if_prepared_before: datetime = None) -> List[PreparedTransfer]:
+    if_prepared_before = if_prepared_before or datetime.now(tz=timezone.utc) - timedelta(days=7)
+    return PreparedTransfer.query.\
+        filter(PreparedTransfer.prepared_at_ts < if_prepared_before).\
+        all()
+
+
+@atomic
 def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optional[Account]:
     account = _get_account_instance(debtor_id, creditor_id, lock=lock)
     if account and not account.status & Account.STATUS_DELETED_FLAG:
@@ -241,9 +249,6 @@ def configure_account(
 
 @atomic
 def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-
     account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.pending_transfers_count == 0 and account.locked_amount == 0:
         if creditor_id == ROOT_CREDITOR_ID:
@@ -324,8 +329,6 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
 
 @atomic
 def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
     changes = PendingAccountChange.query.\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         with_for_update(skip_locked=True).\
@@ -367,14 +370,6 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 interest_delta=interest_delta,
                 current_ts=current_ts,
             )
-
-
-@atomic
-def get_dead_transfers(if_prepared_before: datetime = None) -> List[PreparedTransfer]:
-    if_prepared_before = if_prepared_before or datetime.now(tz=timezone.utc) - timedelta(days=7)
-    return PreparedTransfer.query.\
-        filter(PreparedTransfer.prepared_at_ts < if_prepared_before).\
-        all()
 
 
 def _contain_principal_overflow(value: int) -> int:
