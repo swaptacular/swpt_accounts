@@ -1,10 +1,9 @@
 import datetime
-import dramatiq
-from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, or_
 from swpt_lib.utils import date_to_int24
-from .extensions import db, broker, MAIN_EXCHANGE_NAME
+from .extensions import db
+from .events import *  # noqa
 
 MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
@@ -21,41 +20,6 @@ def get_now_utc() -> datetime.datetime:
 
 def increment_seqnum(n: int) -> int:
     return MIN_INT32 if n == MAX_INT32 else n + 1
-
-
-class Signal(db.Model):
-    __abstract__ = True
-
-    # TODO: Define `send_signalbus_messages` class method, set
-    #      `ModelClass.signalbus_autoflush = False` and
-    #      `ModelClass.signalbus_burst_count = N` in models.
-
-    queue_name = None
-
-    @property
-    def event_name(self):  # pragma: no cover
-        model = type(self)
-        return f'on_{model.__tablename__}'
-
-    def send_signalbus_message(self):  # pragma: no cover
-        model = type(self)
-        if model.queue_name is None:
-            assert not hasattr(model, 'actor_name'), \
-                'SignalModel.actor_name is set, but SignalModel.queue_name is not'
-            actor_name = self.event_name
-            routing_key = f'events.{actor_name}'
-        else:
-            actor_name = model.actor_name
-            routing_key = model.queue_name
-        data = model.__marshmallow_schema__.dump(self)
-        message = dramatiq.Message(
-            queue_name=model.queue_name,
-            actor_name=actor_name,
-            args=(),
-            kwargs=data,
-            options={},
-        )
-        broker.publish_message(message, exchange=MAIN_EXCHANGE_NAME, routing_key=routing_key)
 
 
 class Account(db.Model):
@@ -131,7 +95,7 @@ class Account(db.Model):
         db.DATE,
         comment='Updated on each transfer for which this account is the sender. It is not updated '
                 'on interest/demurrage payments. This field is used to determine when an account '
-                'with negative balance can be zeroed out for deletion.',
+                'with negative balance can be zeroed out.',
     )
     last_transfer_id = db.Column(
         db.BigInteger,
@@ -331,72 +295,3 @@ class PendingAccountChange(db.Model):
                        'contention on `account` table rows.',
         }
     )
-
-
-class PreparedTransferSignal(Signal):
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_id = db.Column(db.BigInteger, primary_key=True)
-    coordinator_type = db.Column(db.String(30), nullable=False)
-    coordinator_id = db.Column(db.BigInteger, nullable=False)
-    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
-    sender_locked_amount = db.Column(db.BigInteger, nullable=False)
-    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-
-    @property
-    def event_name(self):  # pragma: no cover
-        return f'on_prepared_{self.coordinator_type}_transfer_signal'
-
-
-class RejectedTransferSignal(Signal):
-    class __marshmallow__(Schema):
-        coordinator_type = fields.String()
-        coordinator_id = fields.Integer()
-        coordinator_request_id = fields.Integer()
-        details = fields.Raw()
-
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    coordinator_type = db.Column(db.String(30), nullable=False)
-    coordinator_id = db.Column(db.BigInteger, nullable=False)
-    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
-    details = db.Column(pg.JSON, nullable=False)
-
-    @property
-    def event_name(self):  # pragma: no cover
-        return f'on_rejected_{self.coordinator_type}_transfer_signal'
-
-
-class AccountChangeSignal(Signal):
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    change_seqnum = db.Column(db.Integer, primary_key=True)
-    change_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
-    principal = db.Column(db.BigInteger, nullable=False)
-    interest = db.Column(db.FLOAT, nullable=False)
-    interest_rate = db.Column(db.REAL, nullable=False)
-    last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
-    last_outgoing_transfer_date = db.Column(db.DATE)
-    creation_date = db.Column(db.DATE, nullable=False)
-    negligible_amount = db.Column(db.REAL, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False)
-
-
-class AccountPurgeSignal(Signal):
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(db.DATE, primary_key=True)
-
-
-class CommittedTransferSignal(Signal):
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
-    coordinator_type = db.Column(db.String(30), nullable=False)
-    other_creditor_id = db.Column(db.BigInteger, nullable=False)
-    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    committed_amount = db.Column(db.BigInteger, nullable=False)
-    transfer_info = db.Column(pg.JSON, nullable=False)
-    account_creation_date = db.Column(db.DATE, nullable=False)
-    account_new_principal = db.Column(db.BigInteger, nullable=False)

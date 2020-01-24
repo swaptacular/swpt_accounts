@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3899ee1121b9
+Revision ID: 2f831c2ff5cf
 Revises: 
-Create Date: 2020-01-24 14:57:32.218978
+Create Date: 2020-01-24 17:24:27.632926
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '3899ee1121b9'
+revision = '2f831c2ff5cf'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -29,7 +29,7 @@ def upgrade():
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every meaningful change on the account. Every change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or  `status` is considered meaningful. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last meaningful change on the account happened. Must never decrease. Every change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or `status` is considered meaningful.'),
-    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. It is not updated on interest/demurrage payments. This field is used to determine when an account with negative balance can be zeroed out for deletion.'),
+    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=True, comment='Updated on each transfer for which this account is the sender. It is not updated on interest/demurrage payments. This field is used to determine when an account with negative balance can be zeroed out.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 2020).'),
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `committed_transfer_signal` record is inserted. It is used to generate sequential numbers for the `committed_transfer_signal.transfer_seqnum` column. Must never decrease. When the account is created, `last_transfer_seqnum` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 2020).'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status bits: 1 - deleted, 2 - established interest rate, 4 - overflown, 8 - scheduled for deletion.'),
@@ -48,8 +48,8 @@ def upgrade():
     op.create_table('account_change_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('change_seqnum', sa.Integer(), nullable=False),
     sa.Column('change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('change_seqnum', sa.Integer(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
@@ -58,7 +58,7 @@ def upgrade():
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_seqnum', 'change_ts')
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_ts', 'change_seqnum')
     )
     op.create_table('account_purge_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -71,9 +71,9 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
+    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=False),
     sa.Column('account_creation_date', sa.DATE(), nullable=False),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
