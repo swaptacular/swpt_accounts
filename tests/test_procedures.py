@@ -96,14 +96,14 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     assert len(CommittedTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 1
     cts1 = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
-    transfer_seqnum1 = (date_to_int24(cts1.transfer_epoch) << 40) + 1
+    transfer_seqnum1 = (date_to_int24(cts1.account_creation_date) << 40) + 1
     assert cts1.coordinator_type == 'test'
     assert cts1.creditor_id == C_ID
     assert cts1.other_creditor_id == p.ROOT_CREDITOR_ID
     assert cts1.committed_amount == amount
     assert cts1.transfer_info == TRANSFER_INFO
     assert cts1.transfer_seqnum == transfer_seqnum1
-    assert cts1.new_account_principal == amount
+    assert cts1.account_new_principal == amount
     assert len(CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
 
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_INFO)
@@ -111,7 +111,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     cts = CommittedTransferSignal.query.filter_by(
         debtor_id=D_ID, creditor_id=C_ID, transfer_seqnum=transfer_seqnum1 + 1).one()
     assert cts.committed_amount == 2 * amount
-    assert cts.new_account_principal == 3 * amount
+    assert cts.account_new_principal == 3 * amount
     assert p.get_account(D_ID, C_ID).last_outgoing_transfer_date is None
 
 
@@ -133,7 +133,7 @@ def test_make_debtor_creditor_account_deletion(db_session, current_ts, amount):
     cts.coordinator_type == 'delete_account'
     cts.other_creditor_id == p.ROOT_CREDITOR_ID
     cts.committed_amount == amount
-    cts.new_account_principal == 0
+    cts.account_new_principal == 0
     changes = PendingAccountChange.query.all()
     assert len(changes) == 1
     root_change = changes[0]
@@ -159,7 +159,7 @@ def test_make_debtor_interest_payment(db_session, current_ts, amount):
     cts.coordinator_type == 'interest'
     cts.other_creditor_id == p.ROOT_CREDITOR_ID
     cts.committed_amount == amount
-    cts.new_account_principal == amount
+    cts.account_new_principal == amount
 
 
 def test_process_pending_account_changes(db_session, current_ts):
@@ -395,7 +395,7 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     assert len(CommittedTransferSignal.query.all()) == 1
     cts1 = CommittedTransferSignal.query.filter_by(creditor_id=C_ID).one()
     assert cts1.committed_amount == -2
-    assert cts1.new_account_principal == 0
+    assert cts1.account_new_principal == 0
     a = q.one()
     assert a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
     assert a.status & Account.STATUS_DELETED_FLAG

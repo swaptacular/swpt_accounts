@@ -70,8 +70,8 @@ class Account(db.Model):
         db.DATE,
         nullable=False,
         comment='The date at which the account was created. This also becomes the value of '
-                'the `committed_transfer_signal.transfer_epoch` column for each committed '
-                'transfer for the account.',
+                'the `committed_transfer_signal.account_creation_date` column for each '
+                'committed transfer for the account.',
     )
     principal = db.Column(
         db.BigInteger,
@@ -361,7 +361,7 @@ class RejectedTransferSignal(Signal):
     coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
-    details = db.Column(pg.JSON, nullable=False, default={})
+    details = db.Column(pg.JSON, nullable=False)
 
     @property
     def event_name(self):  # pragma: no cover
@@ -393,10 +393,10 @@ class CommittedTransferSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
-    transfer_epoch = db.Column(db.DATE, nullable=False)
     coordinator_type = db.Column(db.String(30), nullable=False)
     other_creditor_id = db.Column(db.BigInteger, nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
-    transfer_info = db.Column(pg.JSON, nullable=False, default={})
-    new_account_principal = db.Column(db.BigInteger, nullable=False)
+    transfer_info = db.Column(pg.JSON, nullable=False)
+    account_creation_date = db.Column(db.DATE, nullable=False)
+    account_new_principal = db.Column(db.BigInteger, nullable=False)

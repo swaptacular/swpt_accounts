@@ -283,9 +283,9 @@ def purge_deleted_account(
         # account will be the same as the `creation_date` of the
         # deleted account. This must be avoided, because we use the
         # creation date to differentiate `CommittedTransferSignal`s
-        # from different "epochs" (the `transfer_epoch` column). The
-        # `allow_hasty_purges` parameter is ment to be used for
-        # testing purposes only.
+        # from different "epochs" (the `account_creation_date`
+        # column). The `allow_hasty_purges` parameter is used only for
+        # testing purposes.
         if account.creation_date < yesterday or allow_hasty_purges:
             db.session.delete(account)
             db.session.add(AccountPurgeSignal(
@@ -359,7 +359,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     committed_at_ts=change.inserted_at_ts,
                     committed_amount=change.principal_delta,
                     transfer_info=change.transfer_info,
-                    new_account_principal=_contain_principal_overflow(account.principal + principal_delta),
+                    account_new_principal=_contain_principal_overflow(account.principal + principal_delta),
                 )
             db.session.delete(change)
 
@@ -496,7 +496,7 @@ def _insert_committed_transfer_signal(
         committed_at_ts: datetime,
         committed_amount: int,
         transfer_info: dict,
-        new_account_principal: int) -> None:
+        account_new_principal: int) -> None:
 
     assert committed_amount != 0
     account.last_transfer_seqnum += 1
@@ -508,14 +508,14 @@ def _insert_committed_transfer_signal(
         db.session.add(CommittedTransferSignal(
             debtor_id=account.debtor_id,
             creditor_id=account.creditor_id,
-            transfer_epoch=account.creation_date,
             transfer_seqnum=account.last_transfer_seqnum,
             coordinator_type=coordinator_type,
             other_creditor_id=other_creditor_id,
             committed_at_ts=committed_at_ts,
             committed_amount=committed_amount,
             transfer_info=transfer_info,
-            new_account_principal=new_account_principal,
+            account_creation_date=account.creation_date,
+            account_new_principal=account_new_principal,
         ))
 
 
@@ -563,7 +563,7 @@ def _make_debtor_payment(
             committed_at_ts=current_ts,
             committed_amount=amount,
             transfer_info=transfer_info,
-            new_account_principal=_contain_principal_overflow(account.principal + amount),
+            account_new_principal=_contain_principal_overflow(account.principal + amount),
         )
         if coordinator_type != DELETE_ACCOUNT:
             # We do not need to update the account principal and
