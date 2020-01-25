@@ -7,7 +7,8 @@ from swpt_lib.utils import is_later_event
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, \
-    increment_seqnum, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+    increment_seqnum, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
+    BEGINNING_OF_TIME
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -207,11 +208,9 @@ def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_tr
     assert last_outgoing_transfer_date is not None
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
-        account_date = account.last_outgoing_transfer_date
-        account_date_is_ok = account_date is None or account_date <= last_outgoing_transfer_date
         zero_out_amount = -math.floor(_calc_account_current_balance(account))
         zero_out_amount = _contain_principal_overflow(zero_out_amount)
-        if account_date_is_ok and zero_out_amount > 0:
+        if account.last_outgoing_transfer_date <= last_outgoing_transfer_date and zero_out_amount > 0:
             _make_debtor_payment(ZERO_OUT_ACCOUNT, account, zero_out_amount)
 
 
@@ -226,6 +225,7 @@ def configure_account(
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert change_ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= change_seqnum <= MAX_INT32
     assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
 
@@ -235,7 +235,7 @@ def configure_account(
     if is_later_event(this_event, prev_event):
         # When a new account is created, this block is guaranteed to
         # be executed, because `account.last_config_change_ts` for
-        # newly created accounts is always `None`, which means that
+        # newly created accounts is many years ago, which means that
         # `is_later_event(this_event, prev_event)` is `True`.
         if is_scheduled_for_deletion:
             account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
@@ -394,6 +394,8 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
         interest_rate=account.interest_rate,
         last_transfer_seqnum=account.last_transfer_seqnum,
         last_outgoing_transfer_date=account.last_outgoing_transfer_date,
+        last_config_change_ts=account.last_config_change_ts,
+        last_config_change_seqnum=account.last_config_change_seqnum,
         creation_date=account.creation_date,
         negligible_amount=account.negligible_amount,
         status=account.status,

@@ -5,7 +5,7 @@ from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
-    AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal
+    AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, BEGINNING_OF_TIME
 
 
 def test_version(db_session):
@@ -31,9 +31,9 @@ def test_configure_account(db_session, current_ts):
     assert a.locked_amount == 0
     assert a.pending_transfers_count == 0
     assert a.interest_rate == 0.0
-    assert a.last_outgoing_transfer_date is None
+    assert a.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     acs = AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
-    assert acs.last_outgoing_transfer_date is None
+    assert acs.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     assert acs.status == a.status
     assert acs.principal == a.principal
     assert acs.interest == a.interest
@@ -112,7 +112,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
         debtor_id=D_ID, creditor_id=C_ID, transfer_seqnum=transfer_seqnum1 + 1).one()
     assert cts.committed_amount == 2 * amount
     assert cts.account_new_principal == 3 * amount
-    assert p.get_account(D_ID, C_ID).last_outgoing_transfer_date is None
+    assert p.get_account(D_ID, C_ID).last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
 
 
 def test_make_debtor_zero_payment(db_session, current_ts):
@@ -610,7 +610,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert a.pending_transfers_count == 0
     assert a.principal == 100
     assert a.interest == 0.0
-    assert a.last_outgoing_transfer_date is None
+    assert a.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     assert not PreparedTransfer.query.one_or_none()
     assert len(AccountChangeSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
@@ -642,13 +642,13 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert a1.pending_transfers_count == 0
     assert a1.principal == 40
     assert a1.interest == 0.0
-    assert a1.last_outgoing_transfer_date is None
+    assert a1.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     a2 = p.get_account(D_ID, C_ID)
     assert a2.locked_amount == 0
     assert a2.pending_transfers_count == 0
     assert a2.principal == 60
     assert a2.interest == 0.0
-    assert a2.last_outgoing_transfer_date is not None
+    assert a2.last_outgoing_transfer_date > BEGINNING_OF_TIME.date()
     assert not PreparedTransfer.query.one_or_none()
     assert len(AccountChangeSignal.query.all()) == 4
     assert len(RejectedTransferSignal.query.all()) == 0

@@ -114,11 +114,11 @@ class AccountChangeSignal(Signal):
     """Emitted when there is a meaningful change in account's state.
 
     * `change_ts` and `change_seqnum` can be used to reliably
-      determine the correct order of changes, even if they occur in a
-      very short period of time. When considering two events, the
-      `change_ts`s must be compared first, and only if they are equal
+      determine the correct order of changes, even if they occured in
+      a very short period of time. When considering two events, the
+      `change_ts`s must be compared first, and only if they are equal,
       the `change_seqnum`s must be compared as well (care should be
-      taken to correctly deal with the possible signed 32-bit integer
+      taken to correctly deal with the possible 32-bit signed integer
       wrapping).
 
     * `principal` is the owed amount, without the interest. (Can be
@@ -138,6 +138,18 @@ class AccountChangeSignal(Signal):
       can be used, for example, to determine when an account with
       negative balance can be zeroed out.
 
+    * `last_config_change_ts` is the timestamp of the last applied
+      account configuration change. That is: the `change_ts` field of
+      the last effectual `configure_account` signal. It can be used to
+      determine whether a scheduled configuration change has been
+      applied.
+
+    * `last_config_change_seqnum` is the sequential number of the last
+      applied account configuration change. That is: the
+      `change_seqnum` field of the last effectual `configure_account`
+      signal. It can be used to determine whether a scheduled
+      configuration change has been applied.
+
     * `creation_date` is the date on which the account was created.
 
     * `negligible_amount` is the maximum amount which is considered
@@ -156,7 +168,9 @@ class AccountChangeSignal(Signal):
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
     last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
-    last_outgoing_transfer_date = db.Column(db.DATE)
+    last_outgoing_transfer_date = db.Column(db.DATE, nullable=False)
+    last_config_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    last_config_change_seqnum = db.Column(db.Integer, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     status = db.Column(db.SmallInteger, nullable=False)

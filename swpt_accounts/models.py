@@ -1,4 +1,4 @@
-import datetime
+from datetime import date, datetime, timezone
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, or_
 from swpt_lib.utils import date_to_int24
@@ -11,11 +11,12 @@ MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
-DATE_2020_01_01 = datetime.date(2020, 1, 1)
+DATE_2020_01_01 = date(2020, 1, 1)
+BEGINNING_OF_TIME = datetime(1900, 1, 1, tzinfo=timezone.utc)
 
 
-def get_now_utc() -> datetime.datetime:
-    return datetime.datetime.now(tz=datetime.timezone.utc)
+def get_now_utc() -> datetime:
+    return datetime.now(tz=timezone.utc)
 
 
 def increment_seqnum(n: int) -> int:
@@ -93,6 +94,8 @@ class Account(db.Model):
     )
     last_outgoing_transfer_date = db.Column(
         db.DATE,
+        nullable=False,
+        default=BEGINNING_OF_TIME.date(),
         comment='Updated on each transfer for which this account is the sender. It is not updated '
                 'on interest/demurrage payments. This field is used to determine when an account '
                 'with negative balance can be zeroed out.',
@@ -136,12 +139,16 @@ class Account(db.Model):
     )
     last_config_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=BEGINNING_OF_TIME,
         comment='The value of the `change_ts` attribute, received with the most recent '
                 '`configure_account` signal. It is used to decide whether to update the '
                 'configuration when a (potentially old) `configure_account` signal is received.',
     )
     last_config_change_seqnum = db.Column(
         db.Integer,
+        nullable=False,
+        default=0,
         comment='The value of the `change_seqnum` attribute, received with the most recent '
                 '`configure_account` signal. It is used to decide whether to update the '
                 'configuration when a (potentially old) `configure_account` signal is received.',
