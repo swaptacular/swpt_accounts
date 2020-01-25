@@ -136,19 +136,22 @@ class AccountChangeSignal(Signal):
     * `last_outgoing_transfer_date` is the date of the last committed
       transfer, for which the owner of the account was the sender. It
       can be used, for example, to determine when an account with
-      negative balance can be zeroed out.
+      negative balance can be zeroed out. (If there were no outgoing
+      transfers, the value will be "1900-01-01".)
 
     * `last_config_change_ts` is the timestamp of the last applied
       account configuration change. That is: the `change_ts` field of
       the last effectual `configure_account` signal. It can be used to
       determine whether a scheduled configuration change has been
-      applied.
+      applied. (If there were no configuration changes, the value will
+      be "1900-01-01T00:00:00+00:00".)
 
     * `last_config_change_seqnum` is the sequential number of the last
       applied account configuration change. That is: the
       `change_seqnum` field of the last effectual `configure_account`
       signal. It can be used to determine whether a scheduled
-      configuration change has been applied.
+      configuration change has been applied. (If there were no
+      configuration changes, the value will be `0`.)
 
     * `creation_date` is the date on which the account was created.
 
