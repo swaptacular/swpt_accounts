@@ -7,8 +7,8 @@ from swpt_lib.utils import is_later_event
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, \
-    increment_seqnum, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
-    BEGINNING_OF_TIME
+    FinalizedTransferSignal, increment_seqnum, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
+    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -98,6 +98,7 @@ def finalize_prepared_transfer(
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
         assert pt.sender_locked_amount > 0
+        current_ts = datetime.now(tz=timezone.utc)
         if committed_amount == 0:
             _insert_pending_account_change(
                 debtor_id=pt.debtor_id,
@@ -107,7 +108,6 @@ def finalize_prepared_transfer(
                 unlocked_amount=pt.sender_locked_amount,
             )
         elif committed_amount > 0:
-            current_ts = datetime.now(tz=timezone.utc)
             committed_amount = min(committed_amount, pt.sender_locked_amount)
             _insert_pending_account_change(
                 debtor_id=pt.debtor_id,
@@ -130,6 +130,19 @@ def finalize_prepared_transfer(
             )
         else:
             raise ValueError('The committed amount is negative.')
+
+        db.session.add(FinalizedTransferSignal(
+            debtor_id=pt.debtor_id,
+            sender_creditor_id=pt.sender_creditor_id,
+            transfer_id=transfer_id,
+            coordinator_type=pt.coordinator_type,
+            coordinator_id=pt.coordinator_id,
+            coordinator_request_id=pt.coordinator_request_id,
+            recipient_creditor_id=pt.recipient_creditor_id,
+            prepared_at_ts=pt.prepared_at_ts,
+            finalized_at_ts=max(pt.prepared_at_ts, current_ts),
+            committed_amount=committed_amount,
+        ))
         db.session.delete(pt)
 
 

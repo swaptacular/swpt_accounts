@@ -6,6 +6,7 @@ from .extensions import db, broker, MAIN_EXCHANGE_NAME
 __all__ = [
     'PreparedTransferSignal',
     'RejectedTransferSignal',
+    'FinalizedTransferSignal',
     'AccountChangeSignal',
     'AccountPurgeSignal',
     'CommittedTransferSignal',
@@ -108,6 +109,39 @@ class RejectedTransferSignal(Signal):
     @property
     def event_name(self):  # pragma: no cover
         return f'on_rejected_{self.coordinator_type}_transfer_signal'
+
+
+class FinalizedTransferSignal(Signal):
+    """Emitted when a transfer has been finalized and its corresponding
+    prepared transfer record removed from the database.
+
+    * `transfer_id` is the opaque ID generated for the prepared transfer.
+
+    * `coordinator_type`, `coordinator_id`, and
+      `coordinator_request_id` uniquely identify the transfer request
+      from the coordinator's point of view, so that the coordinator
+      can match the event with the originating transfer request.
+
+    * `committed_amount` is the transferred (committed) amount. It is
+      always a non-negative number. A `0` means that the transfer has
+      been dismissed.
+
+    """
+
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    coordinator_id = db.Column(db.BigInteger, nullable=False)
+    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
+    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    finalized_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    committed_amount = db.Column(db.BigInteger, nullable=False)
+
+    @property
+    def event_name(self):  # pragma: no cover
+        return f'on_finalized_{self.coordinator_type}_transfer_signal'
 
 
 class AccountChangeSignal(Signal):

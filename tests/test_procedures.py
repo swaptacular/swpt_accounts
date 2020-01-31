@@ -5,7 +5,8 @@ from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
-    AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, BEGINNING_OF_TIME
+    AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, FinalizedTransferSignal, \
+    BEGINNING_OF_TIME
 
 
 def test_version(db_session):
@@ -483,6 +484,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     assert len(PreparedTransfer.query.all()) == 0
     assert len(PreparedTransferSignal.query.all()) == 0
     assert len(CommittedTransferSignal.query.all()) == 0
+    assert len(FinalizedTransferSignal.query.all()) == 0
     rts = RejectedTransferSignal.query.one()
     assert rts.debtor_id == D_ID
     assert rts.coordinator_type == 'test'
@@ -585,6 +587,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     p.process_pending_account_changes(D_ID, C_ID)
     assert len(AccountChangeSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
+    assert len(FinalizedTransferSignal.query.all()) == 0
     pts = PreparedTransferSignal.query.one()
     assert pts.debtor_id == D_ID
     assert pts.coordinator_type == 'test'
@@ -615,6 +618,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert len(AccountChangeSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
     assert len(CommittedTransferSignal.query.all()) == 0
+    assert len(FinalizedTransferSignal.query.all()) == 1
 
 
 def test_commit_prepared_transfer(db_session, current_ts):
@@ -652,6 +656,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert not PreparedTransfer.query.one_or_none()
     assert len(AccountChangeSignal.query.all()) == 4
     assert len(RejectedTransferSignal.query.all()) == 0
+    assert len(FinalizedTransferSignal.query.all()) == 1
 
     assert len(CommittedTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 2
     cts1 = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
@@ -689,6 +694,7 @@ def test_commit_to_debtor_account(db_session, current_ts):
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.process_pending_account_changes(D_ID, C_ID)
     assert len(CommittedTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 1
+    assert len(FinalizedTransferSignal.query.all()) == 1
     cts1 = CommittedTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert cts1.committed_amount == -40
 
