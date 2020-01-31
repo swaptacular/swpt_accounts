@@ -90,7 +90,27 @@ def subscribe(queue_name):  # pragma: no cover
 
 # TODO: Consider implementing a background task that over the course
 #       of 1-4 weeks walks through all the accounts and sends an
-#       `AccountChangeSignal` for each and every one of them, no
-#       matter changed or not (maybe except the deleted ones?). This
-#       can potentially be helpful, so as to eventually synchronize
-#       other services' unsynchronized databases.
+#       `AccountChangeSignal` for each one of them except the deleted
+#       ones, no matter changed or not, without incrementing
+#       `change_ts` and `change_seqnum`. This can potentially be
+#       helpful, so as to eventually synchronize other services'
+#       unsynchronized databases.
+
+
+# TODO: Consider this:
+#
+# 1. Add `coordinator_id` and `coordinator_request_id` to the
+#    `PreparedTransfer` model.
+#
+# 2. Implement a background background task that over the course of
+#    1-4 weeks walks through all `PreparedTransfer`s and sends a
+#    `PreparedTransferSignal` for each one of them (making sure not to
+#    send more than 1 event per prepared transfer, per week).
+#
+# 3. Emit an `on_finalized_{coordinator_type}_transfer` signal when a
+#    prepared transfer gets finalized (and its corresponding row
+#    deleted).
+#
+# 4. Update the documentation to reflect the new way things
+#    work. Update all the other micro-services to correctly process
+#    the new events.
