@@ -88,11 +88,9 @@ def subscribe(queue_name):  # pragma: no cover
                 click.echo(f'Unsubscribed "{queue_name}" from "{MAIN_EXCHANGE_NAME}.{routing_key}".')
 
 
-# TODO: Implement a background task that over the course of 1-4 weeks
-#       walks through all the accounts and sends an
+# TODO: Consider implementing a background task that over the course
+#       of 1-4 weeks walks through all the accounts and sends an
 #       `AccountChangeSignal` for each and every one of them, no
-#       matter changed or not. This is necessary in order to be able
-#       to eventually synchronize unsynchronized other services'
-#       databases. Whithout this feature, a row removed/changed from
-#       in the `account` table will never be removed/changed in the
-#       unsynchronized replicas.
+#       matter changed or not (maybe except the deleted ones?). This
+#       can potentially be helpful, so as to eventually synchronize
+#       other services' unsynchronized databases.
