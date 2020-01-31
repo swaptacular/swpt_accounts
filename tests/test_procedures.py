@@ -693,10 +693,6 @@ def test_commit_to_debtor_account(db_session, current_ts):
     assert cts1.committed_amount == -40
 
 
-def test_get_dead_transfers(db_session):
-    assert p.get_dead_transfers() == []
-
-
 def test_get_debtor_account_list(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, C_ID + 1, current_ts, 0)

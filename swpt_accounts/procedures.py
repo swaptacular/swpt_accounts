@@ -38,14 +38,6 @@ def get_debtor_account_list(debtor_id: int, start_after: int = None, limit: bool
 
 
 @atomic
-def get_dead_transfers(if_prepared_before: datetime = None) -> List[PreparedTransfer]:
-    if_prepared_before = if_prepared_before or datetime.now(tz=timezone.utc) - timedelta(days=7)
-    return PreparedTransfer.query.\
-        filter(PreparedTransfer.prepared_at_ts < if_prepared_before).\
-        all()
-
-
-@atomic
 def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optional[Account]:
     account = _get_account_instance(debtor_id, creditor_id, lock=lock)
     if account and not account.status & Account.STATUS_DELETED_FLAG:
@@ -602,8 +594,10 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
                 sender_creditor_id=tr.sender_creditor_id,
                 transfer_id=sender_account.last_transfer_id,
                 coordinator_type=tr.coordinator_type,
-                recipient_creditor_id=tr.recipient_creditor_id,
+                coordinator_id=tr.coordinator_id,
+                coordinator_request_id=tr.coordinator_request_id,
                 sender_locked_amount=amount,
+                recipient_creditor_id=tr.recipient_creditor_id,
                 prepared_at_ts=current_ts,
             ),
             PreparedTransferSignal(
@@ -611,11 +605,11 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
                 sender_creditor_id=tr.sender_creditor_id,
                 transfer_id=sender_account.last_transfer_id,
                 coordinator_type=tr.coordinator_type,
-                recipient_creditor_id=tr.recipient_creditor_id,
-                sender_locked_amount=amount,
-                prepared_at_ts=current_ts,
                 coordinator_id=tr.coordinator_id,
                 coordinator_request_id=tr.coordinator_request_id,
+                sender_locked_amount=amount,
+                recipient_creditor_id=tr.recipient_creditor_id,
+                prepared_at_ts=current_ts,
             ),
         ]
 
