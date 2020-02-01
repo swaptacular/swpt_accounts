@@ -241,6 +241,12 @@ class PreparedTransfer(db.Model):
     )
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    last_remainder_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        comment='The moment at which the last `PreparedTransferSignal` was sent to remaind '
+                'that the prepared transfer must be finalized. A `NULL` means that no remainders '
+                'have been sent yet. This column helps to prevent sending remainders too often.',
+    )
     __table_args__ = (
         db.ForeignKeyConstraint(
             ['debtor_id', 'sender_creditor_id'],
