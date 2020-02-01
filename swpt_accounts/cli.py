@@ -1,10 +1,13 @@
 import logging
 import click
+from datetime import timedelta
 from os import environ
 from multiprocessing.dummy import Pool as ThreadPool
 from flask import current_app
 from flask.cli import with_appcontext
 from . import procedures
+from .extensions import db
+from .table_scanners import PreparedTransferScanner
 
 
 @click.group('swpt_accounts')
@@ -86,6 +89,28 @@ def subscribe(queue_name):  # pragma: no cover
             else:
                 unbind(queue_name, MAIN_EXCHANGE_NAME, routing_key)
                 click.echo(f'Unsubscribed "{queue_name}" from "{MAIN_EXCHANGE_NAME}.{routing_key}".')
+
+
+@swpt_accounts.command('scan_prepared_transfers')
+@with_appcontext
+@click.option('-d', '--days', type=float, help='The number of days.')
+@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+def scan_prepared_transfers(days, quit_early):
+    """Start a process that attempts to finalize staled prepared transfers.
+
+    The specified number of days determines the intended duration of a
+    single pass through the accounts table. If the number of days is
+    not specified, the value of the environment variable
+    APP_PREPARED_TRANSFERS_SCAN_DAYS is taken. If it is not set, the
+    default number of days is 1.
+
+    """
+
+    click.echo('Scanning prepared transfers...')
+    days = days or current_app.config['APP_PREPARED_TRANSFERS_SCAN_DAYS']
+    assert days > 0.0
+    scanner = PreparedTransferScanner()
+    scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
 
 
 # TODO: Consider implementing a background task that over the course

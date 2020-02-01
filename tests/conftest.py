@@ -14,7 +14,17 @@ def _restart_savepoint(session, transaction):
         session.begin_nested()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
+def app_unsafe_session():
+    app = create_app({
+        'TESTING': True,
+    })
+    with app.app_context():
+        flask_migrate.upgrade()
+        yield app
+
+
+@pytest.fixture(scope='module')
 def app():
     """Create a Flask application object."""
 

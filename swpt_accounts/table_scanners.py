@@ -11,7 +11,7 @@ atomic: Callable[[T], T] = db.atomic
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
 
-class PreparedTransferRemainder(TableScanner):
+class PreparedTransferScanner(TableScanner):
     table = PreparedTransfer.__table__
     pk = tuple_(table.c.debtor_id, table.c.sender_creditor_id, table.c.transfer_id)
 
@@ -44,7 +44,7 @@ class PreparedTransferRemainder(TableScanner):
                     recipient_creditor_id=row[c.recipient_creditor_id],
                     prepared_at_ts=row[c.prepared_at_ts],
                 ))
-                pks_to_update.append([c.debtor_id, c.sender_creditor_id, c.transfer_id])
+                pks_to_update.append((row[c.debtor_id], row[c.sender_creditor_id], row[c.transfer_id]))
         if pks_to_update:
             PreparedTransfer.query.filter(self.pk.in_(pks_to_update)).update({
                 PreparedTransfer.last_remainder_ts: current_ts,
