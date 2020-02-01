@@ -60,8 +60,10 @@ def test_scan_prepared_transfers(app_unsafe_session):
     assert result.exit_code == 0
     assert len(Account.query.all()) == 1
     assert len(PreparedTransfer.query.all()) == 2
-    pt = PreparedTransfer.query.filter_by(transfer_id=2).one()
-    assert pt.last_remainder_ts is not None
+    pt1 = PreparedTransfer.query.filter_by(transfer_id=1).one()
+    assert pt1.last_remainder_ts is None
+    pt2 = PreparedTransfer.query.filter_by(transfer_id=2).one()
+    assert pt2.last_remainder_ts is not None
     assert len(PreparedTransferSignal.query.all()) == 1
 
     pts = PreparedTransferSignal.query.all()[0]
