@@ -77,6 +77,12 @@ def test_scan_prepared_transfers(app_unsafe_session):
     assert pts.recipient_creditor_id == 1234
     assert pts.prepared_at_ts == past_ts
 
+    db.engine.execute('ANALYZE account')
+    result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])
+    assert len(Account.query.all()) == 1
+    assert len(PreparedTransfer.query.all()) == 2
+    assert len(PreparedTransferSignal.query.all()) == 1
+
     Account.query.delete()
     PreparedTransfer.query.delete()
     PreparedTransferSignal.query.delete()
