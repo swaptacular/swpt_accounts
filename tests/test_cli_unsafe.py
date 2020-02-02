@@ -79,6 +79,7 @@ def test_scan_prepared_transfers(app_unsafe_session):
 
     db.engine.execute('ANALYZE account')
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])
+    assert result.exit_code == 0
     assert len(Account.query.all()) == 1
     assert len(PreparedTransfer.query.all()) == 2
     assert len(PreparedTransferSignal.query.all()) == 1
