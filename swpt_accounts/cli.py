@@ -100,14 +100,12 @@ def scan_accounts(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the accounts table. If the number of days is
-    not specified, the value of the environment variable
-    APP_ACCOUNT_HEARTBEAT_DAYS, divided by 10, is used. If it is not
-    set, the default number of days is 3.
+    not specified, the default number of days is 1.
 
     """
 
     click.echo('Scanning accounts...')
-    days = days or current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS'] / 10
+    days = days or 1
     assert days > 0.0
     scanner = AccountScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
@@ -122,42 +120,12 @@ def scan_prepared_transfers(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the accounts table. If the number of days is
-    not specified, the value of the environment variable
-    APP_PREPARED_TRANSFERS_SCAN_DAYS is taken. If it is not set, the
-    default number of days is 1.
+    not specified, the default number of days is 1.
 
     """
 
     click.echo('Scanning prepared transfers...')
-    days = days or current_app.config['APP_PREPARED_TRANSFERS_SCAN_DAYS']
+    days = days or 1
     assert days > 0.0
     scanner = PreparedTransferScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
-
-
-# TODO: Consider implementing a background task that over the course
-#       of 1-4 weeks walks through all the accounts and sends an
-#       `AccountChangeSignal` for each one of them except the deleted
-#       ones, no matter changed or not, without incrementing
-#       `change_ts` and `change_seqnum`. This can potentially be
-#       helpful, so as to eventually synchronize other services'
-#       unsynchronized databases.
-
-
-# TODO: Consider this:
-#
-# 1. Add `coordinator_id` and `coordinator_request_id` to the
-#    `PreparedTransfer` model.
-#
-# 2. Implement a background background task that over the course of
-#    1-4 weeks walks through all `PreparedTransfer`s and sends a
-#    `PreparedTransferSignal` for each one of them (making sure not to
-#    send more than 1 event per prepared transfer, per week).
-#
-# 3. Emit an `on_finalized_{coordinator_type}_transfer` signal when a
-#    prepared transfer gets finalized (and its corresponding row
-#    deleted).
-#
-# 4. Update the documentation to reflect the new way things
-#    work. Update all the other micro-services to correctly process
-#    the new events.

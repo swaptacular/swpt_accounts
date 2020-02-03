@@ -18,7 +18,7 @@ def test_scan_accounts(app_unsafe_session):
     db.session.commit()
     account = Account(
         debtor_id=D_ID,
-        creditor_id=123,
+        creditor_id=12,
         creation_date=date(2020, 1, 1),
         principal=1000,
         locked_amount=500,
@@ -28,6 +28,17 @@ def test_scan_accounts(app_unsafe_session):
         last_change_ts=past_ts,
     )
     db.session.add(account)
+    db.session.add(Account(
+        debtor_id=D_ID,
+        creditor_id=123,
+        creation_date=date(2020, 1, 1),
+        principal=1000,
+        locked_amount=500,
+        pending_transfers_count=1,
+        last_transfer_id=3,
+        status=Account.STATUS_DELETED_FLAG,
+        last_change_ts=past_ts,
+    ))
     db.session.add(Account(
         debtor_id=D_ID,
         creditor_id=1234,
@@ -52,11 +63,11 @@ def test_scan_accounts(app_unsafe_session):
     ))
     db.session.commit()
     db.engine.execute('ANALYZE account')
-    assert len(Account.query.all()) == 3
+    assert len(Account.query.all()) == 4
     runner = app.test_cli_runner()
     result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--days', '0.000001', '--quit-early'])
     assert result.exit_code == 0
-    assert len(Account.query.all()) == 3
+    assert len(Account.query.all()) == 4
     assert len(AccountChangeSignal.query.all()) == 1
     acs = AccountChangeSignal.query.one()
     assert acs.debtor_id == account.debtor_id
@@ -77,11 +88,12 @@ def test_scan_accounts(app_unsafe_session):
     assert accounts[0].last_remainder_ts >= current_ts
     assert accounts[1].last_remainder_ts < current_ts
     assert accounts[2].last_remainder_ts < current_ts
+    assert accounts[3].last_remainder_ts < current_ts
 
     db.engine.execute('ANALYZE account')
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])
     assert result.exit_code == 0
-    assert len(Account.query.all()) == 3
+    assert len(Account.query.all()) == 4
     assert len(AccountChangeSignal.query.all()) == 1
 
     Account.query.delete()

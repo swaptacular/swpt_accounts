@@ -29,11 +29,14 @@ class AccountScanner(TableScanner):
     def process_rows(self, rows):
         c = self.table.c
         pks_to_update = []
+        deleted_flag = Account.STATUS_DELETED_FLAG
         current_ts = datetime.now(tz=timezone.utc)
         cutoff_ts = current_ts - self.account_heartbeat_interval
         for row in rows:
             last_heartbeat_ts = max(row[c.last_change_ts], row[c.last_remainder_ts])
-            if last_heartbeat_ts < cutoff_ts:
+            is_alive = not row[c.status] & deleted_flag
+            has_recent_heartbeat = last_heartbeat_ts >= cutoff_ts
+            if is_alive and not has_recent_heartbeat:
                 # Resend the last sent `AccountChangeSignal`. (We do
                 # not update `change_ts` and `change_seqnum`, because
                 # there is no meaningful change in the account.)
