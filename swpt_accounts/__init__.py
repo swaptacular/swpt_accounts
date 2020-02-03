@@ -33,6 +33,7 @@ class Configuration(metaclass=MetaFlaskEnv):
     APP_PREPARED_TRANSFERS_SCAN_DAYS = 1
     APP_SIGNALBUS_MAX_DELAY_DAYS = 14
     APP_PENDING_TRANSFERS_MAX_DELAY_DAYS = 7
+    APP_ACCOUNT_HEARTBEAT_DAYS = 30
 
 
 def create_app(config_dict={}):

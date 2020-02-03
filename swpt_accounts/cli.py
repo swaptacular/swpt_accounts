@@ -7,7 +7,7 @@ from flask import current_app
 from flask.cli import with_appcontext
 from . import procedures
 from .extensions import db
-from .table_scanners import PreparedTransferScanner
+from .table_scanners import AccountScanner, PreparedTransferScanner
 
 
 @click.group('swpt_accounts')
@@ -89,6 +89,28 @@ def subscribe(queue_name):  # pragma: no cover
             else:
                 unbind(queue_name, MAIN_EXCHANGE_NAME, routing_key)
                 click.echo(f'Unsubscribed "{queue_name}" from "{MAIN_EXCHANGE_NAME}.{routing_key}".')
+
+
+@swpt_accounts.command('scan_accounts')
+@with_appcontext
+@click.option('-d', '--days', type=float, help='The number of days.')
+@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+def scan_accounts(days, quit_early):
+    """Start a process that periodically sends account heartbeat signals.
+
+    The specified number of days determines the intended duration of a
+    single pass through the accounts table. If the number of days is
+    not specified, the value of the environment variable
+    APP_ACCOUNT_HEARTBEAT_DAYS, divided by 10, is used. If it is not
+    set, the default number of days is 3.
+
+    """
+
+    click.echo('Scanning accounts...')
+    days = days or current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS'] / 10
+    assert days > 0.0
+    scanner = AccountScanner()
+    scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
 
 
 @swpt_accounts.command('scan_prepared_transfers')

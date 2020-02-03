@@ -77,7 +77,7 @@ class Account(db.Model):
     last_change_seqnum = db.Column(
         db.Integer,
         nullable=False,
-        default=1,
+        default=0,
         comment='Incremented (with wrapping) on every meaningful change on the account. Every '
                 'change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or  '
                 '`status` is considered meaningful. This column, along with the `last_change_ts` '
@@ -152,6 +152,14 @@ class Account(db.Model):
         comment='The value of the `change_seqnum` attribute, received with the most recent '
                 '`configure_account` signal. It is used to decide whether to update the '
                 'configuration when a (potentially old) `configure_account` signal is received.',
+    )
+    last_remainder_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=BEGINNING_OF_TIME,
+        comment='The moment at which the last `AccountChangeSignal` was sent to remaind that '
+                'the account still exists. This column helps to prevent sending remainders too '
+                'often.',
     )
     __table_args__ = (
         db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
