@@ -35,8 +35,8 @@ class Account(db.Model):
         db.DATE,
         nullable=False,
         comment='The date at which the account was created. This also becomes the value of '
-                'the `committed_transfer_signal.account_creation_date` column for each '
-                'committed transfer for the account.',
+                'the `account_commit_signal.account_creation_date` column for each transfer '
+                'committed from/to the account.',
     )
     principal = db.Column(
         db.BigInteger,
@@ -114,8 +114,8 @@ class Account(db.Model):
         db.BigInteger,
         nullable=False,
         default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
-        comment='Incremented when a new `committed_transfer_signal` record is inserted. It is used '
-                'to generate sequential numbers for the `committed_transfer_signal.transfer_seqnum` '
+        comment='Incremented when a new `account_commit_signal` record is inserted. It is used '
+                'to generate sequential numbers for the `account_commit_signal.transfer_seqnum` '
                 'column. Must never decrease. '
                 'When the account is created, `last_transfer_seqnum` has its lower 40 bits set '
                 'to zero, and its higher 24 bits calculated from the value of `creation_date` '
@@ -265,7 +265,7 @@ class PreparedTransfer(db.Model):
         {
             'comment': 'A prepared transfer represent a guarantee that a particular transfer of '
                        'funds will be successful if ordered (committed). A record will remain in '
-                       'this table until the transfer has been commited or dismissed.',
+                       'this table until the transfer has been committed or dismissed.',
         }
     )
 
@@ -294,7 +294,7 @@ class PendingAccountChange(db.Model):
         pg.JSON,
         comment='Notes from the sender. Can be any JSON object that the sender wants the '
                 'recipient to see. If the account change represents a committed transfer, '
-                'the notes will be included in the generated `on_committed_transfer_signal` '
+                'the notes will be included in the generated `on_account_commit_signal` '
                 'event. Can be NULL only if `principal_delta` is zero.',
     )
     other_creditor_id = db.Column(

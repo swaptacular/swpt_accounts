@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 03c279293310
+Revision ID: 071b69b37442
 Revises: 
-Create Date: 2020-02-03 22:49:06.073896
+Create Date: 2020-02-04 00:20:43.447060
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '03c279293310'
+revision = '071b69b37442'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade():
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creation_date', sa.DATE(), nullable=False, comment='The date at which the account was created. This also becomes the value of the `committed_transfer_signal.account_creation_date` column for each committed transfer for the account.'),
+    sa.Column('creation_date', sa.DATE(), nullable=False, comment='The date at which the account was created. This also becomes the value of the `account_commit_signal.account_creation_date` column for each transfer committed from/to the account.'),
     sa.Column('principal', sa.BigInteger(), nullable=False, comment='The owed amount, without the interest. Can be negative.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account. Can be negative.'),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest` gets zeroed and added to the principal once in a while (like once per week).'),
@@ -31,7 +31,7 @@ def upgrade():
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last meaningful change on the account happened. Must never decrease. Every change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or `status` is considered meaningful.'),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False, comment='Updated on each transfer for which this account is the sender. It is not updated on interest/demurrage payments. This field is used to determine when an account with negative balance can be zeroed out.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 2020).'),
-    sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `committed_transfer_signal` record is inserted. It is used to generate sequential numbers for the `committed_transfer_signal.transfer_seqnum` column. Must never decrease. When the account is created, `last_transfer_seqnum` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 2020).'),
+    sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `account_commit_signal` record is inserted. It is used to generate sequential numbers for the `account_commit_signal.transfer_seqnum` column. Must never decrease. When the account is created, `last_transfer_seqnum` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 2020).'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status bits: 1 - deleted, 2 - established interest rate, 4 - overflown, 8 - scheduled for deletion.'),
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to decide whether an account can be safely deleted or not.'),
     sa.Column('last_config_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The value of the `change_ts` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
@@ -63,13 +63,7 @@ def upgrade():
     sa.Column('status', sa.SmallInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_ts', 'change_seqnum')
     )
-    op.create_table('account_purge_signal',
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creation_date', sa.DATE(), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'creation_date')
-    )
-    op.create_table('committed_transfer_signal',
+    op.create_table('account_commit_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
@@ -81,6 +75,12 @@ def upgrade():
     sa.Column('account_creation_date', sa.DATE(), nullable=False),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_seqnum')
+    )
+    op.create_table('account_purge_signal',
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=False),
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'creation_date')
     )
     op.create_table('finalized_transfer_signal',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -103,7 +103,7 @@ def upgrade():
     sa.Column('interest_delta', sa.BigInteger(), nullable=False, comment='The change in `account.interest`.'),
     sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.locked_amount`, and `account.pending_transfers_count` must be decremented.'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=True, comment='Notes from the sender. Can be any JSON object that the sender wants the recipient to see. If the account change represents a committed transfer, the notes will be included in the generated `on_committed_transfer_signal` event. Can be NULL only if `principal_delta` is zero.'),
+    sa.Column('transfer_info', postgresql.JSON(astext_type=sa.Text()), nullable=True, comment='Notes from the sender. Can be any JSON object that the sender wants the recipient to see. If the account change represents a committed transfer, the notes will be included in the generated `on_account_commit_signal` event. Can be NULL only if `principal_delta` is zero.'),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='If the account change represents a committed transfer, this is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, the value is irrelevant.'),
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('principal_delta = 0 OR transfer_info IS NOT NULL'),
@@ -162,7 +162,7 @@ def upgrade():
     sa.CheckConstraint('sender_locked_amount > 0'),
     sa.ForeignKeyConstraint(['debtor_id', 'sender_creditor_id'], ['account.debtor_id', 'account.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id'),
-    comment='A prepared transfer represent a guarantee that a particular transfer of funds will be successful if ordered (committed). A record will remain in this table until the transfer has been commited or dismissed.'
+    comment='A prepared transfer represent a guarantee that a particular transfer of funds will be successful if ordered (committed). A record will remain in this table until the transfer has been committed or dismissed.'
     )
     # ### end Alembic commands ###
 
@@ -175,8 +175,8 @@ def downgrade():
     op.drop_table('prepared_transfer_signal')
     op.drop_table('pending_account_change')
     op.drop_table('finalized_transfer_signal')
-    op.drop_table('committed_transfer_signal')
     op.drop_table('account_purge_signal')
+    op.drop_table('account_commit_signal')
     op.drop_table('account_change_signal')
     op.drop_table('account')
     # ### end Alembic commands ###

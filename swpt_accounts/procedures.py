@@ -6,7 +6,7 @@ from sqlalchemy import func
 from swpt_lib.utils import is_later_event
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, AccountPurgeSignal, CommittedTransferSignal, PendingAccountChange, TransferRequest, \
+    AccountChangeSignal, AccountPurgeSignal, AccountCommitSignal, PendingAccountChange, TransferRequest, \
     FinalizedTransferSignal, increment_seqnum, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
     INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
 
@@ -287,10 +287,10 @@ def purge_deleted_account(
         # in a single day, the `creation_date` of the re-created
         # account will be the same as the `creation_date` of the
         # deleted account. This must be avoided, because we use the
-        # creation date to differentiate `CommittedTransferSignal`s
-        # from different "epochs" (the `account_creation_date`
-        # column). The `allow_hasty_purges` parameter is used only for
-        # testing purposes.
+        # creation date to differentiate `AccountCommitSignal`s from
+        # different "epochs" (the `account_creation_date` column). The
+        # `allow_hasty_purges` parameter is used only for testing
+        # purposes.
         if account.creation_date < yesterday or allow_hasty_purges:
             db.session.delete(account)
             db.session.add(AccountPurgeSignal(
@@ -357,7 +357,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 if change.principal_delta < 0:
                     account.last_outgoing_transfer_date = current_date
             if change.principal_delta != 0:
-                _insert_committed_transfer_signal(
+                _insert_account_commit_signal(
                     account=account,
                     coordinator_type=change.coordinator_type,
                     other_creditor_id=change.other_creditor_id,
@@ -496,7 +496,7 @@ def _insert_pending_account_change(
         ))
 
 
-def _insert_committed_transfer_signal(
+def _insert_account_commit_signal(
         account: Account,
         coordinator_type: str,
         other_creditor_id: int,
@@ -512,7 +512,7 @@ def _insert_committed_transfer_signal(
     # account, because the debtor's account does not have a real
     # owning creditor.
     if account.creditor_id != ROOT_CREDITOR_ID:
-        db.session.add(CommittedTransferSignal(
+        db.session.add(AccountCommitSignal(
             debtor_id=account.debtor_id,
             creditor_id=account.creditor_id,
             transfer_seqnum=account.last_transfer_seqnum,
@@ -563,7 +563,7 @@ def _make_debtor_payment(
             transfer_info=transfer_info,
             principal_delta=-amount,
         )
-        _insert_committed_transfer_signal(
+        _insert_account_commit_signal(
             account=account,
             coordinator_type=coordinator_type,
             other_creditor_id=ROOT_CREDITOR_ID,

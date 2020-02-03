@@ -9,7 +9,7 @@ __all__ = [
     'FinalizedTransferSignal',
     'AccountChangeSignal',
     'AccountPurgeSignal',
-    'CommittedTransferSignal',
+    'AccountCommitSignal',
 ]
 
 
@@ -165,7 +165,7 @@ class AccountChangeSignal(Signal):
     * `interest_rate` is the annual rate (in percents) at which
       interest accumulates on the account. (Can be negative.)
 
-    * `last_transfer_seqnum` identifies the last committed transfer.
+    * `last_transfer_seqnum` identifies the last account commit.
 
     * `last_outgoing_transfer_date` is the date of the last committed
       transfer, for which the owner of the account was the sender. It
@@ -225,8 +225,13 @@ class AccountPurgeSignal(Signal):
     creation_date = db.Column(db.DATE, primary_key=True)
 
 
-class CommittedTransferSignal(Signal):
+class AccountCommitSignal(Signal):
     """"Emitted when a transfer has been committed, affecting a given account.
+
+    NOTE: Each committed transfer affects exactly two accounts: the
+          sender's, and the recipient's. Therefore, exactly two
+          `AccountCommitSignal`s will be emitted for each committed
+          transfer.
 
     * `debtor_id` and `creditor_id` identify the affected account.
 
