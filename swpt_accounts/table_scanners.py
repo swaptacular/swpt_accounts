@@ -79,7 +79,7 @@ class PreparedTransferScanner(TableScanner):
         pks_to_update = []
         current_ts = datetime.now(tz=timezone.utc)
         critical_delay_cutoff_ts = current_ts - self.critical_delay
-        recent_remainder_cutoff_ts = current_ts - self.signalbus_max_delay
+        recent_remainder_cutoff_ts = current_ts - max(self.signalbus_max_delay, self.pending_transfers_max_delay)
         for row in rows:
             last_remainder_ts = row[c.last_remainder_ts]
             has_critical_delay = row[c.prepared_at_ts] < critical_delay_cutoff_ts
