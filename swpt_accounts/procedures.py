@@ -593,6 +593,11 @@ def _make_debtor_payment(
 
 
 def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Account]) -> list:
+    # TODO: Consider verifying whether a `Prepared transfer` with the
+    #       same `coordinator_type`, `coordinator_id`, and
+    #       `coordinator_request_id` already exists, and if it does,
+    #       do nothing. This could potentially improve the handling of
+    #       multiple deliveries of `prepare_transfer` signals.
 
     def reject(**kw) -> List[RejectedTransferSignal]:
         return [RejectedTransferSignal(
