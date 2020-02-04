@@ -600,7 +600,8 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     #       multiple deliveries of `prepare_transfer` signals. Also,
     #       for the same reason, consider not deleting the finalized
     #       `PreparedTransfer`s right away, but with an asynchronous
-    #       background process, after some time has passed.
+    #       background process, after some time has passed. Consider
+    #       using Redis to solve this problem.
 
     def reject(**kw) -> List[RejectedTransferSignal]:
         return [RejectedTransferSignal(
