@@ -180,8 +180,8 @@ def finalize_prepared_transfer(
 
     """Execute a prepared transfer.
 
-    `committed_amount` should be non-negative. To dismiss the
-    transfer, `committed_amount` should be `0`.
+    `committed_amount` MUST be non-negative. To dismiss the transfer,
+    `committed_amount` should be `0`.
 
     """
 
