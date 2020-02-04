@@ -75,7 +75,7 @@ def prepare_transfer(
     secured. For normal accounts it should be a non-negative
     number. For the debtor's account it can be any number.
 
-    Before sending a message to this actor, the sender must create a
+    Before sending a message to this actor, the sender MUST create a
     Coordinator Request (CR) database record, with a primary key of
     `(coordinator_type, coordinator_id, coordinator_request_id)`, and
     status "initiated". This record will be used to act properly on
@@ -86,29 +86,29 @@ def prepare_transfer(
     ----------------------
 
     If a `PreparedTransferSignal` is received for an "initiated" CR
-    record, the status of the corresponding CR record must be set to
+    record, the status of the corresponding CR record MUST be set to
     "prepared", and the received values for `debtor_id`,
     `sender_creditor_id`, and `transfer_id` -- recorded. The
-    "prepared" CR record must be, at some point, finalized (committed
+    "prepared" CR record MUST be, at some point, finalized (committed
     or dismissed), and the status set to "finalized".
 
     If a `PreparedTransferSignal` is received for a "prepared" CR
     record, the corresponding values of `debtor_id`,
-    `sender_creditor_id`, and `transfer_id` must be compared. If they
-    are the same, no action should be taken. If they differ, the newly
-    prepared transfer must be immediately dismissed (by sending a
+    `sender_creditor_id`, and `transfer_id` MUST be compared. If they
+    are the same, no action MUST be taken. If they differ, the newly
+    prepared transfer MUST be immediately dismissed (by sending a
     message to the `finalize_prepared_transfer` actor with a zero
     `committed_amount`).
 
     If a `PreparedTransferSignal` is received for a "finalized" CR
     record, the corresponding values of `debtor_id`,
-    `sender_creditor_id`, and `transfer_id` must be compared. If they
+    `sender_creditor_id`, and `transfer_id` MUST be compared. If they
     are the same, the original message to the
-    `finalize_prepared_transfer` actor must be sent again. If they
-    differ, the newly prepared transfer must be immediately dismissed.
+    `finalize_prepared_transfer` actor MUST be sent again. If they
+    differ, the newly prepared transfer MUST be immediately dismissed.
 
     If a `PreparedTransferSignal` is received but a corresponding CR
-    record is not found, the newly prepared transfer must be
+    record is not found, the newly prepared transfer MUST be
     immediately dismissed.
 
 
@@ -116,10 +116,10 @@ def prepare_transfer(
     ----------------------
 
     If a `RejectedTransferSignal` is received for an "initiated" CR
-    record, the CR record must be deleted.
+    record, the CR record SHOULD be deleted.
 
     If a `RejectedTransferSignal` is received in any other case, no
-    action should be taken.
+    action MUST be taken.
 
 
     IMPORTANT NOTES:
