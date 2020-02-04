@@ -26,7 +26,7 @@ ROOT_CREDITOR_ID = 0
 
 
 @atomic
-def get_debtor_account_list(debtor_id: int, start_after: int = None, limit: bool = None) -> List[Account]:
+def get_debtor_account_list(debtor_id: int, start_after: int = None, limit: int = None) -> List[Account]:
     query = Account.query.filter_by(debtor_id=debtor_id).order_by(Account.creditor_id)
     if start_after is not None:
         query = query.filter(Account.creditor_id > start_after)
