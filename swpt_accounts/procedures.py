@@ -170,6 +170,7 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float)
         # calculate the interest accumulated after the last account
         # change. (For that, we must use the old interest rate).
         account.interest = float(_calc_account_accumulated_interest(account, current_ts))
+
         account.interest_rate = interest_rate
         account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         _insert_account_change_signal(account, current_ts)
@@ -386,6 +387,13 @@ def _contain_principal_overflow(value: int) -> int:
 
 
 def _insert_account_change_signal(account: Account, current_ts: datetime = None) -> None:
+    # NOTE: Callers of this function should be very careful, because
+    #       it updates `account.last_change_ts` without updating
+    #       `account.interest`. This will result in an incorrect value
+    #       for the interest, unless the current balance is zero, or
+    #       `account.interest` is updated "manually" before this
+    #       function is called.
+
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
     account.last_change_ts = max(account.last_change_ts, current_ts)
