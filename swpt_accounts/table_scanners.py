@@ -12,6 +12,8 @@ SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
 
 class AccountScanner(TableScanner):
+    """Periodically sends account heartbeat signals."""
+
     table = Account.__table__
     pk = tuple_(table.c.debtor_id, table.c.creditor_id)
 
@@ -64,6 +66,8 @@ class AccountScanner(TableScanner):
 
 
 class PreparedTransferScanner(TableScanner):
+    """Attempts to finalize staled prepared transfers."""
+
     table = PreparedTransfer.__table__
     pk = tuple_(table.c.debtor_id, table.c.sender_creditor_id, table.c.transfer_id)
 
