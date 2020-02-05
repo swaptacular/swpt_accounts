@@ -6,7 +6,7 @@ from sqlalchemy import func
 from swpt_lib.utils import is_later_event
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, AccountPurgeSignal, AccountCommitSignal, PendingAccountChange, TransferRequest, \
+    AccountChangeSignal, AccountCommitSignal, PendingAccountChange, TransferRequest, \
     FinalizedTransferSignal, increment_seqnum, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
     INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
 
