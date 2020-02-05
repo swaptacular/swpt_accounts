@@ -593,16 +593,6 @@ def _make_debtor_payment(
 
 
 def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Account]) -> list:
-    # TODO: Consider verifying whether a `PreparedTransfer` with the
-    #       same `coordinator_type`, `coordinator_id`, and
-    #       `coordinator_request_id` already exists, and if it does,
-    #       do nothing. This could potentially improve the handling of
-    #       multiple deliveries of `prepare_transfer` signals. Also,
-    #       for the same reason, consider not deleting the finalized
-    #       `PreparedTransfer`s right away, but with an asynchronous
-    #       background process, after some time has passed. Consider
-    #       using Redis to solve this problem.
-
     def reject(**kw) -> List[RejectedTransferSignal]:
         return [RejectedTransferSignal(
             debtor_id=tr.debtor_id,
