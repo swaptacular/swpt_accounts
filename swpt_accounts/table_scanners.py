@@ -77,15 +77,13 @@ class AccountScanner(TableScanner):
         heartbeat_cutoff_ts = current_ts - self.account_heartbeat_interval
         for row in rows:
             if row[c.status] & deleted_flag:
-                if row[c.creation_date] >= yesterday:  # pragma: no cover
-                    # When one account is created, deleted, purged, and re-created
-                    # in a single day, the `creation_date` of the re-created
-                    # account will be the same as the `creation_date` of the
-                    # purged account. This must be avoided, because we use the
-                    # creation date to differentiate `AccountCommitSignal`s from
-                    # different "epochs" (the `account_creation_date` column).
-                    continue
-                elif row[c.last_change_ts] < purge_cutoff_ts:
+                # When one account is created, deleted, purged, and re-created
+                # in a single day, the `creation_date` of the re-created
+                # account will be the same as the `creation_date` of the
+                # purged account. This must be avoided, because we use the
+                # creation date to differentiate `AccountCommitSignal`s from
+                # different "epochs" (the `account_creation_date` column).
+                if row[c.last_change_ts] < purge_cutoff_ts and row[c.creation_date] < yesterday:
                     self._insert_account_purge_signal(row)
                     pks_to_delete.append((row[c.debtor_id], row[c.creditor_id]))
             else:
@@ -98,6 +96,7 @@ class AccountScanner(TableScanner):
                 filter(self.pk.in_(pks_to_delete)).\
                 filter(Account.status.op('&')(deleted_flag) == deleted_flag).\
                 filter(Account.last_change_ts < purge_cutoff_ts).\
+                filter(Account.creation_date < yesterday).\
                 delete(synchronize_session=False)
         if pks_to_update:
             Account.query.\
