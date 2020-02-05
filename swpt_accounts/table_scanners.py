@@ -109,7 +109,7 @@ class PreparedTransferScanner(TableScanner):
     """Attempts to finalize staled prepared transfers."""
 
     table = PreparedTransfer.__table__
-    pk = tuple_(table.c.debtor_id, table.c.sender_creditor_id, table.c.transfer_id)
+    pk = tuple_(PreparedTransfer.debtor_id, PreparedTransfer.sender_creditor_id, PreparedTransfer.transfer_id)
 
     def __init__(self):
         super().__init__()
