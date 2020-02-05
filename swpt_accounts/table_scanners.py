@@ -19,6 +19,7 @@ class AccountScanner(TableScanner):
 
     def __init__(self):
         super().__init__()
+        self.few_days_interval = timedelta(days=2)
         self.signalbus_max_delay = timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'])
         self.pending_transfers_max_delay = timedelta(days=current_app.config['APP_PENDING_TRANSFERS_MAX_DELAY_DAYS'])
         self.account_purge_delay = 2 * self.signalbus_max_delay + self.pending_transfers_max_delay
@@ -72,7 +73,7 @@ class AccountScanner(TableScanner):
         pks_to_update = []
         deleted_flag = Account.STATUS_DELETED_FLAG
         current_ts = datetime.now(tz=timezone.utc)
-        yesterday = current_ts.date() - timedelta(days=1)
+        date_few_days_ago = (current_ts - self.few_days_interval).date()
         purge_cutoff_ts = current_ts - self.account_purge_delay
         heartbeat_cutoff_ts = current_ts - self.account_heartbeat_interval
         for row in rows:
@@ -83,7 +84,7 @@ class AccountScanner(TableScanner):
                 # purged account. This must be avoided, because we use the
                 # creation date to differentiate `AccountCommitSignal`s from
                 # different "epochs" (the `account_creation_date` column).
-                if row[c.last_change_ts] < purge_cutoff_ts and row[c.creation_date] < yesterday:
+                if row[c.last_change_ts] < purge_cutoff_ts and row[c.creation_date] < date_few_days_ago:
                     self._insert_account_purge_signal(row)
                     pks_to_delete.append((row[c.debtor_id], row[c.creditor_id]))
             else:
@@ -96,7 +97,7 @@ class AccountScanner(TableScanner):
                 filter(self.pk.in_(pks_to_delete)).\
                 filter(Account.status.op('&')(deleted_flag) == deleted_flag).\
                 filter(Account.last_change_ts < purge_cutoff_ts).\
-                filter(Account.creation_date < yesterday).\
+                filter(Account.creation_date < date_few_days_ago).\
                 delete(synchronize_session=False)
         if pks_to_update:
             Account.query.\
