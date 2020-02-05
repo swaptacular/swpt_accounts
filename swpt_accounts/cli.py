@@ -96,7 +96,7 @@ def process_transfers(threads):
 @click.option('-d', '--days', type=float, help='The number of days.')
 @click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
 def scan_accounts(days, quit_early):
-    """Start a process that periodically sends account heartbeat signals.
+    """Start a process that executes accounts maintenance operations.
 
     The specified number of days determines the intended duration of a
     single pass through the accounts table. If the number of days is

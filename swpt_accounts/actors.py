@@ -278,34 +278,3 @@ def try_to_delete_account(
         debtor_id,
         creditor_id,
     )
-
-
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def purge_deleted_account(
-        debtor_id: int,
-        creditor_id: int,
-        if_deleted_before: str) -> None:
-
-    """Removes the account `(debtor_id, creditor_id)` if it has been
-    marked as deleted before the `if_deleted_before` moment.
-
-    An `AccountPurgeSignal` is always sent as a confirmation.
-
-    Some time should be allowed to pass between the marking of an
-    account as "deleted", and its actual removal from the database.
-    This is necessary to protect against various edge cases. The delay
-    should be long enough to allow all prepared transfers at the time
-    of marking the account as "deleted", to be successfully finalized
-    before the purge.
-
-    Since accounts that are marked as deleted behave exactly as if
-    they were removed, there is no rush to actually remove them from
-    the database.
-
-    """
-
-    procedures.purge_deleted_account(
-        debtor_id,
-        creditor_id,
-        iso8601.parse_date(if_deleted_before),
-    )

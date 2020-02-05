@@ -7,7 +7,7 @@ C_ID = 1
 
 
 def test_scan_accounts(app_unsafe_session):
-    from swpt_accounts.models import Account, AccountChangeSignal
+    from swpt_accounts.models import Account, AccountChangeSignal, AccountPurgeSignal
 
     # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
@@ -15,6 +15,7 @@ def test_scan_accounts(app_unsafe_session):
     app = app_unsafe_session
     Account.query.delete()
     AccountChangeSignal.query.delete()
+    AccountPurgeSignal.query.delete()
     db.session.commit()
     account = Account(
         debtor_id=D_ID,
@@ -67,7 +68,7 @@ def test_scan_accounts(app_unsafe_session):
     runner = app.test_cli_runner()
     result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--days', '0.000001', '--quit-early'])
     assert result.exit_code == 0
-    assert len(Account.query.all()) == 4
+    assert len(Account.query.all()) == 3
     assert len(AccountChangeSignal.query.all()) == 1
     acs = AccountChangeSignal.query.one()
     assert acs.debtor_id == account.debtor_id
@@ -84,20 +85,25 @@ def test_scan_accounts(app_unsafe_session):
     assert acs.creation_date == account.creation_date
     assert acs.negligible_amount == account.negligible_amount
     assert acs.status == account.status
+
+    assert len(Account.query.filter_by(creditor_id=123).all()) == 0
+    aps = AccountPurgeSignal.query.filter_by(debtor_id=D_ID, creditor_id=123).one()
+    assert aps.creation_date == date(2020, 1, 1)
+
     accounts = Account.query.order_by(Account.creditor_id).all()
     assert accounts[0].last_remainder_ts >= current_ts
     assert accounts[1].last_remainder_ts < current_ts
     assert accounts[2].last_remainder_ts < current_ts
-    assert accounts[3].last_remainder_ts < current_ts
 
     db.engine.execute('ANALYZE account')
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])
     assert result.exit_code == 0
-    assert len(Account.query.all()) == 4
+    assert len(Account.query.all()) == 3
     assert len(AccountChangeSignal.query.all()) == 1
 
     Account.query.delete()
     AccountChangeSignal.query.delete()
+    AccountPurgeSignal.query.delete()
     db.session.commit()
 
 

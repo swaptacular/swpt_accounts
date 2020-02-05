@@ -322,18 +322,6 @@ def test_delete_account(db_session, current_ts):
         filter(AccountChangeSignal.creditor_id == C_ID).\
         filter(AccountChangeSignal.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
         one_or_none()
-    p.purge_deleted_account(D_ID, C_ID, current_ts - timedelta(days=1000), allow_hasty_purges=True)
-    assert q.one().status & Account.STATUS_DELETED_FLAG
-    assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    p.purge_deleted_account(D_ID, C_ID, current_ts + timedelta(days=1000), allow_hasty_purges=False)
-    assert q.one().status & Account.STATUS_DELETED_FLAG
-    assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    p.purge_deleted_account(D_ID, C_ID, current_ts + timedelta(days=1000), allow_hasty_purges=True)
-    assert not q.one_or_none()
-    aps = AccountPurgeSignal.query.one()
-    assert aps.debtor_id == D_ID
-    assert aps.creditor_id == C_ID
-    assert aps.creation_date == creation_date
 
 
 def test_delete_account_negative_balance(db_session, current_ts):
@@ -420,14 +408,12 @@ def test_delete_debtor_account(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True)
     p.try_to_delete_account(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID) is None
-    p.purge_deleted_account(D_ID, C_ID, if_deleted_before=future_ts, allow_hasty_purges=True)
+    Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).delete(synchronize_session=False)
 
     # There are no other accounts.
     p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID)
     assert q.one().status & Account.STATUS_DELETED_FLAG
     assert not q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    p.purge_deleted_account(D_ID, p.ROOT_CREDITOR_ID, if_deleted_before=future_ts, allow_hasty_purges=True)
-    assert q.one_or_none() is None
 
 
 def test_resurrect_deleted_account_create(db_session, current_ts):

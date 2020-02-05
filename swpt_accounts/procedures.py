@@ -274,34 +274,6 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
 
 
 @atomic
-def purge_deleted_account(
-        debtor_id: int,
-        creditor_id: int,
-        if_deleted_before: datetime,
-        allow_hasty_purges: bool = False) -> None:
-
-    account = _get_account_instance(debtor_id, creditor_id, lock=True)
-    if account and account.status & Account.STATUS_DELETED_FLAG and account.last_change_ts < if_deleted_before:
-        yesterday = date.today() - timedelta(days=1)
-
-        # When one account is created, deleted, purged, and re-created
-        # in a single day, the `creation_date` of the re-created
-        # account will be the same as the `creation_date` of the
-        # deleted account. This must be avoided, because we use the
-        # creation date to differentiate `AccountCommitSignal`s from
-        # different "epochs" (the `account_creation_date` column). The
-        # `allow_hasty_purges` parameter is used only for testing
-        # purposes.
-        if account.creation_date < yesterday or allow_hasty_purges:
-            db.session.delete(account)
-            db.session.add(AccountPurgeSignal(
-                debtor_id=debtor_id,
-                creditor_id=creditor_id,
-                creation_date=account.creation_date,
-            ))
-
-
-@atomic
 def get_accounts_with_transfer_requests() -> Iterable[Tuple[int, int]]:
     return set(db.session.query(TransferRequest.debtor_id, TransferRequest.sender_creditor_id).all())
 

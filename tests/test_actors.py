@@ -60,14 +60,6 @@ def test_zero_out_negative_balance(db_session):
     )
 
 
-def test_purge_deleted_account(db_session):
-    a.purge_deleted_account(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        if_deleted_before='2019-07-01T00:00:00Z',
-    )
-
-
 def test_try_to_delete_account(db_session):
     a.try_to_delete_account(
         debtor_id=D_ID,
