@@ -635,8 +635,8 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     if amount < tr.min_amount:
         return reject(
             errorCode='ACC005',
-            message='The available balance is insufficient.',
-            avlBalance=amount,
+            message='The available amount is insufficient.',
+            avlAmount=amount,
         )
 
     if sender_account.pending_transfers_count >= MAX_INT32:
