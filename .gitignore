@@ -106,5 +106,4 @@ venv.bak/
 # Emacs files
 TAGS
 *~
-.projectile
 .dir-locals.el
