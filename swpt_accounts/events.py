@@ -90,8 +90,7 @@ class RejectedTransferSignal(Signal):
     * `details` is a JSON object describing why the transfer has been
       rejected. For example: `{"errorCode": "ACC005", "message": "The
       available amount is insufficient.", "avlAmount": 0}`. The
-      properties "errorCode", and "message" are guarenteed to be
-      available.
+      "errorCode" property is guarenteed to be present.
 
     """
 
