@@ -355,7 +355,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.details['error_code'] == 'ACC004'
+    assert rts.details['errorCode'] == 'ACC004'
 
     # Verify that re-creating the account clears STATUS_SCHEDULED_FOR_DELETION_FLAG:
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
@@ -498,7 +498,7 @@ def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.details['error_code'] == 'ACC003'
+    assert rts.details['errorCode'] == 'ACC003'
 
 
 def test_prepare_transfer_to_self(db_session, current_ts):
@@ -521,7 +521,7 @@ def test_prepare_transfer_to_self(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.details['error_code'] == 'ACC002'
+    assert rts.details['errorCode'] == 'ACC002'
 
 
 def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
@@ -545,7 +545,7 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.details['error_code'] == 'ACC006'
+    assert rts.details['errorCode'] == 'ACC006'
 
 
 def test_prepare_transfer_success(db_session, current_ts):

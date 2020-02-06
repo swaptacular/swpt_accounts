@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, date, timezone, timedelta
+from datetime import datetime, date, timezone
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from sqlalchemy import func
@@ -607,7 +607,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
 
     if sender_account is None:
         return reject(
-            error_code='ACC001',
+            errorCode='ACC001',
             message='The sender account does not exist.',
         )
     assert sender_account.debtor_id == tr.debtor_id
@@ -615,35 +615,35 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
 
     if tr.sender_creditor_id == tr.recipient_creditor_id:
         return reject(
-            error_code='ACC002',
+            errorCode='ACC002',
             message='Recipient and sender accounts are the same.',
         )
 
     recipient_account = get_account(tr.debtor_id, tr.recipient_creditor_id)
     if recipient_account is None:
         return reject(
-            error_code='ACC003',
+            errorCode='ACC003',
             message='The recipient account does not exist.',
         )
     if recipient_account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG:
         return reject(
-            error_code='ACC004',
+            errorCode='ACC004',
             message='The recipient account is scheduled for deletion.',
         )
 
     amount = min(_get_available_balance(sender_account, tr.minimum_account_balance), tr.max_amount)
     if amount < tr.min_amount:
         return reject(
-            error_code='ACC005',
+            errorCode='ACC005',
             message='The available balance is insufficient.',
-            avl_balance=amount,
+            avlBalance=amount,
         )
 
     if sender_account.pending_transfers_count >= MAX_INT32:
         return reject(
-            error_code='ACC006',
+            errorCode='ACC006',
             message='There are too many pending transfers.',
-            pending_transfers_count=sender_account.pending_transfers_count,
+            pendingTransfersCount=sender_account.pending_transfers_count,
         )
 
     return accept(amount)
