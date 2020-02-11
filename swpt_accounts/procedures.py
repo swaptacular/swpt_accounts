@@ -7,8 +7,8 @@ from swpt_lib.utils import is_later_event
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, AccountCommitSignal, PendingAccountChange, TransferRequest, \
-    FinalizedTransferSignal, increment_seqnum, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, \
-    INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
+    FinalizedTransferSignal, AccountMaintenanceSignal, increment_seqnum, MIN_INT32, MAX_INT32, \
+    MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -162,18 +162,20 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float)
         interest_rate = INTEREST_RATE_FLOOR
 
     account = get_account(debtor_id, creditor_id, lock=True)
-    if account and not (account.interest_rate == interest_rate
-                        and account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG):
+    if account:
         current_ts = datetime.now(tz=timezone.utc)
+        has_established_interest_rate = account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+        if not (has_established_interest_rate and account.interest_rate == interest_rate):
+            # Before changing the interest rate, we must not forget to
+            # calculate the interest accumulated after the last account
+            # change. (For that, we must use the old interest rate).
+            account.interest = float(_calc_account_accumulated_interest(account, current_ts))
 
-        # Before changing the interest rate, we must not forget to
-        # calculate the interest accumulated after the last account
-        # change. (For that, we must use the old interest rate).
-        account.interest = float(_calc_account_accumulated_interest(account, current_ts))
+            account.interest_rate = interest_rate
+            account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+            _insert_account_change_signal(account, current_ts)
 
-        account.interest_rate = interest_rate
-        account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        _insert_account_change_signal(account, current_ts)
+        _insert_account_maintenance_signal(debtor_id, creditor_id)
 
 
 @atomic
@@ -191,6 +193,7 @@ def capitalize_interest(
         amount = _contain_principal_overflow(amount)
         if abs(amount) >= positive_threshold:
             _make_debtor_payment(INTEREST, account, amount, current_ts=current_ts)
+        _insert_account_maintenance_signal(debtor_id, creditor_id)
 
 
 @atomic
@@ -218,6 +221,7 @@ def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_tr
         zero_out_amount = _contain_principal_overflow(zero_out_amount)
         if account.last_outgoing_transfer_date <= last_outgoing_transfer_date and zero_out_amount > 0:
             _make_debtor_payment(ZERO_OUT_ACCOUNT, account, zero_out_amount)
+        _insert_account_maintenance_signal(debtor_id, creditor_id)
 
 
 @atomic
@@ -256,8 +260,10 @@ def configure_account(
 @atomic
 def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
     account = get_account(debtor_id, creditor_id, lock=True)
-    if account and account.pending_transfers_count == 0 and account.locked_amount == 0:
-        if creditor_id == ROOT_CREDITOR_ID:
+    if account:
+        if account.pending_transfers_count != 0 or account.locked_amount != 0:  # pragma: no cover
+            pass
+        elif creditor_id == ROOT_CREDITOR_ID:
             # The debtor's account can be marked as deleted only when
             # it is the only account left.
             if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
@@ -271,6 +277,8 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
                 if account.principal != 0:
                     _make_debtor_payment(DELETE_ACCOUNT, account, -account.principal, current_ts=current_ts)
                 _mark_account_as_deleted(account, current_ts)
+
+        _insert_account_maintenance_signal(debtor_id, creditor_id)
 
 
 @atomic
@@ -647,3 +655,10 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
         )
 
     return accept(amount)
+
+
+def _insert_account_maintenance_signal(debtor_id: int, creditor_id: int) -> None:
+    db.session.add(AccountMaintenanceSignal(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+    ))

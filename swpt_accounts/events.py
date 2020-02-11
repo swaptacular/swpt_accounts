@@ -10,6 +10,7 @@ __all__ = [
     'AccountChangeSignal',
     'AccountPurgeSignal',
     'AccountCommitSignal',
+    'AccountMaintenanceSignal',
 ]
 
 
@@ -281,3 +282,15 @@ class AccountCommitSignal(Signal):
     transfer_info = db.Column(pg.JSON, nullable=False)
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
+
+
+class AccountMaintenanceSignal(Signal):
+    """"Emitted when a maintenance action is performed for a given account."""
+
+    class __marshmallow__(Schema):
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
