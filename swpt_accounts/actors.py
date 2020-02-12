@@ -198,7 +198,8 @@ def finalize_prepared_transfer(
 def change_interest_rate(
         debtor_id: int,
         creditor_id: int,
-        interest_rate: float) -> None:
+        interest_rate: float,
+        request_ts: str) -> None:
 
     """Change the interest rate on the account `(debtor_id, creditor_id)`."""
 
@@ -206,6 +207,7 @@ def change_interest_rate(
         debtor_id,
         creditor_id,
         interest_rate,
+        iso8601.parse_date(request_ts),
     )
 
 
@@ -213,7 +215,8 @@ def change_interest_rate(
 def capitalize_interest(
         debtor_id: int,
         creditor_id: int,
-        accumulated_interest_threshold: int = 0) -> None:
+        accumulated_interest_threshold: int,
+        request_ts: str) -> None:
 
     """Clear the interest accumulated on the account `(debtor_id,
     creditor_id)`, adding it to the principal. Does nothing if the
@@ -226,6 +229,7 @@ def capitalize_interest(
         debtor_id,
         creditor_id,
         accumulated_interest_threshold,
+        iso8601.parse_date(request_ts),
     )
 
 
@@ -233,7 +237,8 @@ def capitalize_interest(
 def zero_out_negative_balance(
         debtor_id: int,
         creditor_id: int,
-        last_outgoing_transfer_date: str) -> None:
+        last_outgoing_transfer_date: str,
+        request_ts: str) -> None:
 
     """Zero out the balance on the account `(debtor_id, creditor_id)` if
     the current balance is negative, and account's last outgoing
@@ -245,13 +250,15 @@ def zero_out_negative_balance(
         debtor_id,
         creditor_id,
         iso8601.parse_date(last_outgoing_transfer_date).date(),
+        iso8601.parse_date(request_ts),
     )
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def try_to_delete_account(
         debtor_id: int,
-        creditor_id: int) -> None:
+        creditor_id: int,
+        request_ts: str) -> None:
 
     """Mark the account as deleted, if possible.
 
@@ -277,4 +284,5 @@ def try_to_delete_account(
     procedures.try_to_delete_account(
         debtor_id,
         creditor_id,
+        iso8601.parse_date(request_ts),
     )

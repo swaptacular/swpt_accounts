@@ -289,21 +289,27 @@ class AccountMaintenanceSignal(Signal):
 
     Maintenance operations are:
 
-    * `actor.change_interest_rate`
-    * `actor.capitalize_interest`
-    * `actor.zero_out_negative_balance`
-    * `actor.try_to_delete_account`
+    - `actor.change_interest_rate`
+    - `actor.capitalize_interest`
+    - `actor.zero_out_negative_balance`
+    - `actor.try_to_delete_account`
 
     The event indicates that more maintenance operation requests can
     be made for the given account, without the risk of flooding the
     signal bus with account maintenance requests.
+
+    * `request_ts` is the timestamp of the received maintenance
+      operation request. It can be used the match the
+      `AccountMaintenanceSignal` with the originating request.
 
     """
 
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
+        request_ts = fields.DateTime()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
+    request_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)

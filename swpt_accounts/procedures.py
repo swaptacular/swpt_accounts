@@ -147,7 +147,7 @@ def finalize_prepared_transfer(
 
 
 @atomic
-def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float) -> None:
+def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime = None) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert interest_rate is not None
@@ -180,29 +180,29 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float)
             account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
             _insert_account_change_signal(account, current_ts)
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id)
+    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
 
 
 @atomic
 def capitalize_interest(
         debtor_id: int,
         creditor_id: int,
-        accumulated_interest_threshold: int = 0,
-        current_ts: datetime = None) -> None:
+        accumulated_interest_threshold: int,
+        request_ts: datetime = None) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
+        current_ts = datetime.now(tz=timezone.utc)
         positive_threshold = max(1, abs(accumulated_interest_threshold))
-        current_ts = current_ts or datetime.now(tz=timezone.utc)
         amount = math.floor(_calc_account_accumulated_interest(account, current_ts))
         amount = _contain_principal_overflow(amount)
         if abs(amount) >= positive_threshold:
             _make_debtor_payment(INTEREST, account, amount, current_ts=current_ts)
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id)
+    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
 
 
 @atomic
@@ -222,7 +222,12 @@ def make_debtor_payment(
 
 
 @atomic
-def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_transfer_date: date) -> None:
+def zero_out_negative_balance(
+        debtor_id: int,
+        creditor_id: int,
+        last_outgoing_transfer_date: date,
+        request_ts: datetime = None) -> None:
+
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert last_outgoing_transfer_date is not None
@@ -234,7 +239,7 @@ def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_tr
         if account.last_outgoing_transfer_date <= last_outgoing_transfer_date and zero_out_amount > 0:
             _make_debtor_payment(ZERO_OUT_ACCOUNT, account, zero_out_amount)
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id)
+    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
 
 
 @atomic
@@ -271,7 +276,7 @@ def configure_account(
 
 
 @atomic
-def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
+def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime = None) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
@@ -291,7 +296,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
                     _make_debtor_payment(DELETE_ACCOUNT, account, -account.principal, current_ts=current_ts)
                 _mark_account_as_deleted(account, current_ts)
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id)
+    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
 
 
 @atomic
@@ -671,8 +676,9 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     return accept(amount)
 
 
-def _insert_account_maintenance_signal(debtor_id: int, creditor_id: int) -> None:
+def _insert_account_maintenance_signal(debtor_id: int, creditor_id: int, request_ts: datetime = None) -> None:
     db.session.add(AccountMaintenanceSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
+        request_ts=request_ts or datetime.now(tz=timezone.utc),
     ))

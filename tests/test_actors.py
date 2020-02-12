@@ -31,6 +31,7 @@ def test_set_interest_rate(db_session):
         debtor_id=D_ID,
         creditor_id=C_ID,
         interest_rate=10.0,
+        request_ts='2019-12-31T00:00:00Z',
     )
 
 
@@ -38,6 +39,8 @@ def test_capitalize_interest(db_session):
     a.capitalize_interest(
         debtor_id=D_ID,
         creditor_id=C_ID,
+        accumulated_interest_threshold=0,
+        request_ts='2019-12-31T00:00:00Z',
     )
 
 
@@ -57,6 +60,7 @@ def test_zero_out_negative_balance(db_session):
         debtor_id=D_ID,
         creditor_id=C_ID,
         last_outgoing_transfer_date='2019-07-01',
+        request_ts='2019-12-31T00:00:00Z',
     )
 
 
@@ -64,4 +68,5 @@ def test_try_to_delete_account(db_session):
     a.try_to_delete_account(
         debtor_id=D_ID,
         creditor_id=C_ID,
+        request_ts='2019-12-31T00:00:00Z',
     )
