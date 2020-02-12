@@ -285,7 +285,20 @@ class AccountCommitSignal(Signal):
 
 
 class AccountMaintenanceSignal(Signal):
-    """"Emitted when a maintenance action is performed for a given account."""
+    """"Emitted when a maintenance operation request is received for a given account.
+
+    Maintenance operations are:
+
+    * `actor.change_interest_rate`
+    * `actor.capitalize_interest`
+    * `actor.zero_out_negative_balance`
+    * `actor.try_to_delete_account`
+
+    The event indicates that more maintenance operation requests can
+    be made for the given account, without the risk of flooding the
+    signal bus with account maintenance requests.
+
+    """
 
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()

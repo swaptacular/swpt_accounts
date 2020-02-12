@@ -148,24 +148,29 @@ def finalize_prepared_transfer(
 
 @atomic
 def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float) -> None:
-    # Too big positive interest rates can cause account balance
-    # overflows. To prevent this, the interest rates should be kept
-    # within reasonable limits, and the accumulated interest should be
-    # capitalized every once in a while (like once a month).
-    if interest_rate > INTEREST_RATE_CEIL:
-        interest_rate = INTEREST_RATE_CEIL
-
-    # Too big negative interest rates are dangerous too. Chances are
-    # that they have been entered either maliciously or by mistake. It
-    # is a good precaution to not allow them at all.
-    if interest_rate < INTEREST_RATE_FLOOR:
-        interest_rate = INTEREST_RATE_FLOOR
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert interest_rate is not None
 
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
-        current_ts = datetime.now(tz=timezone.utc)
+        # Too big positive interest rates can cause account balance
+        # overflows. To prevent this, the interest rates should be kept
+        # within reasonable limits, and the accumulated interest should be
+        # capitalized every once in a while (like once a month).
+        if interest_rate > INTEREST_RATE_CEIL:
+            interest_rate = INTEREST_RATE_CEIL
+
+        # Too big negative interest rates are dangerous too. Chances are
+        # that they have been entered either maliciously or by mistake. It
+        # is a good precaution to not allow them at all.
+        if interest_rate < INTEREST_RATE_FLOOR:
+            interest_rate = INTEREST_RATE_FLOOR
+
         has_established_interest_rate = account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         if not (has_established_interest_rate and account.interest_rate == interest_rate):
+            current_ts = datetime.now(tz=timezone.utc)
+
             # Before changing the interest rate, we must not forget to
             # calculate the interest accumulated after the last account
             # change. (For that, we must use the old interest rate).
@@ -175,7 +180,7 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float)
             account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
             _insert_account_change_signal(account, current_ts)
 
-        _insert_account_maintenance_signal(debtor_id, creditor_id)
+    _insert_account_maintenance_signal(debtor_id, creditor_id)
 
 
 @atomic
@@ -185,6 +190,9 @@ def capitalize_interest(
         accumulated_interest_threshold: int = 0,
         current_ts: datetime = None) -> None:
 
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
         positive_threshold = max(1, abs(accumulated_interest_threshold))
@@ -193,7 +201,8 @@ def capitalize_interest(
         amount = _contain_principal_overflow(amount)
         if abs(amount) >= positive_threshold:
             _make_debtor_payment(INTEREST, account, amount, current_ts=current_ts)
-        _insert_account_maintenance_signal(debtor_id, creditor_id)
+
+    _insert_account_maintenance_signal(debtor_id, creditor_id)
 
 
 @atomic
@@ -214,14 +223,18 @@ def make_debtor_payment(
 
 @atomic
 def zero_out_negative_balance(debtor_id: int, creditor_id: int, last_outgoing_transfer_date: date) -> None:
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert last_outgoing_transfer_date is not None
+
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
         zero_out_amount = -math.floor(_calc_account_current_balance(account))
         zero_out_amount = _contain_principal_overflow(zero_out_amount)
         if account.last_outgoing_transfer_date <= last_outgoing_transfer_date and zero_out_amount > 0:
             _make_debtor_payment(ZERO_OUT_ACCOUNT, account, zero_out_amount)
-        _insert_account_maintenance_signal(debtor_id, creditor_id)
+
+    _insert_account_maintenance_signal(debtor_id, creditor_id)
 
 
 @atomic
@@ -259,13 +272,13 @@ def configure_account(
 
 @atomic
 def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+
     account = get_account(debtor_id, creditor_id, lock=True)
-    if account:
-        if account.pending_transfers_count != 0 or account.locked_amount != 0:  # pragma: no cover
-            pass
-        elif creditor_id == ROOT_CREDITOR_ID:
-            # The debtor's account can be marked as deleted only when
-            # it is the only account left.
+    if account and account.pending_transfers_count == 0:
+        if creditor_id == ROOT_CREDITOR_ID:
+            # Check if this is the only account left.
             if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
                 _mark_account_as_deleted(account)
         else:
@@ -278,7 +291,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
                     _make_debtor_payment(DELETE_ACCOUNT, account, -account.principal, current_ts=current_ts)
                 _mark_account_as_deleted(account, current_ts)
 
-        _insert_account_maintenance_signal(debtor_id, creditor_id)
+    _insert_account_maintenance_signal(debtor_id, creditor_id)
 
 
 @atomic
@@ -518,6 +531,7 @@ def _mark_account_as_deleted(account: Account, current_ts: datetime = None):
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     account.principal = 0
     account.interest = 0.0
+    account.locked_amount = 0
     account.status |= Account.STATUS_DELETED_FLAG
     _insert_account_change_signal(account, current_ts)
 
