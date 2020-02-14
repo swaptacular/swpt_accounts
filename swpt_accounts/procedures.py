@@ -348,6 +348,9 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         with_for_update(skip_locked=True).\
         all()
 
+    # TODO: Consider using bulk-inserts and bulk-deletes when we
+    #       decide to disable auto-flushing. This would probably be
+    #       slightly faster.
     if changes:
         nonzero_deltas = False
         principal_delta = 0
