@@ -1,7 +1,8 @@
 import math
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable
 from decimal import Decimal
+from flask import current_app
 from sqlalchemy import func
 from swpt_lib.utils import is_later_event
 from .extensions import db
@@ -147,10 +148,11 @@ def finalize_prepared_transfer(
 
 
 @atomic
-def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime = None) -> None:
+def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert interest_rate is not None
+    assert request_ts is not None
 
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
@@ -167,10 +169,18 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
         if interest_rate < INTEREST_RATE_FLOOR:
             interest_rate = INTEREST_RATE_FLOOR
 
+        current_ts = datetime.now(tz=timezone.utc)
+        signalbus_max_delay = timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'])
         has_established_interest_rate = account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        if not (has_established_interest_rate and account.interest_rate == interest_rate):
-            current_ts = datetime.now(tz=timezone.utc)
+        has_correct_interest_rate = has_established_interest_rate and account.interest_rate == interest_rate
 
+        # `change_interest_rate` requests can come out-of-order. This
+        # works fine, because sooner or later the announced interest
+        # rate will be set. Nevertheless, we must not set an interest
+        # rate that is excessively outdated.
+        is_valid_request = request_ts >= current_ts - signalbus_max_delay
+
+        if is_valid_request and not has_correct_interest_rate:
             # Before changing the interest rate, we must not forget to
             # calculate the interest accumulated after the last account
             # change. (For that, we must use the old interest rate).
