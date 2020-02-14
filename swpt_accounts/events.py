@@ -1,4 +1,5 @@
 import dramatiq
+from datetime import datetime, timezone
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
@@ -14,12 +15,17 @@ __all__ = [
 ]
 
 
+def get_now_utc():
+    return datetime.now(tz=timezone.utc)
+
+
 class Signal(db.Model):
     __abstract__ = True
 
     # TODO: Define `send_signalbus_messages` class method, set
     #      `ModelClass.signalbus_autoflush = False` and
-    #      `ModelClass.signalbus_burst_count = N` in models.
+    #      `ModelClass.signalbus_burst_count = N` in models. Make sure
+    #      TTL is set properly for the messages.
 
     queue_name = None
 
@@ -48,6 +54,8 @@ class Signal(db.Model):
         )
         broker.publish_message(message, exchange=MAIN_EXCHANGE_NAME, routing_key=routing_key)
 
+    inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+
 
 class PreparedTransferSignal(Signal):
     """Emitted when a new transfer has been prepared.
@@ -64,6 +72,17 @@ class PreparedTransferSignal(Signal):
       (committed) amount may not exceed this number.
 
     """
+
+    class __marshmallow__(Schema):
+        debtor_id = fields.Integer()
+        sender_creditor_id = fields.Integer()
+        transfer_id = fields.Integer()
+        coordinator_type = fields.String()
+        coordinator_id = fields.Integer()
+        coordinator_request_id = fields.Integer()
+        sender_locked_amount = fields.Integer()
+        recipient_creditor_id = fields.Integer()
+        prepared_at_ts = fields.DateTime()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -129,6 +148,18 @@ class FinalizedTransferSignal(Signal):
       been dismissed.
 
     """
+
+    class __marshmallow__(Schema):
+        debtor_id = fields.Integer()
+        sender_creditor_id = fields.Integer()
+        transfer_id = fields.Integer()
+        coordinator_type = fields.String()
+        coordinator_id = fields.Integer()
+        coordinator_request_id = fields.Integer()
+        recipient_creditor_id = fields.Integer()
+        prepared_at_ts = fields.DateTime()
+        finalized_at_ts = fields.DateTime()
+        committed_amount = fields.Integer()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -199,6 +230,22 @@ class AccountChangeSignal(Signal):
 
     """
 
+    class __marshmallow__(Schema):
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+        change_ts = fields.DateTime()
+        change_seqnum = fields.Integer()
+        principal = fields.Integer()
+        interest = fields.Float()
+        interest_rate = fields.Float()
+        last_transfer_seqnum = fields.Integer()
+        last_outgoing_transfer_date = fields.Date()
+        last_config_change_ts = fields.DateTime()
+        last_config_change_seqnum = fields.Integer()
+        creation_date = fields.Date()
+        negligible_amount = fields.Float()
+        status = fields.Integer()
+
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     change_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
@@ -221,6 +268,11 @@ class AccountPurgeSignal(Signal):
     * `creation_date` is the date on which the account was created.
 
     """
+
+    class __marshmallow__(Schema):
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+        creation_date = fields.Date()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -271,6 +323,18 @@ class AccountCommitSignal(Signal):
       transfer has been committd.
 
     """
+
+    class __marshmallow__(Schema):
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+        transfer_seqnum = fields.Integer()
+        coordinator_type = fields.String()
+        committed_at_ts = fields.DateTime()
+        committed_amount = fields.Integer()
+        other_creditor_id = fields.Integer()
+        transfer_info = fields.Raw()
+        account_creation_date = fields.Date()
+        account_new_principal = fields.Integer()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)

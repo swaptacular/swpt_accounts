@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 06eedd9b7bd6
+Revision ID: 5d6042ccdaa1
 Revises: 
-Create Date: 2020-02-13 00:04:14.935612
+Create Date: 2020-02-14 15:40:12.641433
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '06eedd9b7bd6'
+revision = '5d6042ccdaa1'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -47,6 +47,7 @@ def upgrade():
     comment='Tells who owes what to whom.'
     )
     op.create_table('account_change_signal',
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -64,6 +65,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_ts', 'change_seqnum')
     )
     op.create_table('account_commit_signal',
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
@@ -77,6 +79,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_seqnum')
     )
     op.create_table('account_maintenance_signal',
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('request_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -84,12 +87,14 @@ def upgrade():
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
     op.create_table('account_purge_signal',
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'creation_date')
     )
     op.create_table('finalized_transfer_signal',
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_id', sa.BigInteger(), nullable=False),
@@ -119,6 +124,7 @@ def upgrade():
     comment='Represents a pending change to a given account. Pending updates to `account.principal`, `account.interest`, and `account.locked_amount` are queued to this table, before being processed, because this allows multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'
     )
     op.create_table('prepared_transfer_signal',
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_id', sa.BigInteger(), nullable=False),
@@ -131,6 +137,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id')
     )
     op.create_table('rejected_transfer_signal',
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
