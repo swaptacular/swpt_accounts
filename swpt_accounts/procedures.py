@@ -329,15 +329,13 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
     if requests:
         sender_account = get_account(debtor_id, creditor_id, lock=True)
         new_objects = []
+
+        # TODO: Consider using bulk-inserts and bulk-deletes when we
+        #       decide to disable auto-flushing. This would probably be
+        #       slightly faster.
         for request in requests:
             new_objects.extend(_process_transfer_request(request, sender_account))
             db.session.delete(request)
-
-        # TODO: `new_objects.sort(key=lambda o: id(type(o)))`
-        #       `db.session.bulk_save_objects(new_objects)`
-        # would be faster here, but it would not automatically flush
-        # the signals. This should be changed when we decide to
-        # disable auto-flushing.
         db.session.add_all(new_objects)
 
 
@@ -348,9 +346,6 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         with_for_update(skip_locked=True).\
         all()
 
-    # TODO: Consider using bulk-inserts and bulk-deletes when we
-    #       decide to disable auto-flushing. This would probably be
-    #       slightly faster.
     if changes:
         nonzero_deltas = False
         principal_delta = 0
@@ -358,6 +353,10 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         account = _lock_or_create_account(debtor_id, creditor_id)
         current_ts = datetime.now(tz=timezone.utc)
         current_date = current_ts.date()
+
+        # TODO: Consider using bulk-inserts and bulk-deletes when we
+        #       decide to disable auto-flushing. This would probably be
+        #       slightly faster.
         for change in changes:
             if change.principal_delta != 0 or change.interest_delta != 0:
                 nonzero_deltas = True
