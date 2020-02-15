@@ -14,6 +14,9 @@ SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 #       `PreparedTransferSignal`s when we decide to disable
 #       auto-flushing. This would probably be slightly faster.
 
+# TODO: Make `TableScanner.blocks_per_query` and
+#       `TableScanner.target_beat_duration` configurable.
+
 
 class AccountScanner(TableScanner):
     """Sends account heartbeat signals, purge deleted accounts."""
