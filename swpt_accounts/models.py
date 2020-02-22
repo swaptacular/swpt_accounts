@@ -19,10 +19,6 @@ def get_now_utc() -> datetime:
     return datetime.now(tz=timezone.utc)
 
 
-def increment_seqnum(n: int) -> int:
-    return MIN_INT32 if n == MAX_INT32 else n + 1
-
-
 class Account(db.Model):
     STATUS_DELETED_FLAG = 1
     STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 2
