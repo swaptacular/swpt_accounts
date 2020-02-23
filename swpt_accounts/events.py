@@ -320,7 +320,7 @@ class AccountCommitSignal(Signal):
       different "epochs".
 
     * `account_new_principal` is the account principal, after the
-      transfer has been committd.
+      transfer has been committd (between -MAX_INT64 and MAX_INT64).
 
     """
 
