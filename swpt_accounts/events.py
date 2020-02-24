@@ -226,7 +226,8 @@ class AccountChangeSignal(Signal):
 
     * `negligible_amount` is the maximum amount which is considered
       negligible. It can be used, for example, to decide whether an
-      account can be safely deleted.
+      account can be safely deleted. Will always be greater of equal
+      to `2.0`.
 
     * `status` contains status bit-flags (see `models.Account`).
 
