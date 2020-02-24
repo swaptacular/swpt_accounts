@@ -196,9 +196,11 @@ class AccountChangeSignal(Signal):
       be negative.)
 
     * `interest_rate` is the annual rate (in percents) at which
-      interest accumulates on the account. (Can be negative.)
+      interest accumulates on the account. (Can be negative,
+      INTEREST_RATE_FLOOR <= interest_rate <= INTEREST_RATE_CEIL.)
 
-    * `last_transfer_seqnum` identifies the last account commit.
+    * `last_transfer_seqnum` (>= 0) identifies the last account
+      commit.
 
     * `last_outgoing_transfer_date` is the date of the last committed
       transfer, for which the owner of the account was the sender. It
@@ -289,14 +291,14 @@ class AccountCommitSignal(Signal):
 
     * `debtor_id` and `creditor_id` identify the affected account.
 
-    * `transfer_seqnum` is the sequential number of the transfer. For
-      a newly created account, the sequential number of the first
-      transfer will have its lower 40 bits set to `0x0000000001`, and
-      its higher 24 bits calculated from the account's creation date
-      (the number of days since Jan 1st, 2020). Note that when an
-      account has been removed from the database, and then recreated
-      again, for this account, a gap will occur in the generated
-      sequence of `transfer_seqnum`s.
+    * `transfer_seqnum` is the sequential number (> 0) of the
+      transfer. For a newly created account, the sequential number of
+      the first transfer will have its lower 40 bits set to
+      `0x0000000001`, and its higher 24 bits calculated from the
+      account's creation date (the number of days since Jan 1st,
+      2020). Note that when an account has been removed from the
+      database, and then recreated again, for this account, a gap will
+      occur in the generated sequence of `transfer_seqnum`s.
 
     * `coordinator_type` indicates the subsystem which initiated the
       transfer.
