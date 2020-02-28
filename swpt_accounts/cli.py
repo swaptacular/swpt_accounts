@@ -64,9 +64,9 @@ def process_transfers(threads):
     # either distribute the processing to several machines, or improve
     # on python's code performance.
 
-    # TODO: Separate the processing of pending transfers from the
-    # processing of pending account changes. That would allow to
-    # trigger them with different frequency.
+    # TODO: Consider separating the processing of pending transfers
+    # from the processing of pending account changes. This would allow
+    # to trigger them with different frequency.
 
     threads = threads or int(environ.get('APP_PROCESS_TRANSFERS_THREADS', '1'))
     app = current_app._get_current_object()
