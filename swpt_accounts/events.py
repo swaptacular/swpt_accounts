@@ -225,9 +225,9 @@ class AccountChangeSignal(Signal):
     * `creation_date` is the date on which the account was created.
 
     * `negligible_amount` is the maximum amount which is considered
-      negligible. Will always be non-negative. It is used to: 1)
-      decide whether an account can be safely deleted; 2) decide
-      wheather an incoming transfer is insignificant.
+      negligible. It is used to: 1) decide whether an account can be
+      safely deleted; 2) decide whether an incoming transfer is
+      insignificant. Will always be non-negative.
 
     * `status` contains status bit-flags (see `models.Account`).
 
@@ -325,6 +325,11 @@ class AccountCommitSignal(Signal):
     * `account_new_principal` is the account principal, after the
       transfer has been committd (between -MAX_INT64 and MAX_INT64).
 
+    * `is_insignificant` tells whether the transfer is considered as
+      insignificant. Only incoming transfers (`committed_amount > 0`)
+      can be considered as insignificant. Normally this means that the
+      received amount is negligible.
+
     """
 
     class __marshmallow__(Schema):
@@ -338,6 +343,7 @@ class AccountCommitSignal(Signal):
         transfer_info = fields.Raw()
         account_creation_date = fields.Date()
         account_new_principal = fields.Integer()
+        is_insignificant = fields.Boolean()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -349,6 +355,7 @@ class AccountCommitSignal(Signal):
     transfer_info = db.Column(pg.JSON, nullable=False)
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
+    is_insignificant = db.Column(db.BOOLEAN, nullable=False)
 
 
 class AccountMaintenanceSignal(Signal):

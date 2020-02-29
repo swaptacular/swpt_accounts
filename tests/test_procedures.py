@@ -110,6 +110,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1.transfer_info == TRANSFER_INFO
     assert cts1.transfer_seqnum == transfer_seqnum1
     assert cts1.account_new_principal == amount
+    assert not cts1.is_insignificant
     assert len(AccountCommitSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
 
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_INFO)

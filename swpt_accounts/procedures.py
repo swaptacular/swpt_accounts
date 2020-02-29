@@ -542,6 +542,7 @@ def _insert_account_commit_signal(
             transfer_info=transfer_info,
             account_creation_date=account.creation_date,
             account_new_principal=account_new_principal,
+            is_insignificant=0 <= committed_amount <= account.negligible_amount,
         ))
 
 
