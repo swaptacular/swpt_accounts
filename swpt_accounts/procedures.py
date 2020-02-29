@@ -259,13 +259,14 @@ def configure_account(
         change_ts: datetime,
         change_seqnum: int,
         is_scheduled_for_deletion: bool = False,
-        negligible_amount: float = 2.0) -> None:
+        negligible_amount: float = 0.0) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert change_ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= change_seqnum <= MAX_INT32
     assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
+    assert negligible_amount >= 0.0
 
     account = _lock_or_create_account(debtor_id, creditor_id, send_account_creation_signal=False)
     this_event = (change_ts, change_seqnum)
@@ -279,7 +280,7 @@ def configure_account(
             account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         else:
             account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-        account.negligible_amount = max(2.0, negligible_amount)
+        account.negligible_amount = negligible_amount
         account.last_config_change_ts = change_ts
         account.last_config_change_seqnum = change_seqnum
         _apply_account_change(account, 0, 0, datetime.now(tz=timezone.utc))
@@ -299,7 +300,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
         else:
             current_ts = datetime.now(tz=timezone.utc)
             current_balance = _calc_account_current_balance(account, current_ts)
-            has_negligible_balance = 0 <= current_balance <= account.negligible_amount
+            has_negligible_balance = 0 <= current_balance <= max(2.0, account.negligible_amount)
             is_scheduled_for_deletion = account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
             if has_negligible_balance and is_scheduled_for_deletion:
                 if account.principal != 0:

@@ -225,9 +225,9 @@ class AccountChangeSignal(Signal):
     * `creation_date` is the date on which the account was created.
 
     * `negligible_amount` is the maximum amount which is considered
-      negligible. It can be used, for example, to decide whether an
-      account can be safely deleted. Will always be greater of equal
-      to `2.0`.
+      negligible. Will always be non-negative. It is used to: 1)
+      decide whether an account can be safely deleted; 2) decide
+      wheather an incoming transfer is insignificant.
 
     * `status` contains status bit-flags (see `models.Account`).
 

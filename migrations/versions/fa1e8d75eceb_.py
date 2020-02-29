@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5d6042ccdaa1
+Revision ID: fa1e8d75eceb
 Revises: 
-Create Date: 2020-02-14 15:40:12.641433
+Create Date: 2020-02-29 15:56:27.557115
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '5d6042ccdaa1'
+revision = 'fa1e8d75eceb'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -40,7 +40,7 @@ def upgrade():
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_seqnum >= 0'),
     sa.CheckConstraint('locked_amount >= 0'),
-    sa.CheckConstraint('negligible_amount >= 2.0'),
+    sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.CheckConstraint('pending_transfers_count >= 0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id'),

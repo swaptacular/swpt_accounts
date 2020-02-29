@@ -10,7 +10,7 @@ def configure_account(
         change_ts: str,
         change_seqnum: int,
         is_scheduled_for_deletion: bool = False,
-        negligible_amount: float = 2.0) -> None:
+        negligible_amount: float = 0.0) -> None:
 
     """Make sure the account `(debtor_id, creditor_id)` exists, then
     update its configuration settings.
@@ -30,7 +30,7 @@ def configure_account(
 
     * `negligible_amount` is the maximum account balance that should
        be considered negligible. It is used to decide whether an
-       account can be safely deleted. SHOULD be at least `2.0`.
+       account can be safely deleted. MUST be non-negative.
 
     An `AccountChangeSignal` is always sent as a confirmation.
 
@@ -265,7 +265,7 @@ def try_to_delete_account(
     If it is a "normal" account, it will be marked as deleted if it
     has been scheduled for deletion, there are no prepared transfers,
     and the current balance is non-negative and no bigger than
-    `account.negligible_amount`.
+    `max(2.0, account.negligible_amount)`.
 
     If it is the debtor's account, it will be marked as deleted if
     there are no prepared transfers and it is the only account left

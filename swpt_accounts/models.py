@@ -129,7 +129,7 @@ class Account(db.Model):
     negligible_amount = db.Column(
         db.REAL,
         nullable=False,
-        default=2.0,
+        default=0.0,
         comment='An amount that is considered negligible. It is used to decide whether '
                 'an account can be safely deleted or not.',
     )
@@ -163,7 +163,7 @@ class Account(db.Model):
         db.CheckConstraint(pending_transfers_count >= 0),
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(last_transfer_seqnum >= 0),
-        db.CheckConstraint(negligible_amount >= 2.0),
+        db.CheckConstraint(negligible_amount >= 0.0),
         {
             'comment': 'Tells who owes what to whom.',
         }
