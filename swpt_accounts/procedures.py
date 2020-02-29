@@ -525,6 +525,7 @@ def _insert_account_commit_signal(
         account_new_principal: int) -> None:
 
     assert committed_amount != 0
+    previous_transfer_seqnum = account.last_transfer_seqnum
     account.last_transfer_seqnum += 1
 
     # We do not send notifications for transfers from/to the debtor's
@@ -543,6 +544,7 @@ def _insert_account_commit_signal(
             account_creation_date=account.creation_date,
             account_new_principal=account_new_principal,
             is_insignificant=0 <= committed_amount <= account.negligible_amount,
+            previous_transfer_seqnum=previous_transfer_seqnum,
         ))
 
 

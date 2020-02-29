@@ -5,7 +5,7 @@ from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
-    AccountChangeSignal, AccountPurgeSignal, AccountCommitSignal, FinalizedTransferSignal, \
+    AccountChangeSignal, AccountCommitSignal, FinalizedTransferSignal, \
     BEGINNING_OF_TIME
 
 
@@ -313,7 +313,6 @@ def test_delete_account(db_session, current_ts):
     assert p.get_account(D_ID, C_ID) is None
     p.configure_account(D_ID, C_ID, current_ts, 0)
     a = p.get_account(D_ID, C_ID)
-    creation_date = a.creation_date
     assert a is not None
     assert not a.status & Account.STATUS_DELETED_FLAG
     assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
@@ -399,7 +398,6 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
 
 
 def test_delete_debtor_account(db_session, current_ts):
-    future_ts = current_ts + timedelta(days=1000)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     p.configure_account(D_ID, C_ID, current_ts, 0)

@@ -330,6 +330,10 @@ class AccountCommitSignal(Signal):
       can be considered as insignificant. Normally this means that the
       received amount is negligible.
 
+    * `previous_transfer_seqnum` is the sequential number (>= 0) of
+      the previous transfer. It will always be smaller than
+      `transfer_seqnum`, and the difference can be more than `1`.
+
     """
 
     class __marshmallow__(Schema):
@@ -344,6 +348,7 @@ class AccountCommitSignal(Signal):
         account_creation_date = fields.Date()
         account_new_principal = fields.Integer()
         is_insignificant = fields.Boolean()
+        previous_transfer_seqnum = fields.Integer()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -356,6 +361,7 @@ class AccountCommitSignal(Signal):
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     is_insignificant = db.Column(db.BOOLEAN, nullable=False)
+    previous_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
 
 
 class AccountMaintenanceSignal(Signal):
