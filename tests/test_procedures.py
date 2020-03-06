@@ -357,6 +357,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=1234,
         recipient_creditor_id=C_ID,
+        signal_ts=current_ts,
     )
     p.process_transfer_requests(D_ID, 1234)
     rts = RejectedTransferSignal.query.one()
@@ -467,6 +468,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
+        signal_ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
@@ -499,6 +501,7 @@ def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
+        signal_ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     rts = RejectedTransferSignal.query.one()
@@ -522,6 +525,7 @@ def test_prepare_transfer_to_self(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=C_ID,
+        signal_ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     rts = RejectedTransferSignal.query.one()
@@ -546,6 +550,7 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
+        signal_ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     rts = RejectedTransferSignal.query.one()
@@ -572,6 +577,7 @@ def test_prepare_transfer_success(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
+        signal_ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
@@ -629,6 +635,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
+        signal_ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
@@ -679,6 +686,7 @@ def test_commit_to_debtor_account(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=p.ROOT_CREDITOR_ID,
+        signal_ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()

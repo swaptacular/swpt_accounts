@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from swpt_accounts import procedures as p
 from swpt_accounts.models import RejectedTransferSignal, TransferRequest
 
@@ -25,6 +26,7 @@ def test_process_transfers_transfer_requests(app, db_session):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
+        signal_ts=datetime.now(tz=timezone.utc),
     )
     assert len(TransferRequest.query.all()) == 1
     runner = app.test_cli_runner()

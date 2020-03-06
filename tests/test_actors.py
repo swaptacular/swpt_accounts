@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from swpt_accounts import actors as a
 
 D_ID = -1
@@ -14,6 +15,7 @@ def test_prepare_transfer(db_session):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_creditor_id=1234,
+        signal_ts=datetime.now(tz=timezone.utc).isoformat(),
     )
 
 

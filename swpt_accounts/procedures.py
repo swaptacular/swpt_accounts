@@ -64,6 +64,7 @@ def prepare_transfer(
         debtor_id: int,
         sender_creditor_id: int,
         recipient_creditor_id: int,
+        signal_ts: datetime,
         minimum_account_balance: int = 0) -> None:
 
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
