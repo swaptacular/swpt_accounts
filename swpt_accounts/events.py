@@ -59,7 +59,8 @@ class Signal(db.Model):
 
 
 class PreparedTransferSignal(Signal):
-    """Emitted when a new transfer has been prepared.
+    """Emitted when a new transfer has been prepared, or to ramind that
+    the prepared transfer must be finalized.
 
     * `transfer_id` is an opaque ID generated for the prepared transfer.
 
