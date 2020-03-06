@@ -208,19 +208,19 @@ class AccountChangeSignal(Signal):
       negative balance can be zeroed out. (If there were no outgoing
       transfers, the value will be "1900-01-01".)
 
-    * `last_config_change_ts` is the timestamp of the last applied
-      account configuration change. That is: the `change_ts` field of
+    * `last_config_signal_ts` is the timestamp of the last applied
+      account configuration signal. That is: the `signal_ts` field of
       the last effectual `configure_account` signal. It can be used to
-      determine whether a scheduled configuration change has been
-      applied. (If there were no configuration changes, the value will
-      be "1900-01-01T00:00:00+00:00".)
+      determine whether a scheduled configuration signal has been
+      applied. (If there were no applied configuration signals, the
+      value will be "1900-01-01T00:00:00+00:00".)
 
-    * `last_config_change_seqnum` is the sequential number of the last
-      applied account configuration change. That is: the
-      `change_seqnum` field of the last effectual `configure_account`
+    * `last_config_signal_seqnum` is the sequential number of the last
+      applied account configuration signal. That is: the
+      `signal_seqnum` field of the last effectual `configure_account`
       signal. It can be used to determine whether a scheduled
-      configuration change has been applied. (If there were no
-      configuration changes, the value will be `0`.)
+      configuration signal has been applied. (If there were no applied
+      configuration signals, the value will be `0`.)
 
     * `creation_date` is the date on which the account was created.
 
@@ -243,8 +243,8 @@ class AccountChangeSignal(Signal):
         interest_rate = fields.Float()
         last_transfer_seqnum = fields.Integer()
         last_outgoing_transfer_date = fields.Date()
-        last_config_change_ts = fields.DateTime()
-        last_config_change_seqnum = fields.Integer()
+        last_config_signal_ts = fields.DateTime()
+        last_config_signal_seqnum = fields.Integer()
         creation_date = fields.Date()
         negligible_amount = fields.Float()
         status = fields.Integer()
@@ -258,8 +258,8 @@ class AccountChangeSignal(Signal):
     interest_rate = db.Column(db.REAL, nullable=False)
     last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     last_outgoing_transfer_date = db.Column(db.DATE, nullable=False)
-    last_config_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    last_config_change_seqnum = db.Column(db.Integer, nullable=False)
+    last_config_signal_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    last_config_signal_seqnum = db.Column(db.Integer, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     status = db.Column(db.SmallInteger, nullable=False)

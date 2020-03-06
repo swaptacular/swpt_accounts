@@ -48,8 +48,8 @@ def test_configure_account(db_session):
     a.configure_account(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        change_ts='2099-12-31T00:00:00Z',
-        change_seqnum=0,
+        signal_ts='2099-12-31T00:00:00Z',
+        signal_seqnum=0,
         is_scheduled_for_deletion=True,
         negligible_amount=500.0,
     )

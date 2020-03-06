@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: ff400bb06544
+Revision ID: cb041ac9518c
 Revises: 
-Create Date: 2020-02-29 17:40:51.395282
+Create Date: 2020-03-06 14:23:51.086213
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'ff400bb06544'
+revision = 'cb041ac9518c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -34,8 +34,8 @@ def upgrade():
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `account_commit_signal` record is inserted. It is used to generate sequential numbers for the `account_commit_signal.transfer_seqnum` column. Must never decrease. When the account is created, `last_transfer_seqnum` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 2020).'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status bits: 1 - deleted, 2 - established interest rate, 4 - overflown, 8 - scheduled for deletion.'),
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether an incoming transfer is insignificant.'),
-    sa.Column('last_config_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The value of the `change_ts` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
-    sa.Column('last_config_change_seqnum', sa.Integer(), nullable=False, comment='The value of the `change_seqnum` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
+    sa.Column('last_config_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The value of the `signal_ts` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
+    sa.Column('last_config_signal_seqnum', sa.Integer(), nullable=False, comment='The value of the `signal_seqnum` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
     sa.Column('last_remainder_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` was sent to remaind that the account still exists. This column helps to prevent sending remainders too often.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_seqnum >= 0'),
@@ -57,8 +57,8 @@ def upgrade():
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False),
-    sa.Column('last_config_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('last_config_change_seqnum', sa.Integer(), nullable=False),
+    sa.Column('last_config_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('last_config_signal_seqnum', sa.Integer(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),

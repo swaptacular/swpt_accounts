@@ -256,24 +256,24 @@ def zero_out_negative_balance(
 def configure_account(
         debtor_id: int,
         creditor_id: int,
-        change_ts: datetime,
-        change_seqnum: int,
+        signal_ts: datetime,
+        signal_seqnum: int,
         is_scheduled_for_deletion: bool = False,
         negligible_amount: float = 0.0) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert change_ts > BEGINNING_OF_TIME
-    assert MIN_INT32 <= change_seqnum <= MAX_INT32
+    assert signal_ts > BEGINNING_OF_TIME
+    assert MIN_INT32 <= signal_seqnum <= MAX_INT32
     assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
     assert negligible_amount >= 0.0
 
     account = _lock_or_create_account(debtor_id, creditor_id, send_account_creation_signal=False)
-    this_event = (change_ts, change_seqnum)
-    prev_event = (account.last_config_change_ts, account.last_config_change_seqnum)
+    this_event = (signal_ts, signal_seqnum)
+    prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
     if is_later_event(this_event, prev_event):
         # When a new account is created, this block is guaranteed to
-        # be executed, because `account.last_config_change_ts` for
+        # be executed, because `account.last_config_signal_ts` for
         # newly created accounts is many years ago, which means that
         # `is_later_event(this_event, prev_event)` is `True`.
         if is_scheduled_for_deletion:
@@ -281,8 +281,8 @@ def configure_account(
         else:
             account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         account.negligible_amount = negligible_amount
-        account.last_config_change_ts = change_ts
-        account.last_config_change_seqnum = change_seqnum
+        account.last_config_signal_ts = signal_ts
+        account.last_config_signal_seqnum = signal_seqnum
         _apply_account_change(account, 0, 0, datetime.now(tz=timezone.utc))
 
 
@@ -418,8 +418,8 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
         interest_rate=account.interest_rate,
         last_transfer_seqnum=account.last_transfer_seqnum,
         last_outgoing_transfer_date=account.last_outgoing_transfer_date,
-        last_config_change_ts=account.last_config_change_ts,
-        last_config_change_seqnum=account.last_config_change_seqnum,
+        last_config_signal_ts=account.last_config_signal_ts,
+        last_config_signal_seqnum=account.last_config_signal_seqnum,
         creation_date=account.creation_date,
         negligible_amount=account.negligible_amount,
         status=account.status,

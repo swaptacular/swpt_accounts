@@ -7,19 +7,19 @@ from . import procedures
 def configure_account(
         debtor_id: int,
         creditor_id: int,
-        change_ts: str,
-        change_seqnum: int,
+        signal_ts: str,
+        signal_seqnum: int,
         is_scheduled_for_deletion: bool = False,
         negligible_amount: float = 0.0) -> None:
 
     """Make sure the account `(debtor_id, creditor_id)` exists, then
     update its configuration settings.
 
-    * `change_ts` is the current timestamp. For a given account, later
+    * `signal_ts` is the current timestamp. For a given account, later
       calls to `configure_account` MUST have later or equal
       timestamps, compared to earlier calls.
 
-    * `change_seqnum` is the sequential number of the call (a signed
+    * `signal_seqnum` is the sequential number of the call (a signed
       32-bit integer). For a given account, later calls to
       `configure_account` SHOULD have bigger sequential numbers,
       compared to earlier calls (except for the possible signed 32-bit
@@ -37,9 +37,9 @@ def configure_account(
 
     NOTE: In order to decide whether to update the configuration when
     a (potentially old) `configure_account` signal is received, the
-    implementation compares the `change_ts` of the current call, to
-    the `change_ts` of the latest call. Only if they are equal, the
-    `change_seqnum`s are compared as well (correctly dealing with
+    implementation compares the `signal_ts` of the current call, to
+    the `signal_ts` of the latest call. Only if they are equal, the
+    `signal_seqnum`s are compared as well (correctly dealing with
     possible integer wrapping).
 
     """
@@ -47,8 +47,8 @@ def configure_account(
     procedures.configure_account(
         debtor_id,
         creditor_id,
-        iso8601.parse_date(change_ts),
-        change_seqnum,
+        iso8601.parse_date(signal_ts),
+        signal_seqnum,
         is_scheduled_for_deletion,
         negligible_amount,
     )
