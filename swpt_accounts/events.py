@@ -179,7 +179,8 @@ class FinalizedTransferSignal(Signal):
 
 
 class AccountChangeSignal(Signal):
-    """Emitted when there is a meaningful change in account's state.
+    """Emitted when there is a meaningful change in account's state, or to
+    remind that the account still exists.
 
     * `change_ts` and `change_seqnum` can be used to reliably
       determine the correct order of changes, even if they occured in
