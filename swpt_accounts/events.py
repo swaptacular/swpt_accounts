@@ -1,4 +1,5 @@
 import dramatiq
+from flask import current_app
 from datetime import datetime, timezone
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
@@ -229,6 +230,13 @@ class AccountChangeSignal(Signal):
       safely deleted; 2) decide whether an incoming transfer is
       insignificant. Will always be non-negative.
 
+    * `signal_ts` is the moment at which this signal was emitted.
+
+    * `signal_ttl` is the time-to-live (in seconds) for this
+      signal. The signal MUST be ignored once `signal_ttl` seconds
+      have elapsed since the moment at which this signal was emitted
+      (`signal_ts`). Will always be bigger than `0.0`.
+
     * `status` contains status bit-flags (see `models.Account`).
 
     """
@@ -248,6 +256,8 @@ class AccountChangeSignal(Signal):
         creation_date = fields.Date()
         negligible_amount = fields.Float()
         status = fields.Integer()
+        signal_ts = fields.DateTime(attribute='inserted_at_ts')
+        signal_ttl = fields.Float()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -263,6 +273,10 @@ class AccountChangeSignal(Signal):
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     status = db.Column(db.SmallInteger, nullable=False)
+
+    @property
+    def signal_ttl(self):
+        return current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * 86400.0
 
 
 class AccountPurgeSignal(Signal):
