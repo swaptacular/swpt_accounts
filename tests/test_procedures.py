@@ -44,6 +44,10 @@ def test_configure_account(db_session, current_ts):
     a = p.configure_account(D_ID, C_ID, current_ts, 1)
     assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 2
 
+    # The signal is too old.
+    p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 2)
+    assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 2
+
 
 def test_set_interest_rate(db_session, current_ts):
     # The account does not exist.

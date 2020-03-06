@@ -268,6 +268,8 @@ def configure_account(
     assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
     assert negligible_amount >= 0.0
 
+    if signal_ts < datetime.now(tz=timezone.utc) - timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS']):
+        return
     account = _lock_or_create_account(debtor_id, creditor_id, send_account_creation_signal=False)
     this_event = (signal_ts, signal_seqnum)
     prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
