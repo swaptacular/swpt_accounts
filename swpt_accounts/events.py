@@ -235,8 +235,8 @@ class AccountChangeSignal(Signal):
     * `signal_ts` is the moment at which this signal was emitted.
 
     * `signal_ttl` is the time-to-live (in seconds) for this
-      signal. The signal MUST be ignored once `signal_ttl` seconds
-      have elapsed since the moment at which this signal was emitted
+      signal. The signal SHOULD be ignored if more than `signal_ttl`
+      seconds have elapsed since the signal was emitted
       (`signal_ts`). Will always be bigger than `0.0`.
 
     * `status` contains status bit-flags (see `models.Account`).
