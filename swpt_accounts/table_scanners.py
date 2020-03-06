@@ -95,7 +95,7 @@ class AccountScanner(TableScanner):
                     self._insert_account_purge_signal(row)
                     pks_to_delete.append((row[c.debtor_id], row[c.creditor_id]))
             else:
-                last_heartbeat_ts = max(row[c.last_change_ts], row[c.last_remainder_ts])
+                last_heartbeat_ts = max(row[c.last_change_ts], row[c.last_reminder_ts])
                 if last_heartbeat_ts < heartbeat_cutoff_ts:
                     self._insert_heartbeat_signal(row)
                     pks_to_update.append((row[c.debtor_id], row[c.creditor_id]))
@@ -109,7 +109,7 @@ class AccountScanner(TableScanner):
         if pks_to_update:
             Account.query.\
                 filter(self.pk.in_(pks_to_update)).\
-                update({Account.last_remainder_ts: current_ts}, synchronize_session=False)
+                update({Account.last_reminder_ts: current_ts}, synchronize_session=False)
 
 
 class PreparedTransferScanner(TableScanner):
@@ -130,12 +130,12 @@ class PreparedTransferScanner(TableScanner):
         pks_to_update = []
         current_ts = datetime.now(tz=timezone.utc)
         critical_delay_cutoff_ts = current_ts - self.critical_delay
-        recent_remainder_cutoff_ts = current_ts - max(self.signalbus_max_delay, self.pending_transfers_max_delay)
+        recent_reminder_cutoff_ts = current_ts - max(self.signalbus_max_delay, self.pending_transfers_max_delay)
         for row in rows:
-            last_remainder_ts = row[c.last_remainder_ts]
+            last_reminder_ts = row[c.last_reminder_ts]
             has_critical_delay = row[c.prepared_at_ts] < critical_delay_cutoff_ts
-            has_recent_remainder = last_remainder_ts is not None and last_remainder_ts >= recent_remainder_cutoff_ts
-            if has_critical_delay and not has_recent_remainder:
+            has_recent_reminder = last_reminder_ts is not None and last_reminder_ts >= recent_reminder_cutoff_ts
+            if has_critical_delay and not has_recent_reminder:
                 db.session.add(PreparedTransferSignal(
                     debtor_id=row[c.debtor_id],
                     sender_creditor_id=row[c.sender_creditor_id],
@@ -150,5 +150,5 @@ class PreparedTransferScanner(TableScanner):
                 pks_to_update.append((row[c.debtor_id], row[c.sender_creditor_id], row[c.transfer_id]))
         if pks_to_update:
             PreparedTransfer.query.filter(self.pk.in_(pks_to_update)).update({
-                PreparedTransfer.last_remainder_ts: current_ts,
+                PreparedTransfer.last_reminder_ts: current_ts,
             }, synchronize_session=False)

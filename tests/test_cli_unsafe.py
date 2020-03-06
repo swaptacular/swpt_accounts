@@ -60,7 +60,7 @@ def test_scan_accounts(app_unsafe_session):
         last_transfer_id=1,
         status=0,
         last_change_ts=past_ts,
-        last_remainder_ts=current_ts - timedelta(seconds=10),
+        last_reminder_ts=current_ts - timedelta(seconds=10),
     ))
     db.session.commit()
     db.engine.execute('ANALYZE account')
@@ -91,9 +91,9 @@ def test_scan_accounts(app_unsafe_session):
     assert aps.creation_date == date(2020, 1, 1)
 
     accounts = Account.query.order_by(Account.creditor_id).all()
-    assert accounts[0].last_remainder_ts >= current_ts
-    assert accounts[1].last_remainder_ts < current_ts
-    assert accounts[2].last_remainder_ts < current_ts
+    assert accounts[0].last_reminder_ts >= current_ts
+    assert accounts[1].last_reminder_ts < current_ts
+    assert accounts[2].last_reminder_ts < current_ts
 
     db.engine.execute('ANALYZE account')
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])
@@ -162,9 +162,9 @@ def test_scan_prepared_transfers(app_unsafe_session):
     assert len(Account.query.all()) == 1
     assert len(PreparedTransfer.query.all()) == 2
     pt1 = PreparedTransfer.query.filter_by(transfer_id=1).one()
-    assert pt1.last_remainder_ts is None
+    assert pt1.last_reminder_ts is None
     pt2 = PreparedTransfer.query.filter_by(transfer_id=2).one()
-    assert pt2.last_remainder_ts is not None
+    assert pt2.last_reminder_ts is not None
     assert len(PreparedTransferSignal.query.all()) == 1
 
     pts = PreparedTransferSignal.query.all()[0]

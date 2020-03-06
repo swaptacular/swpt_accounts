@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: cb041ac9518c
+Revision ID: 8619a36a92d5
 Revises: 
-Create Date: 2020-03-06 14:23:51.086213
+Create Date: 2020-03-06 21:56:22.448366
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'cb041ac9518c'
+revision = '8619a36a92d5'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -36,7 +36,7 @@ def upgrade():
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether an incoming transfer is insignificant.'),
     sa.Column('last_config_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The value of the `signal_ts` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
     sa.Column('last_config_signal_seqnum', sa.Integer(), nullable=False, comment='The value of the `signal_seqnum` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
-    sa.Column('last_remainder_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` was sent to remaind that the account still exists. This column helps to prevent sending remainders too often.'),
+    sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` was sent to remind that the account still exists. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_seqnum >= 0'),
     sa.CheckConstraint('locked_amount >= 0'),
@@ -174,7 +174,7 @@ def upgrade():
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('last_remainder_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The moment at which the last `PreparedTransferSignal` was sent to remaind that the prepared transfer must be finalized. A `NULL` means that no remainders have been sent yet. This column helps to prevent sending remainders too often.'),
+    sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The moment at which the last `PreparedTransferSignal` was sent to remind that the prepared transfer must be finalized. A `NULL` means that no reminders have been sent yet. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('sender_locked_amount > 0'),
     sa.ForeignKeyConstraint(['debtor_id', 'sender_creditor_id'], ['account.debtor_id', 'account.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id'),
