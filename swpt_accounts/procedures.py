@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, date, timezone, timedelta
+from datetime import datetime, date, timezone
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from flask import current_app
