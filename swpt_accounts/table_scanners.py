@@ -138,10 +138,11 @@ class PreparedTransferScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         c = self.table.c
-        pks_to_update = []
         current_ts = datetime.now(tz=timezone.utc)
         critical_delay_cutoff_ts = current_ts - self.critical_delay
         recent_reminder_cutoff_ts = current_ts - max(self.signalbus_max_delay, self.pending_transfers_max_delay)
+        reminded_pks = []
+
         for row in rows:
             last_reminder_ts = row[c.last_reminder_ts]
             has_critical_delay = row[c.prepared_at_ts] < critical_delay_cutoff_ts
@@ -158,8 +159,9 @@ class PreparedTransferScanner(TableScanner):
                     recipient_creditor_id=row[c.recipient_creditor_id],
                     prepared_at_ts=row[c.prepared_at_ts],
                 ))
-                pks_to_update.append((row[c.debtor_id], row[c.sender_creditor_id], row[c.transfer_id]))
-        if pks_to_update:
-            PreparedTransfer.query.filter(self.pk.in_(pks_to_update)).update({
+                reminded_pks.append((row[c.debtor_id], row[c.sender_creditor_id], row[c.transfer_id]))
+
+        if reminded_pks:
+            PreparedTransfer.query.filter(self.pk.in_(reminded_pks)).update({
                 PreparedTransfer.last_reminder_ts: current_ts,
             }, synchronize_session=False)
