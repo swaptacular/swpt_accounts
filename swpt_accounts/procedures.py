@@ -201,7 +201,7 @@ def capitalize_interest(
         debtor_id: int,
         creditor_id: int,
         accumulated_interest_threshold: int,
-        request_ts: datetime = None) -> None:
+        request_ts: datetime) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -224,13 +224,13 @@ def make_debtor_payment(
         debtor_id: int,
         creditor_id: int,
         amount: int,
-        transfer_info: dict = {},
-        current_ts: datetime = None) -> None:
+        transfer_info: dict = {}) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert -MAX_INT64 <= amount <= MAX_INT64
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
+
+    current_ts = datetime.now(tz=timezone.utc)
     account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
     _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_info)
 
@@ -240,7 +240,7 @@ def zero_out_negative_balance(
         debtor_id: int,
         creditor_id: int,
         last_outgoing_transfer_date: date,
-        request_ts: datetime = None) -> None:
+        request_ts: datetime) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -300,15 +300,15 @@ def configure_account(
 
 
 @atomic
-def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime = None) -> None:
+def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
     account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.pending_transfers_count == 0:
         current_ts = datetime.now(tz=timezone.utc)
+
         if creditor_id == ROOT_CREDITOR_ID:
-            # Check if this is the only account left.
             if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
                 _mark_account_as_deleted(account, current_ts)
         else:
@@ -480,7 +480,6 @@ def _calc_account_current_balance(account: Account, current_ts: datetime) -> Dec
         # on the debtor's account is has no real effect.
         return Decimal(account.principal)
 
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
     current_balance = account.principal + Decimal.from_float(account.interest)
     if current_balance > 0:
         k = math.log(1.0 + account.interest_rate / 100.0) / SECONDS_IN_YEAR
@@ -521,7 +520,7 @@ def _insert_pending_account_change(
             creditor_id=creditor_id,
             coordinator_type=coordinator_type,
             other_creditor_id=other_creditor_id,
-            inserted_at_ts=inserted_at_ts or datetime.now(tz=timezone.utc),
+            inserted_at_ts=inserted_at_ts,
             transfer_info=transfer_info,
             principal_delta=principal_delta,
             interest_delta=interest_delta,
@@ -563,7 +562,6 @@ def _insert_account_commit_signal(
 
 
 def _mark_account_as_deleted(account: Account, current_ts: datetime):
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
     account.principal = 0
     account.interest = 0.0
     account.locked_amount = 0
@@ -702,9 +700,9 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     return accept(amount)
 
 
-def _insert_account_maintenance_signal(debtor_id: int, creditor_id: int, request_ts: datetime = None) -> None:
+def _insert_account_maintenance_signal(debtor_id: int, creditor_id: int, request_ts: datetime) -> None:
     db.session.add(AccountMaintenanceSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
-        request_ts=request_ts or datetime.now(tz=timezone.utc),
+        request_ts=request_ts,
     ))
