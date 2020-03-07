@@ -26,7 +26,7 @@ class AccountScanner(TableScanner):
 
     def __init__(self):
         super().__init__()
-        self.few_days_interval = timedelta(days=2)
+        self.few_days_interval = timedelta(days=3)
         self.signalbus_max_delay = timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'])
         self.pending_transfers_max_delay = timedelta(days=current_app.config['APP_PENDING_TRANSFERS_MAX_DELAY_DAYS'])
         self.account_purge_delay = 2 * self.signalbus_max_delay + self.pending_transfers_max_delay
