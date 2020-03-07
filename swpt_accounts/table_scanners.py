@@ -117,7 +117,7 @@ class AccountScanner(TableScanner):
                         creation_date=account.creation_date,
                         negligible_amount=account.negligible_amount,
                         status=account.status,
-                        inserted_at_ts=current_ts,
+                        inserted_at_ts=max(current_ts, account.last_change_ts),
                     )
                     for account in to_remind
                 ])
