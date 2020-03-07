@@ -56,14 +56,14 @@ class AccountScanner(TableScanner):
                 # single day, the `creation_date` of the re-created account will
                 # be the same as the `creation_date` of the purged account. We
                 # need to make sure that this never happens.
-                creation_date_is_ok = row[c.creation_date] < date_few_days_ago
+                creation_date_is_not_recent = row[c.creation_date] < date_few_days_ago
 
-                if row[c.last_change_ts] < purge_cutoff_ts and creation_date_is_ok:
+                if row[c.last_change_ts] < purge_cutoff_ts and creation_date_is_not_recent:
                     pks_to_delete.append((row[c.debtor_id], row[c.creditor_id]))
             else:
-                # A heartbeat signal should be sent when there was no meaningful
-                # change for a while, and no reminder has been sent recently to
-                # inform that the account still exists.
+                # A heartbeat signal should be sent when there has been no
+                # meaningful change for a while, and no reminder has been sent
+                # recently to inform that the account still exists.
                 if row[c.last_change_ts] < heartbeat_cutoff_ts and row[c.last_reminder_ts] < heartbeat_cutoff_ts:
                     pks_to_remind.append((row[c.debtor_id], row[c.creditor_id]))
 
