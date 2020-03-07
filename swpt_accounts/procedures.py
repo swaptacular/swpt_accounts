@@ -15,7 +15,8 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 PRISTINE_ACCOUNT_STATUS = 0
-SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
+SECONDS_IN_DAY = 24 * 60 * 60
+SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 DELETE_ACCOUNT = 'delete_account'
 INTEREST = 'interest'
 ZERO_OUT_ACCOUNT = 'zero_out_account'
@@ -152,8 +153,6 @@ def finalize_prepared_transfer(
 def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert interest_rate is not None
-    assert request_ts is not None
 
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
@@ -171,7 +170,7 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
             interest_rate = INTEREST_RATE_FLOOR
 
         current_ts = datetime.now(tz=timezone.utc)
-        signalbus_max_delay = timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'])
+        signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
         has_established_interest_rate = account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         has_correct_interest_rate = has_established_interest_rate and account.interest_rate == interest_rate
 
@@ -179,7 +178,7 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
         # works fine, because sooner or later the announced interest
         # rate will be set. Nevertheless, we must not set an interest
         # rate that is excessively outdated.
-        is_valid_request = request_ts >= current_ts - signalbus_max_delay
+        is_valid_request = (current_ts - request_ts).total_seconds() <= signalbus_max_delay_seconds
 
         if is_valid_request and not has_correct_interest_rate:
             # Before changing the interest rate, we must not forget to
@@ -208,10 +207,10 @@ def capitalize_interest(
     if account:
         current_ts = datetime.now(tz=timezone.utc)
         positive_threshold = max(1, abs(accumulated_interest_threshold))
-        amount = math.floor(_calc_account_accumulated_interest(account, current_ts))
-        amount = _contain_principal_overflow(amount)
-        if abs(amount) >= positive_threshold:
-            _make_debtor_payment(INTEREST, account, amount, current_ts=current_ts)
+        accumulated_interest = math.floor(_calc_account_accumulated_interest(account, current_ts))
+        accumulated_interest = _contain_principal_overflow(accumulated_interest)
+        if abs(accumulated_interest) >= positive_threshold:
+            _make_debtor_payment(INTEREST, account, accumulated_interest, current_ts=current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
 
@@ -269,14 +268,20 @@ def configure_account(
     assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
     assert negligible_amount >= 0.0
 
-    if signal_ts < datetime.now(tz=timezone.utc) - timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS']):
+    current_ts = datetime.now(tz=timezone.utc)
+    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
+    if (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds:
+        # Too old `configure_account` signals should be ignored,
+        # otherwise deleted/purged accounts could be needlessly
+        # resurrected.
         return
+
     account = _lock_or_create_account(debtor_id, creditor_id, send_account_creation_signal=False)
     this_event = (signal_ts, signal_seqnum)
     prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
     if is_later_event(this_event, prev_event):
-        # When a new account is created, this block is guaranteed to
-        # be executed, because `account.last_config_signal_ts` for
+        # When a new account has been created, this block is guaranteed
+        # to be executed, because `account.last_config_signal_ts` for
         # newly created accounts is many years ago, which means that
         # `is_later_event(this_event, prev_event)` is `True`.
         if is_scheduled_for_deletion:
