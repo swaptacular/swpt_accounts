@@ -39,7 +39,7 @@ class AccountScanner(TableScanner):
             self.signalbus_max_delay,
         )
 
-    def _insert_heartbeat_signal(self, row):
+    def _insert_heartbeat_signal(self, row, current_ts):
         """Resend the last sent `AccountChangeSignal` for a given row.
 
         NOTE: We do not update `change_ts` and `change_seqnum`,
@@ -63,6 +63,7 @@ class AccountScanner(TableScanner):
             creation_date=row[c.creation_date],
             negligible_amount=row[c.negligible_amount],
             status=row[c.status],
+            inserted_at_ts=current_ts,
         ))
 
     @atomic
@@ -94,7 +95,7 @@ class AccountScanner(TableScanner):
                 last_heartbeat_ts = max(row[c.last_change_ts], row[c.last_reminder_ts])
 
                 if last_heartbeat_ts < heartbeat_cutoff_ts:
-                    self._insert_heartbeat_signal(row)
+                    self._insert_heartbeat_signal(row, current_ts)
                     reminded_pks.append((row[c.debtor_id], row[c.creditor_id]))
 
         if pks_to_delete:

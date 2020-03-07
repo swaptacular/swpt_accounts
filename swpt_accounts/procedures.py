@@ -431,6 +431,7 @@ def _insert_account_change_signal(account: Account, current_ts: datetime) -> Non
         creation_date=account.creation_date,
         negligible_amount=account.negligible_amount,
         status=account.status,
+        inserted_at_ts=account.last_change_ts,
     ))
 
 
