@@ -1,7 +1,7 @@
 from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from swpt_lib.scan_table import TableScanner
-from sqlalchemy.sql.expression import tuple_, func
+from sqlalchemy.sql.expression import tuple_
 from flask import current_app
 from .extensions import db
 from .models import Account, AccountChangeSignal, AccountPurgeSignal, PreparedTransfer, PreparedTransferSignal
@@ -48,7 +48,7 @@ class AccountScanner(TableScanner):
         purge_cutoff_ts = current_ts - self.account_purge_delay
         heartbeat_cutoff_ts = current_ts - self.account_heartbeat_interval
 
-        pks_to_delete = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
+        pks_to_purge = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
             # NOTE: If an account is created, deleted, purged, and
             # re-created in a single day, the `creation_date` of the
             # new account will be the same as the `creation_date` of
@@ -57,9 +57,9 @@ class AccountScanner(TableScanner):
             and row[c.last_change_ts] < purge_cutoff_ts
             and row[c.creation_date] < date_few_days_ago)
         ]
-        if pks_to_delete:
+        if pks_to_purge:
             to_delete = db.session.query(Account.debtor_id, Account.creditor_id, Account.creation_date).\
-                filter(self.pk.in_(pks_to_delete)).\
+                filter(self.pk.in_(pks_to_purge)).\
                 filter(Account.status.op('&')(deleted_flag) == deleted_flag).\
                 filter(Account.last_change_ts < purge_cutoff_ts).\
                 filter(Account.creation_date < date_few_days_ago).\
