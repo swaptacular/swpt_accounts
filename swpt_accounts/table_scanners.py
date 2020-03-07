@@ -65,50 +65,61 @@ class AccountScanner(TableScanner):
             status=row[c.status],
         ))
 
-    def _insert_account_purge_signal(self, row):
-        c = self.table.c
-        db.session.add(AccountPurgeSignal(
-            debtor_id=row[c.debtor_id],
-            creditor_id=row[c.creditor_id],
-            creation_date=row[c.creation_date],
-        ))
-
     @atomic
     def process_rows(self, rows):
         c = self.table.c
-        pks_to_delete = []
-        pks_to_update = []
         deleted_flag = Account.STATUS_DELETED_FLAG
         current_ts = datetime.now(tz=timezone.utc)
         date_few_days_ago = (current_ts - self.few_days_interval).date()
         purge_cutoff_ts = current_ts - self.account_purge_delay
         heartbeat_cutoff_ts = current_ts - self.account_heartbeat_interval
+        pks_to_delete = []
+        reminded_pks = []
+
         for row in rows:
             if row[c.status] & deleted_flag:
-                # When one account is created, deleted, purged, and re-created
-                # in a single day, the `creation_date` of the re-created
-                # account will be the same as the `creation_date` of the
-                # purged account. This must be avoided, because we use the
-                # creation date to differentiate `AccountCommitSignal`s from
-                # different "epochs" (the `account_creation_date` column).
-                if row[c.last_change_ts] < purge_cutoff_ts and row[c.creation_date] < date_few_days_ago:
-                    self._insert_account_purge_signal(row)
+                # If an account is created, deleted, purged, and
+                # re-created in a single day, the `creation_date` of
+                # the re-created account will be the same as the
+                # `creation_date` of the purged account. We need to
+                # make sure that this never happens.
+                creation_date_is_ok = row[c.creation_date] < date_few_days_ago
+
+                if row[c.last_change_ts] < purge_cutoff_ts and creation_date_is_ok:
                     pks_to_delete.append((row[c.debtor_id], row[c.creditor_id]))
             else:
+                # A heartbeat signal (an `AccountChangeSignal`) is
+                # sent either when there is a meaningful change in the
+                # account, or to remind that the account still exists.
                 last_heartbeat_ts = max(row[c.last_change_ts], row[c.last_reminder_ts])
+
                 if last_heartbeat_ts < heartbeat_cutoff_ts:
                     self._insert_heartbeat_signal(row)
-                    pks_to_update.append((row[c.debtor_id], row[c.creditor_id]))
+                    reminded_pks.append((row[c.debtor_id], row[c.creditor_id]))
+
         if pks_to_delete:
-            Account.query.\
+            to_delete = db.session.query(Account.debtor_id, Account.creditor_id, Account.creation_date).\
                 filter(self.pk.in_(pks_to_delete)).\
                 filter(Account.status.op('&')(deleted_flag) == deleted_flag).\
                 filter(Account.last_change_ts < purge_cutoff_ts).\
                 filter(Account.creation_date < date_few_days_ago).\
-                delete(synchronize_session=False)
-        if pks_to_update:
+                with_for_update().\
+                all()
+            if to_delete:
+                pks_to_delete = [(debtor_id, creditor_id) for debtor_id, creditor_id, _ in to_delete]
+                Account.query.filter(self.pk.in_(pks_to_delete)).delete(synchronize_session=False)
+                db.session.add_all([
+                    AccountPurgeSignal(
+                        debtor_id=debtor_id,
+                        creditor_id=creditor_id,
+                        creation_date=creation_date,
+                    )
+                    for debtor_id, creditor_id, creation_date in to_delete
+                ])
+
+        if reminded_pks:
             Account.query.\
-                filter(self.pk.in_(pks_to_update)).\
+                filter(self.pk.in_(reminded_pks)).\
                 update({Account.last_reminder_ts: current_ts}, synchronize_session=False)
 
 
