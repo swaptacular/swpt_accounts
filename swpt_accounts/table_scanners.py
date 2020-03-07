@@ -47,26 +47,16 @@ class AccountScanner(TableScanner):
         date_few_days_ago = (current_ts - self.few_days_interval).date()
         purge_cutoff_ts = current_ts - self.account_purge_delay
         heartbeat_cutoff_ts = current_ts - self.account_heartbeat_interval
-        pks_to_delete = []
-        pks_to_remind = []
 
-        for row in rows:
-            if row[c.status] & deleted_flag:
-                # If an account is created, deleted, purged, and re-created in a
-                # single day, the `creation_date` of the re-created account will
-                # be the same as the `creation_date` of the purged account. We
-                # need to make sure that this never happens.
-                creation_date_is_not_recent = row[c.creation_date] < date_few_days_ago
-
-                if row[c.last_change_ts] < purge_cutoff_ts and creation_date_is_not_recent:
-                    pks_to_delete.append((row[c.debtor_id], row[c.creditor_id]))
-            else:
-                # A heartbeat signal should be sent when there has been no
-                # meaningful change for a while, and no reminder has been sent
-                # recently to inform that the account still exists.
-                if row[c.last_change_ts] < heartbeat_cutoff_ts and row[c.last_reminder_ts] < heartbeat_cutoff_ts:
-                    pks_to_remind.append((row[c.debtor_id], row[c.creditor_id]))
-
+        pks_to_delete = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
+            # NOTE: If an account is created, deleted, purged, and
+            # re-created in a single day, the `creation_date` of the
+            # new account will be the same as the `creation_date` of
+            # the old account. We need to make sure this never happens.
+            row[c.status] & deleted_flag
+            and row[c.last_change_ts] < purge_cutoff_ts
+            and row[c.creation_date] < date_few_days_ago)
+        ]
         if pks_to_delete:
             to_delete = db.session.query(Account.debtor_id, Account.creditor_id, Account.creation_date).\
                 filter(self.pk.in_(pks_to_delete)).\
@@ -89,9 +79,19 @@ class AccountScanner(TableScanner):
                     for debtor_id, creditor_id, creation_date in to_delete
                 ])
 
+        pks_to_remind = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
+            # NOTE: A heartbeat signal (an `AccountChangeSignal`)
+            # should be sent when there has been no meaningful change
+            # for a while, and no reminder has been sent recently to
+            # inform that the account still exists.
+            not row[c.status] & deleted_flag
+            and row[c.last_change_ts] < heartbeat_cutoff_ts
+            and row[c.last_reminder_ts] < heartbeat_cutoff_ts)
+        ]
         if pks_to_remind:
             to_remind = Account.query.\
                 filter(self.pk.in_(pks_to_remind)).\
+                filter(Account.status.op('&')(deleted_flag) == 0).\
                 filter(Account.last_change_ts < heartbeat_cutoff_ts).\
                 filter(Account.last_reminder_ts < heartbeat_cutoff_ts).\
                 with_for_update().\
