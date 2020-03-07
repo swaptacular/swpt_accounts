@@ -1,7 +1,7 @@
 from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from swpt_lib.scan_table import TableScanner
-from sqlalchemy.sql.expression import tuple_
+from sqlalchemy.sql.expression import tuple_, func
 from flask import current_app
 from .extensions import db
 from .models import Account, AccountChangeSignal, AccountPurgeSignal, PreparedTransfer, PreparedTransferSignal
@@ -39,64 +39,33 @@ class AccountScanner(TableScanner):
             self.signalbus_max_delay,
         )
 
-    def _insert_heartbeat_signal(self, row, current_ts):
-        """Resend the last sent `AccountChangeSignal` for a given row.
-
-        NOTE: We do not update `change_ts` and `change_seqnum`,
-              because there is no meaningful change in the account.
-
-        """
-
-        c = self.table.c
-        db.session.add(AccountChangeSignal(
-            debtor_id=row[c.debtor_id],
-            creditor_id=row[c.creditor_id],
-            change_ts=row[c.last_change_ts],
-            change_seqnum=row[c.last_change_seqnum],
-            principal=row[c.principal],
-            interest=row[c.interest],
-            interest_rate=row[c.interest_rate],
-            last_transfer_seqnum=row[c.last_transfer_seqnum],
-            last_outgoing_transfer_date=row[c.last_outgoing_transfer_date],
-            last_config_signal_ts=row[c.last_config_signal_ts],
-            last_config_signal_seqnum=row[c.last_config_signal_seqnum],
-            creation_date=row[c.creation_date],
-            negligible_amount=row[c.negligible_amount],
-            status=row[c.status],
-            inserted_at_ts=current_ts,
-        ))
-
     @atomic
     def process_rows(self, rows):
         c = self.table.c
-        deleted_flag = Account.STATUS_DELETED_FLAG
         current_ts = datetime.now(tz=timezone.utc)
+        deleted_flag = Account.STATUS_DELETED_FLAG
         date_few_days_ago = (current_ts - self.few_days_interval).date()
         purge_cutoff_ts = current_ts - self.account_purge_delay
         heartbeat_cutoff_ts = current_ts - self.account_heartbeat_interval
         pks_to_delete = []
-        reminded_pks = []
+        pks_to_remind = []
 
         for row in rows:
             if row[c.status] & deleted_flag:
-                # If an account is created, deleted, purged, and
-                # re-created in a single day, the `creation_date` of
-                # the re-created account will be the same as the
-                # `creation_date` of the purged account. We need to
-                # make sure that this never happens.
+                # If an account is created, deleted, purged, and re-created in a
+                # single day, the `creation_date` of the re-created account will
+                # be the same as the `creation_date` of the purged account. We
+                # need to make sure that this never happens.
                 creation_date_is_ok = row[c.creation_date] < date_few_days_ago
 
                 if row[c.last_change_ts] < purge_cutoff_ts and creation_date_is_ok:
                     pks_to_delete.append((row[c.debtor_id], row[c.creditor_id]))
             else:
-                # A heartbeat signal (an `AccountChangeSignal`) is
-                # sent either when there is a meaningful change in the
-                # account, or to remind that the account still exists.
-                last_heartbeat_ts = max(row[c.last_change_ts], row[c.last_reminder_ts])
-
-                if last_heartbeat_ts < heartbeat_cutoff_ts:
-                    self._insert_heartbeat_signal(row, current_ts)
-                    reminded_pks.append((row[c.debtor_id], row[c.creditor_id]))
+                # A heartbeat signal should be sent when there was no meaningful
+                # change for a while, and no reminder has been sent recently to
+                # inform that the account still exists.
+                if row[c.last_change_ts] < heartbeat_cutoff_ts and row[c.last_reminder_ts] < heartbeat_cutoff_ts:
+                    pks_to_remind.append((row[c.debtor_id], row[c.creditor_id]))
 
         if pks_to_delete:
             to_delete = db.session.query(Account.debtor_id, Account.creditor_id, Account.creation_date).\
@@ -108,7 +77,9 @@ class AccountScanner(TableScanner):
                 all()
             if to_delete:
                 pks_to_delete = [(debtor_id, creditor_id) for debtor_id, creditor_id, _ in to_delete]
-                Account.query.filter(self.pk.in_(pks_to_delete)).delete(synchronize_session=False)
+                Account.query.\
+                    filter(self.pk.in_(pks_to_delete)).\
+                    delete(synchronize_session=False)
                 db.session.add_all([
                     AccountPurgeSignal(
                         debtor_id=debtor_id,
@@ -118,10 +89,38 @@ class AccountScanner(TableScanner):
                     for debtor_id, creditor_id, creation_date in to_delete
                 ])
 
-        if reminded_pks:
-            Account.query.\
-                filter(self.pk.in_(reminded_pks)).\
-                update({Account.last_reminder_ts: current_ts}, synchronize_session=False)
+        if pks_to_remind:
+            to_remind = Account.query.\
+                filter(self.pk.in_(pks_to_remind)).\
+                filter(Account.last_change_ts < heartbeat_cutoff_ts).\
+                filter(Account.last_reminder_ts < heartbeat_cutoff_ts).\
+                with_for_update().\
+                all()
+            if to_remind:
+                pks_to_remind = [(account.debtor_id, account.creditor_id) for account in to_remind]
+                Account.query.\
+                    filter(self.pk.in_(pks_to_remind)).\
+                    update({Account.last_reminder_ts: current_ts}, synchronize_session=False)
+                db.session.add_all([
+                    AccountChangeSignal(
+                        debtor_id=account.debtor_id,
+                        creditor_id=account.creditor_id,
+                        change_seqnum=account.last_change_seqnum,
+                        change_ts=account.last_change_ts,
+                        principal=account.principal,
+                        interest=account.interest,
+                        interest_rate=account.interest_rate,
+                        last_transfer_seqnum=account.last_transfer_seqnum,
+                        last_outgoing_transfer_date=account.last_outgoing_transfer_date,
+                        last_config_signal_ts=account.last_config_signal_ts,
+                        last_config_signal_seqnum=account.last_config_signal_seqnum,
+                        creation_date=account.creation_date,
+                        negligible_amount=account.negligible_amount,
+                        status=account.status,
+                        inserted_at_ts=current_ts,
+                    )
+                    for account in to_remind
+                ])
 
 
 class PreparedTransferScanner(TableScanner):
