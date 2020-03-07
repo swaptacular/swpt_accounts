@@ -49,9 +49,10 @@ def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optiona
 
 @atomic
 def get_available_balance(debtor_id: int, creditor_id: int, minimum_account_balance: int = 0) -> Optional[int]:
+    current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id)
     if account:
-        return _get_available_balance(account, datetime.now(tz=timezone.utc), minimum_account_balance)
+        return _get_available_balance(account, current_ts, minimum_account_balance)
     return None
 
 
@@ -98,10 +99,10 @@ def finalize_prepared_transfer(
         committed_amount: int,
         transfer_info: dict = {}) -> None:
 
+    current_ts = datetime.now(tz=timezone.utc)
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
         assert pt.sender_locked_amount > 0
-        current_ts = datetime.now(tz=timezone.utc)
         if committed_amount == 0:
             _insert_pending_account_change(
                 debtor_id=pt.debtor_id,
@@ -157,6 +158,7 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
     assert interest_rate is not None
     assert request_ts is not None
 
+    current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
         # Too big positive interest rates can cause account balance
@@ -172,7 +174,6 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
         if interest_rate < INTEREST_RATE_FLOOR:
             interest_rate = INTEREST_RATE_FLOOR
 
-        current_ts = datetime.now(tz=timezone.utc)
         signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
         has_established_interest_rate = account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         has_correct_interest_rate = has_established_interest_rate and account.interest_rate == interest_rate
@@ -206,9 +207,9 @@ def capitalize_interest(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
+    current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
-        current_ts = datetime.now(tz=timezone.utc)
         positive_threshold = max(1, abs(accumulated_interest_threshold))
         accumulated_interest = math.floor(_calc_account_accumulated_interest(account, current_ts))
         accumulated_interest = _contain_principal_overflow(accumulated_interest)
@@ -246,9 +247,9 @@ def zero_out_negative_balance(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert last_outgoing_transfer_date is not None
 
+    current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
-        current_ts = datetime.now(tz=timezone.utc)
         zero_out_amount = -math.floor(_calc_account_current_balance(account, current_ts))
         zero_out_amount = _contain_principal_overflow(zero_out_amount)
         if account.last_outgoing_transfer_date <= last_outgoing_transfer_date and zero_out_amount > 0:
@@ -304,10 +305,9 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
+    current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.pending_transfers_count == 0:
-        current_ts = datetime.now(tz=timezone.utc)
-
         if creditor_id == ROOT_CREDITOR_ID:
             if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
                 _mark_account_as_deleted(account, current_ts)
@@ -335,6 +335,7 @@ def get_accounts_with_pending_changes() -> Iterable[Tuple[int, int]]:
 
 @atomic
 def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
+    current_ts = datetime.now(tz=timezone.utc)
     requests = TransferRequest.query.\
         filter_by(debtor_id=debtor_id, sender_creditor_id=creditor_id).\
         with_for_update(skip_locked=True).\
@@ -342,7 +343,6 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
 
     if requests:
         sender_account = get_account(debtor_id, creditor_id, lock=True)
-        current_ts = datetime.now(tz=timezone.utc)
         new_objects = []
 
         # TODO: Consider using bulk-inserts and bulk-deletes when we
@@ -356,17 +356,17 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
 
 @atomic
 def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
+    current_ts = datetime.now(tz=timezone.utc)
     changes = PendingAccountChange.query.\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         with_for_update(skip_locked=True).\
         all()
 
     if changes:
+        current_date = current_ts.date()
         nonzero_deltas = False
         principal_delta = 0
         interest_delta = 0
-        current_ts = datetime.now(tz=timezone.utc)
-        current_date = current_ts.date()
         account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
 
         # TODO: Consider using bulk-inserts and bulk-deletes when we
