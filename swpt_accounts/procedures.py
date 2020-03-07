@@ -51,7 +51,7 @@ def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optiona
 def get_available_balance(debtor_id: int, creditor_id: int, minimum_account_balance: int = 0) -> Optional[int]:
     account = get_account(debtor_id, creditor_id)
     if account:
-        return _get_available_balance(account, minimum_account_balance)
+        return _get_available_balance(account, datetime.now(tz=timezone.utc), minimum_account_balance)
     return None
 
 
@@ -108,6 +108,7 @@ def finalize_prepared_transfer(
                 creditor_id=pt.sender_creditor_id,
                 coordinator_type=pt.coordinator_type,
                 other_creditor_id=pt.recipient_creditor_id,
+                inserted_at_ts=current_ts,
                 unlocked_amount=pt.sender_locked_amount,
             )
         elif committed_amount > 0:
@@ -153,6 +154,8 @@ def finalize_prepared_transfer(
 def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert interest_rate is not None
+    assert request_ts is not None
 
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
@@ -210,7 +213,7 @@ def capitalize_interest(
         accumulated_interest = math.floor(_calc_account_accumulated_interest(account, current_ts))
         accumulated_interest = _contain_principal_overflow(accumulated_interest)
         if abs(accumulated_interest) >= positive_threshold:
-            _make_debtor_payment(INTEREST, account, accumulated_interest, current_ts=current_ts)
+            _make_debtor_payment(INTEREST, account, accumulated_interest, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
 
@@ -227,8 +230,9 @@ def make_debtor_payment(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert -MAX_INT64 <= amount <= MAX_INT64
-    account = _lock_or_create_account(debtor_id, creditor_id)
-    _make_debtor_payment(coordinator_type, account, amount, transfer_info, current_ts)
+    current_ts = current_ts or datetime.now(tz=timezone.utc)
+    account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
+    _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_info)
 
 
 @atomic
@@ -244,10 +248,11 @@ def zero_out_negative_balance(
 
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
-        zero_out_amount = -math.floor(_calc_account_current_balance(account))
+        current_ts = datetime.now(tz=timezone.utc)
+        zero_out_amount = -math.floor(_calc_account_current_balance(account, current_ts))
         zero_out_amount = _contain_principal_overflow(zero_out_amount)
         if account.last_outgoing_transfer_date <= last_outgoing_transfer_date and zero_out_amount > 0:
-            _make_debtor_payment(ZERO_OUT_ACCOUNT, account, zero_out_amount)
+            _make_debtor_payment(ZERO_OUT_ACCOUNT, account, zero_out_amount, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
 
@@ -276,7 +281,7 @@ def configure_account(
         # resurrected.
         return
 
-    account = _lock_or_create_account(debtor_id, creditor_id, send_account_creation_signal=False)
+    account = _lock_or_create_account(debtor_id, creditor_id, current_ts, send_account_creation_signal=False)
     this_event = (signal_ts, signal_seqnum)
     prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
     if is_later_event(this_event, prev_event):
@@ -291,7 +296,7 @@ def configure_account(
         account.negligible_amount = negligible_amount
         account.last_config_signal_ts = signal_ts
         account.last_config_signal_seqnum = signal_seqnum
-        _apply_account_change(account, 0, 0, datetime.now(tz=timezone.utc))
+        _apply_account_change(account, 0, 0, current_ts)
 
 
 @atomic
@@ -301,18 +306,18 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
 
     account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.pending_transfers_count == 0:
+        current_ts = datetime.now(tz=timezone.utc)
         if creditor_id == ROOT_CREDITOR_ID:
             # Check if this is the only account left.
             if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
-                _mark_account_as_deleted(account)
+                _mark_account_as_deleted(account, current_ts)
         else:
-            current_ts = datetime.now(tz=timezone.utc)
             current_balance = _calc_account_current_balance(account, current_ts)
             has_negligible_balance = 0 <= current_balance <= max(2.0, account.negligible_amount)
             is_scheduled_for_deletion = account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
             if has_negligible_balance and is_scheduled_for_deletion:
                 if account.principal != 0:
-                    _make_debtor_payment(DELETE_ACCOUNT, account, -account.principal, current_ts=current_ts)
+                    _make_debtor_payment(DELETE_ACCOUNT, account, -account.principal, current_ts)
                 _mark_account_as_deleted(account, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
@@ -337,13 +342,14 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
 
     if requests:
         sender_account = get_account(debtor_id, creditor_id, lock=True)
+        current_ts = datetime.now(tz=timezone.utc)
         new_objects = []
 
         # TODO: Consider using bulk-inserts and bulk-deletes when we
         #       decide to disable auto-flushing. This would probably be
         #       slightly faster.
         for request in requests:
-            new_objects.extend(_process_transfer_request(request, sender_account))
+            new_objects.extend(_process_transfer_request(request, sender_account, current_ts))
             db.session.delete(request)
         db.session.add_all(new_objects)
 
@@ -359,9 +365,9 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         nonzero_deltas = False
         principal_delta = 0
         interest_delta = 0
-        account = _lock_or_create_account(debtor_id, creditor_id)
         current_ts = datetime.now(tz=timezone.utc)
         current_date = current_ts.date()
+        account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
 
         # TODO: Consider using bulk-inserts and bulk-deletes when we
         #       decide to disable auto-flushing. This would probably be
@@ -389,12 +395,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
             db.session.delete(change)
 
         if nonzero_deltas:
-            _apply_account_change(
-                account=account,
-                principal_delta=principal_delta,
-                interest_delta=interest_delta,
-                current_ts=current_ts,
-            )
+            _apply_account_change(account, principal_delta, interest_delta, current_ts)
 
 
 def _contain_principal_overflow(value: int) -> int:
@@ -405,7 +406,7 @@ def _contain_principal_overflow(value: int) -> int:
     return value
 
 
-def _insert_account_change_signal(account: Account, current_ts: datetime = None) -> None:
+def _insert_account_change_signal(account: Account, current_ts: datetime) -> None:
     # NOTE: Callers of this function should be very careful, because
     #       it updates `account.last_change_ts` without updating
     #       `account.interest`. This will result in an incorrect value
@@ -413,7 +414,6 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
     #       `account.interest` is updated "manually" before this
     #       function is called.
 
-    current_ts = current_ts or datetime.now(tz=timezone.utc)
     account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
     account.last_change_ts = max(account.last_change_ts, current_ts)
     db.session.add(AccountChangeSignal(
@@ -434,12 +434,12 @@ def _insert_account_change_signal(account: Account, current_ts: datetime = None)
     ))
 
 
-def _create_account(debtor_id: int, creditor_id: int) -> Account:
+def _create_account(debtor_id: int, creditor_id: int, current_ts: datetime) -> Account:
     account = Account(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         status=PRISTINE_ACCOUNT_STATUS,
-        creation_date=datetime.now(tz=timezone.utc).date(),
+        creation_date=current_ts.date(),
     )
     with db.retry_on_integrity_error():
         db.session.add(account)
@@ -454,20 +454,25 @@ def _get_account_instance(debtor_id: int, creditor_id: int, lock: bool = False) 
     return account
 
 
-def _lock_or_create_account(debtor_id: int, creditor_id: int, send_account_creation_signal: bool = True) -> Account:
+def _lock_or_create_account(
+        debtor_id: int,
+        creditor_id: int,
+        current_ts: datetime,
+        send_account_creation_signal: bool = True) -> Account:
+
     account = _get_account_instance(debtor_id, creditor_id, lock=True)
     if account is None:
-        account = _create_account(debtor_id, creditor_id)
+        account = _create_account(debtor_id, creditor_id, current_ts)
         if send_account_creation_signal:
-            _insert_account_change_signal(account)
+            _insert_account_change_signal(account, current_ts)
     if account.status & Account.STATUS_DELETED_FLAG:
         account.status &= ~Account.STATUS_DELETED_FLAG
         account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        _insert_account_change_signal(account)
+        _insert_account_change_signal(account, current_ts)
     return account
 
 
-def _calc_account_current_balance(account: Account, current_ts: datetime = None) -> Decimal:
+def _calc_account_current_balance(account: Account, current_ts: datetime) -> Decimal:
     if account.creditor_id == ROOT_CREDITOR_ID:
         # Any interest accumulated on the debtor's account will not be
         # included in the current balance. Thus, accumulating interest
@@ -483,14 +488,14 @@ def _calc_account_current_balance(account: Account, current_ts: datetime = None)
     return current_balance
 
 
-def _get_available_balance(account: Account, minimum_account_balance: int = 0) -> int:
+def _get_available_balance(account: Account, current_ts: datetime, minimum_account_balance: int) -> int:
     if account.creditor_id != ROOT_CREDITOR_ID:
         # Only the debtor's account is allowed to go deliberately
         # negative. This is because only the debtor's account is
         # allowed to issue money.
         minimum_account_balance = max(0, minimum_account_balance)
 
-    current_balance = math.floor(_calc_account_current_balance(account))
+    current_balance = math.floor(_calc_account_current_balance(account, current_ts))
     return current_balance - minimum_account_balance - account.locked_amount
 
 
@@ -503,7 +508,7 @@ def _insert_pending_account_change(
         creditor_id: int,
         coordinator_type: str,
         other_creditor_id: int,
-        inserted_at_ts: datetime = None,
+        inserted_at_ts: datetime,
         transfer_info: dict = None,
         principal_delta: int = 0,
         interest_delta: int = 0,
@@ -556,7 +561,7 @@ def _insert_account_commit_signal(
         ))
 
 
-def _mark_account_as_deleted(account: Account, current_ts: datetime = None):
+def _mark_account_as_deleted(account: Account, current_ts: datetime):
     current_ts = current_ts or datetime.now(tz=timezone.utc)
     account.principal = 0
     account.interest = 0.0
@@ -579,12 +584,11 @@ def _make_debtor_payment(
         coordinator_type: str,
         account: Account,
         amount: int,
-        transfer_info: dict = {},
-        current_ts: datetime = None) -> None:
+        current_ts: datetime,
+        transfer_info: dict = {}) -> None:
 
     assert -MAX_INT64 <= amount <= MAX_INT64
     if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:
-        current_ts = current_ts or datetime.now(tz=timezone.utc)
         _insert_pending_account_change(
             debtor_id=account.debtor_id,
             creditor_id=ROOT_CREDITOR_ID,
@@ -603,19 +607,17 @@ def _make_debtor_payment(
             transfer_info=transfer_info,
             account_new_principal=_contain_principal_overflow(account.principal + amount),
         )
+
+        # We do not need to update the account principal and interest
+        # when deleting an account because they are getting zeroed out
+        # anyway.
         if coordinator_type != DELETE_ACCOUNT:
-            # We do not need to update the account principal and
-            # interest when deleting an account, because they are
-            # getting zeroed out anyway.
-            _apply_account_change(
-                account=account,
-                principal_delta=amount,
-                interest_delta=-amount if coordinator_type == INTEREST else 0,
-                current_ts=current_ts,
-            )
+            principal_delta = amount
+            interest_delta = -amount if coordinator_type == INTEREST else 0
+            _apply_account_change(account, principal_delta, interest_delta, current_ts)
 
 
-def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Account]) -> list:
+def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Account], current_ts: datetime) -> list:
     def reject(**kw) -> List[RejectedTransferSignal]:
         return [RejectedTransferSignal(
             debtor_id=tr.debtor_id,
@@ -627,7 +629,6 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
 
     def accept(amount: int) -> List[Union[PreparedTransfer, PreparedTransferSignal]]:
         assert sender_account is not None
-        current_ts = datetime.now(tz=timezone.utc)
         sender_account.locked_amount = min(sender_account.locked_amount + amount, MAX_INT64)
         sender_account.pending_transfers_count += 1
         sender_account.last_transfer_id += 1
@@ -682,7 +683,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             message='The recipient account is scheduled for deletion.',
         )
 
-    amount = min(_get_available_balance(sender_account, tr.minimum_account_balance), tr.max_amount)
+    amount = min(_get_available_balance(sender_account, current_ts, tr.minimum_account_balance), tr.max_amount)
     if amount < tr.min_amount:
         return reject(
             errorCode='ACC005',
