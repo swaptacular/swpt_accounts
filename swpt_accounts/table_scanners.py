@@ -58,17 +58,17 @@ class AccountScanner(TableScanner):
             and row[c.creation_date] < date_few_days_ago)
         ]
         if pks_to_purge:
-            to_delete = db.session.query(Account.debtor_id, Account.creditor_id, Account.creation_date).\
+            to_purge = db.session.query(Account.debtor_id, Account.creditor_id, Account.creation_date).\
                 filter(self.pk.in_(pks_to_purge)).\
                 filter(Account.status.op('&')(deleted_flag) == deleted_flag).\
                 filter(Account.last_change_ts < purge_cutoff_ts).\
                 filter(Account.creation_date < date_few_days_ago).\
                 with_for_update().\
                 all()
-            if to_delete:
-                pks_to_delete = [(debtor_id, creditor_id) for debtor_id, creditor_id, _ in to_delete]
+            if to_purge:
+                pks_to_purge = [(debtor_id, creditor_id) for debtor_id, creditor_id, _ in to_purge]
                 Account.query.\
-                    filter(self.pk.in_(pks_to_delete)).\
+                    filter(self.pk.in_(pks_to_purge)).\
                     delete(synchronize_session=False)
                 db.session.add_all([
                     AccountPurgeSignal(
@@ -76,7 +76,7 @@ class AccountScanner(TableScanner):
                         creditor_id=creditor_id,
                         creation_date=creation_date,
                     )
-                    for debtor_id, creditor_id, creation_date in to_delete
+                    for debtor_id, creditor_id, creation_date in to_purge
                 ])
 
         pks_to_remind = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
