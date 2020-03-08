@@ -62,6 +62,8 @@ class PreparedTransferSignal(Signal):
     """Emitted when a new transfer has been prepared, or to ramind that
     a prepared transfer must be finalized.
 
+    * `debtor_id` and `sender_creditor_id` identify sender's account.
+
     * `transfer_id` is an opaque ID generated for the prepared transfer.
 
     * `coordinator_type`, `coordinator_id`, and
@@ -72,6 +74,12 @@ class PreparedTransferSignal(Signal):
     * `sender_locked_amount` is the secured (prepared) amount for the
       transfer (always a positive number). The actual transferred
       (committed) amount may not exceed this number.
+
+    * `recipient_creditor_id` (along with `debtor_id`) identify
+      recipient's account.
+
+    * `prepared_at_ts` is the moment at which the transfer was
+      prepared.
 
     * `signal_ts` is the moment at which this signal was emitted.
 
@@ -146,12 +154,23 @@ class FinalizedTransferSignal(Signal):
     """Emitted when a transfer has been finalized and its corresponding
     prepared transfer record removed from the database.
 
+    * `debtor_id` and `sender_creditor_id` identify sender's account.
+
     * `transfer_id` is the opaque ID generated for the prepared transfer.
 
     * `coordinator_type`, `coordinator_id`, and
       `coordinator_request_id` uniquely identify the transfer request
       from the coordinator's point of view, so that the coordinator
       can match the event with the originating transfer request.
+
+    * `recipient_creditor_id` (along with `debtor_id`) identify
+      recipient's account.
+
+    * `prepared_at_ts` is the moment at which the transfer was
+      prepared.
+
+    * `finalized_at_ts` is the moment at which the transfer was
+      finalized.
 
     * `committed_amount` is the transferred (committed) amount. It is
       always a non-negative number. A `0` means that the transfer has
@@ -190,6 +209,8 @@ class FinalizedTransferSignal(Signal):
 class AccountChangeSignal(Signal):
     """Emitted when there is a meaningful change in account's state, or to
     remind that the account still exists.
+
+    * `debtor_id` and `creditor_id` identify the account.
 
     * `change_ts` and `change_seqnum` can be used to reliably
       determine the correct order of changes, even if they occured in
@@ -292,6 +313,8 @@ class AccountChangeSignal(Signal):
 
 class AccountPurgeSignal(Signal):
     """Emitted when an account has been removed from the database.
+
+    * `debtor_id` and `creditor_id` identify the account.
 
     * `creation_date` is the date on which the account was created.
 
@@ -407,6 +430,8 @@ class AccountMaintenanceSignal(Signal):
     The event indicates that more maintenance operation requests can
     be made for the given account, without the risk of flooding the
     signal bus with account maintenance requests.
+
+    * `debtor_id` and `creditor_id` identify the account.
 
     * `request_ts` is the timestamp of the received maintenance
       operation request. It can be used the match the
