@@ -11,8 +11,8 @@ atomic: Callable[[T], T] = db.atomic
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
 # TODO: Use bulk-inserts for `AccountChangeSignal`s,
-#       `RejectedTransferSignal` and `PreparedTransferSignal`s when we
-#       decide to disable auto-flushing. This is necessary, because
+#       `RejectedTransferSignal`s, and `PreparedTransferSignal`s when
+#       we decide to disable auto-flushing. This is necessary, because
 #       currently SQLAlchemy issues individual inserts with `RETURNING
 #       signal_id` to obtain the server generated primary key.
 
