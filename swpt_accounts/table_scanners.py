@@ -82,10 +82,9 @@ class AccountScanner(TableScanner):
                 ])
 
         pks_to_remind = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
-            # NOTE: A heartbeat signal (an `AccountChangeSignal`)
+            # NOTE: A reminder informing that the account still exists
             # should be sent when there has been no meaningful change
-            # for a while, and no reminder has been sent recently to
-            # inform that the account still exists.
+            # for a while, and no reminder has been recently sent.
             not row[c.status] & deleted_flag
             and row[c.last_change_ts] < heartbeat_cutoff_ts
             and row[c.last_reminder_ts] < heartbeat_cutoff_ts)
