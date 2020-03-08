@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 43a2ae9a7770
+Revision ID: 70760bb3e34c
 Revises: 
-Create Date: 2020-03-08 02:52:14.213532
+Create Date: 2020-03-08 08:01:54.683879
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '43a2ae9a7770'
+revision = '70760bb3e34c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -129,6 +129,7 @@ def upgrade():
     op.create_table('prepared_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
@@ -137,7 +138,7 @@ def upgrade():
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'signal_id')
     )
     op.create_table('rejected_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),

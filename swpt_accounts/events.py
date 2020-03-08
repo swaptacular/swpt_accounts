@@ -87,8 +87,9 @@ class PreparedTransferSignal(Signal):
         prepared_at_ts = fields.DateTime()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_id = db.Column(db.BigInteger, primary_key=True)
+    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    sender_creditor_id = db.Column(db.BigInteger, nullable=False)
+    transfer_id = db.Column(db.BigInteger, nullable=False)
     coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
