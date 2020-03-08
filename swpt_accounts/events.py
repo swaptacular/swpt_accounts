@@ -73,6 +73,8 @@ class PreparedTransferSignal(Signal):
       transfer (always a positive number). The actual transferred
       (committed) amount may not exceed this number.
 
+    * `signal_ts` is the moment at which this signal was emitted.
+
     """
 
     class __marshmallow__(Schema):
@@ -85,6 +87,7 @@ class PreparedTransferSignal(Signal):
         sender_locked_amount = fields.Integer()
         recipient_creditor_id = fields.Integer()
         prepared_at_ts = fields.DateTime()
+        signal_ts = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
@@ -110,6 +113,9 @@ class RejectedTransferSignal(Signal):
       from the coordinator's point of view, so that the coordinator
       can match the event with the originating transfer request.
 
+    * `rejected_at_ts` is the moment at which the request to prepare a
+      transfer was rejected.
+
     * `details` is a JSON object describing why the transfer has been
       rejected. For example: `{"errorCode": "ACC005", "message": "The
       available amount is insufficient.", "avlAmount": 0}`. The
@@ -122,6 +128,7 @@ class RejectedTransferSignal(Signal):
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
         details = fields.Raw()
+        rejected_at_ts = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
@@ -288,12 +295,16 @@ class AccountPurgeSignal(Signal):
 
     * `creation_date` is the date on which the account was created.
 
+    * `purged_at_ts` is the moment at which the account was removed
+      from the database.
+
     """
 
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         creation_date = fields.Date()
+        purged_at_ts = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -383,7 +394,8 @@ class AccountCommitSignal(Signal):
 
 
 class AccountMaintenanceSignal(Signal):
-    """"Emitted when a maintenance operation request is received for a given account.
+    """"Emitted when a maintenance operation request is received for a
+    given account.
 
     Maintenance operations are:
 
@@ -400,12 +412,18 @@ class AccountMaintenanceSignal(Signal):
       operation request. It can be used the match the
       `AccountMaintenanceSignal` with the originating request.
 
+    * `received_at_ts` is the moment at which the maintenance
+      operation request was received. (Note that `request_ts` and
+      `received_at_ts` are generated on different servers, so there
+      might be some discrepancies.)
+
     """
 
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         request_ts = fields.DateTime()
+        received_at_ts = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)

@@ -194,7 +194,7 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
             account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
             _insert_account_change_signal(account, current_ts)
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
+    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
 
 
 @atomic
@@ -216,7 +216,7 @@ def capitalize_interest(
         if abs(accumulated_interest) >= positive_threshold:
             _make_debtor_payment(INTEREST, account, accumulated_interest, current_ts)
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
+    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
 
 
 @atomic
@@ -255,7 +255,7 @@ def zero_out_negative_balance(
         if account.last_outgoing_transfer_date <= last_outgoing_transfer_date and zero_out_amount > 0:
             _make_debtor_payment(ZERO_OUT_ACCOUNT, account, zero_out_amount, current_ts)
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
+    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
 
 
 @atomic
@@ -320,7 +320,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
                     _make_debtor_payment(DELETE_ACCOUNT, account, -account.principal, current_ts)
                 _mark_account_as_deleted(account, current_ts)
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts)
+    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
 
 
 @atomic
@@ -653,6 +653,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
                 sender_locked_amount=amount,
                 recipient_creditor_id=tr.recipient_creditor_id,
                 prepared_at_ts=current_ts,
+                inserted_at_ts=current_ts,
             ),
         ]
 
@@ -700,9 +701,15 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     return accept(amount)
 
 
-def _insert_account_maintenance_signal(debtor_id: int, creditor_id: int, request_ts: datetime) -> None:
+def _insert_account_maintenance_signal(
+        debtor_id: int,
+        creditor_id: int,
+        request_ts: datetime,
+        current_ts: datetime) -> None:
+
     db.session.add(AccountMaintenanceSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         request_ts=request_ts,
+        inserted_at_ts=current_ts,
     ))

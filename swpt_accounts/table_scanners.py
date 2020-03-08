@@ -159,6 +159,7 @@ class PreparedTransferScanner(TableScanner):
                     sender_locked_amount=row[c.sender_locked_amount],
                     recipient_creditor_id=row[c.recipient_creditor_id],
                     prepared_at_ts=row[c.prepared_at_ts],
+                    inserted_at_ts=max(current_ts, row[c.prepared_at_ts]),
                 ))
                 reminded_pks.append((row[c.debtor_id], row[c.sender_creditor_id], row[c.transfer_id]))
 
