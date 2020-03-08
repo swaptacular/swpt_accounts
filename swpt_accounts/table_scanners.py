@@ -10,11 +10,13 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
-# TODO: Consider using bulk-inserts for `AccountChangeSignal`s and
-#       `PreparedTransferSignal`s when we decide to disable
-#       auto-flushing. This would probably be slightly faster.
+# TODO: Use bulk-inserts for `AccountChangeSignal`s,
+#       `RejectedTransferSignal` and `PreparedTransferSignal`s when we
+#       decide to disable auto-flushing. This is necessary, because
+#       currently SQLAlchemy issues individual inserts with `RETURNING
+#       signal_id` to obtain the server generated primary key.
 
-# TODO: Make `TableScanner.blocks_per_query` and
+# TODO: Consider making `TableScanner.blocks_per_query` and
 #       `TableScanner.target_beat_duration` configurable.
 
 
