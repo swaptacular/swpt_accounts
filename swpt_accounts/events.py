@@ -262,9 +262,10 @@ class AccountChangeSignal(Signal):
         signal_ttl = fields.Float()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    change_ts = db.Column(db.TIMESTAMP(timezone=True), primary_key=True)
-    change_seqnum = db.Column(db.Integer, primary_key=True)
+    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    creditor_id = db.Column(db.BigInteger, nullable=False)
+    change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    change_seqnum = db.Column(db.Integer, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
@@ -406,6 +407,6 @@ class AccountMaintenanceSignal(Signal):
         request_ts = fields.DateTime()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    request_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    creditor_id = db.Column(db.BigInteger, nullable=False)
+    request_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)

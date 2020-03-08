@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 8619a36a92d5
+Revision ID: 43a2ae9a7770
 Revises: 
-Create Date: 2020-03-06 21:56:22.448366
+Create Date: 2020-03-08 02:52:14.213532
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '8619a36a92d5'
+revision = '43a2ae9a7770'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -49,6 +49,7 @@ def upgrade():
     op.create_table('account_change_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('change_seqnum', sa.Integer(), nullable=False),
@@ -62,7 +63,7 @@ def upgrade():
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_ts', 'change_seqnum')
+    sa.PrimaryKeyConstraint('debtor_id', 'signal_id')
     )
     op.create_table('account_commit_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -83,10 +84,10 @@ def upgrade():
     op.create_table('account_maintenance_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('request_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'signal_id')
     )
     op.create_table('account_purge_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
