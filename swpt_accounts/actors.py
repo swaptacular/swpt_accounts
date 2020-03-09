@@ -136,8 +136,8 @@ def prepare_transfer(
        `finalize_prepared_transfer` actor).
 
     3. "finalized" CR records, which have been committed (i.e. not
-       dismissed), MUST NOT be deleted right away. Instead, they MUST
-       stay in the database until a corresponding
+       dismissed), SHOULD NOT be deleted right away. Instead, they
+       SHOULD stay in the database until a corresponding
        `FinalizedTransferSignal` is received for them. (It MUST be
        verified that the signal has the same `debtor_id`,
        `sender_creditor_id`, and `transfer_id` as the CR record.)
@@ -146,14 +146,15 @@ def prepare_transfer(
        been received for a very long time (1 year for example), the
        "finalized" CR record MAY be deleted with a warning.
 
-       NOTE: This is necessary in order to prevent problems caused by
-       message re-delivery. Consider the following scenario: a
-       transfer has been prepared and committed (finalized), but the
-       `PreparedTransferSignal` message is re-delivered a second
-       time. Had the CR record been deleted right away, the already
-       committed transfer would be dismissed the second time, and the
-       fate of the transfer would be decided by the race between the
-       two different finalizing messages.
+       NOTE: The retention of committed CR records is necessary to
+       prevent problems caused by message re-delivery. Consider the
+       following scenario: a transfer has been prepared and committed
+       (finalized), but the `PreparedTransferSignal` message is
+       re-delivered a second time. Had the CR record been deleted
+       right away, the already committed transfer would be dismissed
+       the second time, and the fate of the transfer would be decided
+       by the race between the two different finalizing messages. In
+       most cases, this would be a serious problem.
 
     4. "finalized" CR records, which have been dismissed (i.e. not
        committed), MAY be deleted either right away, or when a
