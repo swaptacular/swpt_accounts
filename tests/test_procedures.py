@@ -221,18 +221,14 @@ def test_get_available_amount(db_session, current_ts):
     q_root = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
 
     assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID) is None
-    assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID, -1000) is None
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID) == 0
-    assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID, -1000) == 1000
     q_root.update({
         Account.interest: 100.0,
         Account.principal: 500,
     })
     assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID) == 500
-    assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID, -1000) == 1500
 
-    assert p.get_available_amount(D_ID, C_ID, -1000) is None
     assert p.get_available_amount(D_ID, C_ID) is None
     p.configure_account(D_ID, C_ID, current_ts, 0)
     assert p.get_available_amount(D_ID, C_ID) == 0
@@ -368,7 +364,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.details['errorCode'] == 'ACC004'
+    assert rts.rejection_code == 'RECIPIENT_BLOCKED_TRANSFERS'
 
     # Verify that re-creating the account clears STATUS_SCHEDULED_FOR_DELETION_FLAG:
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
@@ -512,7 +508,7 @@ def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.details['errorCode'] == 'ACC003'
+    assert rts.rejection_code == 'RECIPIENT_DOES_NOT_EXIST'
 
 
 def test_prepare_transfer_to_self(db_session, current_ts):
@@ -536,7 +532,7 @@ def test_prepare_transfer_to_self(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.details['errorCode'] == 'ACC002'
+    assert rts.rejection_code == 'RECIPIENT_SAME_AS_SENDER'
 
 
 def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
@@ -561,7 +557,7 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.details['errorCode'] == 'ACC006'
+    assert rts.rejection_code == 'TOO_MANY_TRANSFERS'
 
 
 def test_prepare_transfer_success(db_session, current_ts):

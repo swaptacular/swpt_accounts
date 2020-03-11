@@ -124,10 +124,11 @@ class RejectedTransferSignal(Signal):
     * `rejected_at_ts` is the moment at which the request to prepare a
       transfer was rejected.
 
-    * `details` is a JSON object describing why the transfer has been
-      rejected. For example: `{"errorCode": "ACC005", "message": "The
-      available amount is insufficient.", "avlAmount": 0}`. The
-      "errorCode" property is guarenteed to be present.
+    * `rejection_code` gives the reason for the rejection of the
+      transfer. Between 1 and 30 symbols, ASCII only.
+
+    * `available_amount` is the amount currently available on the
+      account.
 
     """
 
@@ -135,7 +136,8 @@ class RejectedTransferSignal(Signal):
         coordinator_type = fields.String()
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
-        details = fields.Raw()
+        rejection_code = fields.String()
+        available_amount = fields.Integer()
         rejected_at_ts = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -143,7 +145,8 @@ class RejectedTransferSignal(Signal):
     coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
-    details = db.Column(pg.JSON, nullable=False)
+    rejection_code = db.Column(db.String(30), nullable=False)
+    available_amount = db.Column(db.BigInteger, nullable=False)
 
     @property
     def event_name(self):  # pragma: no cover

@@ -48,11 +48,11 @@ def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optiona
 
 
 @atomic
-def get_available_amount(debtor_id: int, creditor_id: int, minimum_account_balance: int = 0) -> Optional[int]:
+def get_available_amount(debtor_id: int, creditor_id: int) -> Optional[int]:
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id)
     if account:
-        return _get_available_amount(account, current_ts, minimum_account_balance)
+        return _get_available_amount(account, current_ts)
     return None
 
 
@@ -76,7 +76,12 @@ def prepare_transfer(
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
     assert MIN_INT64 <= recipient_creditor_id <= MAX_INT64
     assert MIN_INT64 <= minimum_account_balance <= MAX_INT64
-    assert minimum_account_balance >= 0 or sender_creditor_id == ROOT_CREDITOR_ID
+
+    if sender_creditor_id != ROOT_CREDITOR_ID:
+        # Only the debtor's account is allowed to go deliberately
+        # negative. This is because only the debtor's account is
+        # allowed to issue money.
+        minimum_account_balance = max(0, minimum_account_balance)
 
     db.session.add(TransferRequest(
         debtor_id=debtor_id,
@@ -488,15 +493,9 @@ def _calc_account_current_balance(account: Account, current_ts: datetime) -> Dec
     return current_balance
 
 
-def _get_available_amount(account: Account, current_ts: datetime, minimum_account_balance: int) -> int:
-    if account.creditor_id != ROOT_CREDITOR_ID:
-        # Only the debtor's account is allowed to go deliberately
-        # negative. This is because only the debtor's account is
-        # allowed to issue money.
-        minimum_account_balance = max(0, minimum_account_balance)
-
+def _get_available_amount(account: Account, current_ts: datetime) -> int:
     current_balance = math.floor(_calc_account_current_balance(account, current_ts))
-    return current_balance - minimum_account_balance - account.locked_amount
+    return _contain_principal_overflow(current_balance - account.locked_amount)
 
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
@@ -617,13 +616,14 @@ def _make_debtor_payment(
 
 
 def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Account], current_ts: datetime) -> list:
-    def reject(**kw) -> List[RejectedTransferSignal]:
+    def reject(rejection_code: str, available_amount: int) -> List[RejectedTransferSignal]:
         return [RejectedTransferSignal(
             debtor_id=tr.debtor_id,
             coordinator_type=tr.coordinator_type,
             coordinator_id=tr.coordinator_id,
             coordinator_request_id=tr.coordinator_request_id,
-            details=kw,
+            rejection_code=rejection_code,
+            available_amount=available_amount,
         )]
 
     def accept(amount: int) -> List[Union[PreparedTransfer, PreparedTransferSignal]]:
@@ -658,47 +658,28 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
         ]
 
     if sender_account is None:
-        return reject(
-            errorCode='ACC001',
-            message='The sender account does not exist.',
-        )
+        return reject('SENDER_DOES_NOT_EXIST', 0)
+
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
+    available_amount = _get_available_amount(sender_account, current_ts)
 
+    if sender_account.pending_transfers_count >= MAX_INT32:
+        return reject('TOO_MANY_TRANSFERS', available_amount)
     if tr.sender_creditor_id == tr.recipient_creditor_id:
-        return reject(
-            errorCode='ACC002',
-            message='Recipient and sender accounts are the same.',
-        )
+        return reject('RECIPIENT_SAME_AS_SENDER', available_amount)
 
     recipient_account = get_account(tr.debtor_id, tr.recipient_creditor_id)
     if recipient_account is None:
-        return reject(
-            errorCode='ACC003',
-            message='The recipient account does not exist.',
-        )
+        return reject('RECIPIENT_DOES_NOT_EXIST', available_amount)
     if recipient_account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG:
-        return reject(
-            errorCode='ACC004',
-            message='The recipient account is scheduled for deletion.',
-        )
+        return reject('RECIPIENT_BLOCKED_TRANSFERS', available_amount)
 
-    amount = min(_get_available_amount(sender_account, current_ts, tr.minimum_account_balance), tr.max_amount)
-    if amount < tr.min_amount:
-        return reject(
-            errorCode='ACC005',
-            message='The available amount is insufficient.',
-            avlAmount=amount,
-        )
+    expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
+    if expendable_amount < tr.min_amount:
+        return reject('INSUFFICIENT_AVAILABLE_AMOUNT', available_amount)
 
-    if sender_account.pending_transfers_count >= MAX_INT32:
-        return reject(
-            errorCode='ACC006',
-            message='There are too many pending transfers.',
-            pendingTransfersCount=sender_account.pending_transfers_count,
-        )
-
-    return accept(amount)
+    return accept(expendable_amount)
 
 
 def _insert_account_maintenance_signal(
