@@ -194,7 +194,9 @@ def finalize_prepared_transfer(
       be `0`.
 
     * `transfer_info` contains notes from the sender. Can be any
-      string that the sender wants the recipient to see.
+      string that the sender wants the recipient to see. If the
+      transfer is dismissed, `transfer_info` SHOULD be an empty
+      string.
 
     """
 
