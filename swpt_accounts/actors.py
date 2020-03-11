@@ -28,9 +28,9 @@ def configure_account(
     * `is_scheduled_for_deletion` determines whether the account is
       scheduled for deletion.
 
-    * `negligible_amount` is the maximum account balance that should
-       be considered negligible. It is used to: 1) decide whether an
-       account can be safely deleted; 2) decide wheather an incoming
+    * `negligible_amount` is the maximum amount that should be
+       considered negligible. It is used to: 1) decide whether an
+       account can be safely deleted; 2) decide whether an incoming
        transfer is insignificant. MUST be non-negative.
 
     An `AccountChangeSignal` is always sent as a confirmation.

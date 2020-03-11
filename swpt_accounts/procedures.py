@@ -48,11 +48,11 @@ def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optiona
 
 
 @atomic
-def get_available_balance(debtor_id: int, creditor_id: int, minimum_account_balance: int = 0) -> Optional[int]:
+def get_available_amount(debtor_id: int, creditor_id: int, minimum_account_balance: int = 0) -> Optional[int]:
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id)
     if account:
-        return _get_available_balance(account, current_ts, minimum_account_balance)
+        return _get_available_amount(account, current_ts, minimum_account_balance)
     return None
 
 
@@ -488,7 +488,7 @@ def _calc_account_current_balance(account: Account, current_ts: datetime) -> Dec
     return current_balance
 
 
-def _get_available_balance(account: Account, current_ts: datetime, minimum_account_balance: int) -> int:
+def _get_available_amount(account: Account, current_ts: datetime, minimum_account_balance: int) -> int:
     if account.creditor_id != ROOT_CREDITOR_ID:
         # Only the debtor's account is allowed to go deliberately
         # negative. This is because only the debtor's account is
@@ -683,7 +683,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             message='The recipient account is scheduled for deletion.',
         )
 
-    amount = min(_get_available_balance(sender_account, current_ts, tr.minimum_account_balance), tr.max_amount)
+    amount = min(_get_available_amount(sender_account, current_ts, tr.minimum_account_balance), tr.max_amount)
     if amount < tr.min_amount:
         return reject(
             errorCode='ACC005',
