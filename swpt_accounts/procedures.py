@@ -102,7 +102,7 @@ def finalize_prepared_transfer(
         sender_creditor_id: int,
         transfer_id: int,
         committed_amount: int,
-        transfer_info: dict = {}) -> None:
+        transfer_info: str = '') -> None:
 
     current_ts = datetime.now(tz=timezone.utc)
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
@@ -230,7 +230,7 @@ def make_debtor_payment(
         debtor_id: int,
         creditor_id: int,
         amount: int,
-        transfer_info: dict = {}) -> None:
+        transfer_info: str = '') -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -508,7 +508,7 @@ def _insert_pending_account_change(
         coordinator_type: str,
         other_creditor_id: int,
         inserted_at_ts: datetime,
-        transfer_info: dict = None,
+        transfer_info: str = None,
         principal_delta: int = 0,
         interest_delta: int = 0,
         unlocked_amount: int = None) -> None:
@@ -533,7 +533,7 @@ def _insert_account_commit_signal(
         other_creditor_id: int,
         committed_at_ts: datetime,
         committed_amount: int,
-        transfer_info: dict,
+        transfer_info: str,
         account_new_principal: int) -> None:
 
     assert committed_amount != 0
@@ -583,7 +583,7 @@ def _make_debtor_payment(
         account: Account,
         amount: int,
         current_ts: datetime,
-        transfer_info: dict = {}) -> None:
+        transfer_info: str = '') -> None:
 
     assert -MAX_INT64 <= amount <= MAX_INT64
     if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:

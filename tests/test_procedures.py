@@ -93,7 +93,7 @@ def amount(request):
 
 
 def test_make_debtor_payment(db_session, current_ts, amount):
-    TRANSFER_INFO = {'transer_data': 123}
+    TRANSFER_INFO = '{"transer_data": 123}'
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_INFO)
 

@@ -288,8 +288,8 @@ class PendingAccountChange(db.Model):
     )
     coordinator_type = db.Column(db.String(30), nullable=False)
     transfer_info = db.Column(
-        pg.JSON,
-        comment='Notes from the sender. Can be any JSON object that the sender wants the '
+        pg.TEXT,
+        comment='Notes from the sender. Can be any string that the sender wants the '
                 'recipient to see. If the account change represents a committed transfer, '
                 'the notes will be included in the generated `on_account_commit_signal` '
                 'event. Can be NULL only if `principal_delta` is zero.',

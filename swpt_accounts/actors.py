@@ -182,7 +182,7 @@ def finalize_prepared_transfer(
         sender_creditor_id: int,
         transfer_id: int,
         committed_amount: int,
-        transfer_info: dict = {}) -> None:
+        transfer_info: str) -> None:
 
     """Execute a prepared transfer.
 
