@@ -186,8 +186,15 @@ def finalize_prepared_transfer(
 
     """Execute a prepared transfer.
 
-    `committed_amount` MUST be non-negative. To dismiss the transfer,
-    `committed_amount` should be `0`.
+    * `debtor_id`, `sender_creditor_id`, and `transfer_id` uniquely
+      identify the prepared transfer.
+
+    * `committed_amount` is the transferred amount. It MUST be
+      non-negative. To dismiss the transfer, `committed_amount` should
+      be `0`.
+
+    * `transfer_info` contains notes from the sender. Can be any
+      string that the sender wants the recipient to see.
 
     """
 
