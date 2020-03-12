@@ -28,6 +28,9 @@ class Signal(db.Model):
     #      `ModelClass.signalbus_burst_count = N` in models. Make sure
     #      TTL is set properly for the messages.
 
+    # TODO: Move this logic `swpt_lib`. Consider implementing a signal
+    #       metaclass.
+
     queue_name = None
 
     @property
