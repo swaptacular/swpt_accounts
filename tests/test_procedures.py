@@ -345,8 +345,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
 
     # Verify that incoming transfers are not allowed:
     p.configure_account(D_ID, 1234, current_ts, 0)
-    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    q.update({Account.principal: 200})
+    Account.query.filter_by(debtor_id=D_ID, creditor_id=1234).update({Account.principal: 10})
     p.prepare_transfer(
         coordinator_type='test',
         coordinator_id=1,
@@ -406,19 +405,17 @@ def test_delete_debtor_account(db_session, current_ts):
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     p.configure_account(D_ID, C_ID, current_ts, 0)
 
-    # There is another existing account.
+    # The principal is not zero.
+    p.make_debtor_payment('test', D_ID, C_ID, 1)
+    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID, current_ts)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert not a.status & Account.STATUS_DELETED_FLAG
     assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
 
-    # Delete the other account.
-    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True)
-    p.try_to_delete_account(D_ID, C_ID, current_ts)
-    assert p.get_account(D_ID, C_ID) is None
-    Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).delete(synchronize_session=False)
-
-    # There are no other accounts.
+    # The principal is zero.
+    p.make_debtor_payment('test', D_ID, C_ID, -1)
+    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID, current_ts)
     assert q.one().status & Account.STATUS_DELETED_FLAG
     assert not q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG

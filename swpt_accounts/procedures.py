@@ -302,7 +302,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
     account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.pending_transfers_count == 0:
         if creditor_id == ROOT_CREDITOR_ID:
-            if db.session.query(func.count(Account.creditor_id)).filter_by(debtor_id=debtor_id).scalar() == 1:
+            if account.principal == 0:
                 _mark_account_as_deleted(account, current_ts)
         else:
             current_balance = _calc_account_current_balance(account, current_ts)
@@ -652,21 +652,28 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
     available_amount = _get_available_amount(sender_account, current_ts)
+    expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
 
     if sender_account.pending_transfers_count >= MAX_INT32:
         return reject('TOO_MANY_TRANSFERS', available_amount)
+
+    if expendable_amount < tr.min_amount:
+        return reject('INSUFFICIENT_AVAILABLE_AMOUNT', available_amount)
+
     if tr.sender_creditor_id == tr.recipient_creditor_id:
         return reject('RECIPIENT_SAME_AS_SENDER', available_amount)
 
-    recipient_account = get_account(tr.debtor_id, tr.recipient_creditor_id)
-    if recipient_account is None:
-        return reject('RECIPIENT_DOES_NOT_EXIST', available_amount)
-    if recipient_account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG:
-        return reject('RECIPIENT_BLOCKED_TRANSFERS', available_amount)
+    if tr.recipient_creditor_id != ROOT_CREDITOR_ID:
+        # Note that transfers to the debtor's account are allowed even
+        # when the debtor's account does not exist. In this case, it
+        # will be created when the transfer is committed.
+        recipient_account = get_account(tr.debtor_id, tr.recipient_creditor_id)
 
-    expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
-    if expendable_amount < tr.min_amount:
-        return reject('INSUFFICIENT_AVAILABLE_AMOUNT', available_amount)
+        if recipient_account is None:
+            return reject('RECIPIENT_DOES_NOT_EXIST', available_amount)
+
+        if recipient_account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG:
+            return reject('RECIPIENT_BLOCKED_TRANSFERS', available_amount)
 
     return accept(expendable_amount)
 
