@@ -101,8 +101,8 @@ class PreparedTransferSignal(Signal):
         signal_ts = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    sender_creditor_id = db.Column(db.BigInteger, nullable=False)
     transfer_id = db.Column(db.BigInteger, nullable=False)
     coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
@@ -133,6 +133,8 @@ class RejectedTransferSignal(Signal):
     * `available_amount` is the amount currently available on the
       account.
 
+    * `debtor_id` and `sender_creditor_id` identify sender's account.
+
     """
 
     class __marshmallow__(Schema):
@@ -141,9 +143,12 @@ class RejectedTransferSignal(Signal):
         coordinator_request_id = fields.Integer()
         rejection_code = fields.String()
         available_amount = fields.Integer()
+        debtor_id = fields.Integer()
+        sender_creditor_id = fields.Integer()
         rejected_at_ts = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
@@ -297,8 +302,8 @@ class AccountChangeSignal(Signal):
         signal_ttl = fields.Float()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    creditor_id = db.Column(db.BigInteger, nullable=False)
     change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     change_seqnum = db.Column(db.Integer, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
@@ -457,6 +462,6 @@ class AccountMaintenanceSignal(Signal):
         received_at_ts = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    creditor_id = db.Column(db.BigInteger, nullable=False)
     request_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)

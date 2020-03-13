@@ -612,6 +612,7 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
             coordinator_request_id=tr.coordinator_request_id,
             rejection_code=rejection_code,
             available_amount=available_amount,
+            sender_creditor_id=tr.sender_creditor_id,
         )]
 
     def accept(amount: int) -> List[Union[PreparedTransfer, PreparedTransferSignal]]:

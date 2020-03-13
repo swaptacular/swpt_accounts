@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: aae6467daa04
+Revision ID: 6df47d010341
 Revises: 
-Create Date: 2020-03-11 20:19:28.907617
+Create Date: 2020-03-13 19:12:24.224653
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'aae6467daa04'
+revision = '6df47d010341'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -49,8 +49,8 @@ def upgrade():
     op.create_table('account_change_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('change_seqnum', sa.Integer(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
@@ -63,7 +63,7 @@ def upgrade():
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('status', sa.SmallInteger(), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'signal_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
     op.create_table('account_commit_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -84,10 +84,10 @@ def upgrade():
     op.create_table('account_maintenance_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('request_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'signal_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
     op.create_table('account_purge_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -129,8 +129,8 @@ def upgrade():
     op.create_table('prepared_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('transfer_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
@@ -138,18 +138,19 @@ def upgrade():
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'signal_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'signal_id')
     )
     op.create_table('rejected_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('rejection_code', sa.String(length=30), nullable=False),
     sa.Column('available_amount', sa.BigInteger(), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'signal_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'signal_id')
     )
     op.create_table('transfer_request',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
