@@ -500,6 +500,12 @@ def _insert_pending_account_change(
         interest_delta: int = 0,
         unlocked_amount: int = None) -> None:
 
+    # TODO: To achieve infinite scalability, consider emitting a
+    #       `PendingAccountChangeSignal` instead (with a globally unique
+    #       ID), then implement an actor that reads those signals and
+    #       inserts `PendingAccountChange` records for them (correctly
+    #       handling possible multiple deliveries).
+
     if principal_delta != 0 or interest_delta != 0 or unlocked_amount is not None:
         db.session.add(PendingAccountChange(
             debtor_id=debtor_id,
