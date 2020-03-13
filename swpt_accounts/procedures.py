@@ -3,7 +3,6 @@ from datetime import datetime, date, timezone
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from flask import current_app
-from sqlalchemy import func
 from swpt_lib.utils import is_later_event, increment_seqnum
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
