@@ -28,18 +28,6 @@ ROOT_CREDITOR_ID = 0
 
 
 @atomic
-def get_debtor_account_list(debtor_id: int, start_after: int = None, limit: int = None) -> List[Account]:
-    query = Account.query.filter_by(debtor_id=debtor_id).order_by(Account.creditor_id)
-    if start_after is not None:
-        query = query.filter(Account.creditor_id > start_after)
-    if limit is not None:
-        if limit < 1:
-            return []
-        query = query.limit(limit)
-    return query.all()
-
-
-@atomic
 def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optional[Account]:
     account = _get_account_instance(debtor_id, creditor_id, lock=lock)
     if account and not account.status & Account.STATUS_DELETED_FLAG:

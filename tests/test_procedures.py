@@ -700,20 +700,6 @@ def test_commit_to_debtor_account(db_session, current_ts):
     assert cts1.committed_amount == -40
 
 
-def test_get_debtor_account_list(db_session, current_ts):
-    p.configure_account(D_ID, C_ID, current_ts, 0)
-    p.configure_account(D_ID, C_ID + 1, current_ts, 0)
-    accounts = p.get_debtor_account_list(D_ID, start_after=None, limit=None)
-    assert len(accounts) == 2
-    assert accounts[0].creditor_id == C_ID
-    assert accounts[1].creditor_id == C_ID + 1
-    assert len(p.get_debtor_account_list(1234, start_after=None, limit=None)) == 0
-    assert len(p.get_debtor_account_list(D_ID, start_after=None, limit=1)) == 1
-    assert len(p.get_debtor_account_list(D_ID, start_after=C_ID, limit=100)) == 1
-    assert len(p.get_debtor_account_list(D_ID, start_after=C_ID + 1, limit=100)) == 0
-    assert len(p.get_debtor_account_list(D_ID, start_after=None, limit=-1)) == 0
-
-
 def test_marshmallow_auto_generated_classes(db_session):
     RejectedTransferSignal.query.all()
     assert hasattr(RejectedTransferSignal, '__marshmallow__')
