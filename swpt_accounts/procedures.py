@@ -672,6 +672,14 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
         # Note that transfers to the debtor's account are allowed even
         # when the debtor's account does not exist. In this case, it
         # will be created when the transfer is committed.
+
+        # TODO: To achieve infinite scalability, consider using some fast
+        #       distributed key-value store (Redis?), containing the
+        #       (debtor_id, creditor_id) tuples for all non-deleted
+        #       accounts currently existing in the system. To reduce
+        #       latency, it probably will need to be queried from the
+        #       `process_transfer_requests()` function, for multiple
+        #       accounts at once.
         recipient_account = get_account(tr.debtor_id, tr.recipient_creditor_id)
 
         if recipient_account is None:
