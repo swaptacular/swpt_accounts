@@ -130,10 +130,10 @@ class RejectedTransferSignal(Signal):
     * `rejection_code` gives the reason for the rejection of the
       transfer. Between 1 and 30 symbols, ASCII only.
 
-    * `available_amount` is the amount currently available on the
+    * `available_amount` is the amount currently available on the sender's
       account.
 
-    * `debtor_id` and `sender_creditor_id` identify sender's account.
+    * `debtor_id` and `sender_creditor_id` identify the sender's account.
 
     """
 
