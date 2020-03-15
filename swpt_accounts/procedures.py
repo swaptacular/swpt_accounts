@@ -308,11 +308,11 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
         for tr in transfer_requests:
             is_recipient_accessible = (debtor_id, tr.recipient_creditor_id) in accessible_recipient_account_pks
             signal = _process_transfer_request(tr, sender_account, is_recipient_accessible, current_ts)
-            if isinstance(signal, PreparedTransferSignal):
-                prepared_transfer_signals.append(signal)
-            else:
-                assert isinstance(signal, RejectedTransferSignal)
+            if isinstance(signal, RejectedTransferSignal):
                 rejected_transfer_signals.append(signal)
+            else:
+                assert isinstance(signal, PreparedTransferSignal)
+                prepared_transfer_signals.append(signal)
 
         # TODO: Use bulk-inserts when we decide to disable
         #       auto-flushing. This will be faster, because the useless
