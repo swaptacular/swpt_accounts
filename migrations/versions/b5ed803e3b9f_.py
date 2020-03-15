@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 6df47d010341
+Revision ID: b5ed803e3b9f
 Revises: 
-Create Date: 2020-03-13 19:12:24.224653
+Create Date: 2020-03-16 00:13:03.967277
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '6df47d010341'
+revision = 'b5ed803e3b9f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -77,8 +77,8 @@ def upgrade():
     sa.Column('transfer_info', sa.TEXT(), nullable=False),
     sa.Column('account_creation_date', sa.DATE(), nullable=False),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
-    sa.Column('is_insignificant', sa.BOOLEAN(), nullable=False),
     sa.Column('previous_transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('flags', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_seqnum')
     )
     op.create_table('account_maintenance_signal',

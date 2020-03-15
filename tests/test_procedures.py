@@ -94,7 +94,7 @@ def amount(request):
 
 def test_make_debtor_payment(db_session, current_ts, amount):
     TRANSFER_INFO = '{"transer_data": 123}'
-    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, C_ID, current_ts, 0, False, abs(amount))
     p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_INFO)
 
     root_change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
@@ -117,8 +117,12 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1.transfer_info == TRANSFER_INFO
     assert cts1.transfer_seqnum == transfer_seqnum1
     assert cts1.account_new_principal == amount
-    assert not cts1.is_insignificant
     assert len(AccountCommitSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
+    is_insignificant = bool(cts1.flags & AccountCommitSignal.IS_INSIGNIFICANT_FLAG)
+    if amount > 0:
+        assert is_insignificant
+    else:
+        assert not is_insignificant
 
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_INFO)
     p.process_pending_account_changes(D_ID, C_ID)
