@@ -178,8 +178,6 @@ def finalize_prepared_transfer(
 def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert interest_rate is not None
-    assert request_ts is not None
 
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
@@ -251,7 +249,6 @@ def zero_out_negative_balance(
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert last_outgoing_transfer_date is not None
 
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
