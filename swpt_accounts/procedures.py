@@ -338,16 +338,42 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
     if transfer_requests:
         sender_account = get_account(debtor_id, creditor_id, lock=True)
         accessible_recipient_account_pks = _get_accessible_recipient_account_pks(transfer_requests)
-        new_objects = []
+        rejected_transfer_signals = []
+        prepared_transfer_signals = []
 
-        # TODO: Consider using bulk-inserts and bulk-deletes when we
-        #       decide to disable auto-flushing. This would probably be
-        #       slightly faster.
         for tr in transfer_requests:
             is_recipient_accessible = (debtor_id, tr.recipient_creditor_id) in accessible_recipient_account_pks
-            new_objects.extend(_process_transfer_request(tr, sender_account, current_ts, is_recipient_accessible))
+            signal = _process_transfer_request(tr, sender_account, is_recipient_accessible, current_ts)
+
+            if isinstance(signal, RejectedTransferSignal):
+                rejected_transfer_signals.append(signal)
+            elif isinstance(signal, PreparedTransferSignal):
+                prepared_transfer_signals.append(signal)
+            else:  # pragma: no cover
+                raise AssertionError('unexpected signal type')
+
             db.session.delete(tr)
-        db.session.add_all(new_objects)
+
+        # TODO: Consider using bulk-inserts when we decide to disable
+        #       auto-flushing. This will be faster, because the useless
+        #       auto-generated `signal_id`s would not be fetched separately
+        #       for each row.
+        db.session.add_all(rejected_transfer_signals)
+        db.session.add_all(prepared_transfer_signals)
+        db.session.add_all([
+            PreparedTransfer(
+                debtor_id=s.debtor_id,
+                sender_creditor_id=s.sender_creditor_id,
+                transfer_id=s.transfer_id,
+                coordinator_type=s.coordinator_type,
+                coordinator_id=s.coordinator_id,
+                coordinator_request_id=s.coordinator_request_id,
+                sender_locked_amount=s.sender_locked_amount,
+                recipient_creditor_id=s.recipient_creditor_id,
+                prepared_at_ts=s.prepared_at_ts,
+            )
+            for s in prepared_transfer_signals
+        ])
 
 
 @atomic
@@ -615,11 +641,11 @@ def _make_debtor_payment(
 def _process_transfer_request(
         tr: TransferRequest,
         sender_account: Optional[Account],
-        current_ts: datetime,
-        is_recipient_accessible: bool) -> list:
+        is_recipient_accessible: bool,
+        current_ts: datetime) -> Union[RejectedTransferSignal, PreparedTransferSignal]:
 
-    def reject(rejection_code: str, available_amount: int) -> List[RejectedTransferSignal]:
-        return [RejectedTransferSignal(
+    def reject(rejection_code: str, available_amount: int) -> RejectedTransferSignal:
+        return RejectedTransferSignal(
             debtor_id=tr.debtor_id,
             coordinator_type=tr.coordinator_type,
             coordinator_id=tr.coordinator_id,
@@ -627,38 +653,25 @@ def _process_transfer_request(
             rejection_code=rejection_code,
             available_amount=available_amount,
             sender_creditor_id=tr.sender_creditor_id,
-        )]
+        )
 
-    def accept(amount: int) -> List[Union[PreparedTransfer, PreparedTransferSignal]]:
+    def prepare(amount: int) -> PreparedTransferSignal:
         assert sender_account is not None
         sender_account.locked_amount = min(sender_account.locked_amount + amount, MAX_INT64)
         sender_account.pending_transfers_count += 1
         sender_account.last_transfer_id += 1
-        return [
-            PreparedTransfer(
-                debtor_id=tr.debtor_id,
-                sender_creditor_id=tr.sender_creditor_id,
-                transfer_id=sender_account.last_transfer_id,
-                coordinator_type=tr.coordinator_type,
-                coordinator_id=tr.coordinator_id,
-                coordinator_request_id=tr.coordinator_request_id,
-                sender_locked_amount=amount,
-                recipient_creditor_id=tr.recipient_creditor_id,
-                prepared_at_ts=current_ts,
-            ),
-            PreparedTransferSignal(
-                debtor_id=tr.debtor_id,
-                sender_creditor_id=tr.sender_creditor_id,
-                transfer_id=sender_account.last_transfer_id,
-                coordinator_type=tr.coordinator_type,
-                coordinator_id=tr.coordinator_id,
-                coordinator_request_id=tr.coordinator_request_id,
-                sender_locked_amount=amount,
-                recipient_creditor_id=tr.recipient_creditor_id,
-                prepared_at_ts=current_ts,
-                inserted_at_ts=current_ts,
-            ),
-        ]
+        return PreparedTransferSignal(
+            debtor_id=tr.debtor_id,
+            sender_creditor_id=tr.sender_creditor_id,
+            transfer_id=sender_account.last_transfer_id,
+            coordinator_type=tr.coordinator_type,
+            coordinator_id=tr.coordinator_id,
+            coordinator_request_id=tr.coordinator_request_id,
+            sender_locked_amount=amount,
+            recipient_creditor_id=tr.recipient_creditor_id,
+            prepared_at_ts=current_ts,
+            inserted_at_ts=current_ts,
+        )
 
     if sender_account is None:
         return reject('SENDER_DOES_NOT_EXIST', 0)
@@ -683,7 +696,7 @@ def _process_transfer_request(
     # Note that transfers to the debtor's account are allowed even when the
     # debtor's account does not exist. In this case, it will be created
     # when the transfer is committed.
-    return accept(expendable_amount)
+    return prepare(expendable_amount)
 
 
 def _insert_account_maintenance_signal(
