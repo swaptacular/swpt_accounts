@@ -292,11 +292,6 @@ def get_accounts_with_transfer_requests() -> Iterable[Tuple[int, int]]:
 
 
 @atomic
-def get_accounts_with_pending_changes() -> Iterable[Tuple[int, int]]:
-    return set(db.session.query(PendingAccountChange.debtor_id, PendingAccountChange.creditor_id).all())
-
-
-@atomic
 def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     transfer_requests = TransferRequest.query.\
@@ -343,6 +338,11 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
             )
             for s in prepared_transfer_signals
         ])
+
+
+@atomic
+def get_accounts_with_pending_changes() -> Iterable[Tuple[int, int]]:
+    return set(db.session.query(PendingAccountChange.debtor_id, PendingAccountChange.creditor_id).all())
 
 
 @atomic
@@ -413,10 +413,6 @@ def make_debtor_payment(
         creditor_id: int,
         amount: int,
         transfer_info: str = '') -> None:
-
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert -MAX_INT64 <= amount <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
     account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
@@ -612,6 +608,7 @@ def _make_debtor_payment(
         transfer_info: str = '') -> None:
 
     assert -MAX_INT64 <= amount <= MAX_INT64
+
     if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:
         _insert_pending_account_change(
             debtor_id=account.debtor_id,
