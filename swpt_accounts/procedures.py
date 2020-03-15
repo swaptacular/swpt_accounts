@@ -29,20 +29,45 @@ ROOT_CREDITOR_ID = 0
 
 
 @atomic
-def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optional[Account]:
-    account = _get_account_instance(debtor_id, creditor_id, lock=lock)
-    if account and not account.status & Account.STATUS_DELETED_FLAG:
-        return account
-    return None
+def configure_account(
+        debtor_id: int,
+        creditor_id: int,
+        signal_ts: datetime,
+        signal_seqnum: int,
+        is_scheduled_for_deletion: bool = False,
+        negligible_amount: float = 0.0) -> None:
 
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert signal_ts > BEGINNING_OF_TIME
+    assert MIN_INT32 <= signal_seqnum <= MAX_INT32
+    assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
+    assert negligible_amount >= 0.0
 
-@atomic
-def get_available_amount(debtor_id: int, creditor_id: int) -> Optional[int]:
     current_ts = datetime.now(tz=timezone.utc)
-    account = get_account(debtor_id, creditor_id)
-    if account:
-        return _get_available_amount(account, current_ts)
-    return None
+    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
+    if (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds:
+        # Too old `configure_account` signals should be ignored,
+        # otherwise deleted/purged accounts could be needlessly
+        # resurrected.
+        return
+
+    account = _lock_or_create_account(debtor_id, creditor_id, current_ts, send_account_creation_signal=False)
+    this_event = (signal_ts, signal_seqnum)
+    prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
+    if is_later_event(this_event, prev_event):
+        # When a new account has been created, this block is guaranteed
+        # to be executed, because `account.last_config_signal_ts` for
+        # newly created accounts is many years ago, which means that
+        # `is_later_event(this_event, prev_event)` is `True`.
+        if is_scheduled_for_deletion:
+            account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+        else:
+            account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+        account.negligible_amount = negligible_amount
+        account.last_config_signal_ts = signal_ts
+        account.last_config_signal_seqnum = signal_seqnum
+        _apply_account_change(account, 0, 0, current_ts)
 
 
 @atomic
@@ -214,23 +239,6 @@ def capitalize_interest(
 
 
 @atomic
-def make_debtor_payment(
-        coordinator_type: str,
-        debtor_id: int,
-        creditor_id: int,
-        amount: int,
-        transfer_info: str = '') -> None:
-
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert -MAX_INT64 <= amount <= MAX_INT64
-
-    current_ts = datetime.now(tz=timezone.utc)
-    account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
-    _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_info)
-
-
-@atomic
 def zero_out_negative_balance(
         debtor_id: int,
         creditor_id: int,
@@ -250,48 +258,6 @@ def zero_out_negative_balance(
             _make_debtor_payment(ZERO_OUT_ACCOUNT, account, zero_out_amount, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
-
-
-@atomic
-def configure_account(
-        debtor_id: int,
-        creditor_id: int,
-        signal_ts: datetime,
-        signal_seqnum: int,
-        is_scheduled_for_deletion: bool = False,
-        negligible_amount: float = 0.0) -> None:
-
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert signal_ts > BEGINNING_OF_TIME
-    assert MIN_INT32 <= signal_seqnum <= MAX_INT32
-    assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
-    assert negligible_amount >= 0.0
-
-    current_ts = datetime.now(tz=timezone.utc)
-    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-    if (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds:
-        # Too old `configure_account` signals should be ignored,
-        # otherwise deleted/purged accounts could be needlessly
-        # resurrected.
-        return
-
-    account = _lock_or_create_account(debtor_id, creditor_id, current_ts, send_account_creation_signal=False)
-    this_event = (signal_ts, signal_seqnum)
-    prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
-    if is_later_event(this_event, prev_event):
-        # When a new account has been created, this block is guaranteed
-        # to be executed, because `account.last_config_signal_ts` for
-        # newly created accounts is many years ago, which means that
-        # `is_later_event(this_event, prev_event)` is `True`.
-        if is_scheduled_for_deletion:
-            account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-        else:
-            account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-        account.negligible_amount = negligible_amount
-        account.last_config_signal_ts = signal_ts
-        account.last_config_signal_seqnum = signal_seqnum
-        _apply_account_change(account, 0, 0, current_ts)
 
 
 @atomic
@@ -418,6 +384,40 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
 
         if nonzero_deltas:
             _apply_account_change(account, principal_delta, interest_delta, current_ts)
+
+
+@atomic
+def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optional[Account]:
+    account = _get_account_instance(debtor_id, creditor_id, lock=lock)
+    if account and not account.status & Account.STATUS_DELETED_FLAG:
+        return account
+    return None
+
+
+@atomic
+def get_available_amount(debtor_id: int, creditor_id: int) -> Optional[int]:
+    current_ts = datetime.now(tz=timezone.utc)
+    account = get_account(debtor_id, creditor_id)
+    if account:
+        return _get_available_amount(account, current_ts)
+    return None
+
+
+@atomic
+def make_debtor_payment(
+        coordinator_type: str,
+        debtor_id: int,
+        creditor_id: int,
+        amount: int,
+        transfer_info: str = '') -> None:
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert -MAX_INT64 <= amount <= MAX_INT64
+
+    current_ts = datetime.now(tz=timezone.utc)
+    account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
+    _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_info)
 
 
 def _contain_principal_overflow(value: int) -> int:
