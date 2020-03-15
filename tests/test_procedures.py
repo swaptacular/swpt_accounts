@@ -599,7 +599,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pt.sender_locked_amount == pts.sender_locked_amount
 
     # Discard the transfer.
-    with pytest.raises(ValueError):
+    with pytest.raises(AssertionError):
         p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, -1)
     p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, 0)
     p.process_pending_account_changes(D_ID, 1234)

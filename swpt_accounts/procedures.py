@@ -41,7 +41,6 @@ def configure_account(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert signal_ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= signal_seqnum <= MAX_INT32
-    assert not (is_scheduled_for_deletion and creditor_id == ROOT_CREDITOR_ID)
     assert negligible_amount >= 0.0
 
     current_ts = datetime.now(tz=timezone.utc)
@@ -60,7 +59,7 @@ def configure_account(
         # to be executed, because `account.last_config_signal_ts` for
         # newly created accounts is many years ago, which means that
         # `is_later_event(this_event, prev_event)` is `True`.
-        if is_scheduled_for_deletion:
+        if is_scheduled_for_deletion and creditor_id != ROOT_CREDITOR_ID:
             account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
         else:
             account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
@@ -83,12 +82,14 @@ def prepare_transfer(
         signal_ts: datetime,
         minimum_account_balance: int = 0) -> None:
 
+    assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 < min_amount <= max_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
     assert MIN_INT64 <= recipient_creditor_id <= MAX_INT64
+    assert signal_ts > BEGINNING_OF_TIME
     assert MIN_INT64 <= minimum_account_balance <= MAX_INT64
 
     if sender_creditor_id != ROOT_CREDITOR_ID:
@@ -118,20 +119,15 @@ def finalize_prepared_transfer(
         committed_amount: int,
         transfer_info: str = '') -> None:
 
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
+    assert MIN_INT64 <= transfer_id <= MAX_INT64
+    assert committed_amount >= 0
+
     current_ts = datetime.now(tz=timezone.utc)
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
-        assert pt.sender_locked_amount > 0
-        if committed_amount == 0:
-            _insert_pending_account_change(
-                debtor_id=pt.debtor_id,
-                creditor_id=pt.sender_creditor_id,
-                coordinator_type=pt.coordinator_type,
-                other_creditor_id=pt.recipient_creditor_id,
-                inserted_at_ts=current_ts,
-                unlocked_amount=pt.sender_locked_amount,
-            )
-        elif committed_amount > 0:
+        if committed_amount > 0:
             committed_amount = min(committed_amount, pt.sender_locked_amount)
             _insert_pending_account_change(
                 debtor_id=pt.debtor_id,
@@ -153,7 +149,15 @@ def finalize_prepared_transfer(
                 principal_delta=committed_amount,
             )
         else:
-            raise ValueError('The committed amount is negative.')
+            committed_amount = 0
+            _insert_pending_account_change(
+                debtor_id=pt.debtor_id,
+                creditor_id=pt.sender_creditor_id,
+                coordinator_type=pt.coordinator_type,
+                other_creditor_id=pt.recipient_creditor_id,
+                inserted_at_ts=current_ts,
+                unlocked_amount=pt.sender_locked_amount,
+            )
 
         db.session.add(FinalizedTransferSignal(
             debtor_id=pt.debtor_id,
