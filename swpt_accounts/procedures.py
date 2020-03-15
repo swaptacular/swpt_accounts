@@ -1,8 +1,9 @@
 import math
 from datetime import datetime, date, timezone
-from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable
+from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Set
 from decimal import Decimal
 from flask import current_app
+from sqlalchemy.sql.expression import tuple_
 from swpt_lib.utils import is_later_event, increment_seqnum
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
@@ -19,6 +20,7 @@ SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 DELETE_ACCOUNT = 'delete_account'
 INTEREST = 'interest'
 ZERO_OUT_ACCOUNT = 'zero_out_account'
+ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
@@ -328,21 +330,23 @@ def get_accounts_with_pending_changes() -> Iterable[Tuple[int, int]]:
 @atomic
 def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
-    requests = TransferRequest.query.\
+    transfer_requests = TransferRequest.query.\
         filter_by(debtor_id=debtor_id, sender_creditor_id=creditor_id).\
         with_for_update(skip_locked=True).\
         all()
 
-    if requests:
+    if transfer_requests:
         sender_account = get_account(debtor_id, creditor_id, lock=True)
+        accessible_recipient_account_pks = _get_accessible_recipient_account_pks(transfer_requests)
         new_objects = []
 
         # TODO: Consider using bulk-inserts and bulk-deletes when we
         #       decide to disable auto-flushing. This would probably be
         #       slightly faster.
-        for request in requests:
-            new_objects.extend(_process_transfer_request(request, sender_account, current_ts))
-            db.session.delete(request)
+        for tr in transfer_requests:
+            is_recipient_accessible = (debtor_id, tr.recipient_creditor_id) in accessible_recipient_account_pks
+            new_objects.extend(_process_transfer_request(tr, sender_account, current_ts, is_recipient_accessible))
+            db.session.delete(tr)
         db.session.add_all(new_objects)
 
 
@@ -500,7 +504,7 @@ def _insert_pending_account_change(
         interest_delta: int = 0,
         unlocked_amount: int = None) -> None:
 
-    # TODO: To achieve infinite scalability, consider emitting a
+    # TODO: To achieve better scalability, consider emitting a
     #       `PendingAccountChangeSignal` instead (with a globally unique
     #       ID), then implement an actor that reads those signals and
     #       inserts `PendingAccountChange` records for them (correctly
@@ -608,7 +612,12 @@ def _make_debtor_payment(
             _apply_account_change(account, principal_delta, interest_delta, current_ts)
 
 
-def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Account], current_ts: datetime) -> list:
+def _process_transfer_request(
+        tr: TransferRequest,
+        sender_account: Optional[Account],
+        current_ts: datetime,
+        is_recipient_accessible: bool) -> list:
+
     def reject(rejection_code: str, available_amount: int) -> List[RejectedTransferSignal]:
         return [RejectedTransferSignal(
             debtor_id=tr.debtor_id,
@@ -668,26 +677,12 @@ def _process_transfer_request(tr: TransferRequest, sender_account: Optional[Acco
     if tr.sender_creditor_id == tr.recipient_creditor_id:
         return reject('RECIPIENT_SAME_AS_SENDER', available_amount)
 
-    if tr.recipient_creditor_id != ROOT_CREDITOR_ID:
-        # Note that transfers to the debtor's account are allowed even
-        # when the debtor's account does not exist. In this case, it
-        # will be created when the transfer is committed.
+    if not (is_recipient_accessible or tr.recipient_creditor_id == ROOT_CREDITOR_ID):
+        return reject('RECIPIENT_NOT_ACCESSIBLE', available_amount)
 
-        # TODO: To achieve infinite scalability, consider using some fast
-        #       distributed key-value store (Redis?), containing the
-        #       (debtor_id, creditor_id) tuples for all non-deleted
-        #       accounts currently existing in the system. To reduce
-        #       latency, it probably will need to be queried from the
-        #       `process_transfer_requests()` function, for multiple
-        #       accounts at once.
-        recipient_account = get_account(tr.debtor_id, tr.recipient_creditor_id)
-
-        if recipient_account is None:
-            return reject('RECIPIENT_DOES_NOT_EXIST', available_amount)
-
-        if recipient_account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG:
-            return reject('RECIPIENT_BLOCKED_TRANSFERS', available_amount)
-
+    # Note that transfers to the debtor's account are allowed even when the
+    # debtor's account does not exist. In this case, it will be created
+    # when the transfer is committed.
     return accept(expendable_amount)
 
 
@@ -703,3 +698,18 @@ def _insert_account_maintenance_signal(
         request_ts=request_ts,
         inserted_at_ts=current_ts,
     ))
+
+
+def _get_accessible_recipient_account_pks(transfer_requests: List[TransferRequest]) -> Set[Tuple[int, int]]:
+    # TODO: To achieve better scalability, consider using some fast
+    #       distributed key-store (Redis?) containing the (debtor_id,
+    #       creditor_id) tuples for all accessible accounts.
+
+    account_pks = [(tr.debtor_id, tr.recipient_creditor_id) for tr in transfer_requests]
+    account_pks = db.session.\
+        query(Account.debtor_id, Account.creditor_id).\
+        filter(ACCOUNT_PK.in_(account_pks)).\
+        filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
+        filter(Account.status.op('&')(Account.STATUS_SCHEDULED_FOR_DELETION_FLAG) == 0).\
+        all()
+    return set(account_pks)

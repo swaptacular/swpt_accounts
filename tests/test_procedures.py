@@ -363,7 +363,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == 'RECIPIENT_BLOCKED_TRANSFERS'
+    assert rts.rejection_code == 'RECIPIENT_NOT_ACCESSIBLE'
 
     # Verify that re-creating the account clears STATUS_SCHEDULED_FOR_DELETION_FLAG:
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
@@ -505,7 +505,7 @@ def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == 'RECIPIENT_DOES_NOT_EXIST'
+    assert rts.rejection_code == 'RECIPIENT_NOT_ACCESSIBLE'
 
 
 def test_prepare_transfer_to_self(db_session, current_ts):
