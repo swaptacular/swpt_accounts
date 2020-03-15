@@ -316,28 +316,12 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
             else:  # pragma: no cover
                 raise AssertionError('unexpected signal type')
 
-            db.session.delete(tr)
-
-        # TODO: Consider using bulk-inserts when we decide to disable
+        # TODO: Use bulk-inserts when we decide to disable
         #       auto-flushing. This will be faster, because the useless
         #       auto-generated `signal_id`s would not be fetched separately
-        #       for each row.
+        #       for each inserted row.
         db.session.add_all(rejected_transfer_signals)
         db.session.add_all(prepared_transfer_signals)
-        db.session.add_all([
-            PreparedTransfer(
-                debtor_id=s.debtor_id,
-                sender_creditor_id=s.sender_creditor_id,
-                transfer_id=s.transfer_id,
-                coordinator_type=s.coordinator_type,
-                coordinator_id=s.coordinator_id,
-                coordinator_request_id=s.coordinator_request_id,
-                sender_locked_amount=s.sender_locked_amount,
-                recipient_creditor_id=s.recipient_creditor_id,
-                prepared_at_ts=s.prepared_at_ts,
-            )
-            for s in prepared_transfer_signals
-        ])
 
 
 @atomic
@@ -660,6 +644,17 @@ def _process_transfer_request(
         sender_account.locked_amount = min(sender_account.locked_amount + amount, MAX_INT64)
         sender_account.pending_transfers_count += 1
         sender_account.last_transfer_id += 1
+        db.session.add(PreparedTransfer(
+            debtor_id=tr.debtor_id,
+            sender_creditor_id=tr.sender_creditor_id,
+            transfer_id=sender_account.last_transfer_id,
+            coordinator_type=tr.coordinator_type,
+            coordinator_id=tr.coordinator_id,
+            coordinator_request_id=tr.coordinator_request_id,
+            sender_locked_amount=amount,
+            recipient_creditor_id=tr.recipient_creditor_id,
+            prepared_at_ts=current_ts,
+        ))
         return PreparedTransferSignal(
             debtor_id=tr.debtor_id,
             sender_creditor_id=tr.sender_creditor_id,
@@ -672,6 +667,8 @@ def _process_transfer_request(
             prepared_at_ts=current_ts,
             inserted_at_ts=current_ts,
         )
+
+    db.session.delete(tr)
 
     if sender_account is None:
         return reject('SENDER_DOES_NOT_EXIST', 0)
