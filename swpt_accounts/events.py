@@ -272,6 +272,8 @@ class AccountChangeSignal(Signal):
       safely deleted; 2) decide whether an incoming transfer is
       insignificant. Will always be non-negative.
 
+    * `status` contains status bit-flags (see `models.Account`).
+
     * `signal_ts` is the moment at which this signal was emitted.
 
     * `signal_ttl` is the time-to-live (in seconds) for this
@@ -279,7 +281,12 @@ class AccountChangeSignal(Signal):
       seconds have elapsed since the signal was emitted
       (`signal_ts`). Will always be bigger than `0.0`.
 
-    * `status` contains status bit-flags (see `models.Account`).
+    * `real_creditor_id` MUST contain the original value of the
+      `creditor_id` field, as it was when the signal was
+      generated. The reason this field exists is to allow
+      intermediaries to modify the `creditor_id`/`sender_creditor_id`
+      fields of signals (analogous to the way IP masquerading works),
+      yet preserving the original value.
 
     """
 
@@ -300,6 +307,7 @@ class AccountChangeSignal(Signal):
         status = fields.Integer()
         signal_ts = fields.DateTime(attribute='inserted_at_ts')
         signal_ttl = fields.Float()
+        real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
