@@ -26,6 +26,7 @@ def test_finalize_prepared_transfer(db_session):
         transfer_id=666,
         committed_amount=100,
         transfer_message='',
+        transfer_flags=0,
     )
 
 

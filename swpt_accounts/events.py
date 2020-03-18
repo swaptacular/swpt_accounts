@@ -389,6 +389,11 @@ class AccountCommitSignal(Signal):
     * `transfer_message` contains notes from the sender. Can be any
       string that the sender wanted the recipient to see.
 
+    * `transfer_flags` contains various flags set when the transfer
+      was finalized. (This is the value of the `transfer_flags`
+      parameter, with which the `finalize_prepared_transfer` actor was
+      called.)
+
     * `account_creation_date` is the date on which the account was
       created. It can be used to differentiate transfers from
       different "epochs".
@@ -413,6 +418,7 @@ class AccountCommitSignal(Signal):
         committed_amount = fields.Integer()
         other_creditor_id = fields.Integer()
         transfer_message = fields.String()
+        transfer_flags = fields.Integer()
         account_creation_date = fields.Date()
         account_new_principal = fields.Integer()
         previous_transfer_seqnum = fields.Integer()
@@ -432,6 +438,7 @@ class AccountCommitSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     other_creditor_id = db.Column(db.BigInteger, nullable=False)
     transfer_message = db.Column(pg.TEXT, nullable=False)
+    transfer_flags = db.Column(db.Integer, nullable=False)
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_seqnum = db.Column(db.BigInteger, nullable=False)

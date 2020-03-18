@@ -117,12 +117,14 @@ def finalize_prepared_transfer(
         sender_creditor_id: int,
         transfer_id: int,
         committed_amount: int,
-        transfer_message: str = '') -> None:
+        transfer_message: str = '',
+        transfer_flags: int = 0) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
     assert MIN_INT64 <= transfer_id <= MAX_INT64
     assert committed_amount >= 0
+    assert MIN_INT32 <= transfer_flags <= MAX_INT32
 
     current_ts = datetime.now(tz=timezone.utc)
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
@@ -136,6 +138,7 @@ def finalize_prepared_transfer(
                 other_creditor_id=pt.recipient_creditor_id,
                 inserted_at_ts=current_ts,
                 transfer_message=transfer_message,
+                transfer_flags=transfer_flags,
                 principal_delta=-committed_amount,
                 unlocked_amount=pt.sender_locked_amount,
             )
@@ -146,6 +149,7 @@ def finalize_prepared_transfer(
                 other_creditor_id=pt.sender_creditor_id,
                 inserted_at_ts=current_ts,
                 transfer_message=transfer_message,
+                transfer_flags=transfer_flags,
                 principal_delta=committed_amount,
             )
         else:
@@ -363,6 +367,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     committed_at_ts=change.inserted_at_ts,
                     committed_amount=change.principal_delta,
                     transfer_message=change.transfer_message,
+                    transfer_flags=change.transfer_flags,
                     account_new_principal=_contain_principal_overflow(account.principal + principal_delta),
                 )
             db.session.delete(change)
@@ -394,11 +399,12 @@ def make_debtor_payment(
         debtor_id: int,
         creditor_id: int,
         amount: int,
-        transfer_message: str = '') -> None:
+        transfer_message: str = '',
+        transfer_flags: int = 0) -> None:
 
     current_ts = datetime.now(tz=timezone.utc)
     account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
-    _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_message)
+    _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_message, transfer_flags)
 
 
 def _contain_principal_overflow(value: int) -> int:
@@ -507,6 +513,7 @@ def _insert_pending_account_change(
         other_creditor_id: int,
         inserted_at_ts: datetime,
         transfer_message: str = None,
+        transfer_flags=0,
         principal_delta: int = 0,
         interest_delta: int = 0,
         unlocked_amount: int = None) -> None:
@@ -525,6 +532,7 @@ def _insert_pending_account_change(
             other_creditor_id=other_creditor_id,
             inserted_at_ts=inserted_at_ts,
             transfer_message=transfer_message,
+            transfer_flags=transfer_flags,
             principal_delta=principal_delta,
             interest_delta=interest_delta,
             unlocked_amount=unlocked_amount,
@@ -538,6 +546,7 @@ def _insert_account_commit_signal(
         committed_at_ts: datetime,
         committed_amount: int,
         transfer_message: str,
+        transfer_flags: int,
         account_new_principal: int) -> None:
 
     assert committed_amount != 0
@@ -561,6 +570,7 @@ def _insert_account_commit_signal(
             committed_at_ts=committed_at_ts,
             committed_amount=committed_amount,
             transfer_message=transfer_message,
+            transfer_flags=transfer_flags,
             account_creation_date=account.creation_date,
             account_new_principal=account_new_principal,
             previous_transfer_seqnum=previous_transfer_seqnum,
@@ -591,7 +601,8 @@ def _make_debtor_payment(
         account: Account,
         amount: int,
         current_ts: datetime,
-        transfer_message: str = '') -> None:
+        transfer_message: str = '',
+        transfer_flags=0) -> None:
 
     assert -MAX_INT64 <= amount <= MAX_INT64
 
@@ -603,6 +614,7 @@ def _make_debtor_payment(
             other_creditor_id=account.creditor_id,
             inserted_at_ts=current_ts,
             transfer_message=transfer_message,
+            transfer_flags=transfer_flags,
             principal_delta=-amount,
         )
         _insert_account_commit_signal(
@@ -612,6 +624,7 @@ def _make_debtor_payment(
             committed_at_ts=current_ts,
             committed_amount=amount,
             transfer_message=transfer_message,
+            transfer_flags=transfer_flags,
             account_new_principal=_contain_principal_overflow(account.principal + amount),
         )
 
