@@ -340,6 +340,13 @@ class AccountPurgeSignal(Signal):
     * `purged_at_ts` is the moment at which the account was removed
       from the database.
 
+    * `real_creditor_id` MUST contain the original value of the
+      `creditor_id` field, as it was when the signal was
+      generated. The reason this field exists is to allow
+      intermediaries to modify the `creditor_id`/`sender_creditor_id`
+      fields of signals (analogous to the way IP masquerading works),
+      yet preserving the original value.
+
     """
 
     class __marshmallow__(Schema):
@@ -347,6 +354,7 @@ class AccountPurgeSignal(Signal):
         creditor_id = fields.Integer()
         creation_date = fields.Date()
         purged_at_ts = fields.DateTime(attribute='inserted_at_ts')
+        real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -408,6 +416,13 @@ class AccountCommitSignal(Signal):
     * `system_flags` contains various bit-flags characterizing the
       transfer.
 
+    * `real_creditor_id` MUST contain the original value of the
+      `creditor_id` field, as it was when the signal was
+      generated. The reason this field exists is to allow
+      intermediaries to modify the `creditor_id`/`sender_creditor_id`
+      fields of signals (analogous to the way IP masquerading works),
+      yet preserving the original value.
+
     """
 
     class __marshmallow__(Schema):
@@ -424,6 +439,7 @@ class AccountCommitSignal(Signal):
         account_new_principal = fields.Integer()
         previous_transfer_seqnum = fields.Integer()
         system_flags = fields.Integer()
+        real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
 
     TRANSFER_FLAG_IS_PUBLIC = 1
     """Indicates that all transfer details have been made public. This can
