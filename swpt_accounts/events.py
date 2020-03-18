@@ -405,7 +405,8 @@ class AccountCommitSignal(Signal):
       the previous transfer. It will always be smaller than
       `transfer_seqnum`, and the difference can be more than `1`.
 
-    * `system_flags` contains various bit-flags.
+    * `system_flags` contains various bit-flags characterizing the
+      transfer.
 
     """
 
