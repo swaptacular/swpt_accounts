@@ -269,7 +269,7 @@ class AccountChangeSignal(Signal):
 
     * `negligible_amount` is the maximum amount which is considered
       negligible. It is used to: 1) decide whether an account can be
-      safely deleted; 2) decide whether an incoming transfer is
+      safely deleted; 2) decide whether a transfer is
       insignificant. Will always be non-negative.
 
     * `status` contains status bit-flags (see `models.Account`).
@@ -424,11 +424,9 @@ class AccountCommitSignal(Signal):
         previous_transfer_seqnum = fields.Integer()
         system_flags = fields.Integer()
 
-    # Indicates that the transfer SHOULD be considered as
-    # insignificant. Only incoming transfers (`committed_amount > 0`) can
-    # be considered as insignificant. Normally, this means that the
-    # received amount is negligible.
-    IS_INSIGNIFICANT_FLAG = 1
+    # Indicates that the absolute value of `committed_amount` is not
+    # bigger than the negligible amount configured for the account.
+    SYSTEM_FLAG_IS_NEGLIGIBLE = 1
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)

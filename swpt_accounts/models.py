@@ -132,7 +132,7 @@ class Account(db.Model):
         default=0.0,
         comment='An amount that is considered negligible. It is used to: 1) '
                 'decide whether an account can be safely deleted; 2) decide '
-                'whether an incoming transfer is insignificant.',
+                'whether a transfer is insignificant.',
     )
     last_config_signal_ts = db.Column(
         db.TIMESTAMP(timezone=True),

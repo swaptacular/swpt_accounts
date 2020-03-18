@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 1259e3349742
+Revision ID: 46ca6bf962ba
 Revises: 
-Create Date: 2020-03-18 15:03:34.452188
+Create Date: 2020-03-18 15:13:35.973431
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '1259e3349742'
+revision = '46ca6bf962ba'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -33,7 +33,7 @@ def upgrade():
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 2020).'),
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `account_commit_signal` record is inserted. It is used to generate sequential numbers for the `account_commit_signal.transfer_seqnum` column. Must never decrease. When the account is created, `last_transfer_seqnum` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 2020).'),
     sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status bits: 1 - deleted, 2 - established interest rate, 4 - overflown, 8 - scheduled for deletion.'),
-    sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether an incoming transfer is insignificant.'),
+    sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether a transfer is insignificant.'),
     sa.Column('last_config_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The value of the `signal_ts` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
     sa.Column('last_config_signal_seqnum', sa.Integer(), nullable=False, comment='The value of the `signal_seqnum` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` was sent to remind that the account still exists. This column helps to prevent sending reminders too often.'),

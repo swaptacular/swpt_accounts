@@ -30,8 +30,8 @@ def configure_account(
 
     * `negligible_amount` is the maximum amount that should be
        considered negligible. It is used to: 1) decide whether an
-       account can be safely deleted; 2) decide whether an incoming
-       transfer is insignificant. MUST be non-negative.
+       account can be safely deleted; 2) decide whether a transfer is
+       insignificant. MUST be non-negative.
 
     An `AccountChangeSignal` is always sent as a confirmation.
 

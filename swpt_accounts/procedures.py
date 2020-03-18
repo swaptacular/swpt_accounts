@@ -558,8 +558,8 @@ def _insert_account_commit_signal(
     # owning creditor.
     if account.creditor_id != ROOT_CREDITOR_ID:
         system_flags = 0
-        if 0 <= committed_amount <= account.negligible_amount:
-            system_flags |= AccountCommitSignal.IS_INSIGNIFICANT_FLAG
+        if abs(committed_amount) <= account.negligible_amount:
+            system_flags |= AccountCommitSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
 
         db.session.add(AccountCommitSignal(
             debtor_id=account.debtor_id,
