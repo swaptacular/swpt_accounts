@@ -118,7 +118,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1.transfer_seqnum == transfer_seqnum1
     assert cts1.account_new_principal == amount
     assert len(AccountCommitSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
-    is_insignificant = bool(cts1.flags & AccountCommitSignal.IS_INSIGNIFICANT_FLAG)
+    is_insignificant = bool(cts1.system_flags & AccountCommitSignal.IS_INSIGNIFICANT_FLAG)
     if amount > 0:
         assert is_insignificant
     else:

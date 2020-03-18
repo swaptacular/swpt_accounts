@@ -557,9 +557,9 @@ def _insert_account_commit_signal(
     # account, because the debtor's account does not have a real
     # owning creditor.
     if account.creditor_id != ROOT_CREDITOR_ID:
-        flags = 0
+        system_flags = 0
         if 0 <= committed_amount <= account.negligible_amount:
-            flags |= AccountCommitSignal.IS_INSIGNIFICANT_FLAG
+            system_flags |= AccountCommitSignal.IS_INSIGNIFICANT_FLAG
 
         db.session.add(AccountCommitSignal(
             debtor_id=account.debtor_id,
@@ -574,7 +574,7 @@ def _insert_account_commit_signal(
             account_creation_date=account.creation_date,
             account_new_principal=account_new_principal,
             previous_transfer_seqnum=previous_transfer_seqnum,
-            flags=flags,
+            system_flags=system_flags,
         ))
 
 

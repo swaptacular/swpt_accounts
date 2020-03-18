@@ -405,7 +405,7 @@ class AccountCommitSignal(Signal):
       the previous transfer. It will always be smaller than
       `transfer_seqnum`, and the difference can be more than `1`.
 
-    * `flags` contains various bit-flags.
+    * `system_flags` contains various bit-flags.
 
     """
 
@@ -422,7 +422,7 @@ class AccountCommitSignal(Signal):
         account_creation_date = fields.Date()
         account_new_principal = fields.Integer()
         previous_transfer_seqnum = fields.Integer()
-        flags = fields.Integer()
+        system_flags = fields.Integer()
 
     # Indicates that the transfer SHOULD be considered as
     # insignificant. Only incoming transfers (`committed_amount > 0`) can
@@ -442,7 +442,7 @@ class AccountCommitSignal(Signal):
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
-    flags = db.Column(db.Integer, nullable=False)
+    system_flags = db.Column(db.Integer, nullable=False)
 
 
 class AccountMaintenanceSignal(Signal):
