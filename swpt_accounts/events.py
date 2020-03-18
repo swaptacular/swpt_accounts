@@ -424,9 +424,15 @@ class AccountCommitSignal(Signal):
         previous_transfer_seqnum = fields.Integer()
         system_flags = fields.Integer()
 
-    # Indicates that the absolute value of `committed_amount` is not
-    # bigger than the negligible amount configured for the account.
+    TRANSFER_FLAG_IS_PUBLIC = 1
+    """Indicates that all transfer details have been made public. This can
+    be used, for example, to obtain a legal evidence.
+    """
+
     SYSTEM_FLAG_IS_NEGLIGIBLE = 1
+    """Indicates that the absolute value of `committed_amount` is not
+    bigger than the negligible amount configured for the account.
+    """
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)

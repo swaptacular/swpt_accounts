@@ -201,7 +201,8 @@ def finalize_prepared_transfer(
 
     * `transfer_flags` contains various flags that the recipient and
       the sender will be able to see. If the transfer is dismissed,
-      `transfer_flags` SHOULD be `0`.
+      `transfer_flags` SHOULD be `0`. For the list of standard
+      transfer flags, check `events.AccountCommitSignal`.
 
     """
 
