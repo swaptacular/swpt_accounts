@@ -117,7 +117,7 @@ def finalize_prepared_transfer(
         sender_creditor_id: int,
         transfer_id: int,
         committed_amount: int,
-        transfer_info: str = '') -> None:
+        transfer_message: str = '') -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
@@ -135,7 +135,7 @@ def finalize_prepared_transfer(
                 coordinator_type=pt.coordinator_type,
                 other_creditor_id=pt.recipient_creditor_id,
                 inserted_at_ts=current_ts,
-                transfer_info=transfer_info,
+                transfer_message=transfer_message,
                 principal_delta=-committed_amount,
                 unlocked_amount=pt.sender_locked_amount,
             )
@@ -145,7 +145,7 @@ def finalize_prepared_transfer(
                 coordinator_type=pt.coordinator_type,
                 other_creditor_id=pt.sender_creditor_id,
                 inserted_at_ts=current_ts,
-                transfer_info=transfer_info,
+                transfer_message=transfer_message,
                 principal_delta=committed_amount,
             )
         else:
@@ -362,7 +362,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     other_creditor_id=change.other_creditor_id,
                     committed_at_ts=change.inserted_at_ts,
                     committed_amount=change.principal_delta,
-                    transfer_info=change.transfer_info,
+                    transfer_message=change.transfer_message,
                     account_new_principal=_contain_principal_overflow(account.principal + principal_delta),
                 )
             db.session.delete(change)
@@ -394,11 +394,11 @@ def make_debtor_payment(
         debtor_id: int,
         creditor_id: int,
         amount: int,
-        transfer_info: str = '') -> None:
+        transfer_message: str = '') -> None:
 
     current_ts = datetime.now(tz=timezone.utc)
     account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
-    _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_info)
+    _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_message)
 
 
 def _contain_principal_overflow(value: int) -> int:
@@ -506,7 +506,7 @@ def _insert_pending_account_change(
         coordinator_type: str,
         other_creditor_id: int,
         inserted_at_ts: datetime,
-        transfer_info: str = None,
+        transfer_message: str = None,
         principal_delta: int = 0,
         interest_delta: int = 0,
         unlocked_amount: int = None) -> None:
@@ -524,7 +524,7 @@ def _insert_pending_account_change(
             coordinator_type=coordinator_type,
             other_creditor_id=other_creditor_id,
             inserted_at_ts=inserted_at_ts,
-            transfer_info=transfer_info,
+            transfer_message=transfer_message,
             principal_delta=principal_delta,
             interest_delta=interest_delta,
             unlocked_amount=unlocked_amount,
@@ -537,7 +537,7 @@ def _insert_account_commit_signal(
         other_creditor_id: int,
         committed_at_ts: datetime,
         committed_amount: int,
-        transfer_info: str,
+        transfer_message: str,
         account_new_principal: int) -> None:
 
     assert committed_amount != 0
@@ -560,7 +560,7 @@ def _insert_account_commit_signal(
             other_creditor_id=other_creditor_id,
             committed_at_ts=committed_at_ts,
             committed_amount=committed_amount,
-            transfer_info=transfer_info,
+            transfer_message=transfer_message,
             account_creation_date=account.creation_date,
             account_new_principal=account_new_principal,
             previous_transfer_seqnum=previous_transfer_seqnum,
@@ -591,7 +591,7 @@ def _make_debtor_payment(
         account: Account,
         amount: int,
         current_ts: datetime,
-        transfer_info: str = '') -> None:
+        transfer_message: str = '') -> None:
 
     assert -MAX_INT64 <= amount <= MAX_INT64
 
@@ -602,7 +602,7 @@ def _make_debtor_payment(
             coordinator_type=coordinator_type,
             other_creditor_id=account.creditor_id,
             inserted_at_ts=current_ts,
-            transfer_info=transfer_info,
+            transfer_message=transfer_message,
             principal_delta=-amount,
         )
         _insert_account_commit_signal(
@@ -611,7 +611,7 @@ def _make_debtor_payment(
             other_creditor_id=ROOT_CREDITOR_ID,
             committed_at_ts=current_ts,
             committed_amount=amount,
-            transfer_info=transfer_info,
+            transfer_message=transfer_message,
             account_new_principal=_contain_principal_overflow(account.principal + amount),
         )
 

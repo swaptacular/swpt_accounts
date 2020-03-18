@@ -182,7 +182,7 @@ def finalize_prepared_transfer(
         sender_creditor_id: int,
         transfer_id: int,
         committed_amount: int,
-        transfer_info: str) -> None:
+        transfer_message: str) -> None:
 
     """Execute a prepared transfer.
 
@@ -193,9 +193,9 @@ def finalize_prepared_transfer(
       non-negative. To dismiss the transfer, `committed_amount` should
       be `0`.
 
-    * `transfer_info` contains notes from the sender. Can be any
+    * `transfer_message` contains notes from the sender. Can be any
       string that the sender wants the recipient to see. If the
-      transfer is dismissed, `transfer_info` SHOULD be an empty
+      transfer is dismissed, `transfer_message` SHOULD be an empty
       string.
 
     """
@@ -205,7 +205,7 @@ def finalize_prepared_transfer(
         sender_creditor_id,
         transfer_id,
         committed_amount,
-        transfer_info,
+        transfer_message,
     )
 
 

@@ -386,7 +386,7 @@ class AccountCommitSignal(Signal):
       `committed_amount` is positive, this is the sender. When
       `committed_amount` is negative, this is the recipient.
 
-    * `transfer_info` contains notes from the sender. Can be any
+    * `transfer_message` contains notes from the sender. Can be any
       string that the sender wanted the recipient to see.
 
     * `account_creation_date` is the date on which the account was
@@ -412,7 +412,7 @@ class AccountCommitSignal(Signal):
         committed_at_ts = fields.DateTime()
         committed_amount = fields.Integer()
         other_creditor_id = fields.Integer()
-        transfer_info = fields.String()
+        transfer_message = fields.String()
         account_creation_date = fields.Date()
         account_new_principal = fields.Integer()
         previous_transfer_seqnum = fields.Integer()
@@ -431,7 +431,7 @@ class AccountCommitSignal(Signal):
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
     other_creditor_id = db.Column(db.BigInteger, nullable=False)
-    transfer_info = db.Column(pg.TEXT, nullable=False)
+    transfer_message = db.Column(pg.TEXT, nullable=False)
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_seqnum = db.Column(db.BigInteger, nullable=False)

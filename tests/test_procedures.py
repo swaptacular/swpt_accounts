@@ -93,9 +93,9 @@ def amount(request):
 
 
 def test_make_debtor_payment(db_session, current_ts, amount):
-    TRANSFER_INFO = '{"transer_data": 123}'
+    TRANSFER_MESSAGE = '{"transer_data": 123}'
     p.configure_account(D_ID, C_ID, current_ts, 0, False, abs(amount))
-    p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_INFO)
+    p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_MESSAGE)
 
     root_change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
@@ -114,7 +114,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1.creditor_id == C_ID
     assert cts1.other_creditor_id == p.ROOT_CREDITOR_ID
     assert cts1.committed_amount == amount
-    assert cts1.transfer_info == TRANSFER_INFO
+    assert cts1.transfer_message == TRANSFER_MESSAGE
     assert cts1.transfer_seqnum == transfer_seqnum1
     assert cts1.account_new_principal == amount
     assert len(AccountCommitSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
@@ -124,7 +124,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     else:
         assert not is_insignificant
 
-    p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_INFO)
+    p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_MESSAGE)
     p.process_pending_account_changes(D_ID, C_ID)
     cts = AccountCommitSignal.query.filter_by(
         debtor_id=D_ID, creditor_id=C_ID, transfer_seqnum=transfer_seqnum1 + 1).one()

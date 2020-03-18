@@ -25,7 +25,7 @@ def test_finalize_prepared_transfer(db_session):
         sender_creditor_id=C_ID,
         transfer_id=666,
         committed_amount=100,
-        transfer_info='',
+        transfer_message='',
     )
 
 
