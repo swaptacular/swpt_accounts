@@ -11,7 +11,7 @@ def test_scan_accounts(app_unsafe_session):
 
     # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
-    past_ts = datetime(1900, 1, 1, tzinfo=timezone.utc)
+    past_ts = datetime(1970, 1, 1, tzinfo=timezone.utc)
     app = app_unsafe_session
     Account.query.delete()
     AccountChangeSignal.query.delete()
@@ -20,7 +20,7 @@ def test_scan_accounts(app_unsafe_session):
     account = Account(
         debtor_id=D_ID,
         creditor_id=12,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(1970, 1, 1),
         principal=1000,
         locked_amount=500,
         pending_transfers_count=1,
@@ -32,7 +32,7 @@ def test_scan_accounts(app_unsafe_session):
     db.session.add(Account(
         debtor_id=D_ID,
         creditor_id=123,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(1970, 1, 1),
         principal=1000,
         locked_amount=500,
         pending_transfers_count=1,
@@ -43,7 +43,7 @@ def test_scan_accounts(app_unsafe_session):
     db.session.add(Account(
         debtor_id=D_ID,
         creditor_id=1234,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(1970, 1, 1),
         principal=1000,
         locked_amount=500,
         pending_transfers_count=1,
@@ -53,7 +53,7 @@ def test_scan_accounts(app_unsafe_session):
     db.session.add(Account(
         debtor_id=D_ID,
         creditor_id=12345,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(1970, 1, 1),
         principal=1000,
         locked_amount=500,
         pending_transfers_count=1,
@@ -88,7 +88,7 @@ def test_scan_accounts(app_unsafe_session):
 
     assert len(Account.query.filter_by(creditor_id=123).all()) == 0
     aps = AccountPurgeSignal.query.filter_by(debtor_id=D_ID, creditor_id=123).one()
-    assert aps.creation_date == date(2020, 1, 1)
+    assert aps.creation_date == date(1970, 1, 1)
 
     accounts = Account.query.order_by(Account.creditor_id).all()
     assert accounts[0].last_reminder_ts >= current_ts
@@ -112,7 +112,7 @@ def test_scan_prepared_transfers(app_unsafe_session):
 
     # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
-    past_ts = datetime(1900, 1, 1, tzinfo=timezone.utc)
+    past_ts = datetime(1970, 1, 1, tzinfo=timezone.utc)
     app = app_unsafe_session
     Account.query.delete()
     PreparedTransfer.query.delete()
@@ -121,7 +121,7 @@ def test_scan_prepared_transfers(app_unsafe_session):
     db.session.add(Account(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        creation_date=date(2020, 1, 1),
+        creation_date=date(1970, 1, 1),
         principal=1000,
         locked_amount=500,
         pending_transfers_count=1,

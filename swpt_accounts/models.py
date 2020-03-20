@@ -11,8 +11,7 @@ MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
-DATE_2020_01_01 = date(2020, 1, 1)
-BEGINNING_OF_TIME = datetime(1900, 1, 1, tzinfo=timezone.utc)
+BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 
 def get_now_utc() -> datetime:
@@ -104,7 +103,7 @@ class Account(db.Model):
                 'to generate sequential numbers for the `prepared_transfer.transfer_id` column. '
                 'When the account is created, `last_transfer_id` has its lower 40 bits set '
                 'to zero, and its higher 24 bits calculated from the value of `creation_date` '
-                '(the number of days since Jan 1st, 2020).',
+                '(the number of days since Jan 1st, 1970).',
     )
     last_transfer_seqnum = db.Column(
         db.BigInteger,
@@ -115,7 +114,7 @@ class Account(db.Model):
                 'column. Must never decrease. '
                 'When the account is created, `last_transfer_seqnum` has its lower 40 bits set '
                 'to zero, and its higher 24 bits calculated from the value of `creation_date` '
-                '(the number of days since Jan 1st, 2020).',
+                '(the number of days since Jan 1st, 1970).',
     )
     status = db.Column(
         db.SmallInteger,

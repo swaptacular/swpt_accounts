@@ -249,14 +249,14 @@ class AccountChangeSignal(Signal):
       transfer, for which the owner of the account was the sender. It
       can be used, for example, to determine when an account with
       negative balance can be zeroed out. (If there were no outgoing
-      transfers, the value will be "1900-01-01".)
+      transfers, the value will be "1970-01-01".)
 
     * `last_config_signal_ts` is the timestamp of the last applied
       account configuration signal. That is: the `signal_ts` field of
       the last effectual `configure_account` signal. It can be used to
       determine whether a scheduled configuration signal has been
       applied. (If there were no applied configuration signals, the
-      value will be "1900-01-01T00:00:00+00:00".)
+      value will be "1970-01-01T00:00:00+00:00".)
 
     * `last_config_signal_seqnum` is the sequential number of the last
       applied account configuration signal. That is: the
@@ -376,7 +376,7 @@ class AccountCommitSignal(Signal):
       the first transfer will have its lower 40 bits set to
       `0x0000000001`, and its higher 24 bits calculated from the
       account's creation date (the number of days since Jan 1st,
-      2020). Note that when an account has been removed from the
+      1970). Note that when an account has been removed from the
       database, and then recreated again, for this account, a gap will
       occur in the generated sequence of `transfer_seqnum`s.
 
