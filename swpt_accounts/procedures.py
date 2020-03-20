@@ -17,10 +17,11 @@ atomic: Callable[[T], T] = db.atomic
 PRISTINE_ACCOUNT_STATUS = 0
 SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
-DELETE_ACCOUNT = 'delete_account'
-INTEREST = 'interest'
-ZERO_OUT_ACCOUNT = 'zero_out_account'
 ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
+
+CT_INTEREST = 'interest'
+CT_NULLIFY = 'nullify'
+CT_DELETE = 'delete'
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
@@ -241,7 +242,7 @@ def capitalize_interest(
         accumulated_interest = math.floor(_calc_account_accumulated_interest(account, current_ts))
         accumulated_interest = _contain_principal_overflow(accumulated_interest)
         if abs(accumulated_interest) >= positive_threshold:
-            _make_debtor_payment(INTEREST, account, accumulated_interest, current_ts)
+            _make_debtor_payment(CT_INTEREST, account, accumulated_interest, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
 
@@ -262,7 +263,7 @@ def zero_out_negative_balance(
         zero_out_amount = -math.floor(_calc_account_current_balance(account, current_ts))
         zero_out_amount = _contain_principal_overflow(zero_out_amount)
         if account.last_outgoing_transfer_date <= last_outgoing_transfer_date and zero_out_amount > 0:
-            _make_debtor_payment(ZERO_OUT_ACCOUNT, account, zero_out_amount, current_ts)
+            _make_debtor_payment(CT_NULLIFY, account, zero_out_amount, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
 
@@ -284,7 +285,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
             is_scheduled_for_deletion = account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
             if has_negligible_balance and is_scheduled_for_deletion:
                 if account.principal != 0:
-                    _make_debtor_payment(DELETE_ACCOUNT, account, -account.principal, current_ts)
+                    _make_debtor_payment(CT_DELETE, account, -account.principal, current_ts)
                 _mark_account_as_deleted(account, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
@@ -631,9 +632,9 @@ def _make_debtor_payment(
         # We do not need to update the account principal and interest
         # when deleting an account because they are getting zeroed out
         # anyway.
-        if coordinator_type != DELETE_ACCOUNT:
+        if coordinator_type != CT_DELETE:
             principal_delta = amount
-            interest_delta = -amount if coordinator_type == INTEREST else 0
+            interest_delta = -amount if coordinator_type == CT_INTEREST else 0
             _apply_account_change(account, principal_delta, interest_delta, current_ts)
 
 
