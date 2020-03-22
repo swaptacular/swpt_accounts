@@ -8,7 +8,7 @@ from swpt_lib.utils import is_later_event, increment_seqnum
 from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, AccountCommitSignal, PendingAccountChange, TransferRequest, \
-    FinalizedTransferSignal, AccountMaintenanceSignal, MIN_INT32, MAX_INT32, \
+    FinalizedTransferSignal, AccountMaintenanceSignal, MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, \
     MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
 
 T = TypeVar('T')
@@ -35,13 +35,14 @@ def configure_account(
         creditor_id: int,
         signal_ts: datetime,
         signal_seqnum: int,
-        is_scheduled_for_deletion: bool = False,
+        status_flags: int = 0,
         negligible_amount: float = 0.0) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert signal_ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= signal_seqnum <= MAX_INT32
+    assert MIN_INT16 <= status_flags <= MAX_INT16
     assert negligible_amount >= 0.0
 
     current_ts = datetime.now(tz=timezone.utc)
@@ -60,10 +61,9 @@ def configure_account(
         # to be executed, because `account.last_config_signal_ts` for
         # newly created accounts is many years ago, which means that
         # `is_later_event(this_event, prev_event)` is `True`.
-        if is_scheduled_for_deletion and creditor_id != ROOT_CREDITOR_ID:
-            account.status |= Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-        else:
-            account.status &= ~Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+        account.status &= 0xffff0000
+        if creditor_id != ROOT_CREDITOR_ID:
+            account.status |= status_flags
         account.negligible_amount = negligible_amount
         account.last_config_signal_ts = signal_ts
         account.last_config_signal_seqnum = signal_seqnum

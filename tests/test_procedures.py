@@ -94,7 +94,8 @@ def amount(request):
 
 def test_make_debtor_payment(db_session, current_ts, amount):
     TRANSFER_MESSAGE = '{"transer_data": 123}'
-    p.configure_account(D_ID, C_ID, current_ts, 0, False, abs(amount))
+    p.configure_account(D_ID, C_ID, current_ts, 0,
+                        status_flags=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=abs(amount))
     p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_MESSAGE)
 
     root_change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
@@ -319,7 +320,7 @@ def test_delete_account(db_session, current_ts):
     assert a is not None
     assert not a.status & Account.STATUS_DELETED_FLAG
     assert not a.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True)
+    p.configure_account(D_ID, C_ID, current_ts, 1, status_flags=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG)
     p.try_to_delete_account(D_ID, C_ID, current_ts)
     assert p.get_account(D_ID, C_ID) is None
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
@@ -336,7 +337,8 @@ def test_delete_account_negative_balance(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: -1})
-    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True, negligible_amount=MAX_INT64)
+    p.configure_account(D_ID, C_ID, current_ts, 1,
+                        status_flags=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=MAX_INT64)
     p.try_to_delete_account(D_ID, C_ID, current_ts)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
@@ -375,7 +377,8 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 2, Account.interest: -1.0})
-    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True, negligible_amount=2.0)
+    p.configure_account(D_ID, C_ID, current_ts, 1,
+                        status_flags=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=2.0)
     p.try_to_delete_account(D_ID, C_ID, current_ts)
     assert p.get_account(D_ID, C_ID) is None
     a = q.one()
@@ -425,7 +428,8 @@ def test_resurrect_deleted_account_create(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
-    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True, negligible_amount=10.0)
+    p.configure_account(D_ID, C_ID, current_ts, 1,
+                        status_flags=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=10.0)
     p.try_to_delete_account(D_ID, C_ID, current_ts)
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
     assert q.one().interest_rate == 10.0
@@ -438,7 +442,8 @@ def test_resurrect_deleted_account_transfer(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.interest_rate: 10.0})
-    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True, negligible_amount=10.0)
+    p.configure_account(D_ID, C_ID, current_ts, 1,
+                        status_flags=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=10.0)
     p.try_to_delete_account(D_ID, C_ID, current_ts)
     assert not p.get_account(D_ID, C_ID)
     p.make_debtor_payment('test', D_ID, C_ID, 1)
@@ -716,7 +721,7 @@ def test_zero_out_negative_balance(db_session, current_ts):
     p.zero_out_negative_balance(D_ID, C_ID, current_ts.date(), current_ts)
     p.process_pending_account_changes(D_ID, C_ID)
     assert p.get_available_amount(D_ID, C_ID) == 0
-    p.configure_account(D_ID, C_ID, current_ts, 1, is_scheduled_for_deletion=True)
+    p.configure_account(D_ID, C_ID, current_ts, 1, status_flags=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG)
     p.try_to_delete_account(D_ID, C_ID, current_ts)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     assert q.one().status & Account.STATUS_DELETED_FLAG

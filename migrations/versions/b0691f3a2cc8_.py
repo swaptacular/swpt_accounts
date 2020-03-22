@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 17c61eba8010
+Revision ID: b0691f3a2cc8
 Revises: 
-Create Date: 2020-03-20 19:50:45.441318
+Create Date: 2020-03-22 15:36:07.705615
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '17c61eba8010'
+revision = 'b0691f3a2cc8'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -32,7 +32,7 @@ def upgrade():
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False, comment='Updated on each transfer for which this account is the sender. It is not updated on interest/demurrage payments. This field is used to determine when an account with negative balance can be zeroed out.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `account_commit_signal` record is inserted. It is used to generate sequential numbers for the `account_commit_signal.transfer_seqnum` column. Must never decrease. When the account is created, `last_transfer_seqnum` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
-    sa.Column('status', sa.SmallInteger(), nullable=False, comment='Additional account status bits: 1 - deleted, 2 - established interest rate, 4 - overflown, 8 - scheduled for deletion.'),
+    sa.Column('status', sa.Integer(), nullable=False, comment='Contain additional account status bits. The lower 16 bits are configured by the owner of the account: 1 - scheduled for deletion. The higher 16 bits contain internal flags: 65536 - deleted, 131072 - established interest rate, 262144 - overflown.'),
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether a transfer is insignificant.'),
     sa.Column('last_config_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The value of the `signal_ts` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
     sa.Column('last_config_signal_seqnum', sa.Integer(), nullable=False, comment='The value of the `signal_seqnum` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
@@ -62,7 +62,7 @@ def upgrade():
     sa.Column('last_config_signal_seqnum', sa.Integer(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
-    sa.Column('status', sa.SmallInteger(), nullable=False),
+    sa.Column('status', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
     op.create_table('account_commit_signal',

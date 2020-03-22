@@ -228,7 +228,7 @@ class AccountChangeSignal(Signal):
       a very short period of time. When considering two events, the
       `change_ts`s must be compared first, and only if they are equal,
       the `change_seqnum`s must be compared as well (care should be
-      taken to correctly deal with the possible 32-bit signed integer
+      taken to correctly deal with the possible 32-bit integer
       wrapping).
 
     * `principal` is the owed amount, without the interest. (Can be
@@ -272,7 +272,8 @@ class AccountChangeSignal(Signal):
       safely deleted; 2) decide whether a transfer is
       insignificant. Will always be non-negative.
 
-    * `status` contains status bit-flags (see `models.Account`).
+    * `status` (a 32-bit integer) contains status bit-flags (see
+      `models.Account`).
 
     * `signal_ts` is the moment at which this signal was emitted.
 
@@ -323,7 +324,7 @@ class AccountChangeSignal(Signal):
     last_config_signal_seqnum = db.Column(db.Integer, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False)
+    status = db.Column(db.Integer, nullable=False)
 
     @property
     def signal_ttl(self):

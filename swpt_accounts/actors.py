@@ -9,7 +9,7 @@ def configure_account(
         creditor_id: int,
         signal_ts: str,
         signal_seqnum: int,
-        is_scheduled_for_deletion: bool = False,
+        status_flags: int = 0,
         negligible_amount: float = 0.0) -> None:
 
     """Make sure the account `(debtor_id, creditor_id)` exists, then
@@ -19,14 +19,15 @@ def configure_account(
       calls to `configure_account` MUST have later or equal
       timestamps, compared to earlier calls.
 
-    * `signal_seqnum` is the sequential number of the call (a signed
-      32-bit integer). For a given account, later calls to
+    * `signal_seqnum` is the sequential number of the call (a 32-bit
+      integer). For a given account, later calls to
       `configure_account` SHOULD have bigger sequential numbers,
-      compared to earlier calls (except for the possible signed 32-bit
+      compared to earlier calls (except for the possible 32-bit
       integer wrapping, in case of an overflow).
 
-    * `is_scheduled_for_deletion` determines whether the account is
-      scheduled for deletion.
+    * `status_flags` (a 16-bit integer) contains the account status
+      flags, as they should be after the configuration update has been
+      applied.
 
     * `negligible_amount` is the maximum amount that should be
        considered negligible. It is used to: 1) decide whether an
@@ -49,7 +50,7 @@ def configure_account(
         creditor_id,
         iso8601.parse_date(signal_ts),
         signal_seqnum,
-        is_scheduled_for_deletion,
+        status_flags,
         negligible_amount,
     )
 

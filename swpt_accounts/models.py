@@ -1,10 +1,12 @@
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, or_
 from swpt_lib.utils import date_to_int24
 from .extensions import db
 from .events import *  # noqa
 
+MIN_INT16 = -1 << 15
+MAX_INT16 = (1 << 15) - 1
 MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
@@ -19,10 +21,13 @@ def get_now_utc() -> datetime:
 
 
 class Account(db.Model):
-    STATUS_DELETED_FLAG = 1
-    STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 2
-    STATUS_OVERFLOWN_FLAG = 4
-    STATUS_SCHEDULED_FOR_DELETION_FLAG = 8
+    # Status's lower 16 bits are configured by the owner of the account:
+    STATUS_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
+
+    # Status's higher 16 bits contain internal flags:
+    STATUS_DELETED_FLAG = 1 << 16
+    STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 1 << 17
+    STATUS_OVERFLOWN_FLAG = 1 << 18
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -117,13 +122,15 @@ class Account(db.Model):
                 '(the number of days since Jan 1st, 1970).',
     )
     status = db.Column(
-        db.SmallInteger,
+        db.Integer,
         nullable=False,
-        comment="Additional account status bits: "
+        comment="Contain additional account status bits. "
+                "The lower 16 bits are configured by the owner of the account: "
+                f"{STATUS_SCHEDULED_FOR_DELETION_FLAG} - scheduled for deletion. "
+                "The higher 16 bits contain internal flags: "
                 f"{STATUS_DELETED_FLAG} - deleted, "
                 f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "
-                f"{STATUS_OVERFLOWN_FLAG} - overflown, "
-                f"{STATUS_SCHEDULED_FOR_DELETION_FLAG} - scheduled for deletion.",
+                f"{STATUS_OVERFLOWN_FLAG} - overflown."
     )
     negligible_amount = db.Column(
         db.REAL,

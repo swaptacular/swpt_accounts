@@ -54,7 +54,7 @@ def test_configure_account(db_session):
         creditor_id=C_ID,
         signal_ts='2099-12-31T00:00:00Z',
         signal_seqnum=0,
-        is_scheduled_for_deletion=True,
+        status_flags=0,
         negligible_amount=500.0,
     )
 
