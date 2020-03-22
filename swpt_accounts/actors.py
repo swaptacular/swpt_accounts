@@ -25,9 +25,10 @@ def configure_account(
       compared to earlier calls (except for the possible 32-bit
       integer wrapping, in case of an overflow).
 
-    * `status_flags` (a 16-bit integer) contains the account status
-      flags, as they should be after the configuration update has been
-      applied.
+    * `status_flags` contains account configuration flags (a 16-bit
+      integer). When the configuration update is applied, the lower 16
+      bits of the `Account.status` column (see `models.Account) will
+      be equal to those of `status_flags`.
 
     * `negligible_amount` is the maximum amount that should be
        considered negligible. It is used to: 1) decide whether an
