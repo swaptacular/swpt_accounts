@@ -190,7 +190,9 @@ def finalize_prepared_transfer(
     """Execute a prepared transfer.
 
     * `debtor_id`, `sender_creditor_id`, and `transfer_id` uniquely
-      identify the prepared transfer.
+      identify the prepared transfer. The values MUST be the same as
+      the values received with the corresponding
+      `PreparedTransferSignal`.
 
     * `committed_amount` is the transferred amount. It MUST be
       non-negative. To dismiss the transfer, `committed_amount` should

@@ -67,7 +67,8 @@ class PreparedTransferSignal(Signal):
 
     * `debtor_id` and `sender_creditor_id` identify sender's account.
 
-    * `transfer_id` is an opaque ID generated for the prepared transfer.
+    * `transfer_id` is an opaque ID generated for the prepared
+      transfer. It will never be `0`.
 
     * `coordinator_type`, `coordinator_id`, and
       `coordinator_request_id` uniquely identify the transfer request
@@ -425,8 +426,8 @@ class AccountCommitSignal(Signal):
       yet preserving the original value.
 
     * `transfer_id` will contain either `0`, or the ID of the
-       corresponding prepared transfer (> 0). This allows the sender
-       of a committed direct transfer, to reliably identify the
+       corresponding prepared transfer. This allows the sender of a
+       committed direct transfer, to reliably identify the
        corresponding prepared transfer record (using `debtor_id`,
        `creditor_id`, and `transfer_id` fields).
 
