@@ -413,7 +413,11 @@ class AccountCommitSignal(Signal):
 
     * `previous_transfer_seqnum` is the sequential number (>= 0) of
       the previous transfer. It will always be smaller than
-      `transfer_seqnum`, and the difference can be more than `1`.
+      `transfer_seqnum`, and the difference can be more than `1`. If
+      there was no previous transfer, the value will have its lower 40
+      bits set to `0x0000000000`, and its higher 24 bits calculated
+      from `account_creation_date` (the number of days since Jan 1st,
+      1970).
 
     * `system_flags` contains various bit-flags characterizing the
       transfer.
