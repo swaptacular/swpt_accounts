@@ -9,7 +9,8 @@ from .extensions import db
 from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
     AccountChangeSignal, AccountCommitSignal, PendingAccountChange, TransferRequest, \
     FinalizedTransferSignal, AccountMaintenanceSignal, MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, \
-    MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME
+    MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME, \
+    CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -18,10 +19,6 @@ PRISTINE_ACCOUNT_STATUS = 0
 SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
-
-CT_INTEREST = 'interest'
-CT_NULLIFY = 'nullify'
-CT_DELETE = 'delete'
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
@@ -138,6 +135,7 @@ def finalize_prepared_transfer(
                 coordinator_type=pt.coordinator_type,
                 other_creditor_id=pt.recipient_creditor_id,
                 inserted_at_ts=current_ts,
+                transfer_id=transfer_id if pt.coordinator_type == CT_DIRECT else None,
                 transfer_message=transfer_message,
                 transfer_flags=transfer_flags,
                 principal_delta=-committed_amount,
@@ -367,6 +365,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     other_creditor_id=change.other_creditor_id,
                     committed_at_ts=change.inserted_at_ts,
                     committed_amount=change.principal_delta,
+                    transfer_id=change.transfer_id,
                     transfer_message=change.transfer_message,
                     transfer_flags=change.transfer_flags,
                     account_new_principal=_contain_principal_overflow(account.principal + principal_delta),
@@ -513,6 +512,7 @@ def _insert_pending_account_change(
         coordinator_type: str,
         other_creditor_id: int,
         inserted_at_ts: datetime,
+        transfer_id: int = None,
         transfer_message: str = None,
         transfer_flags=0,
         principal_delta: int = 0,
@@ -532,6 +532,7 @@ def _insert_pending_account_change(
             coordinator_type=coordinator_type,
             other_creditor_id=other_creditor_id,
             inserted_at_ts=inserted_at_ts,
+            transfer_id=transfer_id,
             transfer_message=transfer_message,
             transfer_flags=transfer_flags,
             principal_delta=principal_delta,
@@ -546,6 +547,7 @@ def _insert_account_commit_signal(
         other_creditor_id: int,
         committed_at_ts: datetime,
         committed_amount: int,
+        transfer_id: int,
         transfer_message: str,
         transfer_flags: int,
         account_new_principal: int) -> None:
@@ -576,6 +578,7 @@ def _insert_account_commit_signal(
             account_new_principal=account_new_principal,
             previous_transfer_seqnum=previous_transfer_seqnum,
             system_flags=system_flags,
+            transfer_id=transfer_id or 0,
         ))
 
 
@@ -605,6 +608,7 @@ def _make_debtor_payment(
         transfer_message: str = '',
         transfer_flags=0) -> None:
 
+    assert coordinator_type != CT_DIRECT
     assert -MAX_INT64 <= amount <= MAX_INT64
 
     if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:
@@ -624,6 +628,7 @@ def _make_debtor_payment(
             other_creditor_id=ROOT_CREDITOR_ID,
             committed_at_ts=current_ts,
             committed_amount=amount,
+            transfer_id=None,
             transfer_message=transfer_message,
             transfer_flags=transfer_flags,
             account_new_principal=_contain_principal_overflow(account.principal + amount),

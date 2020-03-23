@@ -424,6 +424,12 @@ class AccountCommitSignal(Signal):
       fields of signals (analogous to the way IP masquerading works),
       yet preserving the original value.
 
+    * `transfer_id` will contain either `0`, or the ID of the
+       corresponding prepared transfer (> 0). This allows the sender
+       of a committed direct transfer, to reliably identify the
+       corresponding prepared transfer record (using `debtor_id`,
+       `creditor_id`, and `transfer_id` fields).
+
     """
 
     class __marshmallow__(Schema):
@@ -441,6 +447,7 @@ class AccountCommitSignal(Signal):
         previous_transfer_seqnum = fields.Integer()
         system_flags = fields.Integer()
         real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
+        transfer_id = fields.Integer()
 
     TRANSFER_FLAG_IS_PUBLIC = 1
     """Indicates that all transfer details have been made public. This can
@@ -465,6 +472,7 @@ class AccountCommitSignal(Signal):
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     system_flags = db.Column(db.Integer, nullable=False)
+    transfer_id = db.Column(db.BigInteger, nullable=False)
 
 
 class AccountMaintenanceSignal(Signal):

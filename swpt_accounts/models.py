@@ -15,6 +15,12 @@ INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
+# Reserved coordinator types:
+CT_INTEREST = 'interest'
+CT_NULLIFY = 'nullify'
+CT_DELETE = 'delete'
+CT_DIRECT = 'direct'
+
 
 def get_now_utc() -> datetime:
     return datetime.now(tz=timezone.utc)
@@ -169,6 +175,7 @@ class Account(db.Model):
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(pending_transfers_count >= 0),
         db.CheckConstraint(principal > MIN_INT64),
+        db.CheckConstraint(last_transfer_id >= 0),
         db.CheckConstraint(last_transfer_seqnum >= 0),
         db.CheckConstraint(negligible_amount >= 0.0),
         {
@@ -264,6 +271,7 @@ class PreparedTransfer(db.Model):
             ['account.debtor_id', 'account.creditor_id'],
             ondelete='CASCADE',
         ),
+        db.CheckConstraint(transfer_id > 0),
         db.CheckConstraint(sender_locked_amount > 0),
         {
             'comment': 'A prepared transfer represent a guarantee that a particular transfer of '
@@ -293,6 +301,13 @@ class PendingAccountChange(db.Model):
                 '`account.pending_transfers_count` must be decremented.',
     )
     coordinator_type = db.Column(db.String(30), nullable=False)
+    transfer_id = db.Column(
+        db.BigInteger,
+        comment="When the account change represents a committed direct transfer, and `creditor_id` "
+                f"is the creditor ID of the sender (that is: `coordinator_type = '{CT_DIRECT}' and "
+                "principal_delta < 0`), this column contains the ID of the corresponding prepared "
+                "transfer (`prepared_transfer.transfer_id`). Otherwise it is NULL.",
+    )
     transfer_message = db.Column(
         pg.TEXT,
         comment='Notes from the sender. Can be any string that the sender wants the '
@@ -321,6 +336,7 @@ class PendingAccountChange(db.Model):
     __table_args__ = (
         db.CheckConstraint(or_(principal_delta == 0, transfer_message != null())),
         db.CheckConstraint(or_(principal_delta == 0, transfer_flags != null())),
+        db.CheckConstraint(transfer_id > 0),
         db.CheckConstraint(unlocked_amount >= 0),
         {
             'comment': 'Represents a pending change to a given account. Pending updates to '
