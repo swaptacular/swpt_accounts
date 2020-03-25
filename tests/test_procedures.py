@@ -6,7 +6,7 @@ from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountChangeSignal, AccountCommitSignal, FinalizedTransferSignal, \
-    BEGINNING_OF_TIME
+    BEGINNING_OF_TIME, CT_DIRECT
 
 
 def test_version(db_session):
@@ -729,3 +729,25 @@ def test_zero_out_negative_balance(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     assert q.one().status & Account.STATUS_DELETED_FLAG
     assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+
+
+def test_delayed_direct_transfer(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 1000})
+    p.prepare_transfer(
+        coordinator_type=CT_DIRECT,
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1000,
+        max_amount=1000,
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        recipient_creditor_id=1234,
+        signal_ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    pt = PreparedTransfer.query.one()
+    assert pt.correct_committed_amount(1000, current_ts) == 1000
+    assert pt.correct_committed_amount(1000, current_ts + timedelta(days=30)) == 0

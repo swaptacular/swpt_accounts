@@ -10,14 +10,12 @@ from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedT
     AccountChangeSignal, AccountCommitSignal, PendingAccountChange, TransferRequest, \
     FinalizedTransferSignal, AccountMaintenanceSignal, MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, \
     MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME, \
-    CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT
+    CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT, SECONDS_IN_DAY, SECONDS_IN_YEAR
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 PRISTINE_ACCOUNT_STATUS = 0
-SECONDS_IN_DAY = 24 * 60 * 60
-SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
@@ -127,41 +125,31 @@ def finalize_prepared_transfer(
     current_ts = datetime.now(tz=timezone.utc)
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
-        if committed_amount > 0:
-            committed_amount = min(committed_amount, pt.sender_locked_amount)
-            _insert_pending_account_change(
-                debtor_id=pt.debtor_id,
-                creditor_id=pt.sender_creditor_id,
-                coordinator_type=pt.coordinator_type,
-                other_creditor_id=pt.recipient_creditor_id,
-                inserted_at_ts=current_ts,
-                transfer_id=transfer_id if pt.coordinator_type == CT_DIRECT else None,
-                transfer_message=transfer_message,
-                transfer_flags=transfer_flags,
-                principal_delta=-committed_amount,
-                unlocked_amount=pt.sender_locked_amount,
-            )
-            _insert_pending_account_change(
-                debtor_id=pt.debtor_id,
-                creditor_id=pt.recipient_creditor_id,
-                coordinator_type=pt.coordinator_type,
-                other_creditor_id=pt.sender_creditor_id,
-                inserted_at_ts=current_ts,
-                transfer_message=transfer_message,
-                transfer_flags=transfer_flags,
-                principal_delta=committed_amount,
-            )
-        else:
-            committed_amount = 0
-            _insert_pending_account_change(
-                debtor_id=pt.debtor_id,
-                creditor_id=pt.sender_creditor_id,
-                coordinator_type=pt.coordinator_type,
-                other_creditor_id=pt.recipient_creditor_id,
-                inserted_at_ts=current_ts,
-                unlocked_amount=pt.sender_locked_amount,
-            )
+        committed_amount = pt.correct_committed_amount(committed_amount, current_ts)
 
+        _insert_pending_account_change(
+            debtor_id=pt.debtor_id,
+            creditor_id=pt.sender_creditor_id,
+            coordinator_type=pt.coordinator_type,
+            other_creditor_id=pt.recipient_creditor_id,
+            inserted_at_ts=current_ts,
+            transfer_id=transfer_id,
+            transfer_message=transfer_message,
+            transfer_flags=transfer_flags,
+            principal_delta=-committed_amount,
+            unlocked_amount=pt.sender_locked_amount,
+        )
+        _insert_pending_account_change(
+            debtor_id=pt.debtor_id,
+            creditor_id=pt.recipient_creditor_id,
+            coordinator_type=pt.coordinator_type,
+            other_creditor_id=pt.sender_creditor_id,
+            inserted_at_ts=current_ts,
+            transfer_id=transfer_id,
+            transfer_message=transfer_message,
+            transfer_flags=transfer_flags,
+            principal_delta=committed_amount,
+        )
         db.session.add(FinalizedTransferSignal(
             debtor_id=pt.debtor_id,
             sender_creditor_id=pt.sender_creditor_id,
@@ -365,7 +353,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     other_creditor_id=change.other_creditor_id,
                     committed_at_ts=change.inserted_at_ts,
                     committed_amount=change.principal_delta,
-                    transfer_id=change.transfer_id,
+                    transfer_id=change.transfer_id or 0,
                     transfer_message=change.transfer_message,
                     transfer_flags=change.transfer_flags,
                     account_new_principal=_contain_principal_overflow(account.principal + principal_delta),
@@ -526,6 +514,11 @@ def _insert_pending_account_change(
     #       handling possible multiple deliveries).
 
     if principal_delta != 0 or interest_delta != 0 or unlocked_amount is not None:
+        if not (principal_delta < 0 and coordinator_type == CT_DIRECT):
+            transfer_id = None
+        if principal_delta == 0:
+            transfer_message = None
+            transfer_flags = None
         db.session.add(PendingAccountChange(
             debtor_id=debtor_id,
             creditor_id=creditor_id,
@@ -578,7 +571,7 @@ def _insert_account_commit_signal(
             account_new_principal=account_new_principal,
             previous_transfer_seqnum=previous_transfer_seqnum,
             system_flags=system_flags,
-            transfer_id=transfer_id or 0,
+            transfer_id=transfer_id,
         ))
 
 
@@ -628,7 +621,7 @@ def _make_debtor_payment(
             other_creditor_id=ROOT_CREDITOR_ID,
             committed_at_ts=current_ts,
             committed_amount=amount,
-            transfer_id=None,
+            transfer_id=0,
             transfer_message=transfer_message,
             transfer_flags=transfer_flags,
             account_new_principal=_contain_principal_overflow(account.principal + amount),

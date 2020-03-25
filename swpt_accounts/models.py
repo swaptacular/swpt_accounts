@@ -1,4 +1,7 @@
+import math
 from datetime import datetime, timezone
+from decimal import Decimal
+from flask import current_app
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, or_
 from swpt_lib.utils import date_to_int24
@@ -11,6 +14,8 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
+SECONDS_IN_DAY = 24 * 60 * 60
+SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
@@ -279,6 +284,30 @@ class PreparedTransfer(db.Model):
                        'this table until the transfer has been committed or dismissed.',
         }
     )
+
+    def correct_committed_amount(self, committed_amount: int, current_ts: datetime) -> int:
+        committed_amount = max(committed_amount, 0)
+        committed_amount = min(committed_amount, self.sender_locked_amount)
+
+        if self.coordinator_type == CT_DIRECT:
+            # Direct transfers are an exception. A direct transfer should
+            # not be allowed if it took too long to be committed, and the
+            # amount secured for the transfer has been "consumed" by the
+            # accumulated negative interest. This is necessary in order to
+            # prevent a trick that creditors may use to evade incurring
+            # negative interests on their accounts. The trick is to
+            # prepare a transfer from one account to another for the whole
+            # available amount, wait for some long time, then commit the
+            # prepared transfer and abandon the account (which at that
+            # point would be significantly in red).
+            passed_seconds = max(0.0, (current_ts - self.prepared_at_ts).total_seconds())
+            if passed_seconds > current_app.config['APP_DIRECT_TRANSFER_MAX_DELAY_SECONDS']:
+                k = math.log(1.0 + INTEREST_RATE_FLOOR / 100.0) / SECONDS_IN_YEAR
+                permitted_amount = self.sender_locked_amount * math.exp(k * passed_seconds)
+                if committed_amount > permitted_amount:
+                    committed_amount = 0
+
+        return committed_amount
 
 
 class PendingAccountChange(db.Model):
