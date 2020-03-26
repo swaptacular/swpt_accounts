@@ -12,7 +12,7 @@ from .models import (
     AccountChangeSignal, AccountCommitSignal, AccountMaintenanceSignal,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
     MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64,
-    BEGINNING_OF_TIME, SECONDS_IN_DAY, SECONDS_IN_YEAR,
+    BEGINNING_OF_TIME, SECONDS_IN_DAY,
     CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT
 )
 
@@ -39,28 +39,28 @@ def configure_account(
     assert negligible_amount >= 0.0
 
     current_ts = datetime.now(tz=timezone.utc)
+    passed_seconds = (current_ts - signal_ts).total_seconds()
     signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-    if (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds:
-        # Too old `configure_account` signals should be ignored,
-        # otherwise deleted/purged accounts could be needlessly
-        # resurrected.
-        return
 
-    account = _lock_or_create_account(debtor_id, creditor_id, current_ts, send_account_creation_signal=False)
-    this_event = (signal_ts, signal_seqnum)
-    prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
-    if is_later_event(this_event, prev_event):
-        # When a new account has been created, this block is guaranteed
-        # to be executed, because `account.last_config_signal_ts` for
-        # newly created accounts is many years ago, which means that
-        # `is_later_event(this_event, prev_event)` is `True`.
-        account.status &= 0xffff0000
-        if creditor_id != ROOT_CREDITOR_ID:
-            account.status |= status_flags
-        account.negligible_amount = negligible_amount
-        account.last_config_signal_ts = signal_ts
-        account.last_config_signal_seqnum = signal_seqnum
-        _apply_account_change(account, 0, 0, current_ts)
+    # Note that too old `configure_account` signals should be ignored,
+    # otherwise deleted/purged accounts could be needlessly
+    # resurrected.
+    if passed_seconds <= signalbus_max_delay_seconds:
+        account = _lock_or_create_account(debtor_id, creditor_id, current_ts, send_account_creation_signal=False)
+        this_event = (signal_ts, signal_seqnum)
+        prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
+        if is_later_event(this_event, prev_event):
+            # When a new account has been created, this block is guaranteed
+            # to be executed, because `account.last_config_signal_ts` for
+            # newly created accounts is many years ago, which means that
+            # `is_later_event(this_event, prev_event)` is `True`.
+            account.status &= 0xffff0000
+            if creditor_id != ROOT_CREDITOR_ID:
+                account.status |= status_flags
+            account.negligible_amount = negligible_amount
+            account.last_config_signal_ts = signal_ts
+            account.last_config_signal_seqnum = signal_seqnum
+            _apply_account_change(account, 0, 0, current_ts)
 
 
 @atomic
