@@ -310,8 +310,8 @@ class PreparedTransfer(db.Model):
     )
 
     def correct_committed_amount(self, committed_amount: int, current_ts: datetime) -> int:
-        committed_amount = max(committed_amount, 0)
-        committed_amount = min(committed_amount, self.sender_locked_amount)
+        if not (0 <= committed_amount <= self.sender_locked_amount):  # pragma: no cover
+            return 0
 
         # A transfer should not be allowed if it took too long to be
         # committed, and the amount secured for the transfer *might*
@@ -329,7 +329,7 @@ class PreparedTransfer(db.Model):
                 k = math.log(1.0 + INTEREST_RATE_FLOOR / 100.0) / SECONDS_IN_YEAR
                 permitted_amount = self.sender_locked_amount * math.exp(k * passed_seconds)
                 if committed_amount > permitted_amount:
-                    committed_amount = 0
+                    return 0
 
         return committed_amount
 
