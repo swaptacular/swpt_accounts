@@ -1,5 +1,6 @@
 import math
 from datetime import datetime, timezone
+from decimal import Decimal
 from flask import current_app
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, or_
@@ -194,6 +195,22 @@ class Account(db.Model):
             'comment': 'Tells who owes what to whom.',
         }
     )
+
+    def calc_current_balance(self, current_ts: datetime = None) -> Decimal:
+        current_balance = Decimal(self.principal)
+
+        # Note that any interest accumulated on the debtor's account
+        # will not be included in the current balance. Thus,
+        # accumulating interest on the debtor's account has no effect.
+        if self.creditor_id != ROOT_CREDITOR_ID:
+            current_balance += Decimal.from_float(self.interest)
+            if current_balance > 0:
+                k = math.log(1.0 + self.interest_rate / 100.0) / SECONDS_IN_YEAR
+                current_ts = current_ts or datetime.now(tz=timezone.utc)
+                passed_seconds = max(0.0, (current_ts - self.last_change_ts).total_seconds())
+                current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
+
+        return current_balance
 
 
 class TransferRequest(db.Model):

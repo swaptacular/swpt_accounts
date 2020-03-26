@@ -243,7 +243,7 @@ def zero_out_negative_balance(
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
-        zero_out_amount = -math.floor(_calc_account_current_balance(account, current_ts))
+        zero_out_amount = -math.floor(account.calc_current_balance(current_ts))
         zero_out_amount = _contain_principal_overflow(zero_out_amount)
         if account.last_outgoing_transfer_date <= last_outgoing_transfer_date and zero_out_amount > 0:
             _make_debtor_payment(CT_NULLIFY, account, zero_out_amount, current_ts)
@@ -263,7 +263,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
             if account.principal == 0:
                 _mark_account_as_deleted(account, current_ts)
         else:
-            current_balance = _calc_account_current_balance(account, current_ts)
+            current_balance = account.calc_current_balance(current_ts)
             has_negligible_balance = 0 <= current_balance <= max(2.0, account.negligible_amount)
             is_scheduled_for_deletion = account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
             if has_negligible_balance and is_scheduled_for_deletion:
@@ -466,28 +466,13 @@ def _lock_or_create_account(
     return account
 
 
-def _calc_account_current_balance(account: Account, current_ts: datetime) -> Decimal:
-    if account.creditor_id == ROOT_CREDITOR_ID:
-        # Any interest accumulated on the debtor's account will not be
-        # included in the current balance. Thus, accumulating interest
-        # on the debtor's account is has no real effect.
-        return Decimal(account.principal)
-
-    current_balance = account.principal + Decimal.from_float(account.interest)
-    if current_balance > 0:
-        k = math.log(1.0 + account.interest_rate / 100.0) / SECONDS_IN_YEAR
-        passed_seconds = max(0.0, (current_ts - account.last_change_ts).total_seconds())
-        current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
-    return current_balance
-
-
 def _get_available_amount(account: Account, current_ts: datetime) -> int:
-    current_balance = math.floor(_calc_account_current_balance(account, current_ts))
+    current_balance = math.floor(account.calc_current_balance(current_ts))
     return _contain_principal_overflow(current_balance - account.locked_amount)
 
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
-    return _calc_account_current_balance(account, current_ts) - account.principal
+    return account.calc_current_balance(current_ts) - account.principal
 
 
 def _insert_pending_account_change(
