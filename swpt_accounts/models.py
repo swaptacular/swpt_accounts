@@ -313,12 +313,12 @@ class PreparedTransfer(db.Model):
         if not (0 <= committed_amount <= self.sender_locked_amount):  # pragma: no cover
             return 0
 
-        # A transfer should not be allowed if it took too long to be
-        # committed, and the amount secured for the transfer *might*
-        # have been "consumed" by accumulated negative interest. This
-        # is necessary in order to prevent a trick that creditors may
-        # use to evade incurring negative interests on their
-        # accounts. The trick is to prepare a transfer from one
+        # A regular transfer should not be allowed if it took too long
+        # to be committed, and the amount secured for the transfer
+        # *might* have been consumed by accumulated negative
+        # interest. This is necessary in order to prevent a trick that
+        # creditors may use to evade incurring negative interests on
+        # their accounts. The trick is to prepare a transfer from one
         # account to another for the whole available amount, wait for
         # some long time, then commit the prepared transfer and
         # abandon the account (which at that point would be
