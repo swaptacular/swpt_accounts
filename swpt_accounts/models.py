@@ -314,14 +314,15 @@ class PreparedTransfer(db.Model):
         committed_amount = min(committed_amount, self.sender_locked_amount)
 
         # A transfer should not be allowed if it took too long to be
-        # committed, and the amount secured for the transfer had been
-        # "consumed" by the accumulated negative interest. This is
-        # necessary in order to prevent a trick that creditors may use
-        # to evade incurring negative interests on their accounts. The
-        # trick is to prepare a transfer from one account to another
-        # for the whole available amount, wait for some long time,
-        # then commit the prepared transfer and abandon the account
-        # (which at that point would be significantly in red).
+        # committed, and the amount secured for the transfer *might*
+        # have been "consumed" by accumulated negative interest. This
+        # is necessary in order to prevent a trick that creditors may
+        # use to evade incurring negative interests on their
+        # accounts. The trick is to prepare a transfer from one
+        # account to another for the whole available amount, wait for
+        # some long time, then commit the prepared transfer and
+        # abandon the account (which at that point would be
+        # significantly in red).
         if self.sender_creditor_id != ROOT_CREDITOR_ID and self.recipient_creditor_id != ROOT_CREDITOR_ID:
             passed_seconds = max(0.0, (current_ts - self.prepared_at_ts).total_seconds())
             if passed_seconds > current_app.config['APP_TRANSFER_MAX_DELAY_SECONDS']:
