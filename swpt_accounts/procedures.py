@@ -6,22 +6,21 @@ from flask import current_app
 from sqlalchemy.sql.expression import tuple_
 from swpt_lib.utils import is_later_event, increment_seqnum
 from .extensions import db
-from .models import Account, PreparedTransfer, RejectedTransferSignal, PreparedTransferSignal, \
-    AccountChangeSignal, AccountCommitSignal, PendingAccountChange, TransferRequest, \
-    FinalizedTransferSignal, AccountMaintenanceSignal, MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, \
-    MIN_INT64, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, BEGINNING_OF_TIME, \
-    CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT, SECONDS_IN_DAY, SECONDS_IN_YEAR
+from .models import (
+    Account, TransferRequest, PreparedTransfer, PendingAccountChange,
+    RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
+    AccountChangeSignal, AccountCommitSignal, AccountMaintenanceSignal,
+    ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
+    MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64,
+    BEGINNING_OF_TIME, SECONDS_IN_DAY, SECONDS_IN_YEAR,
+    CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT
+)
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 PRISTINE_ACCOUNT_STATUS = 0
 ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
-
-# The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
-# debtor's account. It issuers all the money. Also, all interest and
-# demurrage payments come from/to this account.
-ROOT_CREDITOR_ID = 0
 
 
 @atomic

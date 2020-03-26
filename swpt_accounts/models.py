@@ -1,6 +1,5 @@
 import math
 from datetime import datetime, timezone
-from decimal import Decimal
 from flask import current_app
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, or_
@@ -25,6 +24,11 @@ CT_INTEREST = 'interest'
 CT_NULLIFY = 'nullify'
 CT_DELETE = 'delete'
 CT_DIRECT = 'direct'
+
+# The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
+# debtor's account. It issuers all the money. Also, all interest and
+# demurrage payments come from/to this account.
+ROOT_CREDITOR_ID = 0
 
 
 def get_now_utc() -> datetime:
@@ -289,19 +293,18 @@ class PreparedTransfer(db.Model):
         committed_amount = max(committed_amount, 0)
         committed_amount = min(committed_amount, self.sender_locked_amount)
 
-        if self.coordinator_type == CT_DIRECT:
-            # Direct transfers are an exception. A direct transfer should
-            # not be allowed if it took too long to be committed, and the
-            # amount secured for the transfer has been "consumed" by the
-            # accumulated negative interest. This is necessary in order to
-            # prevent a trick that creditors may use to evade incurring
-            # negative interests on their accounts. The trick is to
-            # prepare a transfer from one account to another for the whole
-            # available amount, wait for some long time, then commit the
-            # prepared transfer and abandon the account (which at that
-            # point would be significantly in red).
+        # A transfer should not be allowed if it took too long to be
+        # committed, and the amount secured for the transfer had been
+        # "consumed" by the accumulated negative interest. This is
+        # necessary in order to prevent a trick that creditors may use
+        # to evade incurring negative interests on their accounts. The
+        # trick is to prepare a transfer from one account to another
+        # for the whole available amount, wait for some long time,
+        # then commit the prepared transfer and abandon the account
+        # (which at that point would be significantly in red).
+        if self.sender_creditor_id != ROOT_CREDITOR_ID and self.recipient_creditor_id != ROOT_CREDITOR_ID:
             passed_seconds = max(0.0, (current_ts - self.prepared_at_ts).total_seconds())
-            if passed_seconds > current_app.config['APP_DIRECT_TRANSFER_MAX_DELAY_SECONDS']:
+            if passed_seconds > current_app.config['APP_TRANSFER_MAX_DELAY_SECONDS']:
                 k = math.log(1.0 + INTEREST_RATE_FLOOR / 100.0) / SECONDS_IN_YEAR
                 permitted_amount = self.sender_locked_amount * math.exp(k * passed_seconds)
                 if committed_amount > permitted_amount:
