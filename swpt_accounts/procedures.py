@@ -36,7 +36,6 @@ def configure_account(
     assert signal_ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= signal_seqnum <= MAX_INT32
     assert MIN_INT16 <= status_flags <= MAX_INT16
-    assert negligible_amount >= 0.0
 
     current_ts = datetime.now(tz=timezone.utc)
     passed_seconds = (current_ts - signal_ts).total_seconds()
@@ -58,7 +57,7 @@ def configure_account(
             account.status &= 0xffff0000
             if creditor_id != ROOT_CREDITOR_ID:
                 account.status |= status_flags
-                account.negligible_amount = negligible_amount
+                account.negligible_amount = max(0.0, negligible_amount)
             account.last_config_signal_ts = signal_ts
             account.last_config_signal_seqnum = signal_seqnum
             _apply_account_change(account, 0, 0, current_ts)
