@@ -54,10 +54,11 @@ def configure_account(
             # to be executed, because `account.last_config_signal_ts` for
             # newly created accounts is many years ago, which means that
             # `is_later_event(this_event, prev_event)` is `True`.
+
             account.status &= 0xffff0000
             if creditor_id != ROOT_CREDITOR_ID:
                 account.status |= status_flags
-            account.negligible_amount = negligible_amount
+                account.negligible_amount = negligible_amount
             account.last_config_signal_ts = signal_ts
             account.last_config_signal_seqnum = signal_seqnum
             _apply_account_change(account, 0, 0, current_ts)
