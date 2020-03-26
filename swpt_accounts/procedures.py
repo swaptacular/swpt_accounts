@@ -19,7 +19,6 @@ from .models import (
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
-PRISTINE_ACCOUNT_STATUS = 0
 ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
 
 
@@ -434,7 +433,6 @@ def _create_account(debtor_id: int, creditor_id: int, current_ts: datetime) -> A
     account = Account(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
-        status=PRISTINE_ACCOUNT_STATUS,
         creation_date=current_ts.date(),
     )
     with db.retry_on_integrity_error():

@@ -15,9 +15,11 @@ MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
+BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
+
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
-BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
+PRISTINE_ACCOUNT_STATUS = 0
 
 # Reserved coordinator types:
 CT_INTEREST = 'interest'
@@ -139,6 +141,7 @@ class Account(db.Model):
     status = db.Column(
         db.Integer,
         nullable=False,
+        default=PRISTINE_ACCOUNT_STATUS,
         comment="Contain additional account status bits. "
                 "The lower 16 bits are configured by the owner of the account: "
                 f"{STATUS_SCHEDULED_FOR_DELETION_FLAG} - scheduled for deletion. "
