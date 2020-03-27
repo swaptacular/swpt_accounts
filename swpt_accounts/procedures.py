@@ -45,7 +45,7 @@ def configure_account(
         this_event = (signal_ts, signal_seqnum)
         prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
         if is_later_event(this_event, prev_event):
-            # Note that when a new account is created this block will
+            # NOTE: When a new account is created this block will
             # always be executed, because `last_config_signal_ts` for
             # newly created accounts is many years ago.
             account.set_user_flags(status_flags)
@@ -386,11 +386,11 @@ def _contain_principal_overflow(value: int) -> int:
 
 def _insert_account_change_signal(account: Account, current_ts: datetime) -> None:
     # NOTE: Callers of this function should be very careful, because
-    #       it updates `account.last_change_ts` without updating
-    #       `account.interest`. This will result in an incorrect value
-    #       for the interest, unless the current balance is zero, or
-    #       `account.interest` is updated "manually" before this
-    #       function is called.
+    # it updates `account.last_change_ts` without updating
+    # `account.interest`. This will result in an incorrect value for
+    # the interest, unless the current balance is zero, or
+    # `account.interest` is updated "manually" before this function is
+    # called.
 
     account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
     account.last_change_ts = max(account.last_change_ts, current_ts)
@@ -442,9 +442,9 @@ def _lock_or_create_account(
     if account is None:
         account = _create_account(debtor_id, creditor_id, current_ts)
 
-        # Note that sometimes when a new account is created, sending
-        # an `AccountChangeSignal` here is not necessary, because it
-        # will be consequently sent anyway.
+        # NOTE: Sometimes when a new account is created, sending an
+        # `AccountChangeSignal` here is not necessary, because it will
+        # be consequently sent anyway.
         if send_account_creation_signal:
             _insert_account_change_signal(account, current_ts)
 
@@ -452,6 +452,7 @@ def _lock_or_create_account(
         account.status &= ~Account.STATUS_DELETED_FLAG
         account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         _insert_account_change_signal(account, current_ts)
+
     return account
 
 
@@ -519,7 +520,7 @@ def _insert_account_commit_signal(
     previous_transfer_seqnum = account.last_transfer_seqnum
     account.last_transfer_seqnum += 1
 
-    # Note that we do not send notifications for transfers from/to the
+    # NOTE: We do not send notifications for transfers from/to the
     # debtor's account, because the debtor's account does not have a
     # real owning creditor.
     if account.creditor_id != ROOT_CREDITOR_ID:
@@ -598,7 +599,7 @@ def _make_debtor_payment(
             account_new_principal=_contain_principal_overflow(account.principal + amount),
         )
 
-        # Note that we do not need to update the principal and the
+        # NOTE: We do not need to update the principal and the
         # interest when the account is getting deleted, because they
         # will be consequently zeroed out anyway.
         if coordinator_type != CT_DELETE:
