@@ -212,6 +212,13 @@ class Account(db.Model):
 
         return current_balance
 
+    def set_status_flags(self, value):
+        """Set the lower 16 account status bits."""
+
+        value &= 0xffff
+        self.status &= 0xffff0000
+        self.status |= value
+
 
 class TransferRequest(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)

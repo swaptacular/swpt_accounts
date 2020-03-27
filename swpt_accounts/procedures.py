@@ -38,25 +38,18 @@ def configure_account(
     assert MIN_INT16 <= status_flags <= MAX_INT16
 
     current_ts = datetime.now(tz=timezone.utc)
-    passed_seconds = (current_ts - signal_ts).total_seconds()
     signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-
-    # Note that too old `configure_account` signals should be ignored,
-    # otherwise deleted/purged accounts could be needlessly
-    # resurrected.
-    if passed_seconds <= signalbus_max_delay_seconds:
+    is_signal_outdated = (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds
+    if not is_signal_outdated:
         account = _lock_or_create_account(debtor_id, creditor_id, current_ts, send_account_creation_signal=False)
         this_event = (signal_ts, signal_seqnum)
         prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
         if is_later_event(this_event, prev_event):
-            # When a new account has been created, this block is guaranteed
-            # to be executed, because `account.last_config_signal_ts` for
-            # newly created accounts is many years ago, which means that
-            # `is_later_event(this_event, prev_event)` is `True`.
-
-            account.status &= 0xffff0000
+            # Note that when a new account has been created, this block
+            # will be executed, because `last_config_signal_ts` for newly
+            # created accounts is many years ago.
             if creditor_id != ROOT_CREDITOR_ID:
-                account.status |= status_flags
+                account.set_status_flags(status_flags)
                 account.negligible_amount = max(0.0, negligible_amount)
             account.last_config_signal_ts = signal_ts
             account.last_config_signal_seqnum = signal_seqnum
@@ -188,13 +181,8 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
         has_established_interest_rate = account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         has_correct_interest_rate = has_established_interest_rate and account.interest_rate == interest_rate
         signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-        is_outdated_request = (current_ts - request_ts).total_seconds() > signalbus_max_delay_seconds
-
-        # `change_interest_rate` requests can come out-of-order. This
-        # works fine, because sooner or later the most recent interest
-        # rate will be set. Nevertheless, we must not set an interest rate
-        # that is excessively outdated.
-        if not (is_outdated_request or has_correct_interest_rate):
+        is_request_outdated = (current_ts - request_ts).total_seconds() > signalbus_max_delay_seconds
+        if not (is_request_outdated or has_correct_interest_rate):
             # Before changing the interest rate, we must not forget to
             # calculate the interest accumulated after the last account
             # change. (For that, we must use the old interest rate).
