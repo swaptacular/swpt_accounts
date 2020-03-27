@@ -514,11 +514,12 @@ def _insert_account_commit_signal(
     previous_transfer_seqnum = account.last_transfer_seqnum
     account.last_transfer_seqnum += 1
 
-    # We do not send notifications for transfers from/to the debtor's
-    # account, because the debtor's account does not have a real
-    # owning creditor.
+    # Note that we do not send notifications for transfers from/to the
+    # debtor's account, because the debtor's account does not have a
+    # real owning creditor.
     if account.creditor_id != ROOT_CREDITOR_ID:
         system_flags = 0
+
         if abs(committed_amount) <= account.negligible_amount:
             system_flags |= AccountCommitSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
 
