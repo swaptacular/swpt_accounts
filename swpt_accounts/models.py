@@ -212,7 +212,7 @@ class Account(db.Model):
 
         return current_balance
 
-    def set_status_flags(self, value):
+    def set_user_flags(self, value):
         """Set the lower 16 account status bits."""
 
         value &= 0xffff

@@ -45,12 +45,11 @@ def configure_account(
         this_event = (signal_ts, signal_seqnum)
         prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
         if is_later_event(this_event, prev_event):
-            # Note that when a new account has been created, this block
-            # will be executed, because `last_config_signal_ts` for newly
-            # created accounts is many years ago.
-            if creditor_id != ROOT_CREDITOR_ID:
-                account.set_status_flags(status_flags)
-                account.negligible_amount = max(0.0, negligible_amount)
+            # Note that when a new account is created this block will
+            # always be executed, because `last_config_signal_ts` for
+            # newly created accounts is many years ago.
+            account.set_user_flags(status_flags)
+            account.negligible_amount = max(0.0, negligible_amount)
             account.last_config_signal_ts = signal_ts
             account.last_config_signal_seqnum = signal_seqnum
             _apply_account_change(account, 0, 0, current_ts)
