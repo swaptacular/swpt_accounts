@@ -48,7 +48,7 @@ def configure_account(
             # NOTE: When a new account is created this block will
             # always be executed, because `last_config_signal_ts` for
             # newly created accounts is many years ago.
-            account.set_user_flags(status_flags)
+            account.set_config_flags(status_flags)
             account.negligible_amount = max(0.0, negligible_amount)
             account.last_config_signal_ts = signal_ts
             account.last_config_signal_seqnum = signal_seqnum
