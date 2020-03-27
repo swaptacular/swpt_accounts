@@ -79,9 +79,9 @@ def prepare_transfer(
     assert MIN_INT64 <= minimum_account_balance <= MAX_INT64
 
     if sender_creditor_id != ROOT_CREDITOR_ID:
-        # Only the debtor's account is allowed to go deliberately
-        # negative. This is because only the debtor's account is
-        # allowed to issue money.
+        # NOTE: Only the debtor's account is allowed to go
+        # deliberately negative. This is because only the debtor's
+        # account is allowed to issue money.
         minimum_account_balance = max(0, minimum_account_balance)
 
     db.session.add(TransferRequest(
@@ -164,16 +164,18 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
-        # Too big positive interest rates can cause account balance
-        # overflows. To prevent this, the interest rates should be kept
-        # within reasonable limits, and the accumulated interest should be
-        # capitalized every once in a while (like once a month).
+        # NOTE: Too big positive interest rates can cause account
+        # balance overflows. To prevent this, the interest rates
+        # should be kept within reasonable limits, and the accumulated
+        # interest should be capitalized every once in a while (like
+        # once a month).
         if interest_rate > INTEREST_RATE_CEIL:
             interest_rate = INTEREST_RATE_CEIL
 
-        # Too big negative interest rates are dangerous too. Chances are
-        # that they have been entered either maliciously or by mistake. It
-        # is a good precaution to not allow them at all.
+        # NOTE: Too big negative interest rates are dangerous
+        # too. Chances are that they have been entered either
+        # maliciously or by mistake. It is a good precaution to not
+        # allow them at all.
         if interest_rate < INTEREST_RATE_FLOOR:
             interest_rate = INTEREST_RATE_FLOOR
 
@@ -673,9 +675,9 @@ def _process_transfer_request(
     if tr.sender_creditor_id == tr.recipient_creditor_id:
         return reject('RECIPIENT_SAME_AS_SENDER', available_amount)
 
-    # Transfers to the debtor's account must be allowed even when the
-    # debtor's account does not exist. In this case, it will be
-    # created when the transfer is committed.
+    # NOTE: Transfers to the debtor's account must be allowed even
+    # when the debtor's account does not exist. In this case, it will
+    # be created when the transfer is committed.
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_accessible:
         return reject('RECIPIENT_NOT_ACCESSIBLE', available_amount)
 
