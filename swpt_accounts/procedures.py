@@ -179,10 +179,10 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
             interest_rate = INTEREST_RATE_FLOOR
 
         has_established_interest_rate = account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        has_correct_interest_rate = has_established_interest_rate and account.interest_rate == interest_rate
+        has_incorrect_interest_rate = not has_established_interest_rate or account.interest_rate != interest_rate
         signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
         is_request_outdated = (current_ts - request_ts).total_seconds() > signalbus_max_delay_seconds
-        if not (is_request_outdated or has_correct_interest_rate):
+        if not is_request_outdated and has_incorrect_interest_rate:
             # Before changing the interest rate, we must not forget to
             # calculate the interest accumulated after the last account
             # change. (For that, we must use the old interest rate).
