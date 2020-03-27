@@ -667,9 +667,9 @@ def _process_transfer_request(
     if tr.sender_creditor_id == tr.recipient_creditor_id:
         return reject('RECIPIENT_SAME_AS_SENDER', available_amount)
 
-    # Note that transfers to the debtor's account should be allowed
-    # even when the debtor's account does not exist. In this case, it
-    # will be created when the transfer is committed.
+    # Transfers to the debtor's account must be allowed even when the
+    # debtor's account does not exist. In this case, it will be
+    # created when the transfer is committed.
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_accessible:
         return reject('RECIPIENT_NOT_ACCESSIBLE', available_amount)
 
