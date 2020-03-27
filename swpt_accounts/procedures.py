@@ -441,8 +441,13 @@ def _lock_or_create_account(
     account = _get_account_instance(debtor_id, creditor_id, lock=True)
     if account is None:
         account = _create_account(debtor_id, creditor_id, current_ts)
+
+        # Note that sometimes when a new account is created, sending
+        # an `AccountChangeSignal` here is not necessary, because it
+        # will be consequently sent anyway.
         if send_account_creation_signal:
             _insert_account_change_signal(account, current_ts)
+
     if account.status & Account.STATUS_DELETED_FLAG:
         account.status &= ~Account.STATUS_DELETED_FLAG
         account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
@@ -479,7 +484,7 @@ def _insert_pending_account_change(
     #       handling possible multiple deliveries).
 
     if principal_delta != 0 or interest_delta != 0 or unlocked_amount is not None:
-        if not (principal_delta < 0 and coordinator_type == CT_DIRECT):
+        if not (coordinator_type == CT_DIRECT and principal_delta < 0):
             transfer_id = None
         if principal_delta == 0:
             transfer_message = None
@@ -595,7 +600,7 @@ def _make_debtor_payment(
 
         # Note that we do not need to update the principal and the
         # interest when the account is getting deleted, because they
-        # will be immediately zeroed out anyway.
+        # will be consequently zeroed out anyway.
         if coordinator_type != CT_DELETE:
             principal_delta = amount
             interest_delta = -amount if coordinator_type == CT_INTEREST else 0
