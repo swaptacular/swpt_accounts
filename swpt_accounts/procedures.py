@@ -593,9 +593,9 @@ def _make_debtor_payment(
             account_new_principal=_contain_principal_overflow(account.principal + amount),
         )
 
-        # We do not need to update the account principal and interest
-        # when deleting an account because they are getting zeroed out
-        # anyway.
+        # Note that we do not need to update the principal and the
+        # interest when the account is getting deleted, because they
+        # will be immediately zeroed out anyway.
         if coordinator_type != CT_DELETE:
             principal_delta = amount
             interest_delta = -amount if coordinator_type == CT_INTEREST else 0
@@ -667,12 +667,12 @@ def _process_transfer_request(
     if tr.sender_creditor_id == tr.recipient_creditor_id:
         return reject('RECIPIENT_SAME_AS_SENDER', available_amount)
 
-    if not (is_recipient_accessible or tr.recipient_creditor_id == ROOT_CREDITOR_ID):
+    # Note that transfers to the debtor's account should be allowed
+    # even when the debtor's account does not exist. In this case, it
+    # will be created when the transfer is committed.
+    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_accessible:
         return reject('RECIPIENT_NOT_ACCESSIBLE', available_amount)
 
-    # Note that transfers to the debtor's account are allowed even when the
-    # debtor's account does not exist. In this case, it will be created
-    # when the transfer is committed.
     return prepare(expendable_amount)
 
 
