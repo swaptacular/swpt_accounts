@@ -6,12 +6,12 @@ from sqlalchemy.dialects import postgresql as pg
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
 __all__ = [
-    'PreparedTransferSignal',
     'RejectedTransferSignal',
+    'PreparedTransferSignal',
     'FinalizedTransferSignal',
+    'AccountTransferSignal',
     'AccountChangeSignal',
     'AccountPurgeSignal',
-    'AccountTransferSignal',
     'AccountMaintenanceSignal',
 ]
 
