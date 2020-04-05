@@ -193,8 +193,9 @@ class FinalizedTransferSignal(Signal):
       symbols, ASCII only. If the transfer has been dismissed or
       committed successfully, the value will be "OK". If the transfer
       was committed, but has been terminated for some reason, the
-      value will be different from "OK", and will hint at the cause
-      for the termination.
+      status code will be different from "OK", and will hint at the
+      cause for the termination (in this case `committed_amount` will
+      be zero).
 
     """
 
