@@ -186,7 +186,15 @@ class FinalizedTransferSignal(Signal):
 
     * `committed_amount` is the transferred (committed) amount. It is
       always a non-negative number. A `0` means that the transfer has
-      been dismissed.
+      been dismissed, or was committed but has been terminated for
+      some reason.
+
+    * `status_code` is the finalization status. Between 0 and 30
+      symbols, ASCII only. If the transfer has been dismissed or
+      committed successfully, the value will be "OK". If the transfer
+      was committed, but has been terminated for some reason, the
+      value will be different from "OK", and will hint at the cause
+      for the termination.
 
     """
 
@@ -201,6 +209,7 @@ class FinalizedTransferSignal(Signal):
         prepared_at_ts = fields.DateTime()
         finalized_at_ts = fields.DateTime()
         committed_amount = fields.Integer()
+        status_code = fields.String()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -212,6 +221,7 @@ class FinalizedTransferSignal(Signal):
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     finalized_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
+    status_code = db.Column(db.String(30), nullable=False)
 
     @property
     def event_name(self):  # pragma: no cover

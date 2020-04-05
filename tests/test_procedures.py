@@ -749,5 +749,9 @@ def test_delayed_direct_transfer(db_session, current_ts):
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.one()
-    assert pt.correct_committed_amount(1000, current_ts) == 1000
-    assert pt.correct_committed_amount(1000, current_ts + timedelta(days=30)) == 0
+    assert pt.get_status_code(1000, current_ts) == 'OK'
+    assert pt.get_status_code(1000, current_ts + timedelta(days=30)) != 'OK'
+    p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, 9999999)
+    fts = FinalizedTransferSignal.query.one()
+    assert fts.status_code != 'OK'
+    assert fts.committed_amount == 0

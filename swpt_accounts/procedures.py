@@ -115,7 +115,9 @@ def finalize_prepared_transfer(
     current_ts = datetime.now(tz=timezone.utc)
     pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
     if pt:
-        committed_amount = pt.correct_committed_amount(committed_amount, current_ts)
+        status_code = pt.get_status_code(committed_amount, current_ts)
+        if status_code != 'OK':
+            committed_amount = 0
 
         _insert_pending_account_change(
             debtor_id=pt.debtor_id,
@@ -151,6 +153,7 @@ def finalize_prepared_transfer(
             prepared_at_ts=pt.prepared_at_ts,
             finalized_at_ts=max(pt.prepared_at_ts, current_ts),
             committed_amount=committed_amount,
+            status_code=status_code,
         ))
         db.session.delete(pt)
 
