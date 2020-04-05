@@ -11,7 +11,7 @@ __all__ = [
     'FinalizedTransferSignal',
     'AccountChangeSignal',
     'AccountPurgeSignal',
-    'AccountCommitSignal',
+    'AccountTransferSignal',
     'AccountMaintenanceSignal',
 ]
 
@@ -376,12 +376,12 @@ class AccountPurgeSignal(Signal):
     creation_date = db.Column(db.DATE, primary_key=True)
 
 
-class AccountCommitSignal(Signal):
+class AccountTransferSignal(Signal):
     """"Emitted when a transfer has been committed, affecting a given account.
 
     NOTE: Each committed transfer affects exactly two accounts: the
           sender's, and the recipient's. Therefore, exactly two
-          `AccountCommitSignal`s will be emitted for each committed
+          `AccountTransferSignal`s will be emitted for each committed
           transfer.
 
     * `debtor_id` and `creditor_id` identify the affected account.

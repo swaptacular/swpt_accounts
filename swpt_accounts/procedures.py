@@ -9,7 +9,7 @@ from .extensions import db
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
-    AccountChangeSignal, AccountCommitSignal, AccountMaintenanceSignal,
+    AccountChangeSignal, AccountTransferSignal, AccountMaintenanceSignal,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
     MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64,
     BEGINNING_OF_TIME, SECONDS_IN_DAY,
@@ -333,7 +333,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 if change.principal_delta < 0:
                     account.last_outgoing_transfer_date = current_date
             if change.principal_delta != 0:
-                _insert_account_commit_signal(
+                _insert_account_transfer_signal(
                     account=account,
                     coordinator_type=change.coordinator_type,
                     other_creditor_id=change.other_creditor_id,
@@ -510,7 +510,7 @@ def _insert_pending_account_change(
         ))
 
 
-def _insert_account_commit_signal(
+def _insert_account_transfer_signal(
         account: Account,
         coordinator_type: str,
         other_creditor_id: int,
@@ -532,9 +532,9 @@ def _insert_account_commit_signal(
         system_flags = 0
 
         if abs(committed_amount) <= account.negligible_amount:
-            system_flags |= AccountCommitSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
+            system_flags |= AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
 
-        db.session.add(AccountCommitSignal(
+        db.session.add(AccountTransferSignal(
             debtor_id=account.debtor_id,
             creditor_id=account.creditor_id,
             transfer_seqnum=account.last_transfer_seqnum,
@@ -592,7 +592,7 @@ def _make_debtor_payment(
             transfer_flags=transfer_flags,
             principal_delta=-amount,
         )
-        _insert_account_commit_signal(
+        _insert_account_transfer_signal(
             account=account,
             coordinator_type=coordinator_type,
             other_creditor_id=ROOT_CREDITOR_ID,
