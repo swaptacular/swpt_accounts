@@ -61,6 +61,51 @@ class Signal(db.Model):
     inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
 
+class RejectedTransferSignal(Signal):
+    """Emitted when a request to prepare a transfer has been rejected.
+
+    * `coordinator_type`, `coordinator_id`, and
+      `coordinator_request_id` uniquely identify the transfer request
+      from the coordinator's point of view, so that the coordinator
+      can match the event with the originating transfer request.
+
+    * `rejected_at_ts` is the moment at which the request to prepare a
+      transfer was rejected.
+
+    * `rejection_code` gives the reason for the rejection of the
+      transfer. Between 1 and 30 symbols, ASCII only.
+
+    * `available_amount` is the amount currently available on the sender's
+      account.
+
+    * `debtor_id` and `sender_creditor_id` identify the sender's account.
+
+    """
+
+    class __marshmallow__(Schema):
+        coordinator_type = fields.String()
+        coordinator_id = fields.Integer()
+        coordinator_request_id = fields.Integer()
+        rejection_code = fields.String()
+        available_amount = fields.Integer()
+        debtor_id = fields.Integer()
+        sender_creditor_id = fields.Integer()
+        rejected_at_ts = fields.DateTime(attribute='inserted_at_ts')
+
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
+    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    coordinator_id = db.Column(db.BigInteger, nullable=False)
+    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
+    rejection_code = db.Column(db.String(30), nullable=False)
+    available_amount = db.Column(db.BigInteger, nullable=False)
+
+    @property
+    def event_name(self):  # pragma: no cover
+        return f'on_rejected_{self.coordinator_type}_transfer_signal'
+
+
 class PreparedTransferSignal(Signal):
     """Emitted when a new transfer has been prepared, or to ramind that
     a prepared transfer must be finalized.
@@ -115,51 +160,6 @@ class PreparedTransferSignal(Signal):
     @property
     def event_name(self):  # pragma: no cover
         return f'on_prepared_{self.coordinator_type}_transfer_signal'
-
-
-class RejectedTransferSignal(Signal):
-    """Emitted when a request to prepare a transfer has been rejected.
-
-    * `coordinator_type`, `coordinator_id`, and
-      `coordinator_request_id` uniquely identify the transfer request
-      from the coordinator's point of view, so that the coordinator
-      can match the event with the originating transfer request.
-
-    * `rejected_at_ts` is the moment at which the request to prepare a
-      transfer was rejected.
-
-    * `rejection_code` gives the reason for the rejection of the
-      transfer. Between 1 and 30 symbols, ASCII only.
-
-    * `available_amount` is the amount currently available on the sender's
-      account.
-
-    * `debtor_id` and `sender_creditor_id` identify the sender's account.
-
-    """
-
-    class __marshmallow__(Schema):
-        coordinator_type = fields.String()
-        coordinator_id = fields.Integer()
-        coordinator_request_id = fields.Integer()
-        rejection_code = fields.String()
-        available_amount = fields.Integer()
-        debtor_id = fields.Integer()
-        sender_creditor_id = fields.Integer()
-        rejected_at_ts = fields.DateTime(attribute='inserted_at_ts')
-
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
-    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    coordinator_type = db.Column(db.String(30), nullable=False)
-    coordinator_id = db.Column(db.BigInteger, nullable=False)
-    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
-    rejection_code = db.Column(db.String(30), nullable=False)
-    available_amount = db.Column(db.BigInteger, nullable=False)
-
-    @property
-    def event_name(self):  # pragma: no cover
-        return f'on_rejected_{self.coordinator_type}_transfer_signal'
 
 
 class FinalizedTransferSignal(Signal):
@@ -226,6 +226,123 @@ class FinalizedTransferSignal(Signal):
     @property
     def event_name(self):  # pragma: no cover
         return f'on_finalized_{self.coordinator_type}_transfer_signal'
+
+
+class AccountTransferSignal(Signal):
+    """"Emitted when a transfer has been committed, affecting a given account.
+
+    NOTE: Each committed transfer affects exactly two accounts: the
+          sender's, and the recipient's. Therefore, exactly two
+          `AccountTransferSignal`s will be emitted for each committed
+          transfer.
+
+    * `debtor_id` and `creditor_id` identify the affected account.
+
+    * `transfer_seqnum` is the sequential number (> 0) of the
+      transfer. For a newly created account, the sequential number of
+      the first transfer will have its lower 40 bits set to
+      `0x0000000001`, and its higher 24 bits calculated from the
+      account's creation date (the number of days since Jan 1st,
+      1970). Note that when an account has been removed from the
+      database, and then recreated again, for this account, a gap will
+      occur in the generated sequence of `transfer_seqnum`s.
+
+    * `coordinator_type` indicates the subsystem which initiated the
+      transfer.
+
+    * `committed_at_ts` is the moment at which the transfer was
+      committed.
+
+    * `committed_amount` is the increase in the account principal
+      which the transfer caused. It can be positive (increase), or
+      negative (decrease), but it can never be zero.
+
+    * `other_creditor_id` is the other party in the transfer. When
+      `committed_amount` is positive, this is the sender. When
+      `committed_amount` is negative, this is the recipient.
+
+    * `transfer_message` contains notes from the sender. Can be any
+      string that the sender wanted the recipient to see.
+
+    * `transfer_flags` contains various flags set when the transfer
+      was finalized. (This is the value of the `transfer_flags`
+      parameter, with which the `finalize_prepared_transfer` actor was
+      called.)
+
+    * `account_creation_date` is the date on which the account was
+      created. It can be used to differentiate transfers from
+      different "epochs".
+
+    * `account_new_principal` is the account principal, after the
+      transfer has been committd (between -MAX_INT64 and MAX_INT64).
+
+    * `previous_transfer_seqnum` is the sequential number (>= 0) of
+      the previous transfer. It will always be smaller than
+      `transfer_seqnum`, and sometimes the difference can be more than
+      `1`. If there were no previous transfers, the value will have
+      its lower 40 bits set to `0x0000000000`, and its higher 24 bits
+      calculated from `account_creation_date` (the number of days
+      since Jan 1st, 1970).
+
+    * `system_flags` contains various bit-flags characterizing the
+      transfer.
+
+    * `real_creditor_id` MUST contain the original value of the
+      `creditor_id` field, as it was when the signal was
+      generated. The reason this field exists is to allow
+      intermediaries to modify the `creditor_id`/`sender_creditor_id`
+      fields of signals (analogous to the way IP masquerading works),
+      yet preserving the original value.
+
+    * `transfer_id` will contain either `0`, or the ID of the
+       corresponding prepared transfer. This allows the sender of a
+       committed direct transfer, to reliably identify the
+       corresponding prepared transfer record (using `debtor_id`,
+       `creditor_id`, and `transfer_id` fields).
+
+    """
+
+    class __marshmallow__(Schema):
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+        transfer_seqnum = fields.Integer()
+        coordinator_type = fields.String()
+        committed_at_ts = fields.DateTime()
+        committed_amount = fields.Integer()
+        other_creditor_id = fields.Integer()
+        transfer_message = fields.String()
+        transfer_flags = fields.Integer()
+        account_creation_date = fields.Date()
+        account_new_principal = fields.Integer()
+        previous_transfer_seqnum = fields.Integer()
+        system_flags = fields.Integer()
+        real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
+        transfer_id = fields.Integer()
+
+    TRANSFER_FLAG_IS_PUBLIC = 1
+    """Indicates that all transfer details have been made public. This can
+    be used, for example, to obtain a legal evidence.
+    """
+
+    SYSTEM_FLAG_IS_NEGLIGIBLE = 1
+    """Indicates that the absolute value of `committed_amount` is not
+    bigger than the negligible amount configured for the account.
+    """
+
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    committed_amount = db.Column(db.BigInteger, nullable=False)
+    other_creditor_id = db.Column(db.BigInteger, nullable=False)
+    transfer_message = db.Column(pg.TEXT, nullable=False)
+    transfer_flags = db.Column(db.Integer, nullable=False)
+    account_creation_date = db.Column(db.DATE, nullable=False)
+    account_new_principal = db.Column(db.BigInteger, nullable=False)
+    previous_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    system_flags = db.Column(db.Integer, nullable=False)
+    transfer_id = db.Column(db.BigInteger, nullable=False)
 
 
 class AccountChangeSignal(Signal):
@@ -374,123 +491,6 @@ class AccountPurgeSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     creation_date = db.Column(db.DATE, primary_key=True)
-
-
-class AccountTransferSignal(Signal):
-    """"Emitted when a transfer has been committed, affecting a given account.
-
-    NOTE: Each committed transfer affects exactly two accounts: the
-          sender's, and the recipient's. Therefore, exactly two
-          `AccountTransferSignal`s will be emitted for each committed
-          transfer.
-
-    * `debtor_id` and `creditor_id` identify the affected account.
-
-    * `transfer_seqnum` is the sequential number (> 0) of the
-      transfer. For a newly created account, the sequential number of
-      the first transfer will have its lower 40 bits set to
-      `0x0000000001`, and its higher 24 bits calculated from the
-      account's creation date (the number of days since Jan 1st,
-      1970). Note that when an account has been removed from the
-      database, and then recreated again, for this account, a gap will
-      occur in the generated sequence of `transfer_seqnum`s.
-
-    * `coordinator_type` indicates the subsystem which initiated the
-      transfer.
-
-    * `committed_at_ts` is the moment at which the transfer was
-      committed.
-
-    * `committed_amount` is the increase in the account principal
-      which the transfer caused. It can be positive (increase), or
-      negative (decrease), but it can never be zero.
-
-    * `other_creditor_id` is the other party in the transfer. When
-      `committed_amount` is positive, this is the sender. When
-      `committed_amount` is negative, this is the recipient.
-
-    * `transfer_message` contains notes from the sender. Can be any
-      string that the sender wanted the recipient to see.
-
-    * `transfer_flags` contains various flags set when the transfer
-      was finalized. (This is the value of the `transfer_flags`
-      parameter, with which the `finalize_prepared_transfer` actor was
-      called.)
-
-    * `account_creation_date` is the date on which the account was
-      created. It can be used to differentiate transfers from
-      different "epochs".
-
-    * `account_new_principal` is the account principal, after the
-      transfer has been committd (between -MAX_INT64 and MAX_INT64).
-
-    * `previous_transfer_seqnum` is the sequential number (>= 0) of
-      the previous transfer. It will always be smaller than
-      `transfer_seqnum`, and sometimes the difference can be more than
-      `1`. If there were no previous transfers, the value will have
-      its lower 40 bits set to `0x0000000000`, and its higher 24 bits
-      calculated from `account_creation_date` (the number of days
-      since Jan 1st, 1970).
-
-    * `system_flags` contains various bit-flags characterizing the
-      transfer.
-
-    * `real_creditor_id` MUST contain the original value of the
-      `creditor_id` field, as it was when the signal was
-      generated. The reason this field exists is to allow
-      intermediaries to modify the `creditor_id`/`sender_creditor_id`
-      fields of signals (analogous to the way IP masquerading works),
-      yet preserving the original value.
-
-    * `transfer_id` will contain either `0`, or the ID of the
-       corresponding prepared transfer. This allows the sender of a
-       committed direct transfer, to reliably identify the
-       corresponding prepared transfer record (using `debtor_id`,
-       `creditor_id`, and `transfer_id` fields).
-
-    """
-
-    class __marshmallow__(Schema):
-        debtor_id = fields.Integer()
-        creditor_id = fields.Integer()
-        transfer_seqnum = fields.Integer()
-        coordinator_type = fields.String()
-        committed_at_ts = fields.DateTime()
-        committed_amount = fields.Integer()
-        other_creditor_id = fields.Integer()
-        transfer_message = fields.String()
-        transfer_flags = fields.Integer()
-        account_creation_date = fields.Date()
-        account_new_principal = fields.Integer()
-        previous_transfer_seqnum = fields.Integer()
-        system_flags = fields.Integer()
-        real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
-        transfer_id = fields.Integer()
-
-    TRANSFER_FLAG_IS_PUBLIC = 1
-    """Indicates that all transfer details have been made public. This can
-    be used, for example, to obtain a legal evidence.
-    """
-
-    SYSTEM_FLAG_IS_NEGLIGIBLE = 1
-    """Indicates that the absolute value of `committed_amount` is not
-    bigger than the negligible amount configured for the account.
-    """
-
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
-    coordinator_type = db.Column(db.String(30), nullable=False)
-    committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    committed_amount = db.Column(db.BigInteger, nullable=False)
-    other_creditor_id = db.Column(db.BigInteger, nullable=False)
-    transfer_message = db.Column(pg.TEXT, nullable=False)
-    transfer_flags = db.Column(db.Integer, nullable=False)
-    account_creation_date = db.Column(db.DATE, nullable=False)
-    account_new_principal = db.Column(db.BigInteger, nullable=False)
-    previous_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
-    system_flags = db.Column(db.Integer, nullable=False)
-    transfer_id = db.Column(db.BigInteger, nullable=False)
 
 
 class AccountMaintenanceSignal(Signal):
