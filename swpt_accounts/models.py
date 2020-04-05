@@ -336,6 +336,7 @@ class PreparedTransfer(db.Model):
                 k = math.log(1.0 + INTEREST_RATE_FLOOR / 100.0) / SECONDS_IN_YEAR
                 permitted_amount = self.sender_locked_amount * math.exp(k * passed_seconds)
                 if committed_amount > permitted_amount:
+                    assert committed_amount > 0
                     return 'TERMINATED_DUE_TO_TIMEOUT'
 
         return 'OK'
