@@ -301,6 +301,14 @@ class AccountTransferSignal(Signal):
        corresponding prepared transfer record (using `debtor_id`,
        `creditor_id`, and `transfer_id` fields).
 
+    * `details` contain additional information about the transfer. It
+      MAY be an empty string. Different implementations may use this
+      field for different purposes, for example, it may contain
+      additional information about the sender or the recipient of the
+      transfer. Note that the value of this field MAY be completely
+      different from the value of the `details` field given with the
+      `prepare_transfer` message for the transfer.
+
     """
 
     class __marshmallow__(Schema):
@@ -319,6 +327,7 @@ class AccountTransferSignal(Signal):
         system_flags = fields.Integer()
         real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
         transfer_id = fields.Integer()
+        details = fields.Constant('')
 
     TRANSFER_FLAG_IS_PUBLIC = 1
     """Indicates that all transfer details have been made public. This can
