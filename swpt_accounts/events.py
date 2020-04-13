@@ -288,6 +288,14 @@ class AccountTransferSignal(Signal):
     * `system_flags` contains various bit-flags characterizing the
       transfer.
 
+    * `system_details` contain additional information about the transfer. It
+      MAY be an empty string. Different implementations may use this
+      field for different purposes, for example, it may contain
+      additional information about the sender or the recipient of the
+      transfer. Note that the value of this field MAY be completely
+      different from the value of the `details` field given with the
+      `prepare_transfer` message for the transfer.
+
     * `real_creditor_id` MUST contain the original value of the
       `creditor_id` field, as it was when the signal was
       generated. The reason this field exists is to allow
@@ -300,14 +308,6 @@ class AccountTransferSignal(Signal):
        committed direct transfer, to reliably identify the
        corresponding prepared transfer record (using `debtor_id`,
        `creditor_id`, and `transfer_id` fields).
-
-    * `details` contain additional information about the transfer. It
-      MAY be an empty string. Different implementations may use this
-      field for different purposes, for example, it may contain
-      additional information about the sender or the recipient of the
-      transfer. Note that the value of this field MAY be completely
-      different from the value of the `details` field given with the
-      `prepare_transfer` message for the transfer.
 
     """
 
@@ -325,9 +325,9 @@ class AccountTransferSignal(Signal):
         account_new_principal = fields.Integer()
         previous_transfer_seqnum = fields.Integer()
         system_flags = fields.Integer()
+        system_details = fields.Constant('')
         real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
         transfer_id = fields.Integer()
-        details = fields.Constant('')
 
     TRANSFER_FLAG_IS_PUBLIC = 1
     """Indicates that all transfer details have been made public. This can
