@@ -10,7 +10,8 @@ def configure_account(
         signal_ts: str,
         signal_seqnum: int,
         status_flags: int = 0,
-        negligible_amount: float = 0.0) -> None:
+        negligible_amount: float = 0.0,
+        config: str = '') -> None:
 
     """Make sure the account `(debtor_id, creditor_id)` exists, then
     update its configuration settings.
@@ -34,6 +35,10 @@ def configure_account(
        considered negligible. It is used to: 1) decide whether an
        account can be safely deleted; 2) decide whether a transfer is
        insignificant. MUST be non-negative.
+
+    * `config` contains additional account configuration
+      information. It MAY be an empty string. Different
+      implementations may use different formats for this field.
 
     An `AccountChangeSignal` is always sent as a confirmation.
 

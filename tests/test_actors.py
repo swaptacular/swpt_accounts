@@ -56,6 +56,7 @@ def test_configure_account(db_session):
         signal_seqnum=0,
         status_flags=0,
         negligible_amount=500.0,
+        config='',
     )
 
 

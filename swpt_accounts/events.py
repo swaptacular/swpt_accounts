@@ -392,19 +392,17 @@ class AccountChangeSignal(Signal):
       negative balance can be zeroed out. (If there were no outgoing
       transfers, the value will be "1970-01-01".)
 
-    * `last_config_signal_ts` is the timestamp of the last applied
-      account configuration signal. That is: the `signal_ts` field of
-      the last effectual `configure_account` signal. It can be used to
-      determine whether a scheduled configuration signal has been
-      applied. (If there were no applied configuration signals, the
-      value will be "1970-01-01T00:00:00+00:00".)
+    * `last_config_signal_ts` contains the value of the `signal_ts`
+      field of the last applied `configure_account` signal. This field
+      can be used to determine whether a sent configuration signal has
+      been processed. (If there were no applied configuration signals,
+      the value will be "1970-01-01T00:00:00+00:00".)
 
-    * `last_config_signal_seqnum` is the sequential number of the last
-      applied account configuration signal. That is: the
-      `signal_seqnum` field of the last effectual `configure_account`
-      signal. It can be used to determine whether a scheduled
-      configuration signal has been applied. (If there were no applied
-      configuration signals, the value will be `0`.)
+    * `last_config_signal_seqnum` contains the value of the
+      `signal_seqnum` field of the last applied `configure_account`
+      signal. This field can be used to determine whether a sent
+      configuration signal has been processed. (If there were no
+      applied configuration signals, the value will be `0`.)
 
     * `creation_date` is the date on which the account was created.
 
@@ -415,6 +413,16 @@ class AccountChangeSignal(Signal):
 
     * `status` (a 32-bit integer) contains status bit-flags (see
       `models.Account`).
+
+    * `config_sha1` contains the highest 64 bits of the SHA-1 hash of
+      the value of the `config` field of the most recently applied
+      account configuration signal that contained a valid account
+      configuration. This field can be used to determine whether a
+      requested configuration change has been successfully
+      applied. (Note that when the `config` field of an account
+      configuration signal contains an invalid configuration, the
+      signal MUST be applied, but the `config_sha1` SHOULD NOT be
+      updated.)
 
     * `signal_ts` is the moment at which this signal was emitted.
 
@@ -450,6 +458,7 @@ class AccountChangeSignal(Signal):
         signal_ts = fields.DateTime(attribute='inserted_at_ts')
         signal_ttl = fields.Float()
         real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
+        config_sha1 = fields.Constant('DA39A3EE5E6B4B0D')  # the first 64 bits of the SHA-1 of an empty string
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
