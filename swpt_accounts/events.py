@@ -414,15 +414,13 @@ class AccountChangeSignal(Signal):
     * `status` (a 32-bit integer) contains status bit-flags (see
       `models.Account`).
 
-    * `config_sha1` contains the highest 64 bits of the SHA-1 hash of
-      the value of the `config` field of the most recently applied
-      account configuration signal that contained a valid account
-      configuration. This field can be used to determine whether a
-      requested configuration change has been successfully
+    * `config` contains the value of the `config` field of the most
+      recently applied account configuration signal that contained a
+      valid account configuration. This field can be used to determine
+      whether a requested configuration change has been successfully
       applied. (Note that when the `config` field of an account
       configuration signal contains an invalid configuration, the
-      signal MUST be applied, but the `config_sha1` SHOULD NOT be
-      updated.)
+      signal MUST be applied, but the `config` SHOULD NOT be updated.)
 
     * `signal_ts` is the moment at which this signal was emitted.
 
@@ -458,7 +456,7 @@ class AccountChangeSignal(Signal):
         signal_ts = fields.DateTime(attribute='inserted_at_ts')
         signal_ttl = fields.Float()
         real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
-        config_sha1 = fields.Constant('DA39A3EE5E6B4B0D')  # the first 64 bits of the SHA-1 of an empty string
+        config = fields.Constant('')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)

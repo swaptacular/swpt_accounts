@@ -37,8 +37,8 @@ def configure_account(
        insignificant. MUST be non-negative.
 
     * `config` contains additional account configuration
-      information. It MAY be an empty string. Different
-      implementations may use different formats for this field.
+      information. Different implementations may use different formats
+      for this field.
 
     An `AccountChangeSignal` is always sent as a confirmation.
 
