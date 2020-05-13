@@ -126,8 +126,8 @@ class PreparedTransferSignal(Signal):
       (committed) amount may not exceed this number.
 
     * `recipient_identity` is a string, which (along with `debtor_id`)
-      identify recipient's account. Different implementations may use
-      different formats for the identifier of recipient's account.
+      identifies recipient's account. Different implementations may
+      use different formats for the identifier of recipient's account.
 
     * `prepared_at_ts` is the moment at which the transfer was
       prepared.
@@ -178,8 +178,8 @@ class FinalizedTransferSignal(Signal):
       can match the event with the originating transfer request.
 
     * `recipient_identity` is a string, which (along with `debtor_id`)
-      identify recipient's account. Different implementations may use
-      different formats for the identifier of recipient's account.
+      identifies recipient's account. Different implementations may
+      use different formats for the identifier of recipient's account.
 
     * `prepared_at_ts` is the moment at which the transfer was
       prepared.
