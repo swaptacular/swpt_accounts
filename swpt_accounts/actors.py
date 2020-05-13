@@ -86,6 +86,11 @@ def prepare_transfer(
       been secured. For normal accounts it should be a non-negative
       number. For the debtor's account it can be any number.
 
+    * `recipient_identity` is a string, which (along with `debtor_id`)
+      identifies the recipient's account. Different implementations
+      may use different formats for the identifier of recipient's
+      account.
+
     Before sending a message to this actor, the sender MUST create a
     Coordinator Request (CR) database record, with a primary key of
     `(coordinator_type, coordinator_id, coordinator_request_id)`, and
