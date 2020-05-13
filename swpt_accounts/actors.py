@@ -87,10 +87,10 @@ def prepare_transfer(
 
     * `sender_creditor_id` (along with `debtor_id`) identify the
       sender's account. Note that `sender_creditor_id` is an integer,
-      while `recipient_identity` is a string. The reason is that often
-      implementations will want to modify the `creditor_id` field
-      (analogous to the way IP masquerading works), or use it as a key
-      in a lookup table, to obtain the real sender's account identity.
+      while `recipient_identity` is a string. The reason for this is
+      that implementations will often want use the `creditor_id` field
+      as a key in a lookup table, to obtain more information about
+      sender's account (in addition to sender's identity).
 
     * `recipient_identity` is a string, which (along with `debtor_id`)
       identifies the recipient's account. Different implementations

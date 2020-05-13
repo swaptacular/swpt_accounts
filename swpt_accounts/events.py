@@ -296,9 +296,9 @@ class AccountTransferSignal(Signal):
     * `creditor_identity` is a string, which (along with `debtor_id`)
       identifies the affected account. Different implementations may
       use different formats for the identifier. Note that while
-      `creditor_id` is only a "local" identifier, recognized only by
-      the system that created the account, `creditor_identity` is a
-      globally recognized identifier.
+      `creditor_id` could be a "local" identifier, recognized only by
+      the system that created the account, `creditor_identity` is
+      always a globally recognized identifier.
 
     * `transfer_id` will contain either `0`, or the ID of the
        corresponding prepared transfer. This allows the sender of a
@@ -428,9 +428,9 @@ class AccountChangeSignal(Signal):
     * `creditor_identity` is a string, which (along with `debtor_id`)
       identifies the account. Different implementations may use
       different formats for the identifier. Note that while
-      `creditor_id` is only a "local" identifier, recognized only by
-      the system that created the account, `creditor_identity` is a
-      globally recognized identifier.
+      `creditor_id` could be a "local" identifier, recognized only by
+      the system that created the account, `creditor_identity` is
+      always a globally recognized identifier.
 
     """
 
@@ -488,9 +488,9 @@ class AccountPurgeSignal(Signal):
     * `creditor_identity` is a string, which (along with `debtor_id`)
       identifies the account. Different implementations may use
       different formats for the identifier. Note that while
-      `creditor_id` is only a "local" identifier, recognized only by
-      the system that created the account, `creditor_identity` is a
-      globally recognized identifier.
+      `creditor_id` could be a "local" identifier, recognized only by
+      the system that created the account, `creditor_identity` is
+      always globally recognized identifier.
 
     """
 
