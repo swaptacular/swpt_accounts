@@ -295,10 +295,10 @@ class AccountTransferSignal(Signal):
 
     * `creditor_identity` is a string, which (along with `debtor_id`)
       identifies the affected account. Different implementations may
-      use different formats for the identifier. The reason this field
-      exists is to allow intermediaries to modify the `creditor_id`
-      field (analogous to the way IP masquerading works), yet
-      preserving the original identity of the affected account.
+      use different formats for the identifier. Note that while
+      `creditor_id` is only a "local" identifier, recognized only by
+      the system that created the account, `creditor_identity` is a
+      globally recognized identifier.
 
     * `transfer_id` will contain either `0`, or the ID of the
        corresponding prepared transfer. This allows the sender of a
@@ -427,10 +427,10 @@ class AccountChangeSignal(Signal):
 
     * `creditor_identity` is a string, which (along with `debtor_id`)
       identifies the account. Different implementations may use
-      different formats for the identifier. The reason this field
-      exists is to allow intermediaries to modify the `creditor_id`
-      field (analogous to the way IP masquerading works), yet
-      preserving the original account identity.
+      different formats for the identifier. Note that while
+      `creditor_id` is only a "local" identifier, recognized only by
+      the system that created the account, `creditor_identity` is a
+      globally recognized identifier.
 
     """
 
@@ -487,10 +487,10 @@ class AccountPurgeSignal(Signal):
 
     * `creditor_identity` is a string, which (along with `debtor_id`)
       identifies the account. Different implementations may use
-      different formats for the identifier. The reason this field
-      exists is to allow intermediaries to modify the `creditor_id`
-      field (analogous to the way IP masquerading works), yet
-      preserving the original account identity.
+      different formats for the identifier. Note that while
+      `creditor_id` is only a "local" identifier, recognized only by
+      the system that created the account, `creditor_identity` is a
+      globally recognized identifier.
 
     """
 

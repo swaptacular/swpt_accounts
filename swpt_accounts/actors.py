@@ -76,8 +76,7 @@ def prepare_transfer(
 
     """Try to greedily secure an amount between `min_amount` (> 0) and
     `max_amount` (>= min_amount), to transfer it from sender's account
-    (`debtor_id`, `sender_creditor_id`) to recipient's account
-    (`debtor_id`, `recipient_identity`).
+    to recipient's account.
 
     * `signal_ts` MUST be the current timestamp.
 
@@ -85,6 +84,13 @@ def prepare_transfer(
       available on sender's account after the requested amount has
       been secured. For normal accounts it should be a non-negative
       number. For the debtor's account it can be any number.
+
+    * `sender_creditor_id` (along with `debtor_id`) identify the
+      sender's account. Note that `sender_creditor_id` is an integer,
+      while `recipient_identity` is a string. The reason is that often
+      implementations will want to modify the `creditor_id` field
+      (analogous to the way IP masquerading works), or use it as a key
+      in a lookup table, to obtain the real sender's account identity.
 
     * `recipient_identity` is a string, which (along with `debtor_id`)
       identifies the recipient's account. Different implementations
