@@ -263,8 +263,9 @@ class AccountTransferSignal(Signal):
 
     * `other_party_identity` is a string, which (along with
       `debtor_id`) identifies the other party in the transfer. When
-      `committed_amount` is positive, this is the sender. When
-      `committed_amount` is negative, this is the recipient.
+      `committed_amount` is positive, this is the sender; when
+      `committed_amount` is negative, this is the recipient. Different
+      implementations may use different formats for the identifier.
 
     * `transfer_message` contains notes from the sender. Can be any
       string that the sender wanted the recipient to see.
@@ -297,7 +298,7 @@ class AccountTransferSignal(Signal):
       use different formats for the identifier. The reason this field
       exists is to allow intermediaries to modify the `creditor_id`
       field (analogous to the way IP masquerading works), yet
-      preserving the original account identity.
+      preserving the original identity of the affected account.
 
     * `transfer_id` will contain either `0`, or the ID of the
        corresponding prepared transfer. This allows the sender of a
