@@ -4,7 +4,7 @@ from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Se
 from decimal import Decimal
 from flask import current_app
 from sqlalchemy.sql.expression import tuple_
-from swpt_lib.utils import is_later_event, increment_seqnum
+from swpt_lib.utils import is_later_event, increment_seqnum, u64_to_i64
 from .extensions import db
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange,
@@ -64,7 +64,7 @@ def prepare_transfer(
         max_amount: int,
         debtor_id: int,
         sender_creditor_id: int,
-        recipient_creditor_id: int,
+        recipient_identity: str,
         signal_ts: datetime,
         minimum_account_balance: int = 0) -> None:
 
@@ -74,7 +74,6 @@ def prepare_transfer(
     assert 0 < min_amount <= max_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
-    assert MIN_INT64 <= recipient_creditor_id <= MAX_INT64
     assert signal_ts > BEGINNING_OF_TIME
     assert MIN_INT64 <= minimum_account_balance <= MAX_INT64
 
@@ -92,7 +91,7 @@ def prepare_transfer(
         min_amount=min_amount,
         max_amount=max_amount,
         sender_creditor_id=sender_creditor_id,
-        recipient_creditor_id=recipient_creditor_id,
+        recipient_creditor_id=u64_to_i64(int(recipient_identity)),
         minimum_account_balance=minimum_account_balance,
     ))
 

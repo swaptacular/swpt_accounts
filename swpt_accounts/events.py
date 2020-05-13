@@ -3,6 +3,7 @@ from flask import current_app
 from datetime import datetime, timezone
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
+from swpt_lib.utils import i64_to_u64
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
 __all__ = [
@@ -124,8 +125,8 @@ class PreparedTransferSignal(Signal):
       transfer (always a positive number). The actual transferred
       (committed) amount may not exceed this number.
 
-    * `recipient_creditor_id` (along with `debtor_id`) identify
-      recipient's account.
+    * `recipient_identity` is a string, which (along with `debtor_id`)
+      identify recipient's account.
 
     * `prepared_at_ts` is the moment at which the transfer was
       prepared.
@@ -142,7 +143,7 @@ class PreparedTransferSignal(Signal):
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
         sender_locked_amount = fields.Integer()
-        recipient_creditor_id = fields.Integer()
+        recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         prepared_at_ts = fields.DateTime()
         signal_ts = fields.DateTime(attribute='inserted_at_ts')
 
@@ -175,8 +176,8 @@ class FinalizedTransferSignal(Signal):
       from the coordinator's point of view, so that the coordinator
       can match the event with the originating transfer request.
 
-    * `recipient_creditor_id` (along with `debtor_id`) identify
-      recipient's account.
+    * `recipient_identity` is a string, which (along with `debtor_id`)
+      identify recipient's account.
 
     * `prepared_at_ts` is the moment at which the transfer was
       prepared.
@@ -206,7 +207,7 @@ class FinalizedTransferSignal(Signal):
         coordinator_type = fields.String()
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
-        recipient_creditor_id = fields.Integer()
+        recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         prepared_at_ts = fields.DateTime()
         finalized_at_ts = fields.DateTime()
         committed_amount = fields.Integer()
@@ -258,7 +259,8 @@ class AccountTransferSignal(Signal):
       which the transfer caused. It can be positive (increase), or
       negative (decrease), but it can never be zero.
 
-    * `other_creditor_id` is the other party in the transfer. When
+    * `other_party_identity` is a string, which (along with
+      `debtor_id`) identifies the other party in the transfer. When
       `committed_amount` is positive, this is the sender. When
       `committed_amount` is negative, this is the recipient.
 
@@ -288,20 +290,11 @@ class AccountTransferSignal(Signal):
     * `system_flags` contains various bit-flags characterizing the
       transfer.
 
-    * `system_details` contain additional information about the transfer. It
-      MAY be an empty string. Different implementations may use this
-      field for different purposes, for example, it may contain
-      additional information about the sender or the recipient of the
-      transfer. Note that the value of this field MAY be completely
-      different from the value of the `details` field given with the
-      `prepare_transfer` message for the transfer.
-
-    * `real_creditor_id` MUST contain the original value of the
-      `creditor_id` field, as it was when the signal was
-      generated. The reason this field exists is to allow
-      intermediaries to modify the `creditor_id`/`sender_creditor_id`
-      fields of signals (analogous to the way IP masquerading works),
-      yet preserving the original value.
+    * `creditor_identity` is a string, which (along with `debtor_id`)
+      identifies the affected account. The reason this field exists is
+      to allow intermediaries to modify the `creditor_id` field
+      (analogous to the way IP masquerading works), yet preserving the
+      original account identity.
 
     * `transfer_id` will contain either `0`, or the ID of the
        corresponding prepared transfer. This allows the sender of a
@@ -318,15 +311,14 @@ class AccountTransferSignal(Signal):
         coordinator_type = fields.String()
         committed_at_ts = fields.DateTime()
         committed_amount = fields.Integer()
-        other_creditor_id = fields.Integer()
+        other_party_identity = fields.Function(lambda obj: str(i64_to_u64(obj.other_creditor_id)))
         transfer_message = fields.String()
         transfer_flags = fields.Integer()
         account_creation_date = fields.Date()
         account_new_principal = fields.Integer()
         previous_transfer_seqnum = fields.Integer()
         system_flags = fields.Integer()
-        system_details = fields.Constant('')
-        real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
+        creditor_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
         transfer_id = fields.Integer()
 
     TRANSFER_FLAG_IS_PUBLIC = 1
@@ -429,12 +421,11 @@ class AccountChangeSignal(Signal):
       seconds have elapsed since the signal was emitted
       (`signal_ts`). Will always be bigger than `0.0`.
 
-    * `real_creditor_id` MUST contain the original value of the
-      `creditor_id` field, as it was when the signal was
-      generated. The reason this field exists is to allow
-      intermediaries to modify the `creditor_id`/`sender_creditor_id`
-      fields of signals (analogous to the way IP masquerading works),
-      yet preserving the original value.
+    * `creditor_identity` is a string, which (along with `debtor_id`)
+      identifies the account. The reason this field exists is to allow
+      intermediaries to modify the `creditor_id` field (analogous to
+      the way IP masquerading works), yet preserving the original
+      account identity.
 
     """
 
@@ -455,7 +446,7 @@ class AccountChangeSignal(Signal):
         status = fields.Integer()
         signal_ts = fields.DateTime(attribute='inserted_at_ts')
         signal_ttl = fields.Float()
-        real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
+        creditor_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
         config = fields.Constant('')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -489,12 +480,11 @@ class AccountPurgeSignal(Signal):
     * `purged_at_ts` is the moment at which the account was removed
       from the database.
 
-    * `real_creditor_id` MUST contain the original value of the
-      `creditor_id` field, as it was when the signal was
-      generated. The reason this field exists is to allow
-      intermediaries to modify the `creditor_id`/`sender_creditor_id`
-      fields of signals (analogous to the way IP masquerading works),
-      yet preserving the original value.
+    * `creditor_identity` is a string, which (along with `debtor_id`)
+      identifies the account. The reason this field exists is to allow
+      intermediaries to modify the `creditor_id` field (analogous to
+      the way IP masquerading works), yet preserving the original
+      account identity.
 
     """
 
@@ -503,7 +493,7 @@ class AccountPurgeSignal(Signal):
         creditor_id = fields.Integer()
         creation_date = fields.Date()
         purged_at_ts = fields.DateTime(attribute='inserted_at_ts')
-        real_creditor_id = fields.Integer(attribute='creditor_id', dump_only=True)
+        creditor_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)

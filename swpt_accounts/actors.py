@@ -70,15 +70,14 @@ def prepare_transfer(
         max_amount: int,
         debtor_id: int,
         sender_creditor_id: int,
-        recipient_creditor_id: int,
+        recipient_identity: str,
         signal_ts: str,
-        minimum_account_balance: int = 0,
-        details: str = '') -> None:
+        minimum_account_balance: int = 0) -> None:
 
     """Try to greedily secure an amount between `min_amount` (> 0) and
     `max_amount` (>= min_amount), to transfer it from sender's account
     (`debtor_id`, `sender_creditor_id`) to recipient's account
-    (`debtor_id`, `recipient_creditor_id`).
+    (`debtor_id`, `recipient_identity`).
 
     * `signal_ts` MUST be the current timestamp.
 
@@ -86,11 +85,6 @@ def prepare_transfer(
       available on sender's account after the requested amount has
       been secured. For normal accounts it should be a non-negative
       number. For the debtor's account it can be any number.
-
-    * `details` contains additional information about the transfer. It
-      MAY be an empty string. Different implementations may use this
-      field for different purposes, for example, it may contain
-      additional information about the recipient of the transfer.
 
     Before sending a message to this actor, the sender MUST create a
     Coordinator Request (CR) database record, with a primary key of
@@ -183,7 +177,7 @@ def prepare_transfer(
         max_amount,
         debtor_id,
         sender_creditor_id,
-        recipient_creditor_id,
+        recipient_identity,
         iso8601.parse_date(signal_ts),
         minimum_account_balance,
     )
