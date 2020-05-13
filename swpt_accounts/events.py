@@ -293,10 +293,11 @@ class AccountTransferSignal(Signal):
       transfer.
 
     * `creditor_identity` is a string, which (along with `debtor_id`)
-      identifies the affected account. The reason this field exists is
-      to allow intermediaries to modify the `creditor_id` field
-      (analogous to the way IP masquerading works), yet preserving the
-      original account identity.
+      identifies the affected account. Different implementations may
+      use different formats for the identifier. The reason this field
+      exists is to allow intermediaries to modify the `creditor_id`
+      field (analogous to the way IP masquerading works), yet
+      preserving the original account identity.
 
     * `transfer_id` will contain either `0`, or the ID of the
        corresponding prepared transfer. This allows the sender of a
@@ -424,10 +425,11 @@ class AccountChangeSignal(Signal):
       (`signal_ts`). Will always be bigger than `0.0`.
 
     * `creditor_identity` is a string, which (along with `debtor_id`)
-      identifies the account. The reason this field exists is to allow
-      intermediaries to modify the `creditor_id` field (analogous to
-      the way IP masquerading works), yet preserving the original
-      account identity.
+      identifies the account. Different implementations may use
+      different formats for the identifier. The reason this field
+      exists is to allow intermediaries to modify the `creditor_id`
+      field (analogous to the way IP masquerading works), yet
+      preserving the original account identity.
 
     """
 
@@ -483,10 +485,11 @@ class AccountPurgeSignal(Signal):
       from the database.
 
     * `creditor_identity` is a string, which (along with `debtor_id`)
-      identifies the account. The reason this field exists is to allow
-      intermediaries to modify the `creditor_id` field (analogous to
-      the way IP masquerading works), yet preserving the original
-      account identity.
+      identifies the account. Different implementations may use
+      different formats for the identifier. The reason this field
+      exists is to allow intermediaries to modify the `creditor_id`
+      field (analogous to the way IP masquerading works), yet
+      preserving the original account identity.
 
     """
 
