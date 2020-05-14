@@ -171,13 +171,14 @@ creditor_id : int64
 
 transfer_seqnum : int64
    TODO: improve description
-   The sequential number of the transfer. MUST be positive. For a
-   newly created account, the sequential number of the first transfer
-   will have its lower 40 bits set to `0x0000000001`, and its higher
-   24 bits calculated from the account's creation date (the number of
-   days since Jan 1st, 1970). Note that when an account has been
-   removed from the database, and then recreated again, for this
-   account, a gap will occur in the generated sequence of seqnums.
+   The sequential number of the transfer. MUST be a positive
+   number. For a newly created account, the sequential number of the
+   first transfer will have its lower 40 bits set to `0x0000000001`,
+   and its higher 24 bits calculated from the account's creation date
+   (the number of days since Jan 1st, 1970). Note that when an account
+   has been removed from the database, and then recreated again, for
+   this account, a gap will occur in the generated sequence of
+   seqnums.
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
@@ -187,14 +188,12 @@ committed_at_ts : date-time
    The moment at which the transfer was committed.
 
 committed_amount : int64
-
    TODO: change the name?
    The increase in the account principal which the transfer caused. It
    can be positive (increase), or negative (decrease), but it MUST NOT
    be zero.
 
 other_party_identity : string
-
    A string which (along with ``debtor_id``) identifies the other
    party in the transfer. When ``committed_amount`` is positive, this
    is the sender; when ``committed_amount`` is negative, this is the
@@ -212,31 +211,34 @@ transfer_flags : int32
 account_creation_date : date
    The date on which the account was created.
 
-* `account_new_principal` is the account principal, after the transfer
-  has been committd (between -MAX_INT64 and MAX_INT64).
+account_new_principal : int64
+   The account principal, after the transfer has been committed.
 
-* `previous_transfer_seqnum` is the sequential number (>= 0) of the
-  previous transfer. It will always be smaller than `transfer_seqnum`,
-  and sometimes the difference can be more than `1`. If there were no
-  previous transfers, the value will have its lower 40 bits set to
-  `0x0000000000`, and its higher 24 bits calculated from
-  `account_creation_date` (the number of days since Jan 1st, 1970).
+previous_transfer_seqnum : int64
+   TODO: improve description
+   The sequential number of the previous transfer. MUST be a positive
+   number. It will always be smaller than `transfer_seqnum`, and
+   sometimes the difference can be more than `1`. If there were no
+   previous transfers, the value will have its lower 40 bits set to
+   `0x0000000000`, and its higher 24 bits calculated from
+   `account_creation_date` (the number of days since Jan 1st, 1970).
 
-* `system_flags` contains various bit-flags characterizing the
-  transfer.
+system_flags : int32
+   Various bit-flags characterizing the transfer.
 
-* `creditor_identity` is a string, which (along with `debtor_id`)
-  identifies the affected account. Different implementations may use
-  different formats for the identifier. Note that while `creditor_id`
-  could be a "local" identifier, recognized only by the system that
-  created the account, `creditor_identity` is always a globally
-  recognized identifier.
+creditor_identity : string
+   A string which (along with ``debtor_id``) identifies the affected
+   account. Different implementations may use different formats for
+   the identifier. Note that while ``creditor_id`` could be a "local"
+   identifier, recognized only by the system that created the account,
+   ``creditor_identity`` is always a globally recognized identifier.
 
-* `transfer_id` will contain either `0`, or the ID of the
-   corresponding prepared transfer. This allows the sender of a
-   committed direct transfer, to reliably identify the corresponding
-   prepared transfer record (using `debtor_id`, `creditor_id`, and
-   `transfer_id` fields).
+transfer_id : int64
+   TODO: improve description
+   MUST contain either ``0``, or the ID of the corresponding prepared
+   transfer. This allows the sender of a committed direct transfer, to
+   reliably identify the corresponding prepared transfer record (using
+   `debtor_id`, `creditor_id`, and `transfer_id` fields).
 
 
 ``AccountChange`` message
