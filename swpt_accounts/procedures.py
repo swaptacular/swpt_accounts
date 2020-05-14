@@ -625,7 +625,7 @@ def _process_transfer_request(
             coordinator_id=tr.coordinator_id,
             coordinator_request_id=tr.coordinator_request_id,
             rejection_code=rejection_code,
-            available_amount=available_amount,
+            available_amount=max(0, available_amount),
             sender_creditor_id=tr.sender_creditor_id,
         )
 
