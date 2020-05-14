@@ -74,9 +74,9 @@ rejection_code : string
 available_amount : int64
    If the transfer was rejected due to insufficient available amount,
    and there is a good chance for a new transfer request with a
-   smaller amount to be successful, this field MAY contain the amount
-   currently available on the sender's account (which would always be a
-   positive number). Otherwise it MUST be ``0``.
+   smaller amount to be successful, this field SHOULD contain the
+   amount currently available on the sender's account (which would
+   always be a positive number). Otherwise it MUST be ``0``.
 
 debtor_id : int64
    The ID of the debtor.
