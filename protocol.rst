@@ -167,7 +167,7 @@ debtor_id : int64
    The ID of the debtor.
 
 creditor_id : int64
-   Along with ``debtor_id`` identifies the affected account.
+   Along with ``debtor_id``, identifies the affected account.
 
 transfer_seqnum : int64
    TODO: improve description
@@ -188,6 +188,7 @@ committed_at_ts : date-time
    The moment at which the transfer was committed.
 
 committed_amount : int64
+   TODO: rename?
    The increase in the affected account's principal which the transfer
    caused. It can be positive (increase), or negative (decrease), but
    it MUST NOT be zero.
@@ -202,18 +203,18 @@ other_party_identity : string
 
 transfer_message : string
    This MUST be the value of the ``transfer_message`` field in the
-   ``FinalizePreparedTransfer`` message, that fianlized the tranfer.
+   ``FinalizePreparedTransfer`` message that fianlized the transfer.
 
 transfer_flags : int32
    This MUST be the value of the ``transfer_flags`` field in the
-   ``FinalizePreparedTransfer`` message, that fianlized the tranfer.
+   ``FinalizePreparedTransfer`` message that fianlized the transfer.
 
 account_creation_date : date
-   The date on which the account was created.
+   The date on which the affected account was created.
 
 account_new_principal : int64
-   The account principal, as it is after the transfer has been
-   committed.
+   The affected account's principal, as it is after the transfer has
+   been committed.
 
 previous_transfer_seqnum : int64
    TODO: improve description
