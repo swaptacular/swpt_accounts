@@ -85,7 +85,12 @@ protocol supports the following operations:
    success of the eventual subsequent *commit*. This paradigm allows
    many transfers to be committed atomically.
 
-5. Creditors receive notification events for every transfer in which
+5. Actors other than creditors (called *coordinators*), can make
+   transfers from one creditor's account to another creditor's
+   account. This can be useful for automated payment and exchange
+   systems.
+
+6. Creditors receive notification events for every transfer in which
    they participate, either as senders (outgoing transfers), or as
    recipients (incoming transfers). Those notification events are
    properly ordered, so that the creditor can reliably assemble the
