@@ -188,12 +188,12 @@ committed_at_ts : date-time
    The moment at which the transfer was committed.
 
 committed_amount : int64
-   TODO: change the name?
-   The increase in the account principal which the transfer caused. It
-   can be positive (increase), or negative (decrease), but it MUST NOT
-   be zero.
+   The increase in the affected account's principal which the transfer
+   caused. It can be positive (increase), or negative (decrease), but
+   it MUST NOT be zero.
 
 other_party_identity : string
+   TODO: improve description
    A string which (along with ``debtor_id``) identifies the other
    party in the transfer. When ``committed_amount`` is positive, this
    is the sender; when ``committed_amount`` is negative, this is the
@@ -201,18 +201,19 @@ other_party_identity : string
    the identifier.
 
 transfer_message : string
-   Notes from the sender. Can be any string that the sender wanted the
-   recipient to see.
+   This MUST be the value of the ``transfer_message`` field in the
+   ``FinalizePreparedTransfer`` message, that fianlized the tranfer.
 
 transfer_flags : int32
    This MUST be the value of the ``transfer_flags`` field in the
-   `FinalizePreparedTransfer` message, that fianlized the tranfer.
+   ``FinalizePreparedTransfer`` message, that fianlized the tranfer.
 
 account_creation_date : date
    The date on which the account was created.
 
 account_new_principal : int64
-   The account principal, after the transfer has been committed.
+   The account principal, as it is after the transfer has been
+   committed.
 
 previous_transfer_seqnum : int64
    TODO: improve description
