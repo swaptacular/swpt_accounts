@@ -1,13 +1,3 @@
-__all__ = [
-    'RejectedTransferSignal',
-    'PreparedTransferSignal',
-    'FinalizedTransferSignal',
-    'AccountTransferSignal',
-    'AccountChangeSignal',
-    'AccountPurgeSignal',
-    'AccountMaintenanceSignal',
-]
-
 
 
 
@@ -17,10 +7,8 @@ __all__ = [
 Emitted when a request to prepare a transfer has been rejected.
 
 coordinator_type : string
-   xxx
    
 coordinator_id : integer
-   yyy
    
 coordinator_request_id : integer
    Uniquely identify the transfer request from the coordinator's point
