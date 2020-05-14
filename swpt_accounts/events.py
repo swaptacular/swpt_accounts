@@ -506,7 +506,7 @@ class AccountPurgeSignal(Signal):
     creation_date = db.Column(db.DATE, primary_key=True)
 
 
-class RejectedConfigureSignal(Signal):
+class RejectedConfigSignal(Signal):
     """Emitted when a `configure_account` message has been received and
     rejected.
 
