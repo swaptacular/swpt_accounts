@@ -74,7 +74,7 @@ class RejectedTransferSignal(Signal):
       transfer was rejected.
 
     * `rejection_code` gives the reason for the rejection of the
-      transfer. Between 1 and 30 symbols, ASCII only.
+      transfer. Between 0 and 30 symbols, ASCII only.
 
     * `available_amount` is the amount currently available on the sender's
       account.
@@ -526,7 +526,7 @@ class RejectedConfigSignal(Signal):
       message was rejected.
 
     * `rejection_code` gives the reason for the rejection of the
-      `configure_account` message. Between 1 and 30 symbols, ASCII
+      `configure_account` message. Between 0 and 30 symbols, ASCII
       only.
 
     """

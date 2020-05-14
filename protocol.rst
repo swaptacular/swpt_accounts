@@ -25,7 +25,7 @@ rejected_at_ts : date-time
 
 rejection_code : string
    Gives the reason for the rejection of the transfer. MUST be between
-   1 and 30 symbols, ASCII only.
+   0 and 30 symbols, ASCII only.
 
 available_amount : int64
    If the transfer was rejected due to insufficient available amount,
@@ -128,8 +128,8 @@ coordinator_request_id : int64
    issued request to prepare a transfer.
    
 recipient_identity : string
-  Identifies the recipient's account. It is the same as in the
-  corresponding ``PreparedTransfer`` message.
+   Identifies the recipient's account. It MUST be the same as in the
+   corresponding ``PreparedTransfer`` message.
 
 prepared_at_ts : date-time
    The moment at which the transfer was prepared.
@@ -146,10 +146,10 @@ committed_amount : int64
 status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
    only. If the transfer has been dismissed, or successfully
-   committed, the value will be "OK". If the transfer was committed,
-   but has been terminated for some reason, the status code will be
-   different from "OK", and will hint at the cause for the termination
-   (in this case ``committed_amount`` MUST be zero).
+   committed, the value MUST be "OK". If the transfer was committed,
+   but has been terminated for some reason, the value MUST be
+   different from "OK", and SHOULD hint at the cause for the
+   termination (in this case ``committed_amount`` MUST be zero).
 
 
 ``AccountTransfer`` message
@@ -351,4 +351,4 @@ rejected.
   message was rejected.
 
 * `rejection_code` gives the reason for the rejection of the
-  `configure_account` message. Between 1 and 30 symbols, ASCII only.
+  `configure_account` message. Between 0 and 30 symbols, ASCII only.
