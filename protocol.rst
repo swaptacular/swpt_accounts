@@ -7,9 +7,11 @@
 Emitted when a request to prepare a transfer has been rejected.
 
 coordinator_type : string
-   
+   \ 
+
 coordinator_id : integer
-   
+   \  
+
 coordinator_request_id : integer
    Uniquely identify the transfer request from the coordinator's point
    of view, so that the coordinator can match the event with the
