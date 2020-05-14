@@ -155,49 +155,62 @@ status_code : string
 ``AccountTransfer`` message
 ---------------------------
 
-Emitted when a transfer has been committed, affecting a given account.
+Emitted when a committed transfer has affected a given account.
 
-NOTE: Each committed transfer affects exactly two accounts: the
-      sender's, and the recipient's. Therefore, exactly two
-      `AccountTransferSignal`s will be emitted for each committed
-      transfer.
+**Important note:** Each committed transfer affects exactly two
+accounts: the sender's, and the recipient's. Therefore, exactly two
+``AccountTransfer`` messages MUST be emitted for each committed
+transfer. The only exception to this rule is for special-purpose
+accounts, for which there would be no recipients to the message.
 
-* `debtor_id` and `creditor_id` identify the affected account.
+debtor_id : int64
+   The ID of the debtor.
 
-* `transfer_seqnum` is the sequential number (> 0) of the
-  transfer. For a newly created account, the sequential number of the
-  first transfer will have its lower 40 bits set to `0x0000000001`,
-  and its higher 24 bits calculated from the account's creation date
-  (the number of days since Jan 1st, 1970). Note that when an account
-  has been removed from the database, and then recreated again, for
-  this account, a gap will occur in the generated sequence of
-  `transfer_seqnum`s.
+creditor_id : int64
+   Along with ``debtor_id`` identifies the affected account.
 
-* `coordinator_type` indicates the subsystem which initiated the
-  transfer.
+transfer_seqnum : int64
+   TODO: improve description
+   The sequential number of the transfer. MUST be positive. For a
+   newly created account, the sequential number of the first transfer
+   will have its lower 40 bits set to `0x0000000001`, and its higher
+   24 bits calculated from the account's creation date (the number of
+   days since Jan 1st, 1970). Note that when an account has been
+   removed from the database, and then recreated again, for this
+   account, a gap will occur in the generated sequence of seqnums.
 
-* `committed_at_ts` is the moment at which the transfer was committed.
+coordinator_type : string
+   Indicates the subsystem which requested the transfer. MUST be
+   between 1 and 30 symbols, ASCII only.
 
-* `committed_amount` is the increase in the account principal which
-  the transfer caused. It can be positive (increase), or negative
-  (decrease), but it can never be zero.
+committed_at_ts : date-time
+   The moment at which the transfer was committed.
 
-* `other_party_identity` is a string, which (along with `debtor_id`)
-  identifies the other party in the transfer. When `committed_amount`
-  is positive, this is the sender; when `committed_amount` is
-  negative, this is the recipient. Different implementations may use
-  different formats for the identifier.
+committed_amount : int64
 
-* `transfer_message` contains notes from the sender. Can be any string
-  that the sender wanted the recipient to see.
+   TODO: change the name?
+   The increase in the account principal which the transfer caused. It
+   can be positive (increase), or negative (decrease), but it MUST NOT
+   be zero.
 
-* `transfer_flags` contains various flags set when the transfer was
-  finalized. (This is the value of the `transfer_flags` parameter,
-  with which the `finalize_prepared_transfer` actor was called.)
+other_party_identity : string
 
-* `account_creation_date` is the date on which the account was
-  created. It can be used to differentiate transfers from different
-  "epochs".
+   A string which (along with ``debtor_id``) identifies the other
+   party in the transfer. When ``committed_amount`` is positive, this
+   is the sender; when ``committed_amount`` is negative, this is the
+   recipient. Different implementations may use different formats for
+   the identifier.
+
+transfer_message : string
+   Notes from the sender. Can be any string that the sender wanted the
+   recipient to see.
+
+transfer_flags : int32
+   This MUST be the value of the ``transfer_flags`` field in the
+   `FinalizePreparedTransfer` message, that fianlized the tranfer.
+
+account_creation_date : date
+   The date on which the account was created.
 
 * `account_new_principal` is the account principal, after the transfer
   has been committd (between -MAX_INT64 and MAX_INT64).
