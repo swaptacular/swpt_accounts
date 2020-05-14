@@ -7,8 +7,8 @@
 Emitted when a request to prepare a transfer has been rejected.
 
 coordinator_type : string
-   Indicates the subsystem which requested the transfer. Between 1 and
-   30 symbols, ASCII only.
+   Indicates the subsystem which requested the transfer. MUST be
+   between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
    Along with ``coordinator_type``, uniquely identifies who requested
@@ -24,8 +24,8 @@ rejected_at_ts : date-time
    The moment at which the request to prepare a transfer was rejected.
 
 rejection_code : string
-   Gives the reason for the rejection of the transfer. Between 1 and
-   30 symbols, ASCII only.
+   Gives the reason for the rejection of the transfer. MUST be between
+   1 and 30 symbols, ASCII only.
 
 available_amount : int64
    If the transfer was rejected due to insufficient available amount,
@@ -54,13 +54,13 @@ sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 transfer_id : int64
-   An opaque ID generated for the prepared transfer. It will always be
+   An opaque ID generated for the prepared transfer. It MUST always be
    a positive number. This ID, along with ``debtor_id`` and
    ``sender_creditor_id``, uniquely identifies the prepared transfer.
 
 coordinator_type : string
-   Indicates the subsystem which requested the transfer. Between 1 and
-   30 symbols, ASCII only.
+   Indicates the subsystem which requested the transfer. MUST be
+   between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
    Along with ``coordinator_type``, uniquely identifies who requested
@@ -73,7 +73,7 @@ coordinator_request_id : int64
    issued request to prepare a transfer.
 
 sender_locked_amount : int64
-   The secured (prepared) amount for the transfer. It will always be a
+   The secured (prepared) amount for the transfer. It MUST always be a
    positive number. The actual transferred (committed) amount may not
    exceed this number.
 
@@ -103,33 +103,53 @@ the client side.
 Emitted when a transfer has been finalized and its corresponding
 prepared transfer record removed from the database.
 
-* `debtor_id` and `sender_creditor_id` identify sender's account.
+debtor_id : int64
+   The ID of the debtor.
 
-* `transfer_id` is the opaque ID generated for the prepared transfer.
+sender_creditor_id : int64
+   Along with ``debtor_id`` identifies the sender's account.
 
-* `coordinator_type`, `coordinator_id`, and `coordinator_request_id`
-  uniquely identify the transfer request from the coordinator's point
-  of view, so that the coordinator can match the event with the
-  originating transfer request.
+transfer_id : int64
+   The opaque ID generated for the prepared transfer (see the
+   ``PreparedTransfer`` message).
 
-* `recipient_identity` is a string, which (along with `debtor_id`)
-  identifies recipient's account. Different implementations may use
-  different formats for the identifier of recipient's account.
+coordinator_type : string
+   Indicates the subsystem which requested the transfer. MUST be
+   between 1 and 30 symbols, ASCII only.
 
-* `prepared_at_ts` is the moment at which the transfer was prepared.
+coordinator_id : int64
+   Along with ``coordinator_type``, uniquely identifies who requested
+   the transfer.
 
-* `finalized_at_ts` is the moment at which the transfer was finalized.
+coordinator_request_id : int64
+   Along with ``coordinator_type`` and ``coordinator_id``, uniquely
+   identifies the accepted request from the coordinator's point of
+   view, so that the coordinator can match this message with the
+   issued request to prepare a transfer.
+   
+recipient_identity : string
+  Identifies the recipient's account. It is the same as in the
+  corresponding ``PreparedTransfer`` message.
 
-* `committed_amount` is the transferred (committed) amount. It is
-  always a non-negative number. A `0` means that the transfer has been
-  dismissed, or was committed but has been terminated for some reason.
+prepared_at_ts : date-time
+   The moment at which the transfer was prepared.
 
-* `status_code` is the finalization status. Between 0 and 30 symbols,
-  ASCII only. If the transfer has been dismissed or committed
-  successfully, the value will be "OK". If the transfer was committed,
-  but has been terminated for some reason, the status code will be
-  different from "OK", and will hint at the cause for the termination
-  (in this case `committed_amount` will be zero).
+finalized_at_ts : date-time
+   The moment at which the transfer was finalized.
+
+committed_amount : int64
+   The transferred (committed) amount. It MUST always be a
+   non-negative number. A ``0`` means that the transfer has been
+   dismissed, or was committed but has been terminated for some
+   reason.
+
+status_code : string
+   The finalization status. MUST be between 0 and 30 symbols, ASCII
+   only. If the transfer has been dismissed, or successfully
+   committed, the value will be "OK". If the transfer was committed,
+   but has been terminated for some reason, the status code will be
+   different from "OK", and will hint at the cause for the termination
+   (in this case ``committed_amount`` MUST be zero).
 
 
 ``AccountTransfer`` message
