@@ -2,7 +2,7 @@
 
 
 ``RejectedTransfer`` message
---------------------------
+----------------------------
 
 Emitted when a request to prepare a transfer has been rejected.
 
@@ -41,8 +41,8 @@ sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 
-`PreparedTransfer` message
---------------------------
+``PreparedTransfer`` message
+----------------------------
 
 Emitted when a new transfer has been prepared, or to remind that a
 prepared transfer must be finalized.
@@ -88,9 +88,17 @@ prepared_at_ts : date-time
 signal_ts : date-time
    The moment at which this signal was emitted.
 
+If a prepared transfer has not been finalized (committed or dismissed)
+for a while, the server SHOULD send another ``PreparedTransfer``
+message, identical to the previous one (except the **signal_ts**
+field), to remind that a transfer is prepared an is waiting for a
+resolution. This guarantees that there will be not long-hanging
+prepared transfers, even in the case of complete data loss on the
+client side.
 
-`FinalizedTransfer` message
----------------------------
+
+``FinalizedTransfer`` message
+-----------------------------
 
 Emitted when a transfer has been finalized and its corresponding
 prepared transfer record removed from the database.
@@ -124,8 +132,8 @@ prepared transfer record removed from the database.
   (in this case `committed_amount` will be zero).
 
 
-`AccountTransfer` message
--------------------------
+``AccountTransfer`` message
+---------------------------
 
 Emitted when a transfer has been committed, affecting a given account.
 
@@ -198,8 +206,8 @@ NOTE: Each committed transfer affects exactly two accounts: the
    `transfer_id` fields).
 
 
-`AccountChange` message
------------------------
+``AccountChange`` message
+-------------------------
 
 Emitted when there is a meaningful change in account's state, or to
 remind that the account still exists.
@@ -281,8 +289,8 @@ remind that the account still exists.
   identifier.
 
 
-`AccountPurge` message
-----------------------
+``AccountPurge`` message
+------------------------
 
 Emitted when an account has been removed from the database.
 
@@ -301,8 +309,8 @@ Emitted when an account has been removed from the database.
   identifier.
 
 
-`RejectedConfigure` message
----------------------------
+``RejectedConfig`` message
+--------------------------
 
 Emitted when a `configure_account` message has been received and
 rejected.
