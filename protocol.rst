@@ -1,4 +1,48 @@
+Incoming messages
+=================
 
+``ConfigureAccount`` message
+----------------------------
+
+Make sure the given account exists, then update its configuration
+settings.
+
+* `signal_ts` is the current timestamp. For a given account, later
+  calls to `configure_account` MUST have later or equal timestamps,
+  compared to earlier calls.
+
+* `signal_seqnum` is the sequential number of the call (a 32-bit
+  integer). For a given account, later calls to `configure_account`
+  SHOULD have bigger sequential numbers, compared to earlier calls
+  (except for the possible 32-bit integer wrapping, in case of an
+  overflow).
+
+* `status_flags` contains account configuration flags (a 16-bit
+  integer). When the configuration update is applied, the lower 16
+  bits of the `Account.status` column (see `models.Account) will be
+  equal to those of `status_flags`.
+
+* `negligible_amount` is the maximum amount that should be considered
+   negligible. It is used to: 1) decide whether an account can be
+   safely deleted; 2) decide whether a transfer is insignificant. MUST
+   be non-negative.
+
+* `config` contains additional account configuration
+  information. Different implementations may use different formats for
+  this field.
+
+An `AccountChangeSignal` is always sent as a confirmation.
+
+NOTE: In order to decide whether to update the configuration when a
+(potentially old) `configure_account` signal is received, the
+implementation compares the `signal_ts` of the current call, to the
+`signal_ts` of the latest call. Only if they are equal, the
+`signal_seqnum`s are compared as well (correctly dealing with possible
+integer wrapping).
+
+
+Outgoing messages
+=================
 
 
 ``RejectedTransfer`` message
@@ -157,11 +201,11 @@ status_code : string
 
 Emitted when a committed transfer has affected a given account.
 
-**Important note:** Each committed transfer affects exactly two
-accounts: the sender's, and the recipient's. Therefore, exactly two
-``AccountTransfer`` messages MUST be emitted for each committed
-transfer. The only exception to this rule is for special-purpose
-accounts, for which there would be no recipients to the message.
+Each committed transfer affects exactly two accounts: the sender's,
+and the recipient's. Therefore, exactly two ``AccountTransfer``
+messages MUST be emitted for each committed transfer. The only
+exception to this rule is for special-purpose accounts that have no
+recipients for the message.
 
 debtor_id : int64
    The ID of the debtor.
