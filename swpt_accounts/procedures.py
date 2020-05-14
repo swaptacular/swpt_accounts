@@ -625,7 +625,7 @@ def _process_transfer_request(
             coordinator_id=tr.coordinator_id,
             coordinator_request_id=tr.coordinator_request_id,
             rejection_code=rejection_code,
-            available_amount=max(0, available_amount),
+            available_amount=available_amount,
             sender_creditor_id=tr.sender_creditor_id,
         )
 
@@ -669,19 +669,19 @@ def _process_transfer_request(
     expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
 
     if sender_account.pending_transfers_count >= MAX_INT32:
-        return reject('TOO_MANY_TRANSFERS', available_amount)
+        return reject('TOO_MANY_TRANSFERS', 0)
 
     if expendable_amount < tr.min_amount:
-        return reject('INSUFFICIENT_AVAILABLE_AMOUNT', available_amount)
+        return reject('INSUFFICIENT_AVAILABLE_AMOUNT', max(0, available_amount))
 
     if tr.sender_creditor_id == tr.recipient_creditor_id:
-        return reject('RECIPIENT_SAME_AS_SENDER', available_amount)
+        return reject('RECIPIENT_SAME_AS_SENDER', 0)
 
     # NOTE: Transfers to the debtor's account must be allowed even
     # when the debtor's account does not exist. In this case, it will
     # be created when the transfer is committed.
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_accessible:
-        return reject('RECIPIENT_NOT_ACCESSIBLE', available_amount)
+        return reject('RECIPIENT_NOT_ACCESSIBLE', 0)
 
     return prepare(expendable_amount)
 
