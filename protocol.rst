@@ -21,14 +21,15 @@ Emitted when a request to prepare a transfer has been rejected.
   of view, so that the coordinator can match the event with the
   originating transfer request.
 
-:rejected_at_ts: The moment at which the request to prepare a transfer
-   was rejected.
+rejected_at_ts
+   The moment at which the request to prepare a transfer was rejected.
 
-:rejection_code: Gives the reason for the rejection of the
-  transfer. Between 1 and 30 symbols, ASCII only.
+rejection_code
+   Gives the reason for the rejection of the transfer. Between 1 and
+   30 symbols, ASCII only.
 
-:available_amount: The amount currently available on the sender's
-  account.
+available_amount
+   The amount currently available on the sender's account.
 
 * `debtor_id` and `sender_creditor_id` identify the sender's account.
 
