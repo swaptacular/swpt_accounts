@@ -665,9 +665,6 @@ def _process_transfer_request(
 
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
-    available_amount = _get_available_amount(sender_account, current_ts)
-    expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
-
     if sender_account.pending_transfers_count >= MAX_INT32:
         return reject('TOO_MANY_TRANSFERS', 0)
 
@@ -680,6 +677,8 @@ def _process_transfer_request(
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_accessible:
         return reject('RECIPIENT_NOT_ACCESSIBLE', 0)
 
+    available_amount = _get_available_amount(sender_account, current_ts)
+    expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
     if expendable_amount < tr.min_amount:
         return reject('INSUFFICIENT_AVAILABLE_AMOUNT', max(0, available_amount))
 
