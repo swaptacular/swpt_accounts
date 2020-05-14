@@ -7,11 +7,11 @@
 Emitted when a request to prepare a transfer has been rejected.
 
 coordinator_type : string
-   Indicates the subsystem which initiated the transfer. Between 1 and
+   Indicates the subsystem which requested the transfer. Between 1 and
    30 symbols, ASCII only.
 
 coordinator_id : int64
-   Along with ``coordinator_type``, uniquely identifies who initiated
+   Along with ``coordinator_type``, uniquely identifies who requested
    the transfer.
 
 coordinator_request_id : int64
@@ -31,43 +31,62 @@ available_amount : int64
    If the transfer was rejected due to insufficient available amount,
    and there is a good chance for a new transfer request with a
    smaller amount to be successful, this field MAY contain the amount
-   currently available on the sender's account (which will always be a
+   currently available on the sender's account (which would always be a
    positive number). Otherwise it MUST be ``0``.
 
 debtor_id : int64
    The ID of the debtor.
    
-sender_creditor_id: int64
+sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 
 `PreparedTransfer` message
 --------------------------
 
-Emitted when a new transfer has been prepared, or to ramind that a
+Emitted when a new transfer has been prepared, or to remind that a
 prepared transfer must be finalized.
 
-* `debtor_id` and `sender_creditor_id` identify sender's account.
+debtor_id : int64
+   The ID of the debtor.
 
-* `transfer_id` is an opaque ID generated for the prepared
-  transfer. It will never be `0`.
+sender_creditor_id : int64
+   Along with ``debtor_id`` identifies the sender's account.
 
-* `coordinator_type`, `coordinator_id`, and `coordinator_request_id`
-  uniquely identify the transfer request from the coordinator's point
-  of view, so that the coordinator can match the event with the
-  originating transfer request.
+transfer_id : int64
+   An opaque ID generated for the prepared transfer. It will always be
+   a positive number. This ID, along with ``debtor_id`` and
+   ``sender_creditor_id``, uniquely identifies the prepared transfer.
 
-* `sender_locked_amount` is the secured (prepared) amount for the
-  transfer (always a positive number). The actual transferred
-  (committed) amount may not exceed this number.
+coordinator_type : string
+   Indicates the subsystem which requested the transfer. Between 1 and
+   30 symbols, ASCII only.
 
-* `recipient_identity` is a string, which (along with `debtor_id`)
-  identifies recipient's account. Different implementations may use
-  different formats for the identifier of recipient's account.
+coordinator_id : int64
+   Along with ``coordinator_type``, uniquely identifies who requested
+   the transfer.
 
-* `prepared_at_ts` is the moment at which the transfer was prepared.
+coordinator_request_id : int64
+   Along with ``coordinator_type`` and ``coordinator_id``, uniquely
+   identifies the rejected request from the coordinator's point of
+   view, so that the coordinator can match this message with the
+   issued request to prepare a transfer.
 
-* `signal_ts` is the moment at which this signal was emitted.
+sender_locked_amount : int64
+   The secured (prepared) amount for the transfer. It will always be a
+   positive number. The actual transferred (committed) amount may not
+   exceed this number.
+
+recipient_identity : string
+   A a string, which (along with `debtor_id`) uniquely identifies
+   recipient's account. Different implementations may use different
+   formats for the identifier of recipient's account.
+
+prepared_at_ts : date-time
+   The moment at which the transfer was prepared.
+
+signal_ts : date-time
+   The moment at which this signal was emitted.
 
 
 `FinalizedTransfer` message

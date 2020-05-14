@@ -108,8 +108,8 @@ class RejectedTransferSignal(Signal):
 
 
 class PreparedTransferSignal(Signal):
-    """Emitted when a new transfer has been prepared, or to ramind that
-    a prepared transfer must be finalized.
+    """Emitted when a new transfer has been prepared, or to remind that a
+    prepared transfer must be finalized.
 
     * `debtor_id` and `sender_creditor_id` identify sender's account.
 
