@@ -506,6 +506,53 @@ class AccountPurgeSignal(Signal):
     creation_date = db.Column(db.DATE, primary_key=True)
 
 
+class RejectedConfigureAccountSignal(Signal):
+    """Emitted when a `configure_account` message has been received and
+    rejected.
+
+    * `debtor_id` and `creditor_id` identify the account.
+
+    * `config_signal_ts` containg the value of the `signal_ts` field
+      in the rejected `configure_account` message.
+
+    * `config_signal_seqnum` containg the value of the `signal_seqnum`
+      field in the rejected `configure_account` message.
+
+    * `status_flags`, `negligible_amount`, `config` contain the values
+      of the corresponding fields in the rejected `configure_account`
+      message.
+
+    * `rejected_at_ts` is the moment at which the `configure_account`
+      message was rejected.
+
+    * `rejection_code` gives the reason for the rejection of the
+      `configure_account` message. Between 1 and 30 symbols, ASCII
+      only.
+
+    """
+
+    class __marshmallow__(Schema):
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+        config_signal_ts = fields.DateTime()
+        config_signal_seqnum = fields.Integer()
+        status_flags = fields.Integer()
+        negligible_amount = fields.Float(),
+        config = fields.String()
+        rejected_at_ts = fields.DateTime(attribute='inserted_at_ts')
+        rejection_code = fields.String()
+
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    config_signal_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    config_signal_seqnum = db.Column(db.Integer, nullable=False)
+    status_flags = db.Column(db.SmallInteger, nullable=False)
+    negligible_amount = db.Column(db.REAL, nullable=False)
+    config = fields.String(nullable=False)
+    rejection_code = db.Column(db.String(30), nullable=False)
+
+
 class AccountMaintenanceSignal(Signal):
     """"Emitted when a maintenance operation request is received for a
     given account.

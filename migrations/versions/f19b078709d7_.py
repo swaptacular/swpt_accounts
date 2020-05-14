@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: e88941cf20c3
+Revision ID: f19b078709d7
 Revises: 
-Create Date: 2020-04-05 18:38:05.998182
+Create Date: 2020-05-14 17:49:06.928600
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e88941cf20c3'
+revision = 'f19b078709d7'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -148,6 +148,18 @@ def upgrade():
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'signal_id')
     )
+    op.create_table('rejected_configure_account_signal',
+    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
+    sa.Column('config_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('config_signal_seqnum', sa.Integer(), nullable=False),
+    sa.Column('status_flags', sa.SmallInteger(), nullable=False),
+    sa.Column('negligible_amount', sa.REAL(), nullable=False),
+    sa.Column('rejection_code', sa.String(length=30), nullable=False),
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
+    )
     op.create_table('rejected_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -201,6 +213,7 @@ def downgrade():
     op.drop_table('prepared_transfer')
     op.drop_table('transfer_request')
     op.drop_table('rejected_transfer_signal')
+    op.drop_table('rejected_configure_account_signal')
     op.drop_table('prepared_transfer_signal')
     op.drop_table('pending_account_change')
     op.drop_table('finalized_transfer_signal')
