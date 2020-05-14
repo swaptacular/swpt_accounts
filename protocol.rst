@@ -11,7 +11,7 @@ __all__ = [
 
 
 
-`RejectedTransfer` message
+``RejectedTransfer`` message
 --------------------------
 
 Emitted when a request to prepare a transfer has been rejected.
@@ -21,7 +21,7 @@ Emitted when a request to prepare a transfer has been rejected.
   of view, so that the coordinator can match the event with the
   originating transfer request.
 
-* `rejected_at_ts` is the moment at which the request to prepare a
+* ``rejected_at_ts`` is the moment at which the request to prepare a
   transfer was rejected.
 
 * `rejection_code` gives the reason for the rejection of the
