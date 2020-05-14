@@ -68,7 +68,7 @@ coordinator_id : int64
 
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
-   identifies the rejected request from the coordinator's point of
+   identifies the accepted request from the coordinator's point of
    view, so that the coordinator can match this message with the
    issued request to prepare a transfer.
 
@@ -78,7 +78,7 @@ sender_locked_amount : int64
    exceed this number.
 
 recipient_identity : string
-   A a string, which (along with `debtor_id`) uniquely identifies
+   A string which (along with ``debtor_id``) uniquely identifies the
    recipient's account. Different implementations may use different
    formats for the identifier of recipient's account.
 
@@ -90,11 +90,11 @@ signal_ts : date-time
 
 If a prepared transfer has not been finalized (committed or dismissed)
 for a while, the server SHOULD send another ``PreparedTransfer``
-message, identical to the previous one (except the **signal_ts**
-field), to remind that a transfer is prepared an is waiting for a
-resolution. This guarantees that there will be not long-hanging
-prepared transfers, even in the case of complete data loss on the
-client side.
+message, identical to the previous one (except for the **signal_ts**
+field), to remind that a transfer is prepared and is waiting for a
+resolution. This guarantees that there will be no infinitely hanging
+prepared transfers, even in the case of a complete database loss on
+the client side.
 
 
 ``FinalizedTransfer`` message
