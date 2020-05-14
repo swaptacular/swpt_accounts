@@ -6,17 +6,19 @@
 
 Emitted when a request to prepare a transfer has been rejected.
 
-coordinator_type : string(30)
-   Between 1 and 30 symbols, ASCII only.
+coordinator_type : string
+   Indicates the subsystem which initiated the transfer. Between 1 and
+   30 symbols, ASCII only.
 
 coordinator_id : int64
-   \  
+   Along with ``coordinator_type``, uniquely identifies who initiated
+   the transfer.
 
 coordinator_request_id : int64
-   Along with ``coordinator_type`` and ``coordinator_id`` uniquely
-   identifies the transfer request from the coordinator's point of
-   view, so that the coordinator can match the event with the
-   originating transfer request.
+   Along with ``coordinator_type`` and ``coordinator_id``, uniquely
+   identifies the rejected request from the coordinator's point of
+   view, so that the coordinator can match this message with the
+   issued request to prepare a transfer.
 
 rejected_at_ts : date-time
    The moment at which the request to prepare a transfer was rejected.
@@ -26,10 +28,14 @@ rejection_code : string
    30 symbols, ASCII only.
 
 available_amount : int64
-   The amount currently available on the sender's account.
+   If the transfer was rejected due to insufficient available amount,
+   and there is a good chance for a new transfer request with a
+   smaller amount to be successful, this field MAY contain the amount
+   currently available on the sender's account (which will always be a
+   positive number). Otherwise it MUST be ``0``.
 
 debtor_id : int64
-   \ 
+   The ID of the debtor.
    
 sender_creditor_id: int64
    Along with ``debtor_id`` identifies the sender's account.
