@@ -16,10 +16,12 @@ __all__ = [
 
 Emitted when a request to prepare a transfer has been rejected.
 
-* `coordinator_type`, `coordinator_id`, and `coordinator_request_id`
-  uniquely identify the transfer request from the coordinator's point
-  of view, so that the coordinator can match the event with the
-  originating transfer request.
+coordinator_type
+coordinator_id
+coordinator_request_id
+   Uniquely identify the transfer request from the coordinator's point
+   of view, so that the coordinator can match the event with the
+   originating transfer request.
 
 rejected_at_ts
    The moment at which the request to prepare a transfer was rejected.
