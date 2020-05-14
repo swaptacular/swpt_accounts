@@ -3,9 +3,10 @@ swpt_accounts
 
 Swaptacular micro-service that manages user account balances
 
-It implements several `Dramatiq`_ actors (see
-``swpt_accounts/actors.py``), emits several types of events (see
-``swpt_accounts/events.py``).
+Currently it implements several `Dramatiq`_ actors (see
+``swpt_accounts/actors.py``), and emits several types of events (see
+``swpt_accounts/events.py``). Eventually, it should migrate to using
+`Cap'n Proto`_.
 
 
 How to run it
@@ -50,3 +51,4 @@ How to setup a development environment
 .. _Poetry: https://poetry.eustace.io/docs/
 .. _Python: https://docs.python.org/
 .. _Dramatiq: https://dramatiq.io/
+.. _`Cap'n Proto`: https://capnproto.org/
