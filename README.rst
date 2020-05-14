@@ -87,8 +87,8 @@ protocol supports the following operations:
 
 5. Actors other than creditors (called *coordinators*), can make
    transfers from one creditor's account to another creditor's
-   account. This can be useful for automated payment and exchange
-   systems.
+   account. This can be useful for implementing automated payment and
+   exchange systems.
 
 6. Creditors receive notification events for every transfer in which
    they participate, either as senders (outgoing transfers), or as
