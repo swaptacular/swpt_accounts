@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f19b078709d7
+Revision ID: afb50ae1e51f
 Revises: 
-Create Date: 2020-05-14 17:49:06.928600
+Create Date: 2020-05-14 17:54:56.914980
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f19b078709d7'
+revision = 'afb50ae1e51f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -148,7 +148,7 @@ def upgrade():
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'signal_id')
     )
-    op.create_table('rejected_configure_account_signal',
+    op.create_table('rejected_configure_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
@@ -213,7 +213,7 @@ def downgrade():
     op.drop_table('prepared_transfer')
     op.drop_table('transfer_request')
     op.drop_table('rejected_transfer_signal')
-    op.drop_table('rejected_configure_account_signal')
+    op.drop_table('rejected_configure_signal')
     op.drop_table('prepared_transfer_signal')
     op.drop_table('pending_account_change')
     op.drop_table('finalized_transfer_signal')
