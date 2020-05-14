@@ -677,6 +677,11 @@ def _process_transfer_request(
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_accessible:
         return reject('RECIPIENT_NOT_ACCESSIBLE', 0)
 
+    # NOTE: The available amount should be checked last, because if
+    # the transfer request is rejected due to insufficient available
+    # amount, and the same transfer request is made again, but for
+    # small enough amount, we want it to succeed, and not fail for
+    # some of the other possible reasons.
     available_amount = _get_available_amount(sender_account, current_ts)
     expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
     if expendable_amount < tr.min_amount:
