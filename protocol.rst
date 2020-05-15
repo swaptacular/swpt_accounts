@@ -50,23 +50,25 @@ whether the specified account already exists.
   `RejectedConfig`_ message MUST be sent.
 
 * If the account already exists, implementations MUST decide whether
-  the received message, or a later `ConfigureAccount`_ message has
-  been already processed. To do this, implementations MUST compare the
-  values of ``signal_ts`` and ``signal_seqnum`` fields in the received
-  message, to the values of those fields in the latest processed
+  the same, or a later `ConfigureAccount`_ message has been already
+  processed. To do this, implementations MUST compare the values of
+  ``signal_ts`` and ``signal_seqnum`` fields in the received message,
+  to the values of those fields in the latest processed
   `ConfigureAccount`_ message [#]_ .  If the received message turns
-  out to be old, it SHOULD be ignored. Otherwise, an attempt MUST be
-  made to update the account's configuration with the requested new
-  configuration. If the new configuration has been successfully
-  applied, an `AccountChange`_ message containing the new
+  out to be an old one, it SHOULD be ignored. Otherwise, an attempt
+  MUST be made to update the account's configuration with the
+  requested new configuration. If the new configuration has been
+  successfully applied, an `AccountChange`_ message containing the new
   configuration MUST be sent. Otherwise a `RejectedConfig`_ message
   MUST be sent.
 
 .. [#] Implementations MUST first compare the ``signal_ts`` fields,
   and only if they are equal, the ``signal_seqnum`` fields MUST be
   compared as well. Note that when comparing the ``signal_seqnum``
-  fields implementations MUST correctly deal with the possible integer
-  wrapping. ``0 < (seqnum1 - seqnum2) % 0x100000000 < 0x80000000``
+  fields, implementations MUST correctly deal with the possible 32-bit
+  integer wrapping. For example, to compare ``seqnum1`` and
+  ``seqnum2``, the following expression MAY be used ``0 < (seqnum1 -
+  seqnum2) % 0x100000000 < 0x80000000``.
 
 
 Outgoing messages
