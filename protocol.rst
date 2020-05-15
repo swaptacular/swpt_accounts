@@ -120,9 +120,11 @@ signal_ts : date-time
    The moment at which this message was sent (the message timestamp).
 
 minimum_account_balance : int64
-   Determines the *minimum* amount that MUST remain available on
+   Determines the minimum amount that SHOULD remain available on
    sender's account after the requested amount has been secured. This
    can be a negative number.
+
+TODO: mention the greedy way this thing should work.
 
 Before sending a message to this actor, the sender MUST create a
 Coordinator Request (CR) database record, with a primary key of
