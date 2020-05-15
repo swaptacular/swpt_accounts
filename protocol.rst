@@ -424,23 +424,33 @@ Emitted when an account has been removed from the database.
 RejectedConfig
 --------------
 
-Emitted when a `configure_account` message has been received and
+Emitted when a `ConfigureAccount`_ message has been received and
 rejected.
 
-* `debtor_id` and `creditor_id` identify the account.
+debtor_id : int64
+   The value of the `debtor_id` field in the rejected message.
 
-* `config_signal_ts` containg the value of the `signal_ts` field in
-  the rejected `configure_account` message.
+creditor_id : int64
+   The value of the `creditor_id` field in the rejected message.
 
-* `config_signal_seqnum` containg the value of the `signal_seqnum`
-  field in the rejected `configure_account` message.
+config_signal_ts : date-time
+   The value of the `signal_ts` field in the rejected message.
 
-* `status_flags`, `negligible_amount`, `config` contain the values of
-  the corresponding fields in the rejected `configure_account`
-  message.
+config_signal_seqnum : int32
+   The value of the `signal_seqnum` field in the rejected message.
 
-* `rejected_at_ts` is the moment at which the `configure_account`
-  message was rejected.
+status_flags : int16
+   The value of the `status_flags` field in the rejected message.
 
-* `rejection_code` gives the reason for the rejection of the
-  `configure_account` message. Between 0 and 30 symbols, ASCII only.
+negligible_amount : float
+   The value of the `negligible_amount` field in the rejected message.
+
+config : string
+   The value of the `config` field in the rejected message.
+
+rejected_at_ts : date-time
+   The moment at which the `ConfigureAccount`_ message was rejected.
+
+rejection_code : string
+   The reason for the rejection of the `ConfigureAccount`_ message
+   message. Between 0 and 30 symbols, ASCII only.
