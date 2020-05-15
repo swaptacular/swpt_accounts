@@ -66,9 +66,9 @@ whether the specified account already exists.
   and only if they are equal, the ``signal_seqnum`` fields MUST be
   compared as well. Note that when comparing the ``signal_seqnum``
   fields, implementations MUST correctly deal with the possible 32-bit
-  integer wrapping. For example, to compare ``seqnum1`` and
-  ``seqnum2``, the following expression MAY be used ``0 < (seqnum1 -
-  seqnum2) % 0x100000000 < 0x80000000``.
+  integer wrapping. For example, to decide whether ``seqnum1`` is
+  later than ``seqnum2``, the following expression MAY be used: ``0 <
+  (seqnum1 - seqnum2) % 0x100000000 < 0x80000000``.
 
 
 Outgoing messages
