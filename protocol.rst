@@ -39,8 +39,10 @@ config : string
    Additional account configuration information. Different
    implementations may use different formats for this field.
 
-When a `ConfigureAccount`_ message is received, implementations MUST
-first verify whether the specified account already exists.
+Implementations MAY decide to ignore `ConfigureAccount`_ messages,
+whose ``signal_ts`` is too far in the past. If the implementation
+decides to process the message it MUST first verify whether the
+specified account already exists:
 
 * *If the account does not exist*, implementations MUST attempt to
   create a new account with the requested configuration settings. If
