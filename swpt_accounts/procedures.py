@@ -7,7 +7,7 @@ from sqlalchemy.sql.expression import tuple_
 from swpt_lib.utils import is_later_event, increment_seqnum, u64_to_i64
 from .extensions import db
 from .models import (
-    Account, TransferRequest, PreparedTransfer, PendingAccountChange,
+    Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
     AccountChangeSignal, AccountTransferSignal, AccountMaintenanceSignal,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
@@ -29,7 +29,8 @@ def configure_account(
         signal_ts: datetime,
         signal_seqnum: int,
         status_flags: int = 0,
-        negligible_amount: float = 0.0) -> None:
+        negligible_amount: float = 0.0,
+        config: str = '') -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -41,6 +42,18 @@ def configure_account(
     signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
     is_signal_outdated = (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds
     if not is_signal_outdated:
+        if negligible_amount < 0.0 or config != '':
+            db.session.add(RejectedConfigSignal(
+                debtor_id=debtor_id,
+                creditor_id=creditor_id,
+                config_signal_ts=signal_ts,
+                config_signal_seqnum=signal_seqnum,
+                status_flags=status_flags,
+                negligible_amount=negligible_amount,
+                config=config,
+                rejection_code='INVALID_CONFIG',
+            ))
+            return
         account = _lock_or_create_account(debtor_id, creditor_id, current_ts, send_account_creation_signal=False)
         this_event = (signal_ts, signal_seqnum)
         prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
@@ -49,7 +62,7 @@ def configure_account(
             # always be executed, because `last_config_signal_ts` for
             # newly created accounts is many years ago.
             account.set_config_flags(status_flags)
-            account.negligible_amount = max(0.0, negligible_amount)
+            account.negligible_amount = negligible_amount
             account.last_config_signal_ts = signal_ts
             account.last_config_signal_seqnum = signal_seqnum
             _apply_account_change(account, 0, 0, current_ts)

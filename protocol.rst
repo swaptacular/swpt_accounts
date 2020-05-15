@@ -56,8 +56,8 @@ specified account already exists:
   values of ``signal_ts`` and ``signal_seqnum`` fields in the received
   message, to the values of these fields in the latest processed
   `ConfigureAccount`_ message [#]_ . If the received message turns out
-  to be an old one, it SHOULD be ignored. Otherwise, an attempt MUST
-  be made to update the account's configuration with the requested new
+  to be an old one, it MUST be ignored. Otherwise, an attempt MUST be
+  made to update the account's configuration with the requested new
   configuration. If the new configuration has been successfully
   applied, an `AccountChange`_ message containing the new
   configuration MUST be sent. Otherwise a `RejectedConfig`_ message

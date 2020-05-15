@@ -5,7 +5,7 @@ from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
-    AccountChangeSignal, AccountTransferSignal, FinalizedTransferSignal, \
+    AccountChangeSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
     BEGINNING_OF_TIME, CT_DIRECT
 
 
@@ -50,6 +50,20 @@ def test_configure_account(db_session, current_ts):
     # The signal is too old.
     p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 2)
     assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 2
+
+
+def test_invalid_config(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 123, 0x1fff, -10.0, 'xxx')
+    assert p.get_account(D_ID, C_ID) is None
+    rcs = RejectedConfigSignal.query.one()
+    assert rcs.debtor_id == D_ID
+    assert rcs.creditor_id == C_ID
+    assert rcs.rejection_code == 'INVALID_CONFIG'
+    assert rcs.config_signal_ts == current_ts
+    assert rcs.config_signal_seqnum == 123
+    assert rcs.status_flags == 0x1fff
+    assert rcs.negligible_amount == -10.0
+    assert rcs.config == 'xxx'
 
 
 def test_set_interest_rate(db_session, current_ts):

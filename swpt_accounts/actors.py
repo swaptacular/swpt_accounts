@@ -58,6 +58,7 @@ def configure_account(
         signal_seqnum,
         status_flags,
         negligible_amount,
+        config,
     )
 
 

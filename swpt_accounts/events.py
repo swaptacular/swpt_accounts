@@ -13,6 +13,7 @@ __all__ = [
     'AccountTransferSignal',
     'AccountChangeSignal',
     'AccountPurgeSignal',
+    'RejectedConfigSignal',
     'AccountMaintenanceSignal',
 ]
 
@@ -549,7 +550,7 @@ class RejectedConfigSignal(Signal):
     config_signal_seqnum = db.Column(db.Integer, nullable=False)
     status_flags = db.Column(db.SmallInteger, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
-    config = fields.String(nullable=False)
+    config = db.Column(db.String, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
 
 
