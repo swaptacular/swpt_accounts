@@ -19,7 +19,7 @@ signal_ts : date-time
    compared to earlier messages.
 
 signal_seqnum : int32
-   The sequential number of message. For a given account, later
+   The sequential number of the message. For a given account, later
    `ConfigureAccount`_ messages SHOULD have bigger sequential numbers,
    compared to earlier messages (except for the possible 32-bit
    integer wrapping, in case of an overflow).
@@ -39,21 +39,21 @@ config : string
    Additional account configuration information. Different
    implementations may use different formats for this field.
 
-When the message is received, the implementation MUST first verify
+When the message is received, implementations MUST first verify
 whether the specified account already exists.
 
-* If the account does not exist, the implementation MUST attempt to
+* If the account does not exist, implementations MUST attempt to
   create a new account with the requested configuration settings. If
   the new account has been successfully created, an `AccountChange`_
   message containing the configuration MUST be sent. Otherwise a
   `RejectedConfig`_ message MUST be sent.
 
-* If the account already exists, the implementation MUST decide
-  whether the received message, or a later `ConfigureAccount`_ message
-  has been processed already. To do this, the implementation MUST
-  compare the values of ``signal_ts`` and ``signal_seqnum`` fields in
-  the received message, to the values of those fields in the latest
-  applied `ConfigureAccount`_ message. [#]_
+* If the account already exists, implementations MUST decide whether
+  the received message, or a later `ConfigureAccount`_ message has
+  been processed already. To do this, implementations MUST compare the
+  values of ``signal_ts`` and ``signal_seqnum`` fields in the received
+  message, to the values of those fields in the latest applied
+  `ConfigureAccount`_ message. [#]_
 
   If the received message turns out to be old, it SHOULD be
   ignored. Otherwise, an attempt MUST be made to update the account's
@@ -62,11 +62,11 @@ whether the specified account already exists.
   message containing the new configuration MUST be sent. Otherwise a
   `RejectedConfig`_ message MUST be sent.
 
-.. [#] The implementation MUST first compare the ``signal_ts`` fields,
+.. [#] Implementations MUST first compare the ``signal_ts`` fields,
   and only if they are equal, the ``signal_seqnum`` fields MUST be
-  compared as well. When comparing the ``signal_seqnum`` fields the
-  implementation MUST correctly deal with possible integer
-  wrapping. TODO.
+  compared as well. Note that when comparing the ``signal_seqnum``
+  fields implementations MUST correctly deal with the possible integer
+  wrapping. ``0 < (seqnum1 - seqnum2) % 0x100000000 < 0x80000000``
 
 
 Outgoing messages
