@@ -22,8 +22,8 @@ signal_seqnum : int32
    The sequential number of the message. For a given account, later
    `ConfigureAccount`_ messages SHOULD have bigger sequential numbers,
    compared to earlier messages. Note that when the maximum ``int32``
-   value is reached, the next value is ``-2147483648`` (signeld 32-bit
-   integer wrapping).
+   value is reached, the next value SHOULD be ``-2147483648`` (signeld
+   32-bit integer wrapping).
 
 status_flags : int16
    Account configuration flags. Different implementations may use
@@ -39,20 +39,20 @@ config : string
    Additional account configuration information. Different
    implementations may use different formats for this field.
 
-When the message is received, implementations MUST first verify
-whether the specified account already exists.
+When a `ConfigureAccount`_ message is received, implementations MUST
+first verify whether the specified account already exists.
 
-* If the account does not exist, implementations MUST attempt to
+* *If the account does not exist*, implementations MUST attempt to
   create a new account with the requested configuration settings. If
   the new account has been successfully created, an `AccountChange`_
   message containing the configuration MUST be sent. Otherwise a
   `RejectedConfig`_ message MUST be sent.
 
-* If the account already exists, implementations MUST decide whether
-  the same, or a later `ConfigureAccount`_ message has been processed
+* *If the account already exists*, implementations MUST decide whether
+  the same or a later `ConfigureAccount`_ message has been processed
   already. To do this, implementations MUST compare the values of
   ``signal_ts`` and ``signal_seqnum`` fields in the received message,
-  to the values of those fields in the latest processed
+  to the values of these fields in the latest processed
   `ConfigureAccount`_ message [#]_ .  If the received message turns
   out to be an old one, it SHOULD be ignored. Otherwise, an attempt
   MUST be made to update the account's configuration with the
