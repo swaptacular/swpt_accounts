@@ -39,9 +39,9 @@ config : string
    Additional account configuration information. Different
    implementations may use different formats for this field.
 
-Implementations MAY decide to ignore `ConfigureAccount`_ messages,
-whose ``signal_ts`` is too far in the past. If the implementation
-decides to process the message it MUST first verify whether the
+Implementations MAY decide to ignore `ConfigureAccount`_ messages
+whose timestamps are too far in the past. If the implementation
+decides to process the message, it MUST first verify whether the
 specified account already exists:
 
 * *If the account does not exist*, implementations MUST attempt to
