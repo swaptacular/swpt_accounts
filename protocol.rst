@@ -26,8 +26,8 @@ signal_seqnum : int32
    32-bit integer wrapping).
 
 status_flags : int16
-   Account configuration flags. Different implementations may use
-   these flags for different purposes.
+   Account configuration flags. Different server implementations may
+   use these flags for different purposes.
 
 negligible_amount : float
    The maximum amount that should be considered negligible. It MUST be
@@ -36,40 +36,42 @@ negligible_amount : float
    insignificant.
 
 config : string
-   Additional account configuration information. Different
+   Additional account configuration information. Different server
    implementations may use different formats for this field.
 
-Implementations MAY decide to ignore `ConfigureAccount`_ messages
-whose timestamps are too far in the past. If the implementation
-decides to process the message, it MUST first verify whether the
-specified account already exists:
+Server implementations SHOULD ignore `ConfigureAccount`_ messages
+whose timestamps are too far in the past; such messages may
+"resurrect" accounts that have been removed from the database for
+good. When the server implementation processes the message, it MUST
+first verify whether the specified account already exists:
 
-* *If the account does not exist*, the implementation MUST attempt to
-  create a new account with the requested configuration settings. If
-  the new account has been successfully created, an `AccountChange`_
-  message containing the configuration MUST be sent. Otherwise a
-  `RejectedConfig`_ message MUST be sent.
+* *If the account does not exist*, the server implementation MUST
+  attempt to create a new account with the requested configuration
+  settings. If the new account has been successfully created, an
+  `AccountChange`_ message containing the configuration MUST be
+  sent. Otherwise a `RejectedConfig`_ message MUST be sent.
 
-* *If the account already exists*, the implementation MUST decide
-  whether the same or a later `ConfigureAccount`_ message has been
-  processed already. To do this, the implementation MUST compare the
-  values of ``signal_ts`` and ``signal_seqnum`` fields in the received
-  message, to the values of these fields in the latest processed
-  `ConfigureAccount`_ message [#]_ . If the received message turns out
-  to be an old one, it MUST be ignored. Otherwise, an attempt MUST be
-  made to update the account's configuration with the requested new
-  configuration. If the new configuration has been successfully
-  applied, an `AccountChange`_ message containing the new
+* *If the account already exists*, the server implementation MUST
+  decide whether the same or a later `ConfigureAccount`_ message has
+  been processed already. To do this, the server implementation MUST
+  compare the values of ``signal_ts`` and ``signal_seqnum`` fields in
+  the received message, to the values of these fields in the latest
+  processed `ConfigureAccount`_ message [#]_ . If the received message
+  turns out to be an old one, it MUST be ignored. Otherwise, an
+  attempt MUST be made to update the account's configuration with the
+  requested new configuration. If the new configuration has been
+  successfully applied, an `AccountChange`_ message containing the new
   configuration MUST be sent. Otherwise a `RejectedConfig`_ message
   MUST be sent, containing the rejected requested configuration.
 
-.. [#] Implementations MUST first compare the ``signal_ts`` fields,
-  and only if they are equal, the ``signal_seqnum`` fields MUST be
-  compared as well. Note that when comparing the ``signal_seqnum``
-  fields, implementations MUST correctly deal with the possible 32-bit
-  integer wrapping. For example, to decide whether ``seqnum2`` is
-  later than ``seqnum1``, the following expression MAY be used: ``0 <
-  (seqnum2 - seqnum1) % 0x100000000 < 0x80000000``.
+.. [#] Server implementations MUST first compare the ``signal_ts``
+  fields, and only if they are equal, the ``signal_seqnum`` fields
+  MUST be compared as well. Note that when comparing the
+  ``signal_seqnum`` fields, server implementations MUST correctly deal
+  with the possible 32-bit integer wrapping. For example, to decide
+  whether ``seqnum2`` is later than ``seqnum1``, the following
+  expression MAY be used: ``0 < (seqnum2 - seqnum1) % 0x100000000 <
+  0x80000000``.
 
 
 PrepareTransfer
@@ -109,12 +111,12 @@ sender_creditor_id : int64
 
 recipient_identity : string
    A string which (along with ``debtor_id``) globally identifies the
-   recipient's account. Different implementations may use different
-   formats for this string. Note that ``sender_creditor_id`` is an ID
-   which is recognizable only by the system that created the sender's
-   account. This identifier (along with ``debtor_id``), on the other
-   hand, MUST provide enough information to globally identify the
-   recipient's account (an IBAN for example).
+   recipient's account. Different server implementations may use
+   different formats for this string. Note that ``sender_creditor_id``
+   is an ID which is recognizable only by the system that created the
+   sender's account. This identifier (along with ``debtor_id``), on
+   the other hand, MUST provide enough information to globally
+   identify the recipient's account (an IBAN for example).
    
 signal_ts : date-time
    The moment at which this message was sent (the message timestamp).
@@ -124,8 +126,8 @@ minimum_account_balance : int64
    sender's account after the requested amount has been secured. This
    can be a negative number.
 
-Implementations MAY decide to ignore `PrepareTransfer`_ messages whose
-timestamps are too far in the past.
+Server implementations MAY decide to ignore `PrepareTransfer`_
+messages whose timestamps are too far in the past.
 
 
 TODO: mention the greedy way this thing should work.
@@ -314,8 +316,8 @@ sender_locked_amount : int64
 
 recipient_identity : string
    A string which (along with ``debtor_id``) uniquely identifies the
-   recipient's account. Different implementations may use different
-   formats for the identifier of recipient's account.
+   recipient's account. Different server implementations may use
+   different formats for the identifier of recipient's account.
 
 prepared_at_ts : date-time
    The moment at which the transfer was prepared.
@@ -433,8 +435,8 @@ other_party_identity : string
    A string which (along with ``debtor_id``) identifies the other
    party in the transfer. When ``committed_amount`` is positive, this
    is the sender; when ``committed_amount`` is negative, this is the
-   recipient. Different implementations may use different formats for
-   the identifier.
+   recipient. Different server implementations may use different
+   formats for the identifier.
 
 transfer_message : string
    This MUST be the value of the ``transfer_message`` field in the
@@ -465,10 +467,11 @@ system_flags : int32
 
 creditor_identity : string
    A string which (along with ``debtor_id``) identifies the affected
-   account. Different implementations may use different formats for
-   the identifier. Note that while ``creditor_id`` could be a "local"
-   identifier, recognized only by the system that created the account,
-   ``creditor_identity`` is always a globally recognized identifier.
+   account. Different server implementations may use different formats
+   for the identifier. Note that while ``creditor_id`` could be a
+   "local" identifier, recognized only by the system that created the
+   account, ``creditor_identity`` is always a globally recognized
+   identifier.
 
 transfer_id : int64
    TODO: improve description
@@ -554,11 +557,11 @@ remind that the account still exists.
   bigger than `0.0`.
 
 * `creditor_identity` is a string, which (along with `debtor_id`)
-  identifies the account. Different implementations may use different
-  formats for the identifier. Note that while `creditor_id` could be a
-  "local" identifier, recognized only by the system that created the
-  account, `creditor_identity` is always a globally recognized
-  identifier.
+  identifies the account. Different server implementations may use
+  different formats for the identifier. Note that while `creditor_id`
+  could be a "local" identifier, recognized only by the system that
+  created the account, `creditor_identity` is always a globally
+  recognized identifier.
 
 
 AccountPurge
@@ -580,7 +583,7 @@ purged_at_ts : date-time
 
 creditor_identity : string
    A string which (along with ``debtor_id``) globally identifies the
-   removed account. Different implementations may use different
+   removed account. Different server implementations may use different
    formats for this string. Note that ``creditor_id`` is an ID which
    is recognizable only by the system that created the account. This
    identifier (along with ``debtor_id``), on the other hand, MUST
