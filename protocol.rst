@@ -1,44 +1,54 @@
 Incoming messages
 =================
 
-``ConfigureAccount`` message
-----------------------------
+ConfigureAccount
+----------------
 
-Make sure the given account exists, then update its configuration
-settings.
+Make sure the given account exists, then if necessary, update its
+configuration settings.
 
-* `signal_ts` is the current timestamp. For a given account, later
-  calls to `configure_account` MUST have later or equal timestamps,
-  compared to earlier calls.
+An `AccountChange`_ message MUST be sent if the new configuration has
+been successully applied. Otherwise a `RejectedConfig`_ message MUST
+be sent.
 
-* `signal_seqnum` is the sequential number of the call (a 32-bit
-  integer). For a given account, later calls to `configure_account`
-  SHOULD have bigger sequential numbers, compared to earlier calls
-  (except for the possible 32-bit integer wrapping, in case of an
-  overflow).
+debtor_id : int64
+   The ID of the debtor.
 
-* `status_flags` contains account configuration flags (a 16-bit
-  integer). When the configuration update is applied, the lower 16
-  bits of the `Account.status` column (see `models.Account) will be
-  equal to those of `status_flags`.
+creditor_id : int64
+   Along with ``debtor_id``, identifies the account.
 
-* `negligible_amount` is the maximum amount that should be considered
-   negligible. It is used to: 1) decide whether an account can be
-   safely deleted; 2) decide whether a transfer is insignificant. MUST
-   be non-negative.
+signal_ts : date-time
+   The current timestamp. For a given account, later
+   `ConfigureAccount`_ messages MUST have later or equal timestamps,
+   compared to earlier messages.
 
-* `config` contains additional account configuration
-  information. Different implementations may use different formats for
-  this field.
+signal_seqnum : int32
+   The sequential number of message. For a given account, later
+   `ConfigureAccount`_ messages SHOULD have bigger sequential numbers,
+   compared to earlier messages (except for the possible 32-bit
+   integer wrapping, in case of an overflow).
 
-An `AccountChangeSignal` is always sent as a confirmation.
+status_flags : int16
+   Account configuration flags. Once the new configuration has been
+   applied, the lower 16 bits of the ``status`` field of the ensuing
+   `AccountChange`_ message will be equal to this value.
 
-NOTE: In order to decide whether to update the configuration when a
-(potentially old) `configure_account` signal is received, the
-implementation compares the `signal_ts` of the current call, to the
-`signal_ts` of the latest call. Only if they are equal, the
-`signal_seqnum`s are compared as well (correctly dealing with possible
-integer wrapping).
+negligible_amount : float
+   The maximum amount that should be considered negligible. MUST be
+   non-negative. It can be used to: 1) decide whether an account can
+   be safely deleted; 2) decide whether an incoming transfer is
+   insignificant.
+
+config : string
+   Additional account configuration information. Different
+   implementations may use different formats for this field.
+
+In order to decide whether to update the configuration when a
+(potentially old) `ConfigureAccount`_ message is received, the
+implementation MUST compare the ``signal_ts`` field of the received
+message, to the ``signal_ts`` of the latest appiled message. Only if
+they are equal, the ``signal_seqnum`` fields MUST be compared as well
+(correctly dealing with possible integer wrapping).
 
 
 Outgoing messages
