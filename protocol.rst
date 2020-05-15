@@ -21,8 +21,8 @@ signal_ts : date-time
 signal_seqnum : int32
    The sequential number of the message. For a given account, later
    `ConfigureAccount`_ messages SHOULD have bigger sequential numbers,
-   compared to earlier messages. When the maximum ``int32`` value is
-   reached, the next value SHOULD be ``-2147483648`` (signeld 32-bit
+   compared to earlier messages. Note that when the maximum ``int32``
+   value is reached, the next value is ``-2147483648`` (signeld 32-bit
    integer wrapping).
 
 status_flags : int16
@@ -60,7 +60,7 @@ whether the specified account already exists.
   requested new configuration. If the new configuration has been
   successfully applied, an `AccountChange`_ message containing the new
   configuration MUST be sent. Otherwise a `RejectedConfig`_ message
-  MUST be sent (containing the rejected requested configuration).
+  MUST be sent, containing the rejected requested configuration.
 
 .. [#] Implementations MUST first compare the ``signal_ts`` fields,
   and only if they are equal, the ``signal_seqnum`` fields MUST be
