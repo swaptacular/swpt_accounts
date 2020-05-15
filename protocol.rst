@@ -5,7 +5,7 @@ ConfigureAccount
 ----------------
 
 Upon receiving this message, the server makes sure that the specified
-account exists, and if necessary, updates its configuration settings.
+account exists, and updates its configuration settings.
 
 debtor_id : int64
    The ID of the debtor.
@@ -21,8 +21,9 @@ signal_ts : date-time
 signal_seqnum : int32
    The sequential number of the message. For a given account, later
    `ConfigureAccount`_ messages SHOULD have bigger sequential numbers,
-   compared to earlier messages (except for the possible 32-bit
-   integer wrapping, in case of an overflow).
+   compared to earlier messages. When the maximum ``int32`` value is
+   reached, the next value SHOULD be ``-2147483648`` (signeld 32-bit
+   integer wrapping).
 
 status_flags : int16
    Account configuration flags. Once the new configuration has been
@@ -50,17 +51,16 @@ whether the specified account already exists.
 
 * If the account already exists, implementations MUST decide whether
   the received message, or a later `ConfigureAccount`_ message has
-  been processed already. To do this, implementations MUST compare the
+  been already processed. To do this, implementations MUST compare the
   values of ``signal_ts`` and ``signal_seqnum`` fields in the received
-  message, to the values of those fields in the latest applied
-  `ConfigureAccount`_ message. [#]_
-
-  If the received message turns out to be old, it SHOULD be
-  ignored. Otherwise, an attempt MUST be made to update the account's
-  configuration with the requested new configuration. If the new
-  configuration has been successfully applied, an `AccountChange`_
-  message containing the new configuration MUST be sent. Otherwise a
-  `RejectedConfig`_ message MUST be sent.
+  message, to the values of those fields in the latest processed
+  `ConfigureAccount`_ message [#]_ .  If the received message turns
+  out to be old, it SHOULD be ignored. Otherwise, an attempt MUST be
+  made to update the account's configuration with the requested new
+  configuration. If the new configuration has been successfully
+  applied, an `AccountChange`_ message containing the new
+  configuration MUST be sent. Otherwise a `RejectedConfig`_ message
+  MUST be sent.
 
 .. [#] Implementations MUST first compare the ``signal_ts`` fields,
   and only if they are equal, the ``signal_seqnum`` fields MUST be
