@@ -124,6 +124,10 @@ minimum_account_balance : int64
    sender's account after the requested amount has been secured. This
    can be a negative number.
 
+Implementations MAY decide to ignore `PrepareTransfer`_ messages whose
+timestamps are too far in the past.
+
+
 TODO: mention the greedy way this thing should work.
 
 Before sending a message to this actor, the sender MUST create a
