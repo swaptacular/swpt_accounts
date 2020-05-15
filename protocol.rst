@@ -55,8 +55,8 @@ Outgoing messages
 =================
 
 
-``RejectedTransfer`` message
-----------------------------
+RejectedTransfer
+----------------
 
 Emitted when a request to prepare a transfer has been rejected.
 
@@ -95,8 +95,8 @@ sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 
-``PreparedTransfer`` message
-----------------------------
+PreparedTransfer
+----------------
 
 Emitted when a new transfer has been prepared, or to remind that a
 prepared transfer must be finalized.
@@ -151,8 +151,8 @@ prepared transfers, even in the case of a complete database loss on
 the client side.
 
 
-``FinalizedTransfer`` message
------------------------------
+FinalizedTransfer
+-----------------
 
 Emitted when a transfer has been finalized and its corresponding
 prepared transfer record removed from the database.
@@ -206,8 +206,8 @@ status_code : string
    termination (in this case ``committed_amount`` MUST be zero).
 
 
-``AccountTransfer`` message
----------------------------
+AccountTransfer
+---------------
 
 Emitted when a committed transfer has affected a given account.
 
@@ -297,8 +297,8 @@ transfer_id : int64
    `debtor_id`, `creditor_id`, and `transfer_id` fields).
 
 
-``AccountChange`` message
--------------------------
+AccountChange
+-------------
 
 Emitted when there is a meaningful change in account's state, or to
 remind that the account still exists.
@@ -380,8 +380,8 @@ remind that the account still exists.
   identifier.
 
 
-``AccountPurge`` message
-------------------------
+AccountPurge
+------------
 
 Emitted when an account has been removed from the database.
 
@@ -400,8 +400,8 @@ Emitted when an account has been removed from the database.
   identifier.
 
 
-``RejectedConfig`` message
---------------------------
+RejectedConfig
+--------------
 
 Emitted when a `configure_account` message has been received and
 rejected.
