@@ -102,8 +102,9 @@ mind:
 1. In case of prolonged network disconnect, creditors can synchronize
    their state with the server, without losing data or money.
 
-2. Messages may arrive out-of-order, without causing any problems (with the
-   exception of possible delays).
+2. Messages may arrive out-of-order, or be delivered more than once,
+   without causing any problems (with the exception of possible
+   delays).
 
 3. The protocol is generic enough to support different "backend"
    implementations. For example, it should be possible to implement a
