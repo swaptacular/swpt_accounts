@@ -26,12 +26,11 @@ signal_seqnum : int32
    integer wrapping).
 
 status_flags : int16
-   Account configuration flags. Once the new configuration has been
-   applied, the lower 16 bits of the ``status`` field of the ensuing
-   `AccountChange`_ message will be equal to this value.
+   Account configuration flags. Different implementations may use
+   these flags for different purposes.
 
 negligible_amount : float
-   The maximum amount that should be considered negligible. MUST be
+   The maximum amount that should be considered negligible. It MUST be
    non-negative. It can be used to: 1) decide whether an account can
    be safely deleted; 2) decide whether an incoming transfer is
    insignificant.
