@@ -72,6 +72,135 @@ specified account already exists:
   (seqnum2 - seqnum1) % 0x100000000 < 0x80000000``.
 
 
+PrepareTransfer
+---------------
+
+Try to greedily secure an amount between `min_amount` (> 0) and
+`max_amount` (>= min_amount), to transfer it from sender's account
+to recipient's account.
+
+* `signal_ts` MUST be the current timestamp.
+
+* `minimum_account_balance` determines the amount that must remain
+  available on sender's account after the requested amount has
+  been secured. For normal accounts it should be a non-negative
+  number. For the debtor's account it can be any number.
+
+* `sender_creditor_id` (along with `debtor_id`) identify the
+  sender's account. Note that `sender_creditor_id` is an integer,
+  while `recipient_identity` is a string. The reason for this is
+  that implementations will often want to use the `creditor_id`
+  field as a key in a lookup table, to obtain addition information
+  about sender's account (account authentication secrets for
+  example).
+
+* `recipient_identity` is a string, which (along with `debtor_id`)
+  identifies the recipient's account. Different implementations
+  may use different formats for the identifier of recipient's
+  account.
+
+Before sending a message to this actor, the sender MUST create a
+Coordinator Request (CR) database record, with a primary key of
+`(coordinator_type, coordinator_id, coordinator_request_id)`, and
+status "initiated". This record will be used to act properly on
+`PreparedTransferSignal` and `RejectedTransferSignal` events.
+
+`PreparedTransfer`_
+
+If a `PreparedTransferSignal` is received for an "initiated" CR
+record, the status of the corresponding CR record MUST be set to
+"prepared", and the received values for `debtor_id`,
+`sender_creditor_id`, and `transfer_id` -- recorded. The
+"prepared" CR record MUST be, at some point, finalized (committed
+or dismissed), and the status set to "finalized".
+
+If a `PreparedTransferSignal` is received for a "prepared" CR
+record, the corresponding values of `debtor_id`,
+`sender_creditor_id`, and `transfer_id` MUST be compared. If they
+are the same, no action MUST be taken. If they differ, the newly
+prepared transfer MUST be immediately dismissed (by sending a
+message to the `finalize_prepared_transfer` actor with a zero
+`committed_amount`).
+
+If a `PreparedTransferSignal` is received for a "finalized" CR
+record, the corresponding values of `debtor_id`,
+`sender_creditor_id`, and `transfer_id` MUST be compared. If they
+are the same, the original message to the
+`finalize_prepared_transfer` actor MUST be sent again. If they
+differ, the newly prepared transfer MUST be immediately dismissed.
+
+If a `PreparedTransferSignal` is received but a corresponding CR
+record is not found, the newly prepared transfer MUST be
+immediately dismissed.
+
+`RejectedTransfer`_
+
+If a `RejectedTransferSignal` is received for an "initiated" CR
+record, the CR record SHOULD be deleted.
+
+If a `RejectedTransferSignal` is received in any other case, no
+action MUST be taken.
+
+IMPORTANT NOTES:
+
+1. "initiated" CR records MAY be deleted whenever considered
+   appropriate.
+
+2. "prepared" CR records MUST NOT be deleted. Instead, they MUST
+   be "finalized" first (by sending a message to the
+   `finalize_prepared_transfer` actor).
+
+3. "finalized" CR records, which have been committed (i.e. not
+   dismissed), SHOULD NOT be deleted right away. Instead, they
+   SHOULD stay in the database until a corresponding
+   `FinalizedTransferSignal` is received for them. (It MUST be
+   verified that the signal has the same `debtor_id`,
+   `sender_creditor_id`, and `transfer_id` as the CR record.)
+
+   Only when the corresponding `FinalizedTransferSignal` has not
+   been received for a very long time (1 year for example), the
+   "finalized" CR record MAY be deleted with a warning.
+
+   NOTE: The retention of committed CR records is necessary to
+   prevent problems caused by message re-delivery. Consider the
+   following scenario: a transfer has been prepared and committed
+   (finalized), but the `PreparedTransferSignal` message is
+   re-delivered a second time. Had the CR record been deleted
+   right away, the already committed transfer would be dismissed
+   the second time, and the fate of the transfer would be decided
+   by the race between the two different finalizing messages. In
+   most cases, this would be a serious problem.
+
+4. "finalized" CR records, which have been dismissed (i.e. not
+   committed), MAY be deleted either right away, or when a
+   corresponding `FinalizedTransferSignal` is received for them.
+
+
+FinalizePreparedTransfer
+------------------------
+
+Execute a prepared transfer.
+
+* `debtor_id`, `sender_creditor_id`, and `transfer_id` uniquely
+  identify the prepared transfer. The values MUST be the same as
+  the values received with the corresponding
+  `PreparedTransferSignal`.
+
+* `committed_amount` is the transferred amount. It MUST be
+  non-negative. To dismiss the transfer, `committed_amount` should
+  be `0`.
+
+* `transfer_message` contains notes from the sender. Can be any
+  string that the sender wants the recipient to see. If the
+  transfer is dismissed, `transfer_message` SHOULD be an empty
+  string.
+
+* `transfer_flags` contains various flags that the recipient and
+  the sender will be able to see. If the transfer is dismissed,
+  `transfer_flags` SHOULD be `0`. For the list of standard
+  transfer flags, check `events.AccountTransferSignal`.
+
+
 Outgoing messages
 =================
 
