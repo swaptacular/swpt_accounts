@@ -404,21 +404,27 @@ remind that the account still exists.
 AccountPurge
 ------------
 
-Emitted when an account has been removed from the database.
+Emitted when an account has been removed from the server's database.
 
-* `debtor_id` and `creditor_id` identify the account.
+debtor_id : int64
+   The ID of the debtor.
 
-* `creation_date` is the date on which the account was created.
+creditor_id : int64
+   Along with ``debtor_id``, identifies the removed account.
 
-* `purged_at_ts` is the moment at which the account was removed from
-  the database.
+creation_date : date
+   The date on which the removed account was created.
 
-* `creditor_identity` is a string, which (along with `debtor_id`)
-  identifies the account. Different implementations may use different
-  formats for the identifier. Note that while `creditor_id` could be a
-  "local" identifier, recognized only by the system that created the
-  account, `creditor_identity` is always globally recognized
-  identifier.
+purged_at_ts : date-time
+   The moment at which the account was removed from the database.
+
+creditor_identity : string
+   A string which (along with ``debtor_id``) globally identifies the
+   removed account. Different implementations may use different
+   formats for this identifier. Note that ``creditor_id`` is an ID
+   recognized only by the system that created the account. This
+   identifier (along with ``debtor_id``), on the other hand, MUST
+   always be a globally recognized identifier.
 
 
 RejectedConfig
