@@ -14,9 +14,9 @@ creditor_id : int64
    Along with ``debtor_id``, identifies the account.
 
 signal_ts : date-time
-   The current timestamp. For a given account, later
-   `ConfigureAccount`_ messages MUST have later or equal timestamps,
-   compared to earlier messages.
+   The moment at which this message was sent (the message
+   timestamp). For a given account, later `ConfigureAccount`_ messages
+   MUST have later or equal timestamps, compared to earlier messages.
 
 signal_seqnum : int32
    The sequential number of the message. For a given account, later
@@ -75,29 +75,54 @@ specified account already exists:
 PrepareTransfer
 ---------------
 
-Try to greedily secure an amount between `min_amount` (> 0) and
-`max_amount` (>= min_amount), to transfer it from sender's account
-to recipient's account.
+Upon receiving this message, the server tries to secure some amount,
+to eventually transfer it from sender's account to recipient's
+account.
 
-* `signal_ts` MUST be the current timestamp.
+coordinator_type : string
+   Indicates the subsystem which sent this message. MUST be between 1
+   and 30 symbols, ASCII only.
 
-* `minimum_account_balance` determines the amount that must remain
-  available on sender's account after the requested amount has
-  been secured. For normal accounts it should be a non-negative
-  number. For the debtor's account it can be any number.
+coordinator_id : int64
+   Along with ``coordinator_type``, identifies who sent this message
+   (the *coordinator*).
 
-* `sender_creditor_id` (along with `debtor_id`) identify the
-  sender's account. Note that `sender_creditor_id` is an integer,
-  while `recipient_identity` is a string. The reason for this is
-  that implementations will often want to use the `creditor_id`
-  field as a key in a lookup table, to obtain addition information
-  about sender's account (account authentication secrets for
-  example).
+coordinator_request_id : int64
+   Along with ``coordinator_type`` and ``coordinator_id``, uniquely
+   identifies this message from the coordinator's point of view, so
+   that the coordinator can match this message with the received
+   response message.
 
-* `recipient_identity` is a string, which (along with `debtor_id`)
-  identifies the recipient's account. Different implementations
-  may use different formats for the identifier of recipient's
-  account.
+min_amount : int64
+   The secured amount MUST be equal or bigger than this value. This
+   value MUST be a positive number.
+
+max_amount : int64
+   The secured amount SHOULD not exceed this value. This value MUST be
+   equal or bigger than the value of ``min_amount``.
+
+debtor_id : int64
+   The ID of the debtor.
+
+sender_creditor_id : int64
+   Along with ``debtor_id``, identifies the sender's account.
+
+recipient_identity : string
+   A string which (along with ``debtor_id``) globally identifies the
+   recipient's account. Different implementations may use different
+   formats for this string. Note that ``sender_creditor_id`` is an ID
+   which is recognizable only by the system that created the sender's
+   account. This identifier (along with ``debtor_id``), on the other
+   hand, MUST provide enough information to globally identify the
+   recipient's account (an IBAN for example).
+   
+signal_ts : date-time
+   The moment at which this message was sent (the message timestamp).
+
+minimum_account_balance : int64
+   Determines the *minimum* amount that MUST remain available on
+   sender's account after the requested amount has been secured. This
+   can be a negative number.
 
 Before sending a message to this actor, the sender MUST create a
 Coordinator Request (CR) database record, with a primary key of
@@ -215,8 +240,8 @@ coordinator_type : string
    between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
-   Along with ``coordinator_type``, uniquely identifies who requested
-   the transfer.
+   Along with ``coordinator_type``, identifies who requested the
+   transfer.
 
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
@@ -267,8 +292,8 @@ coordinator_type : string
    between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
-   Along with ``coordinator_type``, uniquely identifies who requested
-   the transfer.
+   Along with ``coordinator_type``, identifies who requested the
+   transfer.
 
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
@@ -322,8 +347,8 @@ coordinator_type : string
    between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
-   Along with ``coordinator_type``, uniquely identifies who requested
-   the transfer.
+   Along with ``coordinator_type``, identifies who requested the
+   transfer.
 
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
