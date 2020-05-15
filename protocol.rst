@@ -422,9 +422,10 @@ creditor_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    removed account. Different implementations may use different
    formats for this string. Note that ``creditor_id`` is an ID which
-   is recognizable only by the system that created the account. On the
-   other hand, this identifier (along with ``debtor_id``) MUST always
-   be a globally recognizable identifier (an IBAN for example).
+   is recognizable only by the system that created the account. This
+   identifier (along with ``debtor_id``), on the other hand, MUST
+   provide enough information to globally identify the account (an
+   IBAN for example).
 
 
 RejectedConfig
