@@ -40,7 +40,7 @@ config : string
    implementations may use different formats for this field.
 
 Server implementations SHOULD ignore `ConfigureAccount`_ messages
-whose timestamps are too far in the past; such messages may
+whose timestamps are too far in the past, because such messages may
 "resurrect" accounts that have been removed from the database for
 good. When the server implementation processes the message, it MUST
 first verify whether the specified account already exists:
@@ -86,8 +86,8 @@ coordinator_type : string
    and 30 symbols, ASCII only.
 
 coordinator_id : int64
-   Along with ``coordinator_type``, identifies who sent this message
-   (the *coordinator*).
+   Along with ``coordinator_type``, identifies the client that sent
+   this message (the *coordinator*).
 
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
@@ -100,7 +100,7 @@ min_amount : int64
    value MUST be a positive number.
 
 max_amount : int64
-   The secured amount SHOULD not exceed this value. This value MUST be
+   The secured amount SHOULD NOT exceed this value. This value MUST be
    equal or bigger than the value of ``min_amount``.
 
 debtor_id : int64
