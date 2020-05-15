@@ -31,9 +31,9 @@ status_flags : int16
 
 negligible_amount : float
    The maximum amount that should be considered negligible. It MUST be
-   non-negative. It can be used to: 1) decide whether an account can
-   be safely deleted; 2) decide whether an incoming transfer is
-   insignificant.
+   a non-negative number. It can be used to: 1) decide whether an
+   account can be safely deleted; 2) decide whether an incoming
+   transfer is insignificant.
 
 config : string
    Additional account configuration information. Different server

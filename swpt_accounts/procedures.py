@@ -42,7 +42,7 @@ def configure_account(
     signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
     is_signal_outdated = (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds
     if not is_signal_outdated:
-        if negligible_amount < 0.0 or config != '':
+        if not negligible_amount >= 0.0 or config != '':
             db.session.add(RejectedConfigSignal(
                 debtor_id=debtor_id,
                 creditor_id=creditor_id,
