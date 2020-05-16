@@ -53,8 +53,8 @@ whose timestamps are too far in the past, because such messages may
 "resurrect" accounts that have been removed from the database for
 good.
 
-When server implementations process a message, they MUST first verify
-whether the specified account already exists:
+When server implementations process a `ConfigureAccount`_ message,
+they MUST first verify whether the specified account already exists:
 
 * *If the specified account does not exist*, the server implementation
   MUST attempt to create a new account with the requested
@@ -218,8 +218,8 @@ transfer exists in server's database:
 
   3. Remove the prepared transfer from server's database.
 
-  4. Send a `FinalizedTransfer`_ message with an apropriate
-     ``status_code`` field.
+  4. Send a `FinalizedTransfer`_ message with the apropriate
+     ``status_code``.
 
 .. [#] When ``committed_amount`` is zero, this would be a no-op.
 
