@@ -184,7 +184,7 @@ committed_amount : int64
    The amount that should be transferred. This MUST be a non-negative
    number, which MUST NOT exceed the value of the
    ``sender_locked_amount`` field in the corresponding
-   `PreparedTransfer`_ message (it MAY be smaller, though). A ``0``
+   `PreparedTransfer`_ message (it MAY be smaller though). A ``0``
    signifies that the transfer MUST be dismissed.
 
 transfer_message : string
