@@ -368,17 +368,17 @@ finalized_at_ts : date-time
 
 committed_amount : int64
    The transferred (committed) amount. It MUST always be a
-   non-negative number. A ``0`` means either that the transfer was
-   dismissed, or that it was committed, but the commit was
-   unsuccessful for some reason.
+   non-negative number. A ``0`` means either that the prepared
+   transfer was dismissed, or that it was committed, but the commit
+   was unsuccessful for some reason.
 
 status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
-   only. If the transfer was either dismissed, or successfully
-   committed, the value MUST be "OK". If the transfer was committed,
-   but had been unsuccessful for some reason, the value MUST be
-   different from "OK", and SHOULD hint at the cause for the failure
-   (in this case ``committed_amount`` MUST be zero).
+   only. If the prepared transfer was committed, but the commit was
+   unsuccessful for some reason, the value MUST be different from
+   "OK", and SHOULD hint at the cause for the failure (in this case
+   ``committed_amount`` MUST be zero). In all other cases, the value
+   MUST be "OK".
 
 
 AccountTransfer
