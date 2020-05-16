@@ -136,7 +136,7 @@ minimum_account_balance : int64
    sender's account after the requested amount has been secured. This
    can be a negative number.
 
-When server implementations process a message they:
+When server implementations process a `PrepareTransfer`_ message they:
 
 * SHOULD try to secure as big amount as possible, within the requested
   limits (between ``min_amount`` and ``max_amount``).
