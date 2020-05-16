@@ -38,34 +38,42 @@ def configure_account(
     assert MIN_INT32 <= signal_seqnum <= MAX_INT32
     assert MIN_INT16 <= status_flags <= MAX_INT16
 
+    def reject(rejection_code):
+        db.session.add(RejectedConfigSignal(
+            debtor_id=debtor_id,
+            creditor_id=creditor_id,
+            config_signal_ts=signal_ts,
+            config_signal_seqnum=signal_seqnum,
+            status_flags=status_flags,
+            negligible_amount=negligible_amount,
+            config=config,
+            rejection_code=rejection_code,
+        ))
+
     current_ts = datetime.now(tz=timezone.utc)
     signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
     is_signal_outdated = (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds
-    if not is_signal_outdated:
-        if not negligible_amount >= 0.0 or config != '':
-            db.session.add(RejectedConfigSignal(
-                debtor_id=debtor_id,
-                creditor_id=creditor_id,
-                config_signal_ts=signal_ts,
-                config_signal_seqnum=signal_seqnum,
-                status_flags=status_flags,
-                negligible_amount=negligible_amount,
-                config=config,
-                rejection_code='INVALID_CONFIG',
-            ))
-            return
-        account = _lock_or_create_account(debtor_id, creditor_id, current_ts, send_account_creation_signal=False)
-        this_event = (signal_ts, signal_seqnum)
-        prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
-        if is_later_event(this_event, prev_event):
-            # NOTE: When a new account is created this block will
-            # always be executed, because `last_config_signal_ts` for
-            # newly created accounts is many years ago.
-            account.set_config_flags(status_flags)
-            account.negligible_amount = negligible_amount
-            account.last_config_signal_ts = signal_ts
-            account.last_config_signal_seqnum = signal_seqnum
-            _apply_account_change(account, 0, 0, current_ts)
+
+    if is_signal_outdated:
+        reject('OUTDATED_CONFIG')
+        return
+
+    if not negligible_amount >= 0.0 or config != '':
+        reject('INVALID_CONFIG')
+        return
+
+    account = _lock_or_create_account(debtor_id, creditor_id, current_ts, send_account_creation_signal=False)
+    this_event = (signal_ts, signal_seqnum)
+    prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
+    if is_later_event(this_event, prev_event):
+        # NOTE: When a new account is created this block will
+        # always be executed, because `last_config_signal_ts` for
+        # newly created accounts is many years ago.
+        account.set_config_flags(status_flags)
+        account.negligible_amount = negligible_amount
+        account.last_config_signal_ts = signal_ts
+        account.last_config_signal_seqnum = signal_seqnum
+        _apply_account_change(account, 0, 0, current_ts)
 
 
 @atomic

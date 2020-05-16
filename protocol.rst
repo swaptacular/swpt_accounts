@@ -50,7 +50,7 @@ config : string
    implementations may use different formats for this field.
 
 If the message timestamp is too far in the past, server
-implementations SHOULD send `RejectedConfig`_ message and ignore the
+implementations SHOULD send a `RejectedConfig`_ message and ignore the
 message. [#]_ Otherwise, it should be verified whether the specified
 account already exists:
 
