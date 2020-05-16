@@ -27,7 +27,13 @@ signal_seqnum : int32
 
 status_flags : int16
    Account configuration flags. Different server implementations may
-   use these flags for different purposes.
+   use these flags for different purposes. For the lowest bit (bit
+   ``0``) is reserved the meaning "scheduled for deletion". If this
+   bit is set, server implementations SHOULD watch the account, and if
+   the balance on the account does not exceed ``negligible_amount``,
+   the account MAY be removed from the database. When the account is
+   removed from the server's database, a `AccountPurge`_ message MUST
+   be sent.
 
 negligible_amount : float
    The maximum amount that should be considered negligible. It MUST be
@@ -71,7 +77,8 @@ first verify whether the specified account already exists:
   with the possible 32-bit integer wrapping. For example, to decide
   whether ``seqnum2`` is later than ``seqnum1``, the following
   expression MAY be used: ``0 < (seqnum2 - seqnum1) % 0x100000000 <
-  0x80000000``.
+  0x80000000``. Timestamps should also be compared with care, because
+  precision might have been lost when they were saved to the database.
 
 
 PrepareTransfer
