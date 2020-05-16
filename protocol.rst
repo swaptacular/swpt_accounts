@@ -33,8 +33,8 @@ status_flags : int16
    account, and if it is reasonably certain that amount bigger that
    ``negligible_amount`` can not be lost on the account, and at least
    48 hours have passed since account's creation, the account SHOULD
-   be removed from the server's database. Accounts SHOULD NOT be
-   removed if those condition are not met. When an account is removed
+   be removed from the server's database. If those condition are not
+   met, accounts SHOULD NOT be removed. When an account is removed
    from the server's database, a `AccountPurge`_ message MUST be sent.
 
 negligible_amount : float
@@ -136,8 +136,10 @@ minimum_account_balance : int64
    can be a negative number.
 
 Server implementations MAY decide to ignore `PrepareTransfer`_
-messages whose timestamps are too far in the past.
-
+messages whose timestamps are too far in the past. If the server
+implementation have successfully prepared the requested transfer, a
+`PreparedTransfer`_ message MUST be sent. Otherwise, a
+`RejectedTransfer`_ message MUST be sent.
 
 TODO: mention the greedy way this thing should work.
 
