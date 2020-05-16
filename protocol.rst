@@ -34,7 +34,7 @@ status_flags : int16
    deletion; 2) the account has no prepared transfers that await
    finalization; 3) at least 48 hours have passed since account's
    creation; 4) it is very unlikely that amount bigger that
-   ``negligible_amount`` will be lost if the account gets removed from
+   ``negligible_amount`` will be lost if the account is removed from
    the server's database. If those condition are not met, accounts
    SHOULD NOT be removed. When an account has been removed from the
    server's database, a `AccountPurge`_ message MUST be sent.
