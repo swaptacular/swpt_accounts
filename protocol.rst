@@ -209,22 +209,22 @@ When server implementations processes a `FinalizePreparedTransfer`_
 message, they MUST first verify whether the specified prepared
 transfer exists in server's database:
 
-* *If the specified prepared transfer does not exist*, the message
-  MUST be ignored.
+1. If the specified prepared transfer does not exist*, the message
+   MUST be ignored.
 
-* *If the specified prepared transfer exists*, server implementations
-  MUST:
+2. *If the specified prepared transfer exists*, server implementations
+   MUST:
 
-  1. Try to transfer the ``committed_amount`` from sender's account to
-     recipient's account. [#]_
+  * Try to transfer the ``committed_amount`` from sender's account to
+    recipient's account. [#]_
 
-  2. Unlock the remainder of the secured amount, so that it becomes
-     available for other transfers. [#]_
+  * Unlock the remainder of the secured amount, so that it becomes
+    available for other transfers. [#]_
 
-  3. Remove the prepared transfer from server's database.
+  * Remove the prepared transfer from server's database.
 
-  4. Send a `FinalizedTransfer`_ message with the apropriate
-     ``status_code``.
+  * Send a `FinalizedTransfer`_ message with the apropriate
+    ``status_code``.
 
   TODO: Send an `AccountChange`_ message, and `AccountTransfer`_
   messages.
