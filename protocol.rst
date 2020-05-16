@@ -216,10 +216,10 @@ transfer exists in server's database:
   2. Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#]_
 
-  3. Send a `FinalizedTransfer`_ message with an apropriate
-     ``status_code`` field.
+  3. Remove the prepared transfer from server's database.
 
-  4. Remove the prepared transfer from server's database.
+  4. Send a `FinalizedTransfer`_ message with an apropriate
+     ``status_code`` field.
 
 .. [#] When ``committed_amount`` is zero, this would be a no-op.
 
