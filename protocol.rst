@@ -192,13 +192,13 @@ committed_amount : int64
 
 transfer_message : string
    A string that the coordinator (the client that finalizes the
-   prepared transfer) wants the recipient and the sender to see. [#]_
-   If the transfer is being dismissed, this MUST be an empty string.
+   prepared transfer) wants the recipient and the sender to see.  If
+   the transfer is being dismissed, this MUST be an empty string. [#]_
 
 transfer_flags : int32
    Various bit-flags that the coordinator (the client that finalizes
    the prepared transfer) wants the recipient and the sender to
-   see. [#]_ If the transfer is being dismissed, this MUST be ``0``.
+   see. If the transfer is being dismissed, this MUST be ``0``. [#]_
 
 When server implementations processes a `FinalizePreparedTransfer`_
 message, they MUST first verify whether the specified prepared
@@ -224,11 +224,13 @@ transfer exists in server's database:
   TODO: Send an `AccountChange`_ message, and `AccountTransfer`_
   messages.
 
-.. [#] Different server implementations MAY impose different
-  restrictions on the format and the content of this string.
+.. [#] Different server implementations MAY impose additional
+  restrictions on the format and the content of this string, as long
+  as these restictions are precisely defined, and known in advance.
 
-.. [#] Different server implementations MAY impose different
-  restrictions on the format and the content of this string.
+.. [#] Different server implementations MAY impose additional
+  restrictions on this value, as long as these restictions are
+  precisely defined, and known in advance.
 
 .. [#] When ``committed_amount`` is zero, this would be a no-op.
 
