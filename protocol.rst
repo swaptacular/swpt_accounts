@@ -147,14 +147,17 @@ When server implementations process a `PrepareTransfer`_ message they:
 * SHOULD NOT allow transfers in which the sender and the recipient is
   the same account.
 
-* If the requested transfer has been successfully prepared, a
-  `PreparedTransfer`_ message MUST be sent. Otherwise, a
-  `RejectedTransfer`_ message MUST be sent.
+* MUST send a `PreparedTransfer`_ message if the requested transfer
+  has been successfully prepared.
 
-* MUST guarantee that if a transfer has been prepared, the probability
-  for the success of the eventual commit is very high. Notably, the
-  secured amount MUST be locked, so that until the prepared transfer
-  is finalized, the amount is not available for other transfers.
+* MUST send a `RejectedTransfer`_ message if the requested transfer
+  can not be prepared.
+
+* MUST guarantee that when a transfer has been prepared, the
+  probability for the success of the eventual commit is very
+  high. Notably, the secured amount MUST be locked, so that until the
+  prepared transfer is finalized, the amount is not available for
+  other transfers.
 
 * MUST NOT impose unnecessary limitations on the time in which the
   prepared transfer can/should be committed successfully. If some
