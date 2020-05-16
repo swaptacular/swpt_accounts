@@ -151,15 +151,15 @@ When server implementations process a `PrepareTransfer`_ message they:
   `PreparedTransfer`_ message MUST be sent. Otherwise, a
   `RejectedTransfer`_ message MUST be sent.
 
-* If the requested transfer has been successfully prepared, a very
-  high probability for the success of the eventual commit MUST be
-  guaranteed. Notably, the secured amount MUST be locked, so that
-  until the prepared transfer is finalized, the amount is not
-  available for other transfers.
+* MUST guarantee that if a transfer has been prepared, the probability
+  for the success of the eventual commit is very high. Notably, the
+  secured amount MUST be locked, so that until the prepared transfer
+  is finalized, the amount is not available for other transfers.
 
 * MUST NOT impose unnecessary limitations on the time in which the
-  prepared transfer can be committed successfully. If limitations are
-  imposed, they MUST be precisely defined and known in advance.
+  prepared transfer can/should be committed successfully. If some
+  limitations are imposed, they MUST be precisely defined, and known
+  in advance.
 
 
 FinalizePreparedTransfer
