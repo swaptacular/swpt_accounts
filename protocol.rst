@@ -155,7 +155,7 @@ If the requested transfer has been successfully prepared, a
 * If the requested transfer has been successfully prepared, a very
   high probability for the success of the eventual commit MUST be
   guaranteed. Notably, the secured amount MUST be locked, so that
-  until the prepared transfer has been finalized, the amount is not
+  until the prepared transfer is finalized, the amount is not
   available for other transfers.
 
 * MUST NOT impose unnecessary limitations on the time in which the
@@ -166,26 +166,35 @@ If the requested transfer has been successfully prepared, a
 FinalizePreparedTransfer
 ------------------------
 
-Execute a prepared transfer.
+Upon receiving this message, the server finalizes a prepared transfer.
 
-* `debtor_id`, `sender_creditor_id`, and `transfer_id` uniquely
-  identify the prepared transfer. The values MUST be the same as
-  the values received with the corresponding
-  `PreparedTransferSignal`.
+debtor_id : int64
+   The ID of the debtor.
 
-* `committed_amount` is the transferred amount. It MUST be
-  non-negative. To dismiss the transfer, `committed_amount` should
-  be `0`.
+sender_creditor_id : int64
+   Along with ``debtor_id``, identifies the sender's account.
 
-* `transfer_message` contains notes from the sender. Can be any
-  string that the sender wants the recipient to see. If the
-  transfer is dismissed, `transfer_message` SHOULD be an empty
-  string.
+transfer_id : int64
+   The opaque ID generated for the prepared transfer. It MUST always
+   be a positive number. This ID, along with ``debtor_id`` and
+   ``sender_creditor_id``, uniquely identifies the prepared transfer
+   that should be finalized.
 
-* `transfer_flags` contains various flags that the recipient and
-  the sender will be able to see. If the transfer is dismissed,
-  `transfer_flags` SHOULD be `0`. For the list of standard
-  transfer flags, check `events.AccountTransferSignal`.
+committed_amount : int64
+   The transferred amount. This MUST be a non-negative number, and
+   SHOULD NOT exceed the value of the ``sender_locked_amount`` field
+   in the corresponding `PreparedTransfer`_ message. ``0`` signifies
+   that the transfer MUST be dismissed.
+
+transfer_message : string
+   Contains notes from the sender. Can be any string that the sender
+   wants the recipient to see. If the transfer is dismissed, this
+   SHOULD be an empty string.
+
+transfer_flags : int32
+   Contains various flags that the recipient and the sender will be
+   able to see. If the transfer is dismissed, the value of this field
+   SHOULD be ``0``.
 
 
 Outgoing messages
