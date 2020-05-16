@@ -31,13 +31,13 @@ status_flags : int16
    ``0``) is reserved the meaning "scheduled for deletion". If all of
    the following conditions are met, the account SHOULD be removed
    from the server's database: 1) the account is scheduled for
-   deletion; 2) it is reasonably certain that amount bigger that
-   ``negligible_amount`` can not be lost on the account; 3) there are
-   no prepared transfers awaiting finalization; 4) at least 48 hours
-   have passed since account's creation. If those condition are not
-   met, accounts SHOULD NOT be removed. When an account has been
-   removed from the server's database, a `AccountPurge`_ message MUST
-   be sent.
+   deletion; 2) there are no prepared transfers awaiting
+   finalization; 3) at least 48 hours have passed since account's
+   creation; 4) it is very unlikely that amount bigger that
+   ``negligible_amount`` will be lost it the account is removed from
+   the database. If those condition are not met, accounts SHOULD NOT
+   be removed. When an account has been removed from the server's
+   database, a `AccountPurge`_ message MUST be sent.
 
 negligible_amount : float
    The maximum amount that should be considered negligible. It MUST be
