@@ -54,24 +54,25 @@ implementations SHOULD send a `RejectedConfig`_ message and ignore the
 message. [#]_ Otherwise, it should be verified whether the specified
 account already exists:
 
-* *If the specified account does not exist*, server implementations
-  MUST attempt to create a new account with the requested
-  configuration settings. If the new account has been successfully
-  created, an `AccountChange`_ message containing the configuration
-  MUST be sent. Otherwise a `RejectedConfig`_ message MUST be sent.
+1. If the specified account does not exist, server implementations
+   MUST attempt to create a new account with the requested
+   configuration settings. If the new account has been successfully
+   created, an `AccountChange`_ message containing the configuration
+   MUST be sent. Otherwise a `RejectedConfig`_ message MUST be sent.
 
-* *If the specified account already exists*, the server implementation
-  MUST decide whether the same or a later `ConfigureAccount`_ message
-  has been processed already. To do this, the server implementation
-  MUST compare the values of ``signal_ts`` and ``signal_seqnum``
-  fields in the received message, to the values of these fields in the
-  latest processed `ConfigureAccount`_ message. [#]_ If the received
-  message turns out to be an old one, it MUST be ignored. Otherwise,
-  an attempt MUST be made to update the account's configuration with
-  the requested new configuration. If the new configuration has been
-  successfully applied, an `AccountChange`_ message containing the new
-  configuration MUST be sent. Otherwise a `RejectedConfig`_ message
-  MUST be sent, containing the rejected requested configuration.
+2. If the specified account already exists, the server implementation
+   MUST decide whether the same or a later `ConfigureAccount`_ message
+   has been processed already. To do this, the server implementation
+   MUST compare the values of ``signal_ts`` and ``signal_seqnum``
+   fields in the received message, to the values of these fields in
+   the latest processed `ConfigureAccount`_ message. [#]_ If the
+   received message turns out to be an old one, it MUST be
+   ignored. Otherwise, an attempt MUST be made to update the account's
+   configuration with the requested new configuration. If the new
+   configuration has been successfully applied, an `AccountChange`_
+   message containing the new configuration MUST be sent. Otherwise a
+   `RejectedConfig`_ message MUST be sent, containing the rejected
+   requested configuration.
 
 .. [#] Server implementations MAY disallow incoming transfer for
   "scheduled for deletion" accounts.
