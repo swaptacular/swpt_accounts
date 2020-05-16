@@ -215,19 +215,19 @@ transfer exists in server's database:
 2. *If the specified prepared transfer exists*, server implementations
    MUST:
 
-  * Try to transfer the ``committed_amount`` from sender's account to
-    recipient's account. [#]_
+   * Try to transfer the ``committed_amount`` from sender's account to
+     recipient's account. [#]_
 
-  * Unlock the remainder of the secured amount, so that it becomes
-    available for other transfers. [#]_
+   * Unlock the remainder of the secured amount, so that it becomes
+     available for other transfers. [#]_
 
-  * Remove the prepared transfer from server's database.
+   * Remove the prepared transfer from server's database.
 
-  * Send a `FinalizedTransfer`_ message with the apropriate
+   * Send a `FinalizedTransfer`_ message with the apropriate
     ``status_code``.
 
-  TODO: Send an `AccountChange`_ message, and `AccountTransfer`_
-  messages.
+   TODO: Send an `AccountChange`_ message, and `AccountTransfer`_
+   messages.
 
 .. [#] Server implementations MAY impose additional restrictions on
   the format and the content of this string, as long as these
