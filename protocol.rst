@@ -304,13 +304,8 @@ sender_locked_amount : int64
    exceed this number.
 
 recipient_identity : string
-   A string which (along with ``debtor_id``) globally identifies the
-   recipient's account. Different server implementations may use
-   different formats for this string. Note that ``sender_creditor_id``
-   is an ID which is recognizable only by the system that created the
-   sender's account. This identifier (along with ``debtor_id``), on
-   the other hand, MUST provide enough information to globally
-   identify the recipient's account (an IBAN for example).
+   The value of the ``recipient_identity`` field in the corresponding
+   `PrepareTransfer`_ message.
 
 prepared_at_ts : date-time
    The moment at which the transfer was prepared.
@@ -360,13 +355,8 @@ coordinator_request_id : int64
    the issued request to finalize the prepared transfer.
 
 recipient_identity : string
-   A string which (along with ``debtor_id``) globally identifies the
-   recipient's account. Different server implementations may use
-   different formats for this string. Note that ``sender_creditor_id``
-   is an ID which is recognizable only by the system that created the
-   sender's account. This identifier (along with ``debtor_id``), on
-   the other hand, MUST provide enough information to globally
-   identify the recipient's account (an IBAN for example).
+   The value of the ``recipient_identity`` field in the corresponding
+   `PreparedTransfer`_ message.
 
 prepared_at_ts : date-time
    The moment at which the transfer was prepared.
