@@ -136,9 +136,7 @@ minimum_account_balance : int64
    sender's account after the requested amount has been secured. This
    can be a negative number.
 
-Server implementations MAY decide to ignore `PrepareTransfer`_
-messages whose timestamps are too far in the past. When the
-implementation processes the message it:
+When server implementations process a message they:
 
 * SHOULD try to secure as big amount as possible, within the requested
   limits (between ``min_amount`` and ``max_amount``).
@@ -149,6 +147,10 @@ implementation processes the message it:
 * SHOULD NOT allow transfers in which the sender and the recipient is
   the same account.
 
+* If the requested transfer has been successfully prepared, a
+  `PreparedTransfer`_ message MUST be sent. Otherwise, a
+  `RejectedTransfer`_ message MUST be sent.
+
 * If the requested transfer has been successfully prepared, a very
   high probability for the success of the eventual commit MUST be
   guaranteed. Notably, the secured amount MUST be locked, so that
@@ -158,10 +160,6 @@ implementation processes the message it:
 * MUST NOT impose unnecessary limitations on the time in which the
   prepared transfer can be committed successfully. If limitations are
   imposed, they MUST be precisely defined and known in advance.
-
-* If the requested transfer has been successfully prepared, a
-  `PreparedTransfer`_ message MUST be sent. Otherwise, a
-  `RejectedTransfer`_ message MUST be sent.
 
 
 FinalizePreparedTransfer
