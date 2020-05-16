@@ -214,8 +214,8 @@ database:
   3. Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#]_
 
-  4. Send a `FinalizedTransfer`_ message with apropriate
-     ``status_code``.
+  4. Send a `FinalizedTransfer`_ message with an apropriate
+     ``status_code`` field.
 
 .. [#] Note that ``committed_amount`` can be smaller that
   ``sender_locked_amount``.
