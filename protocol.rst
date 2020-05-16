@@ -250,9 +250,13 @@ sender_locked_amount : int64
    exceed this number.
 
 recipient_identity : string
-   A string which (along with ``debtor_id``) uniquely identifies the
+   A string which (along with ``debtor_id``) globally identifies the
    recipient's account. Different server implementations may use
-   different formats for the identifier of recipient's account.
+   different formats for this string. Note that ``sender_creditor_id``
+   is an ID which is recognizable only by the system that created the
+   sender's account. This identifier (along with ``debtor_id``), on
+   the other hand, MUST provide enough information to globally
+   identify the recipient's account (an IBAN for example).
 
 prepared_at_ts : date-time
    The moment at which the transfer was prepared.
