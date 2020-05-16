@@ -200,14 +200,15 @@ transfer_flags : int32
    the prepared transfer) wants the recipient and the sender to
    see. If the transfer is being dismissed, this MUST be ``0``.
 
-When the server implementations processes the message, they MUST first
+When server implementations processes the message, they MUST first
 verify whether the specified prepared transfer exists in server's
 database:
 
-* *If the prepared transfer does not exist*, the message MUST be
-  ignored.
+* *If the specified prepared transfer does not exist*, the message
+  MUST be ignored.
 
-* *If the prepared transfer exists*, server implementations MUST:
+* *If the specified prepared transfer exists*, server implementations
+  MUST:
 
   1. Try to transfer the ``committed_amount`` from sender's account to
      recipient's account. [#]_
