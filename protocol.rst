@@ -34,8 +34,9 @@ status_flags : int16
    ``negligible_amount`` can not be lost on the account, and at least
    48 hours have passed since account's creation, the account SHOULD
    be removed from the server's database. If those condition are not
-   met, accounts SHOULD NOT be removed. When an account is removed
-   from the server's database, a `AccountPurge`_ message MUST be sent.
+   met, accounts SHOULD NOT be removed. When an account has been
+   removed from the server's database, a `AccountPurge`_ message MUST
+   be sent.
 
 negligible_amount : float
    The maximum amount that should be considered negligible. It MUST be
@@ -146,13 +147,13 @@ If the requested transfer has been successfully prepared, a
   limits (between ``min_amount`` and ``max_amount``).
 
 * SHOULD NOT prepare a transfer without verifying that the recipient's
-  account exists, and accepts incoming transfers.
+  account exists, and does accept incoming transfers.
 
 * SHOULD NOT allow transfers in which the sender and the recipient is
   the same account.
 
 * If the requested transfer has been successfully prepared, a very
-  high probability for success of the eventual commit MUST be
+  high probability for the success of the eventual commit MUST be
   guaranteed. Notably, the secured amount MUST be locked, so that
   until the prepared transfer has been finalized, the amount is not
   available for other transfers.

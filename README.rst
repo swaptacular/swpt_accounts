@@ -82,8 +82,8 @@ protocol supports the following operations:
    follows the "two phase commit" paradigm. First the transfer should
    be *prepared*, and then *finalized* (committed or dismissed). A
    successfully prepared transfer, gives a very high probability for
-   success of the eventual subsequent *commit*. This paradigm allows
-   many transfers to be committed atomically.
+   the success of the eventual subsequent *commit*. This paradigm
+   allows many transfers to be committed atomically.
 
 5. Actors other than creditors (called *coordinators*), can make
    transfers from one creditor's account to another creditor's
