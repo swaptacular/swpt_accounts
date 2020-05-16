@@ -226,9 +226,6 @@ transfer exists in server's database:
    * Send a `FinalizedTransfer`_ message with the apropriate
      ``status_code``.
 
-   TODO: Send an `AccountChange`_ message, and `AccountTransfer`_
-   messages.
-
 .. [#] Server implementations MAY impose additional restrictions on
   the format and the content of this string, as long as these
   restictions are precisely defined, and known in advance.
@@ -238,6 +235,8 @@ transfer exists in server's database:
   known in advance.
 
 .. [#] When ``committed_amount`` is zero, this would be a no-op.
+  TODO: Mention sending an `AccountChange`_ message, and
+  `AccountTransfer`_ messages.
 
 .. [#] Note that ``committed_amount`` can be smaller that
   ``sender_locked_amount``.
