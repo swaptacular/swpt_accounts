@@ -29,9 +29,10 @@ status_flags : int16
    Account configuration flags. Different server implementations may
    use these flags for different purposes. For the lowest bit (bit
    ``0``) is reserved the meaning "scheduled for deletion". If this
-   bit is set, server implementations SHOULD watch the account, and if
-   the balance on the account does not exceed ``negligible_amount``,
-   the account MAY be removed from the database. When the account is
+   bit is set, server implementations SHOULD continuously watch the
+   account, and if it is reasonably certain that amount bigger that
+   ``negligible_amount`` can not be lost on the account, the account
+   MAY be removed from the server's database. When the account is
    removed from the server's database, a `AccountPurge`_ message MUST
    be sent.
 
