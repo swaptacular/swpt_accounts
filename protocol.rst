@@ -26,10 +26,10 @@ signal_seqnum : int32
    32-bit integer wrapping).
 
 status_flags : int16
-   Account configuration flags. Server implementations may use these
-   flags for different purposes. The lowest bit (bit ``0``) is
+   Account configuration bit-flags. Server implementations may use
+   these flags for different purposes. The lowest bit (bit ``0``) is
    reserved and has the meaning "scheduled for deletion". [#]_ If all
-   of the following conditions are met, the account SHOULD be removed
+   of the following conditions are met, an account SHOULD be removed
    from the server's database: 1) the account is scheduled for
    deletion; 2) the account has no prepared transfers that await
    finalization; 3) at least 48 hours have passed since account's
@@ -37,7 +37,7 @@ status_flags : int16
    ``negligible_amount`` will be lost if the account is removed from
    the server's database. If those condition are not met, accounts
    SHOULD NOT be removed. When an account has been removed from the
-   server's database, a `AccountPurge`_ message MUST be sent.
+   server's database, an `AccountPurge`_ message MUST be sent.
 
 negligible_amount : float
    The maximum amount that should be considered negligible. It MUST be
@@ -76,7 +76,7 @@ they MUST first verify whether the specified account already exists:
   configuration MUST be sent. Otherwise a `RejectedConfig`_ message
   MUST be sent, containing the rejected requested configuration.
 
-.. [#] Server implementations may disallow incoming transfer for
+.. [#] Server implementations MAY disallow incoming transfer for
   "scheduled for deletion" accounts.
 
 .. [#] Server implementations MUST first compare the ``signal_ts``
