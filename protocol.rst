@@ -341,8 +341,10 @@ sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 transfer_id : int64
-   The opaque ID generated for the prepared transfer (see the
-   ``PreparedTransfer`` message).
+   The opaque ID generated for the prepared transfer. It MUST always
+   be a positive number. This ID, along with ``debtor_id`` and
+   ``sender_creditor_id``, uniquely identifies the prepared transfer
+   that has been finalized.
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
