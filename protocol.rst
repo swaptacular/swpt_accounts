@@ -268,9 +268,9 @@ If a prepared transfer has not been finalized (committed or dismissed)
 for a while, the server SHOULD send another ``PreparedTransfer``
 message, identical to the previous one (except for the **signal_ts**
 field), to remind that a transfer is prepared and is waiting for a
-resolution. This guarantees that there will be no infinitely hanging
-prepared transfers, even in the case of a complete database loss on
-the client side.
+resolution. This guarantees that no prepared transfers will be hanging
+in the server's database forever, even in the case of a lost message,
+or a complete database loss on the client side.
 
 
 FinalizedTransfer
