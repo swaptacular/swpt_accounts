@@ -197,6 +197,27 @@ transfer_flags : int32
    the prepared transfer) wants the recipient and the sender to
    see. If the transfer is being dismissed, this MUST be ``0``.
 
+When the server implementation processes the message, it MUST first
+verify whether the specified prepared transfer exists in server's
+database:
+
+* *If the prepared transfer does not exist*, the server implementation
+  MUST ignore the message.
+
+* *If the prepared transfer exists*, the server implementation MUST:
+
+  1) try to transfer the requested ``committed_amount`` from sender's
+     account to recipient's account;
+
+  2) remove the prepared transfer record from the server's database;
+
+  3) unlock the remainder of the secured amount
+     (``sender_locked_amount``), so that it becomes available for
+     other transfers.
+
+  If the attempted transfer has not been successful
+
+
 When the prepared transfer is being finalized (committed or
 dismissed), the corresponding prepared transfer record SHOULD BE
 removed from the server's database, the `` and a `FinalizedTransfer`_ message
