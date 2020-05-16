@@ -206,12 +206,12 @@ database:
 
 * *If the prepared transfer exists*, the server implementation MUST:
 
-  1. try to transfer the requested ``committed_amount`` from sender's
-     account to recipient's account;
+  1. Try to transfer the requested ``committed_amount`` from sender's
+     account to recipient's account.
 
-  2. remove the prepared transfer record from the server's database;
+  2. Remove the prepared transfer record from the server's database.
 
-  3. unlock the remainder of the secured amount
+  3. Unlock the remainder of the secured amount
      (``sender_locked_amount``), so that it becomes available for
      other transfers.
 
