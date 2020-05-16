@@ -217,7 +217,7 @@ database:
   4. Send a `FinalizedTransfer`_ message with an apropriate
      ``status_code`` field.
 
-.. [#] When ``committed_amount`` is zero, that would be a no-op.
+.. [#] When ``committed_amount`` is zero, this would be a no-op.
 
 .. [#] Note that ``committed_amount`` can be smaller that
   ``sender_locked_amount``.
@@ -256,15 +256,17 @@ rejection_code : string
 available_amount : int64
    A non-negative number. If the transfer was rejected due to
    insufficient available amount, but there is a good chance for a new
-   transfer request with a smaller amount to be successful, this field
-   SHOULD contain the amount currently available on the sender's
-   account. Otherwise this MUST be ``0``.
+   transfer request for a smaller amount to be successful, this field
+   SHOULD contain the amount currently available on sender's account
+   [#]_ . Otherwise this MUST be ``0``.
 
 debtor_id : int64
    The ID of the debtor.
    
 sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
+
+.. [#] This MUST NOT be a negative number.
 
 
 PreparedTransfer
@@ -377,7 +379,7 @@ status_code : string
    ``"OK"``, and SHOULD hint at the reason for the failure [#]_ . In all
    other cases, this value MUST be ``"OK"``.
 
-.. [#] In that case ``committed_amount`` MUST be zero.
+.. [#] In this case ``committed_amount`` MUST be zero.
 
 
 AccountTransfer
