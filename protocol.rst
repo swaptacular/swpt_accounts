@@ -190,12 +190,12 @@ committed_amount : int64
 transfer_message : string
    A string that the coordinator (the client that finalizes the
    prepared transfer) wants the recipient and the sender to see. If
-   the transfer is dismissed, this MUST be an empty string.
+   the transfer is being dismissed, this MUST be an empty string.
 
 transfer_flags : int32
    Various bit-flags that the coordinator (the client that finalizes
    the prepared transfer) wants the recipient and the sender to
-   see. If the transfer is dismissed, this MUST be ``0``.
+   see. If the transfer is being dismissed, this MUST be ``0``.
 
 When the prepared transfer is being finalized (committed or
 dismissed), the corresponding prepared transfer record SHOULD BE
