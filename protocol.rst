@@ -49,10 +49,10 @@ config : string
    Additional account configuration information. Different server
    implementations may use different formats for this field.
 
-* *If the message timestamp is too far in the past*, server
-  implementations SHOULD send `RejectedConfig`_ message and ignore the
-  message. [#]_ Otherwise, it should be verified whether the specified
-  account already exists.
+If the message timestamp is too far in the past, server
+implementations SHOULD send `RejectedConfig`_ message and ignore the
+message. [#]_ Otherwise, it should be verified whether the specified
+account already exists:
 
 * *If the specified account does not exist*, server implementations
   MUST attempt to create a new account with the requested
