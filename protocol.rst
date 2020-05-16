@@ -206,24 +206,18 @@ database:
 
 * *If the prepared transfer exists*, the server implementation MUST:
 
-  1. Try to transfer the requested ``committed_amount`` from sender's
-     account to recipient's account.
+  1. Try to transfer the ``committed_amount`` from sender's account to
+     recipient's account.
 
-  2. Remove the prepared transfer record from the server's database.
+  2. Remove the prepared transfer from the server's database.
 
-  3. Unlock the remainder of the secured amount
-     (``sender_locked_amount``), so that it becomes available for
-     other transfers.
+  3. Unlock the remainder of the secured amount, so that it becomes
+     available for other transfers. Note that ``committed_amount`` can
+     be smaller that ``sender_locked_amount``.
 
-  If the attempted transfer has not been successful
+  4. Send a `FinalizedTransfer`_ message.
 
-
-When the prepared transfer is being finalized (committed or
-dismissed), the corresponding prepared transfer record SHOULD BE
-removed from the server's database, the `` and a `FinalizedTransfer`_ message
-MUST be sent.
-
-TODO: ``committed_amount`` can be smaller than ``sender_locked_amount``.
+TODO: If the attempted transfer has not been successful?
 
 
 Outgoing messages
