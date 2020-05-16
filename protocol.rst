@@ -158,9 +158,9 @@ If the requested transfer has been successfully prepared, a
   until the prepared transfer has been finalized, the amount is not
   available for other transfers.
 
-* MUST NOT impose limitations on the time in which the prepared
-  transfer can be committed successfully, unless those limitations are
-  absolutely necessary.
+* MUST NOT impose unnecessary limitations on the time in which the
+  prepared transfer can be committed successfully. If limitations are
+  imposed, they MUST be precisely defined and known in advance.
 
 
 FinalizePreparedTransfer
