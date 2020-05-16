@@ -67,7 +67,7 @@ they MUST first verify whether the specified account already exists:
   has been processed already. To do this, the server implementation
   MUST compare the values of ``signal_ts`` and ``signal_seqnum``
   fields in the received message, to the values of these fields in the
-  latest processed `ConfigureAccount`_ message [#]_ . If the received
+  latest processed `ConfigureAccount`_ message. [#]_ If the received
   message turns out to be an old one, it MUST be ignored. Otherwise,
   an attempt MUST be made to update the account's configuration with
   the requested new configuration. If the new configuration has been
@@ -192,13 +192,13 @@ committed_amount : int64
 
 transfer_message : string
    A string that the coordinator (the client that finalizes the
-   prepared transfer) wants the recipient and the sender to see. If
-   the transfer is being dismissed, this MUST be an empty string.
+   prepared transfer) wants the recipient and the sender to see. [#]_
+   If the transfer is being dismissed, this MUST be an empty string.
 
 transfer_flags : int32
    Various bit-flags that the coordinator (the client that finalizes
    the prepared transfer) wants the recipient and the sender to
-   see. If the transfer is being dismissed, this MUST be ``0``.
+   see. [#]_ If the transfer is being dismissed, this MUST be ``0``.
 
 When server implementations processes a `FinalizePreparedTransfer`_
 message, they MUST first verify whether the specified prepared
@@ -221,8 +221,14 @@ transfer exists in server's database:
   4. Send a `FinalizedTransfer`_ message with the apropriate
      ``status_code``.
 
-  TODO: Send `AccountChange`_ message, and `AccountTransfer`_
+  TODO: Send an `AccountChange`_ message, and `AccountTransfer`_
   messages.
+
+.. [#] Different server implementations MAY impose different
+  restrictions on the format and the content of this string.
+
+.. [#] Different server implementations MAY impose different
+  restrictions on the format and the content of this string.
 
 .. [#] When ``committed_amount`` is zero, this would be a no-op.
 
@@ -264,8 +270,8 @@ available_amount : int64
    A non-negative number. If the transfer was rejected due to
    insufficient available amount, but there is a good chance for a new
    transfer request for a smaller amount to be successful, this field
-   SHOULD contain the amount currently available on sender's account
-   [#]_ . Otherwise this MUST be ``0``.
+   SHOULD contain the amount currently available on sender's account.
+   [#]_ Otherwise this MUST be ``0``.
 
 debtor_id : int64
    The ID of the debtor.
@@ -383,8 +389,8 @@ status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
    only. If the prepared transfer was committed, but the commit was
    unsuccessful for some reason, this value MUST be different from
-   ``"OK"``, and SHOULD hint at the reason for the failure [#]_ . In all
-   other cases, this value MUST be ``"OK"``.
+   ``"OK"``, and SHOULD hint at the reason for the failure. [#]_ In
+   all other cases, this value MUST be ``"OK"``.
 
 .. [#] In this case ``committed_amount`` MUST be zero.
 
