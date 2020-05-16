@@ -28,12 +28,13 @@ signal_seqnum : int32
 status_flags : int16
    Account configuration flags. Different server implementations may
    use these flags for different purposes. For the lowest bit (bit
-   ``0``) is reserved the meaning "scheduled for deletion". If this
-   bit is set, server implementations SHOULD continuously watch the
-   account, and if it is reasonably certain that amount bigger that
-   ``negligible_amount`` can not be lost on the account, and at least
-   48 hours have passed since account's creation, the account SHOULD
-   be removed from the server's database. If those condition are not
+   ``0``) is reserved the meaning "scheduled for deletion". If all of
+   the following conditions are met, the account SHOULD be removed
+   from the server's database: 1) the account is scheduled for
+   deletion; 2) it is reasonably certain that amount bigger that
+   ``negligible_amount`` can not be lost on the account; 3) there are
+   no prepared transfers awaiting finalization; 4) at least 48 hours
+   have passed since account's creation. If those condition are not
    met, accounts SHOULD NOT be removed. When an account has been
    removed from the server's database, a `AccountPurge`_ message MUST
    be sent.
@@ -224,13 +225,13 @@ transfer exists in server's database:
   TODO: Send an `AccountChange`_ message, and `AccountTransfer`_
   messages.
 
-.. [#] Different server implementations MAY impose additional
-  restrictions on the format and the content of this string, as long
-  as these restictions are precisely defined, and known in advance.
+.. [#] Server implementations MAY impose additional restrictions on
+  the format and the content of this string, as long as these
+  restictions are precisely defined, and known in advance.
 
-.. [#] Different server implementations MAY impose additional
-  restrictions on this value, as long as these restictions are
-  precisely defined, and known in advance.
+.. [#] Server implementations MAY impose additional restrictions on
+  this value, as long as these restictions are precisely defined, and
+  known in advance.
 
 .. [#] When ``committed_amount`` is zero, this would be a no-op.
 
