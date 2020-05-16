@@ -207,8 +207,7 @@ database:
 * *If the prepared transfer exists*, the server implementation MUST:
 
   1. If ``committed_amount`` is not zero, try to transfer the
-     requested amount from sender's account to recipient's account. If
-     the transfer fails, is classified as "terminated".
+     requested amount from sender's account to recipient's account.
 
   2. Remove the prepared transfer from server's database.
 
@@ -216,9 +215,8 @@ database:
      available for other transfers. (Note that ``committed_amount``
      can be smaller that ``sender_locked_amount``.)
 
-  4. Send a `FinalizedTransfer`_ message.
-
-TODO: If the attempted transfer has not been successful?
+  4. Send a `FinalizedTransfer`_ message with apropriate
+     ``status_code``.
 
 
 Outgoing messages
