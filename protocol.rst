@@ -102,7 +102,7 @@ coordinator_id : int64
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
    identifies this message from the coordinator's point of view, so
-   that the coordinator can match this message with the received
+   that the coordinator can pair this request with the received
    response message.
 
 min_amount : int64
@@ -243,8 +243,8 @@ coordinator_id : int64
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
    identifies the rejected request from the coordinator's point of
-   view, so that the coordinator can match this message with the
-   issued request to prepare a transfer.
+   view, so that the coordinator can pair this message with the issued
+   request to prepare a transfer.
 
 rejected_at_ts : date-time
    The moment at which the request to prepare a transfer was rejected.
@@ -295,7 +295,7 @@ coordinator_id : int64
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
    identifies the accepted request from the coordinator's point of
-   view, so that the coordinator can match this message with the
+   view, so that the coordinator can pair this message with the
    issued request to prepare a transfer.
 
 sender_locked_amount : int64
@@ -331,8 +331,7 @@ or a complete database loss on the client's side.
 FinalizedTransfer
 -----------------
 
-Emitted when a transfer has been finalized and its corresponding
-prepared transfer record removed from the database.
+Emitted when a transfer has been finalized.
 
 debtor_id : int64
    The ID of the debtor.
@@ -343,8 +342,8 @@ sender_creditor_id : int64
 transfer_id : int64
    The opaque ID generated for the prepared transfer. It MUST always
    be a positive number. This ID, along with ``debtor_id`` and
-   ``sender_creditor_id``, uniquely identifies the prepared transfer
-   that has been finalized.
+   ``sender_creditor_id``, uniquely identifies the finalized prepared
+   transfer.
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
@@ -356,10 +355,10 @@ coordinator_id : int64
 
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
-   identifies the accepted request from the coordinator's point of
-   view, so that the coordinator can match this message with the
-   issued request to prepare a transfer.
-   
+   identifies the finalized prepared transfer from the coordinator's
+   point of view, so that the coordinator can pair this message with
+   the issued request to finalize the prepared transfer.
+
 recipient_identity : string
    Identifies the recipient's account. It MUST be the same as in the
    corresponding ``PreparedTransfer`` message.
