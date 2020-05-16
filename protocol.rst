@@ -207,7 +207,7 @@ database:
 * *If the prepared transfer exists*, the server implementation MUST:
 
   1. Try to transfer the ``committed_amount`` from sender's account to
-     recipient's account.
+     recipient's account. [#]_
 
   2. Remove the prepared transfer from server's database.
 
@@ -216,6 +216,8 @@ database:
 
   4. Send a `FinalizedTransfer`_ message with an apropriate
      ``status_code`` field.
+
+.. [#] When ``committed_amount`` is zero, that would be a no-op.
 
 .. [#] Note that ``committed_amount`` can be smaller that
   ``sender_locked_amount``.
