@@ -206,8 +206,8 @@ database:
 
 * *If the prepared transfer exists*, the server implementation MUST:
 
-  1. If ``committed_amount`` is not zero, try to transfer the
-     requested amount from sender's account to recipient's account.
+  1. Try to transfer the requested amount from sender's account to
+     recipient's account.
 
   2. Remove the prepared transfer from server's database.
 
@@ -366,17 +366,17 @@ finalized_at_ts : date-time
 
 committed_amount : int64
    The transferred (committed) amount. It MUST always be a
-   non-negative number. A ``0`` means that the transfer has been
-   dismissed, or was committed but has been terminated for some
-   reason.
+   non-negative number. A ``0`` means either that the transfer was
+   dismissed, or that it was committed, but the commit was
+   unsuccessful for some reason.
 
 status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
-   only. If the transfer has been dismissed, or successfully
+   only. If the transfer was either dismissed, or successfully
    committed, the value MUST be "OK". If the transfer was committed,
-   but has been terminated for some reason, the value MUST be
-   different from "OK", and SHOULD hint at the cause for the
-   termination (in this case ``committed_amount`` MUST be zero).
+   but had been unsuccessful for some reason, the value MUST be
+   different from "OK", and SHOULD hint at the cause for the failure
+   (in this case ``committed_amount`` MUST be zero).
 
 
 AccountTransfer
