@@ -250,15 +250,15 @@ rejected_at_ts : date-time
    The moment at which the request to prepare a transfer was rejected.
 
 rejection_code : string
-   Gives the reason for the rejection of the transfer. MUST be between
-   0 and 30 symbols, ASCII only.
+   The reason for the rejection of the transfer. MUST be between 0 and
+   30 symbols, ASCII only.
 
 available_amount : int64
-   If the transfer was rejected due to insufficient available amount,
-   and there is a good chance for a new transfer request with a
-   smaller amount to be successful, this field SHOULD contain the
-   amount currently available on the sender's account (which would
-   always be a positive number). Otherwise it MUST be ``0``.
+   A non-negative number. If the transfer was rejected due to
+   insufficient available amount, and there is a good chance for a new
+   transfer request with a smaller amount to be successful, this field
+   SHOULD contain the amount currently available on the sender's
+   account. Otherwise it MUST be ``0``.
 
 debtor_id : int64
    The ID of the debtor.
