@@ -181,10 +181,10 @@ transfer_id : int64
    that should be finalized.
 
 committed_amount : int64
-   The transferred amount. This MUST be a non-negative number, and
+   The transferred amount. This MUST be a non-negative number, which
    MUST NOT exceed the value of the ``sender_locked_amount`` field in
-   the corresponding `PreparedTransfer`_ message. ``0`` signifies that
-   the transfer MUST be dismissed.
+   the corresponding `PreparedTransfer`_ message (it MAY be smaller,
+   though). A ``0`` signifies that the transfer MUST be dismissed.
 
 transfer_message : string
    TODO:
