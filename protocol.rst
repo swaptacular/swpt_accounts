@@ -198,8 +198,9 @@ transfer_flags : int32
    able to see. If the transfer is dismissed, the value of this field
    SHOULD be ``0``.
 
-After the prepared transfer has been finalized, implementations MUST
-send a `FinalizedTransfer`_ message.
+After the prepared transfer has been finalized (committed or
+dismissed), server implementations MUST send a `FinalizedTransfer`_
+message.
 
 
 Outgoing messages
