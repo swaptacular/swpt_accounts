@@ -262,7 +262,8 @@ prepared_at_ts : date-time
    The moment at which the transfer was prepared.
 
 signal_ts : date-time
-   The moment at which this signal was emitted.
+   The moment at which this signal was emitted (the message
+   timestamp).
 
 If a prepared transfer has not been finalized (committed or dismissed)
 for a while, the server SHOULD send another ``PreparedTransfer``
@@ -270,7 +271,7 @@ message, identical to the previous one (except for the **signal_ts**
 field), to remind that a transfer is prepared and is waiting for a
 resolution. This guarantees that no prepared transfers will be hanging
 in the server's database forever, even in the case of a lost message,
-or a complete database loss on the client side.
+or a complete database loss on the client's side.
 
 
 FinalizedTransfer
@@ -488,7 +489,8 @@ remind that the account still exists.
   contains an invalid configuration, the signal MUST be applied, but
   the `config` SHOULD NOT be updated.)
 
-* `signal_ts` is the moment at which this signal was emitted.
+* `signal_ts` is the moment at which this signal was emitted (the
+  message timestamp).
 
 * `signal_ttl` is the time-to-live (in seconds) for this signal. The
   signal SHOULD be ignored if more than `signal_ttl` seconds have
