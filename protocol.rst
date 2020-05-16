@@ -188,16 +188,14 @@ committed_amount : int64
    MUST be dismissed.
 
 transfer_message : string
-   TODO:
-   Contains notes from the sender. Can be any string that the sender
-   wants the recipient to see. If the transfer is dismissed, this
-   SHOULD be an empty string.
+   A string that the coordinator (the client that finalizes the
+   prepared transfer) wants the recipient and the sender to see. If
+   the transfer is dismissed, this MUST be an empty string.
 
 transfer_flags : int32
-   TODO:
-   Contains various flags that the recipient and the sender will be
-   able to see. If the transfer is dismissed, the value of this field
-   SHOULD be ``0``.
+   Various bit-flags that the coordinator (the client that finalizes
+   the prepared transfer) wants the recipient and the sender to
+   see. If the transfer is dismissed, this MUST be ``0``.
 
 When the prepared transfer is being finalized (committed or
 dismissed), the corresponding prepared transfer record SHOULD BE
