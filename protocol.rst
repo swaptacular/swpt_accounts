@@ -30,8 +30,8 @@ status_flags : int16
    these flags for different purposes. The lowest bit (bit ``0``) is
    reserved and has the meaning "scheduled for deletion". [#]_ If all
    of the following conditions are met, an account SHOULD be removed
-   from the server's database: 1) the account is scheduled for
-   deletion; 2) the account has no prepared transfers that await
+   from the server's database: 1) the account is "scheduled for
+   deletion"; 2) the account has no prepared transfers that await
    finalization; 3) at least 48 hours have passed since account's
    creation; 4) it is very unlikely that amount bigger that
    ``negligible_amount`` will be lost if the account is removed from
@@ -49,15 +49,12 @@ config : string
    Additional account configuration information. Different server
    implementations may use different formats for this field.
 
-Server implementations SHOULD ignore `ConfigureAccount`_ messages
-whose timestamps are too far in the past, because such messages may
-"resurrect" accounts that have been removed from the database for
-good.
+* *If the message timestamp is too far in the past*, server
+  implementations SHOULD send `RejectedConfig`_ message and ignore the
+  message. [#]_ Otherwise, it should be verified whether the specified
+  account already exists.
 
-When server implementations process a `ConfigureAccount`_ message,
-they MUST first verify whether the specified account already exists:
-
-* *If the specified account does not exist*, the server implementation
+* *If the specified account does not exist*, server implementations
   MUST attempt to create a new account with the requested
   configuration settings. If the new account has been successfully
   created, an `AccountChange`_ message containing the configuration
@@ -78,6 +75,9 @@ they MUST first verify whether the specified account already exists:
 
 .. [#] Server implementations MAY disallow incoming transfer for
   "scheduled for deletion" accounts.
+
+.. [#] Very old messages may "resurrect" accounts that have been
+  removed from the database for good.
 
 .. [#] Server implementations MUST first compare the ``signal_ts``
   fields, and only if they are equal, the ``signal_seqnum`` fields
