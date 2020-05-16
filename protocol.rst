@@ -384,8 +384,8 @@ status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
    only. If the prepared transfer was committed, but the commit was
    unsuccessful for some reason, this value MUST be different from
-   "OK", and SHOULD hint at the reason for the failure [#]_ . In all
-   other cases, this value MUST be "OK".
+   ``"OK"``, and SHOULD hint at the reason for the failure [#]_ . In all
+   other cases, this value MUST be ``"OK"``.
 
 .. [#] In that case ``committed_amount`` MUST be zero.
 
