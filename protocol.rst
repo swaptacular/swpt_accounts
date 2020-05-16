@@ -31,10 +31,11 @@ status_flags : int16
    ``0``) is reserved the meaning "scheduled for deletion". If this
    bit is set, server implementations SHOULD continuously watch the
    account, and if it is reasonably certain that amount bigger that
-   ``negligible_amount`` can not be lost on the account, the account
-   MAY be removed from the server's database. When the account is
-   removed from the server's database, a `AccountPurge`_ message MUST
-   be sent.
+   ``negligible_amount`` can not be lost on the account, and at least
+   48 hours have passed since account's creation, the account SHOULD
+   be removed from the server's database. Accounts SHOULD NOT be
+   removed if those condition are not met. When an account is removed
+   from the server's database, a `AccountPurge`_ message MUST be sent.
 
 negligible_amount : float
    The maximum amount that should be considered negligible. It MUST be
