@@ -199,7 +199,7 @@ transfer_flags : int32
    SHOULD be ``0``.
 
 After the prepared transfer has been finalized, implementations MUST
-send a `FinalizedTransfer` message.
+send a `FinalizedTransfer`_ message.
 
 
 Outgoing messages
