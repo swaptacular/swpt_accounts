@@ -160,9 +160,8 @@ When server implementations process a `PrepareTransfer`_ message they:
   other transfers.
 
 * MUST NOT impose unnecessary limitations on the time in which the
-  prepared transfer can/should be committed successfully. If some
-  limitations are imposed, they MUST be precisely defined, and known
-  in advance.
+  prepared transfer can/should be committed. All imposed limitations
+  MUST be precisely defined, and known in advance.
 
 
 FinalizePreparedTransfer
