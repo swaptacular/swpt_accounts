@@ -221,6 +221,9 @@ transfer exists in server's database:
   4. Send a `FinalizedTransfer`_ message with the apropriate
      ``status_code``.
 
+  TODO: Send `AccountChange`_ message, and `AccountTransfer`_
+  messages.
+
 .. [#] When ``committed_amount`` is zero, this would be a no-op.
 
 .. [#] Note that ``committed_amount`` can be smaller that
