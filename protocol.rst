@@ -212,8 +212,8 @@ database:
   2. Remove the prepared transfer from server's database.
 
   3. Unlock the remainder of the secured amount, so that it becomes
-     available for other transfers. Note that the committed amount can
-     be smaller that the secured (prepared) amount.
+     available for other transfers. (Note that ``committed_amount``
+     can be smaller that ``sender_locked_amount``.)
 
   4. Send a `FinalizedTransfer`_ message.
 
