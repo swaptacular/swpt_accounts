@@ -209,10 +209,10 @@ When server implementations processes a `FinalizePreparedTransfer`_
 message, they MUST first verify whether the specified prepared
 transfer exists in server's database:
 
-1. If the specified prepared transfer does not exist*, the message
-   MUST be ignored.
+1. If the specified prepared transfer does not exist, the message MUST
+   be ignored.
 
-2. *If the specified prepared transfer exists*, server implementations
+2. If the specified prepared transfer exists, server implementations
    MUST:
 
    * Try to transfer the ``committed_amount`` from sender's account to
