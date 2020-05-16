@@ -213,13 +213,13 @@ transfer exists in server's database:
   1. Try to transfer the ``committed_amount`` from sender's account to
      recipient's account. [#]_
 
-  2. Remove the prepared transfer from server's database.
-
-  3. Unlock the remainder of the secured amount, so that it becomes
+  2. Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#]_
 
-  4. Send a `FinalizedTransfer`_ message with an apropriate
+  3. Send a `FinalizedTransfer`_ message with an apropriate
      ``status_code`` field.
+
+  4. Remove the prepared transfer from server's database.
 
 .. [#] When ``committed_amount`` is zero, this would be a no-op.
 
