@@ -180,8 +180,8 @@ coordinator_type : string
    between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
-   Along with ``coordinator_type``, identifies who requested the
-   transfer.
+   Along with ``coordinator_type``, identifies the client that
+   requested the transfer (the *coordinator*).
 
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
@@ -232,8 +232,8 @@ coordinator_type : string
    between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
-   Along with ``coordinator_type``, identifies who requested the
-   transfer.
+   Along with ``coordinator_type``, identifies the client that
+   requested the transfer (the *coordinator*).
 
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
@@ -287,8 +287,8 @@ coordinator_type : string
    between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
-   Along with ``coordinator_type``, identifies who requested the
-   transfer.
+   Along with ``coordinator_type``, identifies the client that
+   requested the transfer (the *coordinator*).
 
 coordinator_request_id : int64
    Along with ``coordinator_type`` and ``coordinator_id``, uniquely
@@ -517,10 +517,10 @@ creditor_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    removed account. Different server implementations may use different
    formats for this string. Note that ``creditor_id`` is an ID which
-   is recognizable only by the system that created the account. This
-   identifier (along with ``debtor_id``), on the other hand, MUST
-   provide enough information to globally identify the account (an
-   IBAN for example).
+   is recognizable only by the system that created the sender's
+   account. This identifier (along with ``debtor_id``), on the other
+   hand, MUST provide enough information to globally identify the
+   removed account (an IBAN for example).
 
 
 RejectedConfig
