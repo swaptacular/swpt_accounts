@@ -206,8 +206,9 @@ database:
 
 * *If the prepared transfer exists*, the server implementation MUST:
 
-  1. Try to transfer the ``committed_amount`` from sender's account to
-     recipient's account.
+  1. If ``committed_amount`` is not zero, try to transfer the
+     requested amount from sender's account to recipient's account. If
+     the transfer fails, is classified as "terminated".
 
   2. Remove the prepared transfer from server's database.
 
