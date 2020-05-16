@@ -51,8 +51,10 @@ config : string
 Server implementations SHOULD ignore `ConfigureAccount`_ messages
 whose timestamps are too far in the past, because such messages may
 "resurrect" accounts that have been removed from the database for
-good. When the server implementation processes the message, it MUST
-first verify whether the specified account already exists:
+good.
+
+When server implementations process a message, they MUST first verify
+whether the specified account already exists:
 
 * *If the account does not exist*, the server implementation MUST
   attempt to create a new account with the requested configuration
