@@ -224,7 +224,7 @@ transfer exists in server's database:
    * Remove the prepared transfer from server's database.
 
    * Send a `FinalizedTransfer`_ message with the apropriate
-    ``status_code``.
+     ``status_code``.
 
    TODO: Send an `AccountChange`_ message, and `AccountTransfer`_
    messages.
