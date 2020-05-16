@@ -151,9 +151,15 @@ If the requested transfer has been successfully prepared, a
 * SHOULD NOT allow transfers in which the sender and the recipient is
   the same account.
 
-* If the requested transfer has been successfully prepared, the
-  secured amount MUST be locked, so that until the prepared has been
-  finalized, the amount is unavailable to other transfer requests.
+* If the requested transfer has been successfully prepared, a very
+  high probability for success of the eventual commit MUST be
+  guaranteed. Notably, the secured amount MUST be locked, so that
+  until the prepared transfer has been finalized, the amount is not
+  available for other transfers.
+
+* MUST NOT impose limitations on the time in which the prepared
+  transfer can be committed successfully, unless those limitations are
+  absolutely necessary.
 
 
 FinalizePreparedTransfer
