@@ -182,9 +182,9 @@ transfer_id : int64
 
 committed_amount : int64
    The transferred amount. This MUST be a non-negative number, and
-   SHOULD NOT exceed the value of the ``sender_locked_amount`` field
-   in the corresponding `PreparedTransfer`_ message. ``0`` signifies
-   that the transfer MUST be dismissed.
+   MUST NOT exceed the value of the ``sender_locked_amount`` field in
+   the corresponding `PreparedTransfer`_ message. ``0`` signifies that
+   the transfer MUST be dismissed.
 
 transfer_message : string
    TODO:
@@ -198,9 +198,10 @@ transfer_flags : int32
    able to see. If the transfer is dismissed, the value of this field
    SHOULD be ``0``.
 
-After the prepared transfer has been finalized (committed or
-dismissed), server implementations MUST send a `FinalizedTransfer`_
-message.
+When the prepared transfer is being finalized (committed or
+dismissed), the corresponding prepared transfer record SHOULD BE
+removed from the server's database, the `` and a `FinalizedTransfer`_ message
+MUST be sent.
 
 
 Outgoing messages
@@ -280,7 +281,7 @@ coordinator_request_id : int64
 
 sender_locked_amount : int64
    The secured (prepared) amount for the transfer. It MUST always be a
-   positive number. The actual transferred (committed) amount may not
+   positive number. The actual transferred (committed) amount MUST NOT
    exceed this number.
 
 recipient_identity : string
