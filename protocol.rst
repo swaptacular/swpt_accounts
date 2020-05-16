@@ -136,12 +136,9 @@ minimum_account_balance : int64
    sender's account after the requested amount has been secured. This
    can be a negative number.
 
-If the requested transfer has been successfully prepared, a
-`PreparedTransfer`_ message MUST be sent. Otherwise, a
-`RejectedTransfer`_ message MUST be sent. Server implementations:
-
-* MAY decide to ignore `PrepareTransfer`_ messages whose timestamps
-  are too far in the past.
+Server implementations MAY decide to ignore `PrepareTransfer`_
+messages whose timestamps are too far in the past. When the
+implementation processes the message it:
 
 * SHOULD try to secure as big amount as possible, within the requested
   limits (between ``min_amount`` and ``max_amount``).
@@ -161,6 +158,10 @@ If the requested transfer has been successfully prepared, a
 * MUST NOT impose unnecessary limitations on the time in which the
   prepared transfer can be committed successfully. If limitations are
   imposed, they MUST be precisely defined and known in advance.
+
+* If the requested transfer has been successfully prepared, a
+  `PreparedTransfer`_ message MUST be sent. Otherwise, a
+  `RejectedTransfer`_ message MUST be sent.
 
 
 FinalizePreparedTransfer
