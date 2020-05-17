@@ -581,8 +581,8 @@ creditor_identity : string
    removed account (an IBAN for example).
 
 last_outgoing_transfer_date : date
-   The date of the latest transfer, for which the owner of the account
-   was the sender (interest payments are not included). If there have
+   The date of the latest transfer (not counting interest payments),
+   for which the owner of the account was the sender. If there have
    not been any outgoing transfers yet, the value MUST be
    "1970-01-01".
 
