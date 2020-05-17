@@ -70,7 +70,7 @@ they MUST first verify whether the specified account already exists:
    successfully created, an `AccountChange`_ message MUST be sent;
    otherwise a `RejectedConfig`_ message MUST be sent.
 
-.. [#] Server implementations MAY not allow incoming transfer for
+.. [#] Server implementations MAY forbid incoming transfer for
   "scheduled for deletion" accounts.
 
 .. [#] How long this "some time" is, depends on how old an old
