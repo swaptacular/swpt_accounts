@@ -55,8 +55,8 @@ they MUST first verify whether the specified account already exists:
 
 1. If the specified account already exists, the server implementation
    MUST decide whether the same or a later `ConfigureAccount`_ message
-   has been processed already. [#]_ If the received message turns out
-   to be an old one, it MUST be ignored. Otherwise, an attempt MUST be
+   has been applied already. [#]_ If the received message turns out to
+   be an old one, it MUST be ignored. Otherwise, an attempt MUST be
    made to update the account's configuration with the requested new
    configuration. If the new configuration has been successfully
    applied, an `AccountChange`_ message MUST be sent; otherwise a
