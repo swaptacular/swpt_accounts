@@ -70,8 +70,8 @@ they MUST first verify whether the specified account already exists:
    created, an `AccountChange`_ message MUST be sent; otherwise a
    `RejectedConfig`_ message MUST be sent.
 
-.. [#] Server implementations MAY forbid incoming transfer for
-  "scheduled for deletion" accounts.
+.. [#] Server implementations MAY (and probably should) forbid
+  incoming transfer for "scheduled for deletion" accounts.
 
 .. [#] How long this "some time" is, depends on how old an old
   `ConfigureAccount`_ message should be, in order to be ignored. The
