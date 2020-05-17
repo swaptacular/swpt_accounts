@@ -36,9 +36,9 @@ status_flags : int16
    creation; 4) accont's configuration settings have not been updated
    for some time [#]_ ; 5) it is very unlikely that amount bigger that
    ``negligible_amount`` will be lost if the account is removed from
-   the server's database. If those condition are not met, accounts
-   SHOULD NOT be removed. When an account has been removed from the
-   server's database, an `AccountPurge`_ message MUST be sent.
+   server's database. If those condition are not met, accounts SHOULD
+   NOT be removed. When an account has been removed from the server's
+   database, an `AccountPurge`_ message MUST be sent.
 
 negligible_amount : float
    The maximum amount that should be considered negligible. It MUST be
@@ -73,11 +73,11 @@ they MUST first verify whether the specified account already exists:
 .. [#] Server implementations MAY not allow incoming transfer for
   "scheduled for deletion" accounts.
 
-.. [#] How long this "some time" is, depends on how far in the past
-  old `ConfigureAccount`_ messages' timestamps must be, in order to be
-  ignored. The goal is to avoid the scenario in which an account is
-  removed from the database, but an old, wandering `ConfigureAccount`_
-  message "resurrects" the account.
+.. [#] How long this "some time" is, depends on how old an old
+  `ConfigureAccount`_ message should be, in order to be ignored. The
+  goal is to avoid the scenario in which an account is removed from
+  server's database, but an old, wandering `ConfigureAccount`_ message
+  "resurrects" it.
 
 .. [#] To do this, server implementations MUST compare the values of
   ``signal_ts`` and ``signal_seqnum`` fields in the received message,
@@ -93,7 +93,7 @@ they MUST first verify whether the specified account already exists:
   when they were saved to the database.
 
 .. [#] Very old messages may "resurrect" accounts that have been
-  removed from the database for good.
+  removed from the server's database for good.
 
 
 PrepareTransfer
