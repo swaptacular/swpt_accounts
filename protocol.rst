@@ -562,12 +562,12 @@ config : string
 
 status : int32
    Status bit-flags. The lowest 16 bits (from bit ``0`` to bit ``15``)
-   MUST contain contain the value of the ``status_flags`` field in the
-   latest applied `ConfigureAccount`_ message. If there have not been
-   any applied `ConfigureAccount`_ messages yet, the lowest 16 bits
-   SHOULD represent the default configuration settings. The highest 16
-   bits (from bit ``16`` to bit ``31``) MAY contain
-   implementation-specific account status flags.
+   MUST contain the value of the ``status_flags`` field in the latest
+   applied `ConfigureAccount`_ message. If there have not been any
+   applied `ConfigureAccount`_ messages yet, the lowest 16 bits SHOULD
+   represent the default configuration settings. The highest 16 bits
+   (from bit ``16`` to bit ``31``) MAY contain implementation-specific
+   account status flags.
 
 creditor_identity : string
    A string which (along with ``debtor_id``) globally identifies the
