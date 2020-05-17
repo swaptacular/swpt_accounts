@@ -41,8 +41,8 @@ status_flags : int16
    database, an `AccountPurge`_ message MUST be sent.
 
 negligible_amount : float
-   The maximum amount that should be considered negligible. It MUST be
-   a non-negative number. It can be used to: 1) decide whether an
+   The maximum amount that should be considered negligible. This MUST
+   be a non-negative number. It can be used to: 1) decide whether an
    account can be safely deleted; 2) decide whether an incoming
    transfer is insignificant.
 
@@ -63,7 +63,7 @@ they MUST first verify whether the specified account already exists:
    `RejectedConfig`_ message MUST be sent.
 
 2. If the specified account does not exist, the message's timestamp
-   MUST be verified. If it is too far in the past, the message MUST be
+   MUST be checked. If it is too far in the past, the message MUST be
    ignored, and a `RejectedConfig`_ message MUST be sent. [#]_
    Otherwise, an attempt MUST be made to create a new account with the
    requested configuration settings. If the new account has been
