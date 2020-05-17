@@ -75,8 +75,9 @@ they MUST first verify whether the specified account already exists:
 .. [#] Server implementations MAY disallow incoming transfer for
   "scheduled for deletion" accounts.
 
-.. [#] How long this time should be depends on how far in the past a
-  `ConfigureAccount`_ message should be in order to be considered old.
+.. [#] How long this time is depends on how far in the past the
+  `ConfigureAccount`_ message timestamp should be in order to ignore
+  the message.
 
 .. [#] Very old messages may "resurrect" accounts that have been
   removed from the database for good.
