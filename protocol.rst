@@ -47,7 +47,7 @@ negligible_amount : float
    transfer is insignificant.
 
 config : string
-   Additional account configuration information. Different server
+   Additional account configuration settings. Different server
    implementations may use different formats for this field.
 
 When server implementations process a `ConfigureAccount`_ message,
@@ -535,19 +535,20 @@ interest_rate : float
 
 last_outgoing_transfer_date : date
    The date of the latest transfer, for which the owner of the account
-   was the sender (interest payments are excluded). If there have not
-   been any outgoing transfers, the value MUST be "1970-01-01".
+   was the sender (interest payments are not included). If there have
+   not been any outgoing transfers yet, the value MUST be
+   "1970-01-01".
 
 last_config_signal_ts : date-time
    The value of the ``signal_ts`` field of the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
-   `ConfigureAccount`_ messages, the value MUST be
+   `ConfigureAccount`_ messages yet, the value MUST be
    "1970-01-01T00:00:00+00:00".
 
 last_config_signal_seqnum : int32
    The value of the ``signal_seqnum`` field of the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
-   `ConfigureAccount`_ messages, the value MUST be `0`. [#]_
+   `ConfigureAccount`_ messages yet, the value MUST be `0`. [#]_
 
 creation_date : date
    The date on which the account was created.
@@ -555,22 +556,24 @@ creation_date : date
 negligible_amount : float
    The value of the ``negligible_amount`` field in the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
-   `ConfigureAccount`_ messages, the value SHOULD be `0.0`.
-
-status : int32
-   Status bit-flags. TODO
+   `ConfigureAccount`_ messages yet, the value SHOULD represent the
+   default configuration settings.
 
 config : string
    The value of the ``config`` field in the latest applied
    `ConfigureAccount`_ messages. If there have not been any applied
-   `ConfigureAccount`_ messages, the value is implemenation-dependent.
+   `ConfigureAccount`_ messages yet, the value SHOULD represent the
+   default configuration settings.
+
+status : int32
+   Status bit-flags. TODO
 
 signal_ts : date-time
    The moment at which this signal was emitted (the message's
    timestamp).
 
 signal_ttl : int32
-   The time-to-live (in seconds) for this message. The message MUST be
+   The time-to-live (in seconds) for the message. This message MUST be
    ignored if more than ``signal_ttl`` seconds have elapsed since the
    message was emitted (``signal_ts``). This MUST be a positive
    number.
