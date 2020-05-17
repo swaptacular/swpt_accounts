@@ -64,11 +64,11 @@ they MUST first verify whether the specified account already exists:
 
 2. If the specified account does not exist, the message's timestamp
    MUST be checked. If it is too far in the past, the message MUST be
-   ignored, and a `RejectedConfig`_ message MUST be sent. [#]_
-   Otherwise, an attempt MUST be made to create a new account with the
-   requested configuration settings. If the new account has been
-   successfully created, an `AccountChange`_ message MUST be sent;
-   otherwise a `RejectedConfig`_ message MUST be sent.
+   ignored, and a `RejectedConfig`_ message MUST be sent. Otherwise,
+   an attempt MUST be made to create a new account with the requested
+   configuration settings. If the new account has been successfully
+   created, an `AccountChange`_ message MUST be sent; otherwise a
+   `RejectedConfig`_ message MUST be sent.
 
 .. [#] Server implementations MAY forbid incoming transfer for
   "scheduled for deletion" accounts.
@@ -91,9 +91,6 @@ they MUST first verify whether the specified account already exists:
   (seqnum2 - seqnum1) % 0x100000000 < 0x80000000``. Timestamps must
   also be compared with care, because precision might have been lost
   when they were saved to the database.
-
-.. [#] Very old messages may "resurrect" accounts that have been
-  removed from the server's database for good.
 
 
 PrepareTransfer
