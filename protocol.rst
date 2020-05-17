@@ -510,9 +510,9 @@ creditor_id : int64
 
 change_ts : date-time
    The moment at which the latest meaningful change in the state of
-   the account happened. For a given account, later `AccountChange`_
-   messages MUST have later or equal ``change_ts``, compared to
-   earlier messages.
+   the account has happened. For a given account, later
+   `AccountChange`_ messages MUST have later or equal ``change_ts``,
+   compared to earlier messages.
 
 change_seqnum : int32
    The sequential number of the message. For a given account, later
@@ -534,24 +534,20 @@ interest_rate : float
    account. This can be a negative number.
 
 last_outgoing_transfer_date : date
-   The date of the last committed transfer, for which the owner of the
-   account was the sender. If there were no outgoing transfers, the
-   value MUST be "1970-01-01".
+   The date of the latest transfer, for which the owner of the account
+   was the sender (interest payments are excluded). If there have not
+   been any outgoing transfers, the value MUST be "1970-01-01".
 
 last_config_signal_ts : date-time
    The value of the ``signal_ts`` field of the latest applied
-   `ConfigureAccount`_ message. This field can be used to determine
-   whether a sent `ConfigureAccount`_ message has been successfully
-   processed. If there were no applied `ConfigureAccount`_ messages,
-   the value MUST be "1970-01-01T00:00:00+00:00".
+   `ConfigureAccount`_ message. If there have not been any applied
+   `ConfigureAccount`_ messages, the value MUST be
+   "1970-01-01T00:00:00+00:00".
 
 last_config_signal_seqnum : int32
    The value of the ``signal_seqnum`` field of the latest applied
-   `ConfigureAccount`_ message. This field, along with
-   ``last_config_signal_ts`` can be used to determine whether a sent
-   `ConfigureAccount`_ message has been successfully processed.  If
-   there were no applied `ConfigureAccount`_ messages, the value MUST
-   be `0`.
+   `ConfigureAccount`_ message. If there have not been any applied
+   `ConfigureAccount`_ messages, the value MUST be `0`. [#]_
 
 creation_date : date
    The date on which the account was created.
@@ -604,6 +600,10 @@ last_transfer_seqnum : int64
   ``change_ts`` moment. Any interest amount that is reported in this
   the ``interest`` field MUST be available for transfers (the owner of
   the account has to be able to send it to other accounts).
+
+.. [#] ``last_config_signal_ts`` and ``last_config_signal_seqnum``
+   fields can be used to determine whether a sent `ConfigureAccount`_
+   message has been applied successfully.
 
 
 AccountPurge
