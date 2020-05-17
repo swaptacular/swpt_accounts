@@ -554,23 +554,26 @@ creation_date : date
 
 negligible_amount : float
    The value of the ``negligible_amount`` field in the latest applied
-   `ConfigureAccount`_ messages.
+   `ConfigureAccount`_ message. If there have not been any applied
+   `ConfigureAccount`_ messages, the value SHOULD be `0.0`.
 
 status : int32
    Status bit-flags. TODO
 
 config : string
    The value of the ``config`` field in the latest applied
-   `ConfigureAccount`_ messages.
+   `ConfigureAccount`_ messages. If there have not been any applied
+   `ConfigureAccount`_ messages, the value is implemenation-dependent.
 
 signal_ts : date-time
    The moment at which this signal was emitted (the message's
    timestamp).
 
 signal_ttl : int32
-   The time-to-live (in seconds) for this signal. The signal MUST be
+   The time-to-live (in seconds) for this message. The message MUST be
    ignored if more than ``signal_ttl`` seconds have elapsed since the
-   signal was emitted (``signal_ts``). This MUST be a positive number.
+   message was emitted (``signal_ts``). This MUST be a positive
+   number.
 
 creditor_identity : string
    A string which (along with ``debtor_id``) globally identifies the
