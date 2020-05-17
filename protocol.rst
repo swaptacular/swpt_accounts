@@ -239,7 +239,7 @@ transfer exists in server's database:
 
 .. [#] When ``committed_amount`` is zero, this would be a no-op.  When
   the commit is successful, an `AccountChange`_ message, and
-  `AccountTransfer`_ messages will be triggered as well.
+  `AccountTransfer`_ messages will be eventually triggered as well.
 
 .. [#] Note that ``committed_amount`` can be smaller that
   ``sender_locked_amount``.
