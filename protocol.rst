@@ -603,7 +603,7 @@ signal_ttl : int32
 
 .. [#] ``change_ts`` and ``change_seqnum`` can be used to reliably
   determine the correct order in a sequence of `AccountChange`_
-  messages, even if the changes occured in a very short period of
+  messages, even if the changes occurred in a very short period of
   time. When considering two changes, ``change_ts`` fields MUST be
   compared first, and only if they are equal, ``change_seqnum`` fields
   MUST be compared as well.  Note that when comparing
@@ -616,13 +616,14 @@ signal_ttl : int32
 
 .. [#] Note that the ``interest`` field shows the amount of interest
   accumulated on the account only up to the ``change_ts``
-  moment. Also, any amount that is shown as accumulated interest, MUST
-  be available for transfers. That is: the owner of the account has to
-  be able to "wire" the accumulated interest to another account.
+  moment. Also, any amount that is shown as accumulated interest,
+  SHOULD be available for transfers. That is: the owner of the account
+  has to be able to "wire" the accumulated interest to another
+  account.
 
-.. [#] ``last_config_signal_ts`` and ``last_config_signal_seqnum`` can
-   be used to determine whether a sent `ConfigureAccount`_ message has
-   been applied successfully.
+.. [#] Note that ``last_config_signal_ts`` and
+   ``last_config_signal_seqnum`` can be used to determine whether a
+   sent `ConfigureAccount`_ message has been applied successfully.
 
 
 AccountPurge
