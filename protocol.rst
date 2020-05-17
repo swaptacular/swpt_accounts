@@ -237,9 +237,9 @@ transfer exists in server's database:
   this value, as long as these restictions are precisely defined, and
   known in advance.
 
-.. [#] When ``committed_amount`` is zero, this would be a no-op.
-  TODO: Mention sending an `AccountChange`_ message, and
-  `AccountTransfer`_ messages.
+.. [#] When ``committed_amount`` is zero, this would be a no-op.  When
+  commit is successful, an `AccountChange`_ message, and at lest one
+  `AccountTransfer`_ message will be triggered as well.
 
 .. [#] Note that ``committed_amount`` can be smaller that
   ``sender_locked_amount``.
