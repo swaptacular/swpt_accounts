@@ -75,9 +75,11 @@ they MUST first verify whether the specified account already exists:
 .. [#] Server implementations MAY not allow incoming transfer for
   "scheduled for deletion" accounts.
 
-.. [#] How long this "some time" is depends on how far in the past
-  `ConfigureAccount`_ messages' timestamp must be in order to be
-  ignored.
+.. [#] How long this "some time" is, depends on how far in the past
+  old `ConfigureAccount`_ messages' timestamps must be, in order to be
+  ignored. The goal is to avoid the scenario in which an account is
+  removed from the database, but an old, wandering `ConfigureAccount`_
+  message "resurrects" the account.
 
 .. [#] To do this, the server implementation MUST compare the values
   of ``signal_ts`` and ``signal_seqnum`` fields in the received
