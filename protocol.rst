@@ -508,6 +508,9 @@ debtor_id : int64
 creditor_id : int64
    Along with ``debtor_id``, identifies the account.
 
+creation_date : date
+   The date on which the account was created.
+
 change_ts : date-time
    The moment at which the latest meaningful change in the state of
    the account has happened. For a given account, later
@@ -533,12 +536,6 @@ interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
    account. This can be a negative number.
 
-last_outgoing_transfer_date : date
-   The date of the latest transfer, for which the owner of the account
-   was the sender (interest payments are not included). If there have
-   not been any outgoing transfers yet, the value MUST be
-   "1970-01-01".
-
 last_config_signal_ts : date-time
    The value of the ``signal_ts`` field of the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
@@ -549,9 +546,6 @@ last_config_signal_seqnum : int32
    The value of the ``signal_seqnum`` field of the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
    `ConfigureAccount`_ messages yet, the value MUST be `0`. [#]_
-
-creation_date : date
-   The date on which the account was created.
 
 negligible_amount : float
    The value of the ``negligible_amount`` field in the latest applied
@@ -568,16 +562,6 @@ config : string
 status : int32
    Status bit-flags. TODO
 
-signal_ts : date-time
-   The moment at which this signal was emitted (the message's
-   timestamp).
-
-signal_ttl : int32
-   The time-to-live (in seconds) for the message. This message MUST be
-   ignored if more than ``signal_ttl`` seconds have elapsed since the
-   message was emitted (``signal_ts``). This MUST be a positive
-   number.
-
 creditor_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    account. Different server implementations may use different formats
@@ -587,12 +571,28 @@ creditor_identity : string
    hand, MUST provide enough information to globally identify the
    removed account (an IBAN for example).
 
+last_outgoing_transfer_date : date
+   The date of the latest transfer, for which the owner of the account
+   was the sender (interest payments are not included). If there have
+   not been any outgoing transfers yet, the value MUST be
+   "1970-01-01".
+
 last_transfer_seqnum : int64
    TODO. MUST ba a non-negative number. Identifies the last account
    commit. If there were no previous account commits, the value will
    have its lower 40 bits set to `0x0000000000`, and its higher 24
    bits calculated from `creation_date` (the number of days since Jan
    1st, 1970).
+
+signal_ts : date-time
+   The moment at which this signal was emitted (the message's
+   timestamp).
+
+signal_ttl : int32
+   The time-to-live (in seconds) for the message. This message MUST be
+   ignored if more than ``signal_ttl`` seconds have elapsed since the
+   message was emitted (``signal_ts``). This MUST be a positive
+   number.
 
 .. [#] ``change_ts`` and ``change_seqnum`` can be used to reliably
   determine the correct order in a sequence of changes, even if they
