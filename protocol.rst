@@ -14,7 +14,7 @@ creditor_id : int64
    Along with ``debtor_id``, identifies the account.
 
 signal_ts : date-time
-   The moment at which this message was sent (the message
+   The moment at which this message was sent (the message's
    timestamp). For a given account, later `ConfigureAccount`_ messages
    MUST have later or equal timestamps, compared to earlier messages.
 
@@ -59,18 +59,16 @@ they MUST first verify whether the specified account already exists:
    to be an old one, it MUST be ignored. Otherwise, an attempt MUST be
    made to update the account's configuration with the requested new
    configuration. If the new configuration has been successfully
-   applied, an `AccountChange`_ message containing the new
-   configuration MUST be sent. Otherwise a `RejectedConfig`_ message
-   MUST be sent, containing the rejected requested configuration.
-
-2. If the specified account does not exist, the message timestamp MUST
-   be verified. If the message timestamp is too far in the past, the
-   message MUST be ignored, and a `RejectedConfig`_ message MUST be
-   sent. [#]_ Otherwise, an attempt MUST be made to create a new
-   account with the requested configuration settings. If the new
-   account has been successfully created, an `AccountChange`_ message
-   containing the configuration MUST be sent. Otherwise a
+   applied, an `AccountChange`_ message MUST be sent; otherwise a
    `RejectedConfig`_ message MUST be sent.
+
+2. If the specified account does not exist, the message's timestamp
+   MUST be verified. If it is too far in the past, the message MUST be
+   ignored, and a `RejectedConfig`_ message MUST be sent. [#]_
+   Otherwise, an attempt MUST be made to create a new account with the
+   requested configuration settings. If the new account has been
+   successfully created, an `AccountChange`_ message MUST be sent;
+   otherwise a `RejectedConfig`_ message MUST be sent.
 
 .. [#] Server implementations MAY not allow incoming transfer for
   "scheduled for deletion" accounts.
@@ -143,7 +141,8 @@ recipient_identity : string
    identify the recipient's account (an IBAN for example).
    
 signal_ts : date-time
-   The moment at which this message was sent (the message timestamp).
+   The moment at which this message was sent (the message's
+   timestamp).
 
 minimum_account_balance : int64
    Determines the minimum amount that SHOULD remain available on
@@ -339,7 +338,7 @@ prepared_at_ts : date-time
    The moment at which the transfer was prepared.
 
 signal_ts : date-time
-   The moment at which this signal was emitted (the message
+   The moment at which this signal was emitted (the message's
    timestamp).
 
 If a prepared transfer has not been finalized (committed or dismissed)
@@ -569,7 +568,7 @@ remind that the account still exists.
   the `config` SHOULD NOT be updated.)
 
 * `signal_ts` is the moment at which this signal was emitted (the
-  message timestamp).
+  message's timestamp).
 
 * `signal_ttl` is the time-to-live (in seconds) for this signal. The
   signal SHOULD be ignored if more than `signal_ttl` seconds have
