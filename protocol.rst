@@ -530,7 +530,9 @@ principal : int64
 
 interest : float
    The amount of interest accumulated on the account, that is not
-   added to the ``principal`` yet. [#]_ This can be a negative number.
+   added to the ``principal`` yet. [#]_ This can be a negative
+   number. The accumulated interest SHOULD be zeroed out and added to
+   the principal once in a while.
 
 interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
