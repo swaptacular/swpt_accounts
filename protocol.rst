@@ -81,18 +81,18 @@ they MUST first verify whether the specified account already exists:
   removed from the database, but an old, wandering `ConfigureAccount`_
   message "resurrects" the account.
 
-.. [#] To do this, the server implementation MUST compare the values
-  of ``signal_ts`` and ``signal_seqnum`` fields in the received
-  message, to the values of these fields in the latest processed
-  `ConfigureAccount`_ message. The ``signal_ts`` fields MUST first be
-  compared, and only if they are equal, the ``signal_seqnum`` fields
-  MUST be compared as well. Note that when comparing the
-  ``signal_seqnum`` fields, server implementations MUST correctly deal
-  with the possible 32-bit integer wrapping. For example, to decide
-  whether ``seqnum2`` is later than ``seqnum1``, the following
-  expression MAY be used: ``0 < (seqnum2 - seqnum1) % 0x100000000 <
-  0x80000000``. Timestamps should also be compared with care, because
-  precision might have been lost when they were saved to the database.
+.. [#] To do this, server implementations MUST compare the values of
+  ``signal_ts`` and ``signal_seqnum`` fields in the received message,
+  to the values of these fields in the latest applied
+  `ConfigureAccount`_ message. ``signal_ts`` fields MUST be compared
+  first, and only if they are equal, ``signal_seqnum`` fields MUST be
+  compared as well. Note that when comparing ``signal_seqnum`` fields,
+  server implementations MUST correctly deal with the possible 32-bit
+  integer wrapping. For example, to decide whether ``seqnum2`` is
+  later than ``seqnum1``, the following expression MAY be used: ``0 <
+  (seqnum2 - seqnum1) % 0x100000000 < 0x80000000``. Timestamps must
+  also be compared with care, because precision might have been lost
+  when they were saved to the database.
 
 .. [#] Very old messages may "resurrect" accounts that have been
   removed from the database for good.
