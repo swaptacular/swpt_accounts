@@ -33,7 +33,8 @@ status_flags : int16
    from the server's database: 1) the account is "scheduled for
    deletion"; 2) the account has no prepared transfers that await
    finalization; 3) at least 48 hours have passed since account's
-   creation; 4) it is very unlikely that amount bigger that
+   creation; 4) no `ConfigureAccount`_ messages have been received for
+   some time [#]_ ; 5) it is very unlikely that amount bigger that
    ``negligible_amount`` will be lost if the account is removed from
    the server's database. If those condition are not met, accounts
    SHOULD NOT be removed. When an account has been removed from the
@@ -49,39 +50,43 @@ config : string
    Additional account configuration information. Different server
    implementations may use different formats for this field.
 
-If the message timestamp is too far in the past, server
-implementations SHOULD send a `RejectedConfig`_ message and ignore the
-message. [#]_ Otherwise, it should be verified whether the specified
-account already exists:
+When server implementations process a `ConfigureAccount`_ message,
+they MUST first verify whether the specified account already exists:
 
-1. If the specified account does not exist, server implementations
-   MUST attempt to create a new account with the requested
-   configuration settings. If the new account has been successfully
-   created, an `AccountChange`_ message containing the configuration
-   MUST be sent. Otherwise a `RejectedConfig`_ message MUST be sent.
-
-2. If the specified account already exists, the server implementation
+1. If the specified account already exists, the server implementation
    MUST decide whether the same or a later `ConfigureAccount`_ message
-   has been processed already. To do this, the server implementation
-   MUST compare the values of ``signal_ts`` and ``signal_seqnum``
-   fields in the received message, to the values of these fields in
-   the latest processed `ConfigureAccount`_ message. [#]_ If the
-   received message turns out to be an old one, it MUST be
-   ignored. Otherwise, an attempt MUST be made to update the account's
-   configuration with the requested new configuration. If the new
-   configuration has been successfully applied, an `AccountChange`_
-   message containing the new configuration MUST be sent. Otherwise a
-   `RejectedConfig`_ message MUST be sent, containing the rejected
-   requested configuration.
+   has been processed already. [#]_ If the received message turns out
+   to be an old one, it MUST be ignored. Otherwise, an attempt MUST be
+   made to update the account's configuration with the requested new
+   configuration. If the new configuration has been successfully
+   applied, an `AccountChange`_ message containing the new
+   configuration MUST be sent. Otherwise a `RejectedConfig`_ message
+   MUST be sent, containing the rejected requested configuration.
+
+2. If the specified account does not exist, the message timestamp MUST
+   be verified. If the message timestamp is too far in the past, a
+   `RejectedConfig`_ message MUST be sent, and the message MUST be
+   ignored. [#]_ Otherwise, an attempt MUST be made to create a new
+   account with the requested configuration settings. If the new
+   account has been successfully created, an `AccountChange`_ message
+   containing the configuration MUST be sent. Otherwise a
+   `RejectedConfig`_ message MUST be sent.
 
 .. [#] Server implementations MAY disallow incoming transfer for
   "scheduled for deletion" accounts.
 
+.. [#] How long is this time depends on how far in the past a
+  `ConfigureAccount`_ message should be in order to be considered too
+  old.
+
 .. [#] Very old messages may "resurrect" accounts that have been
   removed from the database for good.
 
-.. [#] Server implementations MUST first compare the ``signal_ts``
-  fields, and only if they are equal, the ``signal_seqnum`` fields
+.. [#] To do this, the server implementation MUST compare the values
+  of ``signal_ts`` and ``signal_seqnum`` fields in the received
+  message, to the values of these fields in the latest processed
+  `ConfigureAccount`_ message. The ``signal_ts`` fields MUST first be
+  compared, and only if they are equal, the ``signal_seqnum`` fields
   MUST be compared as well. Note that when comparing the
   ``signal_seqnum`` fields, server implementations MUST correctly deal
   with the possible 32-bit integer wrapping. For example, to decide

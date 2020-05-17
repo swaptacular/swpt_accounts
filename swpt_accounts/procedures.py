@@ -38,6 +38,15 @@ def configure_account(
     assert MIN_INT32 <= signal_seqnum <= MAX_INT32
     assert MIN_INT16 <= status_flags <= MAX_INT16
 
+    current_ts = datetime.now(tz=timezone.utc)
+
+    def is_valid_config():
+        return negligible_amount >= 0.0 and config == ''
+
+    def is_outdated_signal():
+        signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
+        return (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds
+
     def reject(rejection_code):
         db.session.add(RejectedConfigSignal(
             debtor_id=debtor_id,
@@ -50,30 +59,30 @@ def configure_account(
             rejection_code=rejection_code,
         ))
 
-    current_ts = datetime.now(tz=timezone.utc)
-    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-    is_signal_outdated = (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds
-
-    if is_signal_outdated:
-        reject('OUTDATED_CONFIG')
-        return
-
-    if not negligible_amount >= 0.0 or config != '':
-        reject('INVALID_CONFIG')
-        return
-
-    account = _lock_or_create_account(debtor_id, creditor_id, current_ts, send_account_creation_signal=False)
-    this_event = (signal_ts, signal_seqnum)
-    prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
-    if is_later_event(this_event, prev_event):
-        # NOTE: When a new account is created this block will
-        # always be executed, because `last_config_signal_ts` for
-        # newly created accounts is many years ago.
+    def configure(account):
+        if account is None:
+            account = _create_account(debtor_id, creditor_id, current_ts)
+        if account.status & Account.STATUS_DELETED_FLAG:
+            account.status &= ~Account.STATUS_DELETED_FLAG
+            account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         account.set_config_flags(status_flags)
         account.negligible_amount = negligible_amount
         account.last_config_signal_ts = signal_ts
         account.last_config_signal_seqnum = signal_seqnum
         _apply_account_change(account, 0, 0, current_ts)
+
+    account = _get_account_instance(debtor_id, creditor_id, lock=True)
+    if account:
+        this_event = (signal_ts, signal_seqnum)
+        prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
+        if not is_later_event(this_event, prev_event):
+            return
+    elif is_outdated_signal():
+        return reject('OUTDATED_CONFIGURATION')
+
+    if not is_valid_config():
+        return reject('INVALID_CONFIGURATION')
+    configure(account)
 
 
 @atomic
@@ -457,21 +466,11 @@ def _get_account_instance(debtor_id: int, creditor_id: int, lock: bool = False) 
     return account
 
 
-def _lock_or_create_account(
-        debtor_id: int,
-        creditor_id: int,
-        current_ts: datetime,
-        send_account_creation_signal: bool = True) -> Account:
-
+def _lock_or_create_account(debtor_id: int, creditor_id: int, current_ts: datetime) -> Account:
     account = _get_account_instance(debtor_id, creditor_id, lock=True)
     if account is None:
         account = _create_account(debtor_id, creditor_id, current_ts)
-
-        # NOTE: Sometimes when a new account is created, sending an
-        # `AccountChangeSignal` here is not necessary, because it will
-        # be consequently sent anyway.
-        if send_account_creation_signal:
-            _insert_account_change_signal(account, current_ts)
+        _insert_account_change_signal(account, current_ts)
 
     if account.status & Account.STATUS_DELETED_FLAG:
         account.status &= ~Account.STATUS_DELETED_FLAG

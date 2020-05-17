@@ -58,12 +58,22 @@ def test_invalid_config(db_session, current_ts):
     rcs = RejectedConfigSignal.query.one()
     assert rcs.debtor_id == D_ID
     assert rcs.creditor_id == C_ID
-    assert rcs.rejection_code == 'INVALID_CONFIG'
+    assert rcs.rejection_code == 'INVALID_CONFIGURATION'
     assert rcs.config_signal_ts == current_ts
     assert rcs.config_signal_seqnum == 123
     assert rcs.status_flags == 0x1fff
     assert rcs.negligible_amount == -10.0
     assert rcs.config == 'xxx'
+
+    p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123)
+    rcs = RejectedConfigSignal.query.filter_by(rejection_code='OUTDATED_CONFIGURATION').one()
+    assert rcs.debtor_id == D_ID
+    assert rcs.creditor_id == C_ID
+    assert rcs.config_signal_ts == current_ts - timedelta(days=1000)
+    assert rcs.config_signal_seqnum == 123
+    assert rcs.status_flags == 0
+    assert rcs.negligible_amount == 0.0
+    assert rcs.config == ''
 
 
 def test_set_interest_rate(db_session, current_ts):
