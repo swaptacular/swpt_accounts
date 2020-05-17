@@ -499,85 +499,111 @@ transfer_id : int64
 AccountChange
 -------------
 
-Emitted when there is a meaningful change in account's state, or to
-remind that the account still exists.
+Emitted when there is a meaningful change in the state of an account,
+or to remind that an account still exists.
 
-* `debtor_id` and `creditor_id` identify the account.
+debtor_id : int64
+   The ID of the debtor.
 
-* `change_ts` and `change_seqnum` can be used to reliably determine
-  the correct order of changes, even if they occured in a very short
-  period of time. When considering two events, the `change_ts`s must
-  be compared first, and only if they are equal, the `change_seqnum`s
-  must be compared as well (care has to be taken to correctly deal
-  with the possible 32-bit integer wrapping).
+creditor_id : int64
+   Along with ``debtor_id``, identifies the account.
 
-* `principal` is the owed amount, without the interest. (Can be
-  negative, between -MAX_INT64 and MAX_INT64.)
+change_ts : date-time
+   The moment at which the latest meaningful change in the state of
+   the account happened. For a given account, later `AccountChange`_
+   messages MUST have later or equal ``change_ts``, compared to
+   earlier messages.
 
-* `interest` is the amount of interest accumulated on the account
-  before `change_ts`, but not added to the `principal` yet. (Can be
-  negative.)
+change_seqnum : int32
+   The sequential number of the message. For a given account, later
+   `AccountChange`_ messages MUST have bigger sequential numbers,
+   compared to earlier messages. Note that when the maximum ``int32``
+   value is reached, the next value MUST be ``-2147483648`` (signeld
+   32-bit integer wrapping). [#]_
 
-* `interest_rate` is the annual rate (in percents) at which interest
-  accumulates on the account. (Can be negative, INTEREST_RATE_FLOOR <=
-  interest_rate <= INTEREST_RATE_CEIL.)
+principal : int64
+   The amount that the debtor owes to the creditor, without the
+   interest. This can be a negative number.
 
-* `last_transfer_seqnum` (>= 0) identifies the last account commit. If
-  there were no previous account commits, the value will have its
-  lower 40 bits set to `0x0000000000`, and its higher 24 bits
-  calculated from `creation_date` (the number of days since Jan 1st,
-  1970).
+interest : float
+   The amount of interest accumulated on the account, that is not
+   added to the ``principal`` yet. [#]_ This can be a negative number.
 
-* `last_outgoing_transfer_date` is the date of the last committed
-  transfer, for which the owner of the account was the sender. It can
-  be used, for example, to determine when an account with negative
-  balance can be zeroed out. (If there were no outgoing transfers, the
-  value will be "1970-01-01".)
+interest_rate : float
+   The annual rate (in percents) at which interest accumulates on the
+   account. This can be a negative number.
 
-* `last_config_signal_ts` contains the value of the `signal_ts` field
-  of the last applied `configure_account` signal. This field can be
-  used to determine whether a sent configuration signal has been
-  processed. (If there were no applied configuration signals, the
-  value will be "1970-01-01T00:00:00+00:00".)
+last_outgoing_transfer_date : date
+   The date of the last committed transfer, for which the owner of the
+   account was the sender. If there were no outgoing transfers, the
+   value MUST be "1970-01-01".
 
-* `last_config_signal_seqnum` contains the value of the
-  `signal_seqnum` field of the last applied `configure_account`
-  signal. This field can be used to determine whether a sent
-  configuration signal has been processed. (If there were no applied
-  configuration signals, the value will be `0`.)
+last_config_signal_ts : date-time
+   The value of the ``signal_ts`` field of the latest applied
+   `ConfigureAccount`_ message. This field can be used to determine
+   whether a sent `ConfigureAccount`_ message has been successfully
+   processed. If there were no applied `ConfigureAccount`_ messages,
+   the value MUST be "1970-01-01T00:00:00+00:00".
 
-* `creation_date` is the date on which the account was created.
+last_config_signal_seqnum : int32
+   The value of the ``signal_seqnum`` field of the latest applied
+   `ConfigureAccount`_ message. This field, along with
+   ``last_config_signal_ts`` can be used to determine whether a sent
+   `ConfigureAccount`_ message has been successfully processed.  If
+   there were no applied `ConfigureAccount`_ messages, the value MUST
+   be `0`.
 
-* `negligible_amount` is the maximum amount which is considered
-  negligible. It is used to: 1) decide whether an account can be
-  safely deleted; 2) decide whether a transfer is insignificant. Will
-  always be non-negative.
+creation_date : date
+   The date on which the account was created.
 
-* `status` (a 32-bit integer) contains status bit-flags (see
-  `models.Account`).
+negligible_amount : float
+   The value of the ``negligible_amount`` field in the latest applied
+   `ConfigureAccount`_ messages.
 
-* `config` contains the value of the `config` field of the most
-  recently applied account configuration signal that contained a valid
-  account configuration. This field can be used to determine whether a
-  requested configuration change has been successfully applied. (Note
-  that when the `config` field of an account configuration signal
-  contains an invalid configuration, the signal MUST be applied, but
-  the `config` SHOULD NOT be updated.)
+status : int32
+   Status bit-flags. TODO
 
-* `signal_ts` is the moment at which this signal was emitted (the
-  message's timestamp).
+config : string
+   The value of the ``config`` field in the latest applied
+   `ConfigureAccount`_ messages.
 
-* `signal_ttl` is the time-to-live (in seconds) for this signal. The
-  signal SHOULD be ignored if more than `signal_ttl` seconds have
-  elapsed since the signal was emitted (`signal_ts`). Will always be
-  bigger than `0.0`.
+signal_ts : date-time
+   The moment at which this signal was emitted (the message's
+   timestamp).
 
-* `creditor_identity` is a string, which (along with `debtor_id`)
-  identifies the account. Different server implementations may use
-  different formats for the identifier. Note that while `creditor_id`
-  could be a "local" identifier, recognized only by the system that
-  created the account, `creditor_identity` is always a globally
-  recognized identifier.
+signal_ttl : int32
+   The time-to-live (in seconds) for this signal. The signal MUST be
+   ignored if more than ``signal_ttl`` seconds have elapsed since the
+   signal was emitted (``signal_ts``). This MUST be a positive number.
+
+creditor_identity : string
+   A string which (along with ``debtor_id``) globally identifies the
+   account. Different server implementations may use different formats
+   for this string. Note that ``creditor_id`` is an ID which is
+   recognizable only by the system that created the sender's
+   account. This identifier (along with ``debtor_id``), on the other
+   hand, MUST provide enough information to globally identify the
+   removed account (an IBAN for example).
+
+last_transfer_seqnum : int64
+   TODO. MUST ba a non-negative number. Identifies the last account
+   commit. If there were no previous account commits, the value will
+   have its lower 40 bits set to `0x0000000000`, and its higher 24
+   bits calculated from `creation_date` (the number of days since Jan
+   1st, 1970).
+
+.. [#] ``change_ts`` and ``change_seqnum`` can be used to reliably
+  determine the correct order in a sequence of changes, even if they
+  occured in a very short period of time. When considering two
+  changes, the ``change_ts`` fields MUST be compared first, and only
+  if they are equal, the ``change_seqnum`` fields must be compared as
+  well (care has to be taken to correctly deal with the possible
+  32-bit integer wrapping).
+
+.. [#] That is: interest accumulated on the account before the
+  ``change_ts`` moment. Any interest amount that is reported in this
+  the ``interest`` field MUST be available for transfers (the owner of
+  the account has to be able to send it to other accounts).
 
 
 AccountPurge
