@@ -537,13 +537,13 @@ interest_rate : float
    account. This can be a negative number.
 
 last_config_signal_ts : date-time
-   The value of the ``signal_ts`` field of the latest applied
+   The value of the ``signal_ts`` field in the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
    `ConfigureAccount`_ messages yet, the value MUST be
    "1970-01-01T00:00:00+00:00".
 
 last_config_signal_seqnum : int32
-   The value of the ``signal_seqnum`` field of the latest applied
+   The value of the ``signal_seqnum`` field in the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
    `ConfigureAccount`_ messages yet, the value MUST be `0`. [#]_
 
@@ -585,11 +585,11 @@ last_transfer_seqnum : int64
    1st, 1970).
 
 signal_ts : date-time
-   The moment at which this signal was emitted (the message's
+   The moment at which this message was emitted (the message's
    timestamp).
 
 signal_ttl : int32
-   The time-to-live (in seconds) for the message. This message MUST be
+   The time-to-live (in seconds) for this message. The message MUST be
    ignored if more than ``signal_ttl`` seconds have elapsed since the
    message was emitted (``signal_ts``). This MUST be a positive
    number.
