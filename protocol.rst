@@ -614,14 +614,15 @@ signal_ttl : int32
   compared with care, because precision might have been lost when they
   were saved to the database.
 
-.. [#] That is: interest accumulated on the account before the
-  ``change_ts`` moment. Any interest amount that is reported in this
-  the ``interest`` field MUST be available for transfers (the owner of
-  the account has to be able to send it to other accounts).
+.. [#] Note that this value shows the amount of interest accumulated
+  on the account only up to the ``change_ts`` moment. Also, any amount
+  that is shown as accumulated interest, MUST be available for
+  transfers. That is: the owner of the account has to be able to
+  "wire" the accumulated interest to another account.
 
-.. [#] ``last_config_signal_ts`` and ``last_config_signal_seqnum``
-   fields can be used to determine whether a sent `ConfigureAccount`_
-   message has been applied successfully.
+.. [#] ``last_config_signal_ts`` and ``last_config_signal_seqnum`` can
+   be used to determine whether a sent `ConfigureAccount`_ message has
+   been applied successfully.
 
 
 AccountPurge
