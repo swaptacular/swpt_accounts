@@ -537,35 +537,36 @@ interest_rate : float
    account. This can be a negative number.
 
 last_config_signal_ts : date-time
-   The value of the ``signal_ts`` field in the latest applied
-   `ConfigureAccount`_ message. If there have not been any applied
-   `ConfigureAccount`_ messages yet, the value MUST be
+   MUST contain the value of the ``signal_ts`` field in the latest
+   applied `ConfigureAccount`_ message. If there have not been any
+   applied `ConfigureAccount`_ messages yet, the value MUST be
    "1970-01-01T00:00:00+00:00".
 
 last_config_signal_seqnum : int32
-   The value of the ``signal_seqnum`` field in the latest applied
-   `ConfigureAccount`_ message. If there have not been any applied
-   `ConfigureAccount`_ messages yet, the value MUST be `0`. [#]_
+   MUST contain the value of the ``signal_seqnum`` field in the latest
+   applied `ConfigureAccount`_ message. If there have not been any
+   applied `ConfigureAccount`_ messages yet, the value MUST be
+   `0`. [#]_
 
 negligible_amount : float
-   The value of the ``negligible_amount`` field in the latest applied
-   `ConfigureAccount`_ message. If there have not been any applied
-   `ConfigureAccount`_ messages yet, the value SHOULD represent the
-   default configuration settings.
+   MUST contain value of the ``negligible_amount`` field in the latest
+   applied `ConfigureAccount`_ message. If there have not been any
+   applied `ConfigureAccount`_ messages yet, the value SHOULD
+   represent the default configuration settings.
 
 config : string
-   The value of the ``config`` field in the latest applied
-   `ConfigureAccount`_ message. If there have not been any applied
-   `ConfigureAccount`_ messages yet, the value SHOULD represent the
-   default configuration settings.
+   MUST contain the value of the ``config`` field in the latest
+   applied `ConfigureAccount`_ message. If there have not been any
+   applied `ConfigureAccount`_ messages yet, the value SHOULD
+   represent the default configuration settings.
 
 status : int32
-   Status bit-flags. The lowest 16 bits contain the value of the
-   ``status_flags`` field in the latest applied `ConfigureAccount`_
-   message. If there have not been any applied `ConfigureAccount`_
-   messages yet, the lowest 16 bits SHOULD represent the default
-   configuration settings. The highest 16 bits MAY contain
-   implementation-specific account status flags.
+   Status bit-flags. The lowest 16 bits MUST contain contain the value
+   of the ``status_flags`` field in the latest applied
+   `ConfigureAccount`_ message. If there have not been any applied
+   `ConfigureAccount`_ messages yet, the lowest 16 bits SHOULD
+   represent the default configuration settings. The highest 16 bits
+   MAY contain implementation-specific account status flags.
 
 creditor_identity : string
    A string which (along with ``debtor_id``) globally identifies the
