@@ -28,13 +28,13 @@ signal_seqnum : int32
 status_flags : int16
    Account configuration bit-flags. Server implementations may use
    these flags for different purposes. The lowest bit (bit ``0``) is
-   reserved and has the meaning "scheduled for deletion". [#]_ If all
+   reserved, and has the meaning "scheduled for deletion". [#]_ If all
    of the following conditions are met, an account SHOULD be removed
    from the server's database: 1) the account is "scheduled for
    deletion"; 2) the account has no prepared transfers that await
    finalization; 3) at least 48 hours have passed since account's
-   creation; 4) no `ConfigureAccount`_ messages have been received for
-   some time [#]_ ; 5) it is very unlikely that amount bigger that
+   creation; 4) accont's configuration settings have not been updated
+   for some time [#]_ ; 5) it is very unlikely that amount bigger that
    ``negligible_amount`` will be lost if the account is removed from
    the server's database. If those condition are not met, accounts
    SHOULD NOT be removed. When an account has been removed from the
@@ -75,9 +75,8 @@ they MUST first verify whether the specified account already exists:
 .. [#] Server implementations MAY disallow incoming transfer for
   "scheduled for deletion" accounts.
 
-.. [#] How long is this time depends on how far in the past a
-  `ConfigureAccount`_ message should be in order to be considered too
-  old.
+.. [#] How long this time should be depends on how far in the past a
+  `ConfigureAccount`_ message should be in order to be considered old.
 
 .. [#] Very old messages may "resurrect" accounts that have been
   removed from the database for good.
