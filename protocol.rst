@@ -614,7 +614,7 @@ signal_ttl : int32
   compared with care, because precision might have been lost when they
   were saved to the database.
 
-.. [#] Note that this value shows the amount of interest accumulated
+.. [#] Note that this field shows the amount of interest accumulated
   on the account only up to the ``change_ts`` moment. Also, any amount
   that is shown as accumulated interest, MUST be available for
   transfers. That is: the owner of the account has to be able to
