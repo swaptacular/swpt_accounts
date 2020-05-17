@@ -555,12 +555,17 @@ negligible_amount : float
 
 config : string
    The value of the ``config`` field in the latest applied
-   `ConfigureAccount`_ messages. If there have not been any applied
+   `ConfigureAccount`_ message. If there have not been any applied
    `ConfigureAccount`_ messages yet, the value SHOULD represent the
    default configuration settings.
 
 status : int32
-   Status bit-flags. TODO
+   Status bit-flags. The lowest 16 bits contain the value of the
+   ``status_flags`` field in the latest applied `ConfigureAccount`_
+   message. If there have not been any applied `ConfigureAccount`_
+   messages yet, the lowest 16 bits SHOULD represent the default
+   configuration settings. The highest 16 bits MAY contain
+   implementation-specific account status flags.
 
 creditor_identity : string
    A string which (along with ``debtor_id``) globally identifies the
