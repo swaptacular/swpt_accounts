@@ -602,12 +602,17 @@ signal_ttl : int32
    number.
 
 .. [#] ``change_ts`` and ``change_seqnum`` can be used to reliably
-  determine the correct order in a sequence of changes, even if they
-  occured in a very short period of time. When considering two
-  changes, the ``change_ts`` fields MUST be compared first, and only
-  if they are equal, the ``change_seqnum`` fields must be compared as
-  well (care has to be taken to correctly deal with the possible
-  32-bit integer wrapping).
+  determine the correct order of a sequence of changes, even if the
+  changes occured in a very short period of time. When considering two
+  changes, ``change_ts`` fields MUST be compared first, and only if
+  they are equal, ``change_seqnum`` fields MUST be compared as well.
+  Note that when comparing ``change_seqnum`` fields, care MUST be
+  taken to correctly deal with the possible 32-bit integer wrapping.
+  For example, to decide whether ``seqnum2`` is later than
+  ``seqnum1``, the following expression MAY be used: ``0 < (seqnum2 -
+  seqnum1) % 0x100000000 < 0x80000000``. Timestamps must also be
+  compared with care, because precision might have been lost when they
+  were saved to the database.
 
 .. [#] That is: interest accumulated on the account before the
   ``change_ts`` moment. Any interest amount that is reported in this
