@@ -212,10 +212,7 @@ When server implementations processes a `FinalizePreparedTransfer`_
 message, they MUST first verify whether the specified prepared
 transfer exists in server's database:
 
-1. If the specified prepared transfer does not exist, the message MUST
-   be ignored.
-
-2. If the specified prepared transfer exists, server implementations
+1. If the specified prepared transfer exists, server implementations
    MUST:
 
    * Try to transfer the ``committed_amount`` from sender's account to
@@ -228,6 +225,9 @@ transfer exists in server's database:
 
    * Send a `FinalizedTransfer`_ message with the apropriate
      ``status_code``.
+
+2. If the specified prepared transfer does not exist, the message MUST
+   be ignored.
 
 .. [#] Server implementations MAY impose additional restrictions on
   the format and the content of this string, as long as these
