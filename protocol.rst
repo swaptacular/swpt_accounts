@@ -41,8 +41,8 @@ status_flags : int16
    database, an `AccountPurge`_ message MUST be sent.
 
 negligible_amount : float
-   The maximum amount that should be considered negligible. This MUST
-   be a non-negative number. It can be used to: 1) decide whether an
+   The maximum amount that can be considered negligible. This MUST be
+   a non-negative number. It can be used to: 1) decide whether an
    account can be safely deleted; 2) decide whether an incoming
    transfer is insignificant.
 
@@ -74,7 +74,7 @@ they MUST first verify whether the specified account already exists:
   "scheduled for deletion" accounts.
 
 .. [#] How long this "some time" is, depends on how old an old
-  `ConfigureAccount`_ message should be, in order to be ignored. The
+  `ConfigureAccount`_ message has to be, in order to be ignored. The
   goal is to avoid the scenario in which an account is removed from
   server's database, but an old, wandering `ConfigureAccount`_ message
   "resurrects" it.
@@ -186,13 +186,13 @@ sender_creditor_id : int64
    Along with ``debtor_id``, identifies the sender's account.
 
 transfer_id : int64
-   The opaque ID generated for the prepared transfer. It MUST always
+   The opaque ID generated for the prepared transfer. This MUST always
    be a positive number. This ID, along with ``debtor_id`` and
    ``sender_creditor_id``, uniquely identifies the prepared transfer
-   that should be finalized.
+   that has to be finalized.
 
 committed_amount : int64
-   The amount that should be transferred. This MUST be a non-negative
+   The amount that has to be transferred. This MUST be a non-negative
    number, which MUST NOT exceed the value of the
    ``sender_locked_amount`` field in the corresponding
    `PreparedTransfer`_ message. A ``0`` signifies that the transfer
@@ -295,7 +295,7 @@ PreparedTransfer
 ----------------
 
 Emitted when a new transfer has been prepared, or to remind that a
-prepared transfer must be finalized.
+prepared transfer has to be finalized.
 
 debtor_id : int64
    The ID of the debtor.
@@ -304,8 +304,8 @@ sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 transfer_id : int64
-   An opaque ID generated for the prepared transfer. It MUST always be
-   a positive number. This ID, along with ``debtor_id`` and
+   An opaque ID generated for the prepared transfer. This MUST always
+   be a positive number. This ID, along with ``debtor_id`` and
    ``sender_creditor_id``, uniquely identifies the prepared transfer.
 
 coordinator_type : string
@@ -323,9 +323,9 @@ coordinator_request_id : int64
    issued request to prepare a transfer.
 
 sender_locked_amount : int64
-   The secured (prepared) amount for the transfer. It MUST always be a
-   positive number. The actual transferred (committed) amount MUST NOT
-   exceed this number.
+   The secured (prepared) amount for the transfer. This MUST always be
+   a positive number. The actual transferred (committed) amount MUST
+   NOT exceed this number.
 
 recipient_identity : string
    The value of the ``recipient_identity`` field in the corresponding
@@ -359,7 +359,7 @@ sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 transfer_id : int64
-   The opaque ID generated for the prepared transfer. It MUST always
+   The opaque ID generated for the prepared transfer. This MUST always
    be a positive number. This ID, along with ``debtor_id`` and
    ``sender_creditor_id``, uniquely identifies the finalized prepared
    transfer.
@@ -389,7 +389,7 @@ finalized_at_ts : date-time
    The moment at which the transfer was finalized.
 
 committed_amount : int64
-   The transferred (committed) amount. It MUST always be a
+   The transferred (committed) amount. This MUST always be a
    non-negative number. A ``0`` means either that the prepared
    transfer was dismissed, or that it was committed, but the commit
    was unsuccessful for some reason.
@@ -508,7 +508,7 @@ remind that the account still exists.
   the correct order of changes, even if they occured in a very short
   period of time. When considering two events, the `change_ts`s must
   be compared first, and only if they are equal, the `change_seqnum`s
-  must be compared as well (care should be taken to correctly deal
+  must be compared as well (care has to be taken to correctly deal
   with the possible 32-bit integer wrapping).
 
 * `principal` is the owed amount, without the interest. (Can be
