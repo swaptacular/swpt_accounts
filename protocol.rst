@@ -64,23 +64,20 @@ they MUST first verify whether the specified account already exists:
    MUST be sent, containing the rejected requested configuration.
 
 2. If the specified account does not exist, the message timestamp MUST
-   be verified. If the message timestamp is too far in the past, a
-   `RejectedConfig`_ message MUST be sent, and the message MUST be
-   ignored. [#]_ Otherwise, an attempt MUST be made to create a new
+   be verified. If the message timestamp is too far in the past, the
+   message MUST be ignored, and a `RejectedConfig`_ message MUST be
+   sent. [#]_ Otherwise, an attempt MUST be made to create a new
    account with the requested configuration settings. If the new
    account has been successfully created, an `AccountChange`_ message
    containing the configuration MUST be sent. Otherwise a
    `RejectedConfig`_ message MUST be sent.
 
-.. [#] Server implementations MAY disallow incoming transfer for
+.. [#] Server implementations MAY not allow incoming transfer for
   "scheduled for deletion" accounts.
 
-.. [#] How long this time is depends on how far in the past the
-  `ConfigureAccount`_ message timestamp should be in order to ignore
-  the message.
-
-.. [#] Very old messages may "resurrect" accounts that have been
-  removed from the database for good.
+.. [#] How long this "some time" is depends on how far in the past
+  `ConfigureAccount`_ messages' timestamp must be in order to be
+  ignored.
 
 .. [#] To do this, the server implementation MUST compare the values
   of ``signal_ts`` and ``signal_seqnum`` fields in the received
@@ -94,6 +91,9 @@ they MUST first verify whether the specified account already exists:
   expression MAY be used: ``0 < (seqnum2 - seqnum1) % 0x100000000 <
   0x80000000``. Timestamps should also be compared with care, because
   precision might have been lost when they were saved to the database.
+
+.. [#] Very old messages may "resurrect" accounts that have been
+  removed from the database for good.
 
 
 PrepareTransfer
