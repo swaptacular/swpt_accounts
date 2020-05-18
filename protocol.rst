@@ -258,7 +258,7 @@ Outgoing messages
 RejectedConfig
 --------------
 
-Emitted when a `ConfigureAccount`_ message has been received and
+Emitted when a `ConfigureAccount`_ message has been processed and
 rejected.
 
 debtor_id : int64
