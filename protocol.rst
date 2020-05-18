@@ -255,6 +255,42 @@ Outgoing messages
 =================
 
 
+RejectedConfig
+--------------
+
+Emitted when a `ConfigureAccount`_ message has been received and
+rejected.
+
+debtor_id : int64
+   The value of the ``debtor_id`` field in the rejected message.
+
+creditor_id : int64
+   The value of the ``creditor_id`` field in the rejected message.
+
+config_signal_ts : date-time
+   The value of the ``signal_ts`` field in the rejected message.
+
+config_signal_seqnum : int32
+   The value of the ``signal_seqnum`` field in the rejected message.
+
+status_flags : int16
+   The value of the ``status_flags`` field in the rejected message.
+
+negligible_amount : float
+   The value of the ``negligible_amount`` field in the rejected
+   message.
+
+config : string
+   The value of the ``config`` field in the rejected message.
+
+rejected_at_ts : date-time
+   The moment at which the `ConfigureAccount`_ message was rejected.
+
+rejection_code : string
+   The reason for the rejection of the `ConfigureAccount`_
+   message. Between 0 and 30 symbols, ASCII only.
+
+
 RejectedTransfer
 ----------------
 
@@ -660,42 +696,6 @@ creditor_identity : string
    account. This identifier (along with ``debtor_id``), on the other
    hand, MUST provide enough information to globally identify the
    removed account (an IBAN for example).
-
-
-RejectedConfig
---------------
-
-Emitted when a `ConfigureAccount`_ message has been received and
-rejected.
-
-debtor_id : int64
-   The value of the ``debtor_id`` field in the rejected message.
-
-creditor_id : int64
-   The value of the ``creditor_id`` field in the rejected message.
-
-config_signal_ts : date-time
-   The value of the ``signal_ts`` field in the rejected message.
-
-config_signal_seqnum : int32
-   The value of the ``signal_seqnum`` field in the rejected message.
-
-status_flags : int16
-   The value of the ``status_flags`` field in the rejected message.
-
-negligible_amount : float
-   The value of the ``negligible_amount`` field in the rejected
-   message.
-
-config : string
-   The value of the ``config`` field in the rejected message.
-
-rejected_at_ts : date-time
-   The moment at which the `ConfigureAccount`_ message was rejected.
-
-rejection_code : string
-   The reason for the rejection of the `ConfigureAccount`_
-   message. Between 0 and 30 symbols, ASCII only.
 
 
 Requirements for Client Implementations
