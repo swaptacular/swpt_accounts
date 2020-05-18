@@ -35,11 +35,12 @@ status_flags : int16
    account has no prepared transfers that await finalization; 3) at
    least 48 hours have passed since account's creation; 4) accont's
    configuration settings have not been updated for some time;
-   [#some-time]_ 5) it is very unlikely that amount bigger that
+   [#config-delay]_ 5) it is very unlikely that amount bigger that
    ``negligible_amount`` will be lost if the account is removed from
-   server's database. If those condition are not met, accounts SHOULD
-   NOT be removed. When an account has been removed from the server's
-   database, an `AccountPurge`_ message MUST be sent.
+   server's database. If those condition are *not met*, accounts
+   SHOULD NOT be removed. Some time after an account has been removed
+   from the server's database, an `AccountPurge`_ message MUST be
+   sent. [#purge-delay]_
 
 negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
@@ -75,11 +76,13 @@ they MUST first verify whether the specified account already exists:
 .. [#forbid-transfers] Server implementations SHOULD forbid incoming
   transfer for "scheduled for deletion" accounts.
 
-.. [#some-time] How long this "some time" is, depends on how old an
+.. [#config-delay] How long this "some time" is, depends on how old an
   old `ConfigureAccount`_ message has to be, in order to be
   ignored. The goal is to avoid the scenario in which an account is
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
+
+.. [#purge-delay] TODO: the delay MUST be at least ``signal_ttl``.
 
 .. [#compare-config] To do this, server implementations MUST
   compare the values of ``signal_ts`` and ``signal_seqnum`` fields in
