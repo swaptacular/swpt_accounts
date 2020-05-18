@@ -41,6 +41,7 @@ def test_configure_account(db_session, current_ts):
     assert acs.interest_rate == a.interest_rate
     acs_obj = acs.__marshmallow_schema__.dump(acs)
     assert acs_obj['signal_ttl'] == 14 * 24 * 60 * 60
+    assert acs_obj['last_transfer_seqnum'] == 0
 
     a = p.configure_account(D_ID, C_ID, current_ts, 0)
     assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 1

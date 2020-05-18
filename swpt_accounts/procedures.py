@@ -436,7 +436,7 @@ def _insert_account_change_signal(account: Account, current_ts: datetime) -> Non
         principal=account.principal,
         interest=account.interest,
         interest_rate=account.interest_rate,
-        last_transfer_seqnum=account.last_transfer_seqnum,
+        last_transfer_seqnum=account.calc_last_transfer_seqnum(),
         last_outgoing_transfer_date=account.last_outgoing_transfer_date,
         last_config_signal_ts=account.last_config_signal_ts,
         last_config_signal_seqnum=account.last_config_signal_seqnum,

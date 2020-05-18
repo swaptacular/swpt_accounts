@@ -514,7 +514,7 @@ creditor_id : int64
    Along with ``debtor_id``, identifies the account.
 
 creation_date : date
-   The date on which the account was created. Until an account is
+   The date on which the account was created. Until the account is
    removed from the server's database, its ``creation_date`` MUST NOT
    be changed. [#creation-date]_
 
@@ -594,11 +594,10 @@ last_outgoing_transfer_date : date
    "1970-01-01".
 
 last_transfer_seqnum : int64
-   TODO. MUST ba a non-negative number. Identifies the last account
-   commit. If there were no previous account commits, the value will
-   have its lower 40 bits set to `0x0000000000`, and its higher 24
-   bits calculated from `creation_date` (the number of days since Jan
-   1st, 1970).
+   MUST contain the value of the ``transfer_seqnum`` field in the
+   latest emitted `AccountTransfer`_ message. If since the creation of
+   the account there have not been any emitted `AccountTransfer`_
+   messages, the value MUST be ``0``.
 
 signal_ts : date-time
    The moment at which this message was emitted (the message's

@@ -212,6 +212,13 @@ class Account(db.Model):
 
         return current_balance
 
+    def calc_last_transfer_seqnum(self):
+        """Return `0` if there have not been any transfers yet."""
+
+        initial_seqnum = date_to_int24(self.creation_date) << 40
+        last_transfer_seqnum = self.last_transfer_seqnum
+        return last_transfer_seqnum if last_transfer_seqnum > initial_seqnum else 0
+
     def set_config_flags(self, value):
         """Set the lower 16 account status bits."""
 
