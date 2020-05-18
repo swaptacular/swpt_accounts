@@ -34,12 +34,12 @@ status_flags : int16
    database: 1) the account is "scheduled for deletion"; 2) the
    account has no prepared transfers that await finalization; 3) at
    least 48 hours have passed since account's creation; 4) accont's
-   configuration settings have not been updated for some time; [#]_ 5)
-   it is very unlikely that amount bigger that ``negligible_amount``
-   will be lost if the account is removed from server's database. If
-   those condition are not met, accounts SHOULD NOT be removed. When
-   an account has been removed from the server's database, an
-   `AccountPurge`_ message MUST be sent.
+   configuration settings have not been updated for some time;
+   [#some-time]_ 5) it is very unlikely that amount bigger that
+   ``negligible_amount`` will be lost if the account is removed from
+   server's database. If those condition are not met, accounts SHOULD
+   NOT be removed. When an account has been removed from the server's
+   database, an `AccountPurge`_ message MUST be sent.
 
 negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
@@ -56,12 +56,13 @@ they MUST first verify whether the specified account already exists:
 
 1. If the specified account already exists, the server implementation
    MUST decide whether the same or a later `ConfigureAccount`_ message
-   has been applied already. [#]_ If the received message turns out to
-   be an old one, it MUST be ignored. Otherwise, an attempt MUST be
-   made to update the account's configuration with the requested new
-   configuration. If the new configuration has been successfully
-   applied, an `AccountChange`_ message MUST be sent; otherwise a
-   `RejectedConfig`_ message MUST be sent.
+   has been applied already. [#compare-config]_ [#compare-seqnums]_ If
+   the received message turns out to be an old one, it MUST be
+   ignored. Otherwise, an attempt MUST be made to update the account's
+   configuration with the requested new configuration. If the new
+   configuration has been successfully applied, an `AccountChange`_
+   message MUST be sent; otherwise a `RejectedConfig`_ message MUST be
+   sent.
 
 2. If the specified account does not exist, the message's timestamp
    MUST be checked. If it is too far in the past, the message MUST be
@@ -74,24 +75,26 @@ they MUST first verify whether the specified account already exists:
 .. [#forbid-transfers] Server implementations SHOULD forbid incoming
   transfer for "scheduled for deletion" accounts.
 
-.. [#] How long this "some time" is, depends on how old an old
-  `ConfigureAccount`_ message has to be, in order to be ignored. The
-  goal is to avoid the scenario in which an account is removed from
-  server's database, but an old, wandering `ConfigureAccount`_ message
-  "resurrects" it.
+.. [#some-time] How long this "some time" is, depends on how old an
+  old `ConfigureAccount`_ message has to be, in order to be
+  ignored. The goal is to avoid the scenario in which an account is
+  removed from server's database, but an old, wandering
+  `ConfigureAccount`_ message "resurrects" it.
 
-.. [#] To do this, server implementations MUST compare the values of
-  ``signal_ts`` and ``signal_seqnum`` fields in the received message,
-  to the values of these fields in the latest applied
-  `ConfigureAccount`_ message. ``signal_ts`` fields MUST be compared
-  first, and only if they are equal, ``signal_seqnum`` fields MUST be
-  compared as well. Note that when comparing ``signal_seqnum`` fields,
-  server implementations MUST correctly deal with the possible 32-bit
-  integer wrapping. For example, to decide whether ``seqnum2`` is
-  later than ``seqnum1``, the following expression may be used: ``0 <
-  (seqnum2 - seqnum1) % 0x100000000 < 0x80000000``. Timestamps must
-  also be compared with care, because precision might have been lost
-  when they were saved to the database.
+.. [#compare-config] To do this, server implementations MUST
+  compare the values of ``signal_ts`` and ``signal_seqnum`` fields in
+  the received message, to the values of these fields in the latest
+  applied `ConfigureAccount`_ message. ``signal_ts`` fields MUST be
+  compared first, and only if they are equal, ``signal_seqnum`` fields
+  MUST be compared as well.
+
+.. [#compare-seqnums] Note that when comparing "seqnum" fields, server
+  implementations MUST correctly deal with the possible 32-bit integer
+  wrapping. For example, to decide whether ``seqnum2`` is later than
+  ``seqnum1``, the following expression may be used: ``0 < (seqnum2 -
+  seqnum1) % 0x100000000 < 0x80000000``. Timestamps must also be
+  compared with care, because precision might have been lost when they
+  were saved to the database.
 
 
 PrepareTransfer
