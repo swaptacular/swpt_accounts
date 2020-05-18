@@ -509,7 +509,7 @@ creditor_id : int64
    Along with ``debtor_id``, identifies the account.
 
 creation_date : date
-   The date on which the account was created.
+   The date on which the account was created. [#]_
 
 change_ts : date-time
    The moment at which the latest meaningful change in the state of
@@ -602,6 +602,13 @@ signal_ttl : int32
    ignored if more than ``signal_ttl`` seconds have elapsed since the
    message was emitted (``signal_ts``). This MUST be a positive
    number.
+
+.. [#] Note that an account can be removed from the server's database,
+   and then a new account with the same ``debtor_id`` and
+   ``creditor_id`` can be created. In this case, the newly created
+   account MUST have a later ``creation_date``, compared to the
+   preceding account. Also, until an account is removed from the
+   server's database, its ``creation_date`` MUST not be changed.
 
 .. [#] ``change_ts`` and ``change_seqnum`` can be used to reliably
   determine the correct order in a sequence of `AccountChange`_
