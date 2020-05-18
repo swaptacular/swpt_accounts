@@ -205,12 +205,14 @@ committed_amount : int64
 transfer_message : string
    A string that the coordinator (the client that finalizes the
    prepared transfer) wants the recipient and the sender to see.  If
-   the transfer is being dismissed, this MUST be an empty string. [#]_
+   the transfer is being dismissed, this MUST be an empty
+   string. [#message-limitations]_
 
 transfer_flags : int32
    Various bit-flags that the coordinator (the client that finalizes
    the prepared transfer) wants the recipient and the sender to
-   see. If the transfer is being dismissed, this MUST be ``0``. [#]_
+   see. If the transfer is being dismissed, this MUST be
+   ``0``. [#flags-limitations]_
 
 When server implementations processes a `FinalizePreparedTransfer`_
 message, they MUST first verify whether the specified prepared
@@ -220,10 +222,10 @@ transfer exists in server's database:
    MUST:
 
    * Try to transfer the ``committed_amount`` from sender's account to
-     recipient's account. [#]_
+     recipient's account. [#commit]_
 
    * Unlock the remainder of the secured amount, so that it becomes
-     available for other transfers. [#]_
+     available for other transfers. [#unlock-amount]_
 
    * Remove the prepared transfer from server's database.
 
@@ -233,19 +235,19 @@ transfer exists in server's database:
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
 
-.. [#] Server implementations MAY impose additional restrictions on
-  the format and the content of this string, as long as these
-  restictions are precisely defined, and known in advance.
+.. [#message-limitations] Server implementations MAY impose additional
+  restrictions on the format and the content of this string, as long
+  as these restictions are precisely defined, and known in advance.
 
-.. [#] Server implementations MAY impose additional restrictions on
-  this value, as long as these restictions are precisely defined, and
-  known in advance.
+.. [#flags-limitations] Server implementations MAY impose additional
+  restrictions on this value, as long as these restictions are
+  precisely defined, and known in advance.
 
-.. [#] When ``committed_amount`` is zero, this would be a no-op.  When
-  the commit is successful, an `AccountChange`_ message, and
+.. [#commit] When ``committed_amount`` is zero, this would be a no-op.
+  When the commit is successful, an `AccountChange`_ message, and
   `AccountTransfer`_ messages will be triggered eventually as well.
 
-.. [#] Note that ``committed_amount`` can be smaller that
+.. [#unlock-amount] Note that ``committed_amount`` can be smaller that
   ``sender_locked_amount``.
 
 
@@ -280,19 +282,17 @@ rejection_code : string
    30 symbols, ASCII only.
 
 available_amount : int64
-   A non-negative number. If the transfer was rejected due to
+   MUST be a non-negative number. If the transfer was rejected due to
    insufficient available amount, but there is a good chance for a new
    transfer request for a smaller amount to be successful, this field
-   SHOULD contain the amount currently available on sender's account.
-   [#]_ Otherwise this MUST be ``0``.
+   SHOULD contain the amount currently available on sender's account;
+   otherwise this MUST be ``0``.
 
 debtor_id : int64
    The ID of the debtor.
    
 sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
-
-.. [#] This MUST NOT be a negative number.
 
 
 PreparedTransfer
@@ -402,10 +402,11 @@ status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
    only. If the prepared transfer was committed, but the commit was
    unsuccessful for some reason, this value MUST be different from
-   ``"OK"``, and SHOULD hint at the reason for the failure. [#]_ In
-   all other cases, this value MUST be ``"OK"``.
+   ``"OK"``, and SHOULD hint at the reason for the
+   failure. [#failed-commit]_ In all other cases, this value MUST be
+   ``"OK"``.
 
-.. [#] In this case ``committed_amount`` MUST be zero.
+.. [#failed-commit] In this case ``committed_amount`` MUST be zero.
 
 
 AccountTransfer
@@ -513,7 +514,7 @@ creditor_id : int64
    Along with ``debtor_id``, identifies the account.
 
 creation_date : date
-   The date on which the account was created. [#]_
+   The date on which the account was created. [#creation-date]_
 
 change_ts : date-time
    The moment at which the latest meaningful change in the state of
@@ -526,7 +527,7 @@ change_seqnum : int32
    `AccountChange`_ messages MUST have bigger sequential numbers,
    compared to earlier messages. Note that when the maximum ``int32``
    value is reached, the next value MUST be ``-2147483648`` (signeld
-   32-bit integer wrapping). [#]_ [#compare-seqnums]_
+   32-bit integer wrapping). [#compare-change]_ [#compare-seqnums]_
 
 principal : int64
    The amount that the debtor owes to the creditor, without the
@@ -534,7 +535,7 @@ principal : int64
 
 interest : float
    The amount of interest accumulated on the account, that is not
-   added to the ``principal`` yet. [#]_ This can be a negative
+   added to the ``principal`` yet. [#interest]_ This can be a negative
    number. The accumulated interest SHOULD be zeroed out and added to
    the principal once in a while (an interest payment).
 
@@ -552,7 +553,7 @@ last_config_signal_seqnum : int32
    MUST contain the value of the ``signal_seqnum`` field in the latest
    applied `ConfigureAccount`_ message. If there have not been any
    applied `ConfigureAccount`_ messages yet, the value MUST be
-   `0`. [#]_
+   `0`. [#verify-config]_
 
 negligible_amount : float
    MUST contain value of the ``negligible_amount`` field in the latest
@@ -607,28 +608,29 @@ signal_ttl : int32
    message was emitted (``signal_ts``). This MUST be a positive
    number.
 
-.. [#] Note that an account can be removed from the server's database,
-   and then a new account with the same ``debtor_id`` and
-   ``creditor_id`` can be created. In this case, the newly created
-   account MUST have a later ``creation_date``, compared to the
-   preceding account. Also, until an account is removed from the
-   server's database, its ``creation_date`` MUST not be changed.
+.. [#creation-date] Note that an account can be removed from the
+   server's database, and then a new account with the same
+   ``debtor_id`` and ``creditor_id`` can be created. In this case, the
+   newly created account MUST have a later ``creation_date``, compared
+   to the preceding account. Also, until an account is removed from
+   the server's database, its ``creation_date`` MUST NOT be changed.
 
-.. [#] ``change_ts`` and ``change_seqnum`` can be used to reliably
-  determine the correct order in a sequence of `AccountChange`_
-  messages, even if the changes occurred in a very short period of
-  time. When considering two changes, ``change_ts`` fields MUST be
-  compared first, and only if they are equal, ``change_seqnum`` fields
-  MUST be compared as well.
+.. [#compare-change] ``change_ts`` and ``change_seqnum`` can be used
+  to reliably determine the correct order in a sequence of
+  `AccountChange`_ messages, even if the changes occurred in a very
+  short period of time. When considering two changes, ``change_ts``
+  fields MUST be compared first, and only if they are equal,
+  ``change_seqnum`` fields MUST be compared as well. TODO: check the
+  ``creation_date`` too.
 
-.. [#] Note that the ``interest`` field shows the amount of interest
-  accumulated on the account only up to the ``change_ts``
+.. [#interest] Note that the ``interest`` field shows the amount of
+  interest accumulated on the account only up to the ``change_ts``
   moment. Also, any amount that is shown as accumulated interest,
   SHOULD be available for transfers. That is: the owner of the account
   has to be able to "wire" the accumulated interest to another
   account.
 
-.. [#] Note that ``last_config_signal_ts`` and
+.. [#verify-config] Note that ``last_config_signal_ts`` and
    ``last_config_signal_seqnum`` can be used to determine whether a
    sent `ConfigureAccount`_ message has been applied successfully.
 
