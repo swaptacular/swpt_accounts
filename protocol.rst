@@ -526,7 +526,7 @@ change_seqnum : int32
    `AccountChange`_ messages MUST have bigger sequential numbers,
    compared to earlier messages. Note that when the maximum ``int32``
    value is reached, the next value MUST be ``-2147483648`` (signeld
-   32-bit integer wrapping). [#]_
+   32-bit integer wrapping). [#]_ [#compare-seqnums]_
 
 principal : int64
    The amount that the debtor owes to the creditor, without the
@@ -619,13 +619,7 @@ signal_ttl : int32
   messages, even if the changes occurred in a very short period of
   time. When considering two changes, ``change_ts`` fields MUST be
   compared first, and only if they are equal, ``change_seqnum`` fields
-  MUST be compared as well.  Note that when comparing
-  ``change_seqnum`` fields, care MUST be taken to correctly deal with
-  the possible 32-bit integer wrapping. For example, to decide whether
-  ``seqnum2`` is later than ``seqnum1``, the following expression may
-  be used: ``0 < (seqnum2 - seqnum1) % 0x100000000 <
-  0x80000000``. Timestamps must also be compared with care, because
-  precision might have been lost when they were saved to the database.
+  MUST be compared as well.
 
 .. [#] Note that the ``interest`` field shows the amount of interest
   accumulated on the account only up to the ``change_ts``
