@@ -40,7 +40,7 @@ status_flags : int16
    server's database. If those condition are *not met*, accounts
    SHOULD NOT be removed. Some time after an account has been removed
    from the server's database, an `AccountPurge`_ message MUST be sent
-   for it. [#purge-delay]_
+   to inform for that. [#purge-delay]_
 
 negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
