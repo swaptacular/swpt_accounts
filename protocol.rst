@@ -29,7 +29,7 @@ status_flags : int16
    Account configuration bit-flags. Server implementations may use
    these flags for different purposes. The lowest bit (bit ``0``) is
    reserved, and has the meaning "scheduled for
-   deletion". [#forbid_transfers]_ If all of the following conditions
+   deletion". [#forbid-transfers]_ If all of the following conditions
    are met, an account SHOULD be removed from the server's
    database: 1) the account is "scheduled for deletion"; 2) the
    account has no prepared transfers that await finalization; 3) at
@@ -71,7 +71,7 @@ they MUST first verify whether the specified account already exists:
    created, an `AccountChange`_ message MUST be sent; otherwise a
    `RejectedConfig`_ message MUST be sent.
 
-.. [#forbid_transfers] Server implementations SHOULD forbid incoming
+.. [#forbid-transfers] Server implementations SHOULD forbid incoming
   transfer for "scheduled for deletion" accounts.
 
 .. [#] How long this "some time" is, depends on how old an old
