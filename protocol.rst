@@ -283,11 +283,11 @@ config : string
    The value of the ``config`` field in the rejected message.
 
 rejected_at_ts : date-time
-   The moment at which the `ConfigureAccount`_ message was rejected.
+   The moment at which the `ConfigureAccount`_ request was rejected.
 
 rejection_code : string
    The reason for the rejection of the `ConfigureAccount`_
-   message. Between 0 and 30 symbols, ASCII only.
+   request. Between 0 and 30 symbols, ASCII only.
 
 
 RejectedTransfer
