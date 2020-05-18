@@ -28,17 +28,18 @@ signal_seqnum : int32
 status_flags : int16
    Account configuration bit-flags. Server implementations may use
    these flags for different purposes. The lowest bit (bit ``0``) is
-   reserved, and has the meaning "scheduled for deletion". [#]_ If all
-   of the following conditions are met, an account SHOULD be removed
-   from the server's database: 1) the account is "scheduled for
-   deletion"; 2) the account has no prepared transfers that await
-   finalization; 3) at least 48 hours have passed since account's
-   creation; 4) accont's configuration settings have not been updated
-   for some time [#]_ ; 5) it is very unlikely that amount bigger that
-   ``negligible_amount`` will be lost if the account is removed from
-   server's database. If those condition are not met, accounts SHOULD
-   NOT be removed. When an account has been removed from the server's
-   database, an `AccountPurge`_ message MUST be sent.
+   reserved, and has the meaning "scheduled for
+   deletion". [#forbid_transfers]_ If all of the following conditions
+   are met, an account SHOULD be removed from the server's
+   database: 1) the account is "scheduled for deletion"; 2) the
+   account has no prepared transfers that await finalization; 3) at
+   least 48 hours have passed since account's creation; 4) accont's
+   configuration settings have not been updated for some time; [#]_ 5)
+   it is very unlikely that amount bigger that ``negligible_amount``
+   will be lost if the account is removed from server's database. If
+   those condition are not met, accounts SHOULD NOT be removed. When
+   an account has been removed from the server's database, an
+   `AccountPurge`_ message MUST be sent.
 
 negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
@@ -70,8 +71,8 @@ they MUST first verify whether the specified account already exists:
    created, an `AccountChange`_ message MUST be sent; otherwise a
    `RejectedConfig`_ message MUST be sent.
 
-.. [#] Server implementations SHOULD forbid incoming transfer for
-  "scheduled for deletion" accounts.
+.. [#forbid_transfers] Server implementations SHOULD forbid incoming
+  transfer for "scheduled for deletion" accounts.
 
 .. [#] How long this "some time" is, depends on how old an old
   `ConfigureAccount`_ message has to be, in order to be ignored. The
