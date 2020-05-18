@@ -381,7 +381,7 @@ If a prepared transfer has not been finalized (committed or dismissed)
 for a long while, the server SHOULD send another `PreparedTransfer`_
 message, identical to the previous one (except for the **signal_ts**
 field), to remind that a transfer has been prepared and is waiting for
-a resolution. This guarantees that no prepared transfers will be
+a resolution. This guarantees that prepared transfers will not be
 hanging in the server's database forever, even in the case of a lost
 message, or a complete database loss on the client's side.
 
@@ -643,6 +643,13 @@ signal_ttl : int32
    ignored if more than ``signal_ttl`` seconds have elapsed since the
    message was emitted (``signal_ts``). This MUST be a positive
    number.
+
+If for a given account, no `AccountChange`_ messages have been sent
+for a long while, the server SHOULD send an `AccountChange`_ message,
+identical to the preceding one (except for the **signal_ts** field),
+to remind that the account still exist. This guarantees that accounts
+will not be hanging in the server's database forever, even in the case
+of a lost message, or a complete database loss on the client's side.
 
 .. [#creation-date] Note that an account can be removed from the
    server's database, and then a new account with the same
