@@ -258,8 +258,7 @@ Outgoing messages
 RejectedConfig
 --------------
 
-Emitted when a `ConfigureAccount`_ message has been processed and
-rejected.
+Emitted when a `ConfigureAccount`_ request has been rejected.
 
 debtor_id : int64
    The value of the ``debtor_id`` field in the rejected message.
