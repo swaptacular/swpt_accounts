@@ -32,8 +32,8 @@ status_flags : int16
    deletion". [#forbid-transfers]_ If all of the following conditions
    are met, an account SHOULD be removed from the server's
    database: 1) the account is "scheduled for deletion"; 2) the
-   account has no prepared transfers that await finalization; 3) at
-   least 48 hours have passed since account's creation;
+   account has no prepared transfers that await finalization; 3)
+   enough time have passed since account's creation;
    [#creation-date]_ 4) accont's configuration settings have not been
    updated for some time; [#config-delay]_ 5) it is very unlikely that
    amount bigger that ``negligible_amount`` will be lost if the
@@ -658,9 +658,9 @@ client's side.
 
 .. [#creation-date] Note that an account can be removed from the
    server's database, and then a new account with the same
-   ``debtor_id`` and ``creditor_id`` can be created. In this case, the
-   newly created account MUST have a later ``creation_date``, compared
-   to the preceding account.
+   ``debtor_id`` and ``creditor_id`` can be created. Care MUST be
+   taken so that in this case the newly created account always has a
+   later ``creation_date``, compared to the preceding account.
 
 .. [#compare-change] ``creation_date``, ``change_ts``, and
   ``change_seqnum`` can be used to reliably determine the correct
