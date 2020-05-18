@@ -83,8 +83,6 @@ they MUST first verify whether the specified account already exists:
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
 
-.. [#purge-delay] TODO: the delay MUST be at least ``signal_ttl``.
-
 .. [#compare-config] To do this, server implementations MUST
   compare the values of ``signal_ts`` and ``signal_seqnum`` fields in
   the received message, to the values of these fields in the latest
@@ -685,7 +683,8 @@ client's side.
 AccountPurge
 ------------
 
-Emitted when an account has been removed from the server's database.
+Emitted some time after an account has been removed from the server's
+database. [#purge-delay]_
 
 debtor_id : int64
    The ID of the debtor.
@@ -707,6 +706,8 @@ creditor_identity : string
    account. This identifier (along with ``debtor_id``), on the other
    hand, MUST provide enough information to globally identify the
    removed account (an IBAN for example).
+
+.. [#purge-delay] TODO: the delay MUST be at least ``signal_ttl``.
 
 
 Requirements for Client Implementations
