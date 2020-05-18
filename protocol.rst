@@ -615,13 +615,13 @@ signal_ttl : int32
    to the preceding account. Also, until an account is removed from
    the server's database, its ``creation_date`` MUST NOT be changed.
 
-.. [#compare-change] ``change_ts`` and ``change_seqnum`` can be used
-  to reliably determine the correct order in a sequence of
-  `AccountChange`_ messages, even if the changes occurred in a very
-  short period of time. When considering two changes, ``change_ts``
-  fields MUST be compared first, and only if they are equal,
-  ``change_seqnum`` fields MUST be compared as well. TODO: check the
-  ``creation_date`` too.
+.. [#compare-change] ``creation_date``, ``change_ts``, and
+  ``change_seqnum`` can be used to reliably determine the correct
+  order in a sequence of `AccountChange`_ messages, even if the
+  changes occurred in a very short period of time. When considering
+  two changes, ``creation_date`` fields MUST be compared first, if
+  they are equal ``change_ts`` fields MUST be compared, and if they
+  are equal, ``change_seqnum`` fields MUST be compared as well.
 
 .. [#interest] Note that the ``interest`` field shows the amount of
   interest accumulated on the account only up to the ``change_ts``
