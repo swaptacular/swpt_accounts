@@ -645,11 +645,12 @@ signal_ttl : int32
    number.
 
 If for a given account, no `AccountChange`_ messages have been sent
-for a long while, the server SHOULD send an `AccountChange`_ message,
-identical to the preceding one (except for the **signal_ts** field),
-to remind that the account still exist. This guarantees that accounts
-will not be hanging in the server's database forever, even in the case
-of a lost message, or a complete database loss on the client's side.
+for a long while, the server SHOULD send a new `AccountChange`_
+message identical to the previous one (except for the **signal_ts**
+field), to remind that the account still exist. This guarantees that
+accounts will not be hanging in the server's database forever, even in
+the case of a lost message, or a complete database loss on the
+client's side.
 
 .. [#creation-date] Note that an account can be removed from the
    server's database, and then a new account with the same
