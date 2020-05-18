@@ -47,14 +47,23 @@ def test_configure_account(db_session, current_ts):
     a = p.configure_account(D_ID, C_ID, current_ts, 1)
     assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 2
 
-    # The signal is too old.
-    p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 2)
-    assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 2
+
+def test_ignored_config(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    assert len(AccountChangeSignal.query.all()) == 1
+    assert len(RejectedConfigSignal.query.all()) == 0
+
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, C_ID, current_ts, -1)
+    p.configure_account(D_ID, C_ID, current_ts - timedelta(microseconds=1), 1)
+    assert len(AccountChangeSignal.query.all()) == 1
+    assert len(RejectedConfigSignal.query.all()) == 0
 
 
 def test_invalid_config(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 123, 0x1fff, -10.0, 'xxx')
     assert p.get_account(D_ID, C_ID) is None
+    assert len(AccountChangeSignal.query.all()) == 0
     rcs = RejectedConfigSignal.query.one()
     assert rcs.debtor_id == D_ID
     assert rcs.creditor_id == C_ID
@@ -66,6 +75,8 @@ def test_invalid_config(db_session, current_ts):
     assert rcs.config == 'xxx'
 
     p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123)
+    assert p.get_account(D_ID, C_ID) is None
+    assert len(AccountChangeSignal.query.all()) == 0
     rcs = RejectedConfigSignal.query.filter_by(rejection_code='OUTDATED_CONFIGURATION').one()
     assert rcs.debtor_id == D_ID
     assert rcs.creditor_id == C_ID

@@ -4,7 +4,7 @@ from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Se
 from decimal import Decimal
 from flask import current_app
 from sqlalchemy.sql.expression import tuple_
-from swpt_lib.utils import is_later_event, increment_seqnum, u64_to_i64
+from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64
 from .extensions import db
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
@@ -73,9 +73,9 @@ def configure_account(
 
     account = _get_account_instance(debtor_id, creditor_id, lock=True)
     if account:
-        this_event = (signal_ts, signal_seqnum)
-        prev_event = (account.last_config_signal_ts, account.last_config_signal_seqnum)
-        if not is_later_event(this_event, prev_event):
+        this_event = (signal_ts, Seqnum(signal_seqnum))
+        prev_event = (account.last_config_signal_ts, Seqnum(account.last_config_signal_seqnum))
+        if this_event <= prev_event:
             return
     elif is_outdated_signal():
         return reject('OUTDATED_CONFIGURATION')
