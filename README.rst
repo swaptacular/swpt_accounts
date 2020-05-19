@@ -48,6 +48,8 @@ How to setup a development environment
 Swaptacular Messaging Protocol
 ------------------------------
 
+.. _`The protocol`: protocol.rst
+
 This service implements a generic messaging protocol. `The protocol`_
 is centered around two types of objects: *debtors* and *creditors*. A
 debtor is a person or an organization that manages a digital
@@ -119,4 +121,3 @@ mind:
 .. _Python: https://docs.python.org/
 .. _Dramatiq: https://dramatiq.io/
 .. _`Cap'n Proto`: https://capnproto.org/
-.. _`The protocol`: protocol.rst
