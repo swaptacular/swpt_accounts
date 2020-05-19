@@ -43,7 +43,7 @@ def configure_account(
     def is_valid_config():
         return negligible_amount >= 0.0 and config == ''
 
-    def is_old_signal():
+    def is_timestamp_too_far_in_the_past():
         signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
         return (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds
 
@@ -77,7 +77,7 @@ def configure_account(
         prev_event = (account.last_config_signal_ts, Seqnum(account.last_config_signal_seqnum))
         if this_event <= prev_event:
             return
-    elif is_old_signal():
+    elif is_timestamp_too_far_in_the_past():
         return
 
     if not is_valid_config():
