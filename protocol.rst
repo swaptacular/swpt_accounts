@@ -31,16 +31,17 @@ status_flags : int16
    reserved, and has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
    are met, an account SHOULD be removed (or at least marked as
-   deleted) from the server's database: 1) the account is "scheduled
-   for deletion"; 2) the account has no prepared transfers that await
-   finalization; 3) enough time has passed since account's creation;
-   [#creation-date]_ 4) accont's configuration have not been updated
-   for some time; [#config-delay]_ 5) it is very unlikely that amount
-   bigger that ``negligible_amount`` will be lost if the account is
-   removed from server's database. If those condition are *not met*,
-   accounts SHOULD NOT be removed. Some time after an account has been
-   removed from the server's database, an `AccountPurge`_ message MUST
-   be sent to inform about that. [#purge-delay]_
+   deleted) from the server's database: **1)** the account is
+   "scheduled for deletion"; **2)** the account has no prepared
+   transfers that await finalization; **3)** enough time has passed
+   since account's creation; [#creation-date]_ **4)** accont's
+   configuration have not been updated for some time; [#config-delay]_
+   **5)** it is very unlikely that amount bigger that
+   ``negligible_amount`` will be lost if the account is removed from
+   server's database. If those condition are *not met*, accounts
+   SHOULD NOT be removed. Some time after an account has been removed
+   from the server's database, an `AccountPurge`_ message MUST be sent
+   to inform about that. [#purge-delay]_
 
 negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
