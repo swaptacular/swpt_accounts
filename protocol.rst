@@ -98,7 +98,7 @@ they MUST first verify whether the specified account already exists:
   compared with care, because precision might have been lost when they
   were saved to the database.
 
-.. [#schd-deletion] Creating a new account with "scheduled for
+.. [#schd-deletion] Creating a new account with a "scheduled for
   deletion" flag SHOULD NOT be allowed.
 
 
