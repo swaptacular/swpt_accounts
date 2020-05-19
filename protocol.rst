@@ -40,7 +40,7 @@ status_flags : int16
    removed from server's database. If those condition are *not met*,
    accounts SHOULD NOT be removed. Some time after an account has been
    removed from the server's database, an `AccountPurge`_ message MUST
-   be sent to inform for that. [#purge-delay]_
+   be sent to inform about that. [#purge-delay]_
 
 negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
@@ -706,7 +706,10 @@ creditor_identity : string
    hand, MUST provide enough information to globally identify the
    removed account (an IBAN for example).
 
-.. [#purge-delay] TODO: the delay MUST be at least ``signal_ttl``.
+.. [#purge-delay] The delay MUST be at least as long as indicated by
+   the value of the ``signal_ttl`` field in `AccountChange`_ messages.
+   The goal is to ensure that if clients receive more `AccountChange`_
+   messages for the purged account, they will be ignored.
 
 
 Requirements for Client Implementations
