@@ -143,9 +143,9 @@ they MUST first verify whether the specified account already exists:
 .. [#forbid-transfers] Server implementations SHOULD forbid incoming
   transfer for "scheduled for deletion" accounts.
 
-.. [#config-delay] How long this "some time" is, depends on how old an
-  old `ConfigureAccount`_ message has to be, in order to be
-  ignored. The goal is to avoid the scenario in which an account is
+.. [#config-delay] How long this "some time" is, depends on how far
+  int the past an `ConfigureAccount`_ message has to be, in order to
+  be ignored. The goal is to avoid the scenario in which an account is
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
 
