@@ -3,9 +3,9 @@ swpt_accounts
 
 Swaptacular micro-service that manages user account balances
 
-.. _`generic messaging protocol`: protocol.rst
+.. _`messaging protocol`: protocol.rst
 
-This micro-service implements a `generic messaging
+This micro-service implements a generic `messaging
 protocol`_. Currently it defines several `Dramatiq`_ `actors`_, and
 emits several types of `events`_. Eventually, it should migrate to
 using `Cap'n Proto`_. This micro-service needs the `swpt_debtors`_
