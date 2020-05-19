@@ -446,98 +446,6 @@ status_code : string
 .. [#failed-commit] In this case ``committed_amount`` MUST be zero.
 
 
-AccountTransfer
----------------
-
-Emitted when a committed transfer has affected a given account.
-
-Each committed transfer affects exactly two accounts: the sender's,
-and the recipient's. Therefore, exactly two ``AccountTransfer``
-messages MUST be emitted for each committed transfer. The only
-exception to this rule is for special-purpose accounts that have no
-recipients for the message.
-
-debtor_id : int64
-   The ID of the debtor.
-
-creditor_id : int64
-   Along with ``debtor_id``, identifies the affected account.
-
-transfer_seqnum : int64
-   TODO: improve description
-   The sequential number of the transfer. MUST be a positive
-   number. For a newly created account, the sequential number of the
-   first transfer will have its lower 40 bits set to `0x0000000001`,
-   and its higher 24 bits calculated from the account's creation date
-   (the number of days since Jan 1st, 1970). Note that when an account
-   has been removed from the database, and then recreated again, for
-   this account, a gap will occur in the generated sequence of
-   seqnums.
-
-coordinator_type : string
-   Indicates the subsystem which requested the transfer. MUST be
-   between 1 and 30 symbols, ASCII only.
-
-committed_at_ts : date-time
-   The moment at which the transfer was committed.
-
-committed_amount : int64
-   TODO: rename?
-   The increase in the affected account's principal which the transfer
-   caused. It can be positive (increase), or negative (decrease), but
-   it MUST NOT be zero.
-
-other_party_identity : string
-   TODO: improve description
-   A string which (along with ``debtor_id``) identifies the other
-   party in the transfer. When ``committed_amount`` is positive, this
-   is the sender; when ``committed_amount`` is negative, this is the
-   recipient. Different server implementations may use different
-   formats for the identifier.
-
-transfer_message : string
-   This MUST be the value of the ``transfer_message`` field in the
-   ``FinalizePreparedTransfer`` message that fianlized the transfer.
-
-transfer_flags : int32
-   This MUST be the value of the ``transfer_flags`` field in the
-   ``FinalizePreparedTransfer`` message that fianlized the transfer.
-
-account_creation_date : date
-   The date on which the affected account was created.
-
-account_new_principal : int64
-   The affected account's principal, as it is after the transfer has
-   been committed.
-
-previous_transfer_seqnum : int64
-   TODO: improve description
-   The sequential number of the previous transfer. MUST be a positive
-   number. It will always be smaller than `transfer_seqnum`, and
-   sometimes the difference can be more than `1`. If there were no
-   previous transfers, the value will have its lower 40 bits set to
-   `0x0000000000`, and its higher 24 bits calculated from
-   `account_creation_date` (the number of days since Jan 1st, 1970).
-
-system_flags : int32
-   Various bit-flags characterizing the transfer.
-
-creditor_identity : string
-   A string which (along with ``debtor_id``) identifies the affected
-   account. Different server implementations may use different formats
-   for the identifier. Note that while ``creditor_id`` could be a
-   "local" identifier, recognized only by the system that created the
-   account, ``creditor_identity`` is always a globally recognized
-   identifier.
-
-transfer_id : int64
-   TODO: improve description
-   MUST contain either ``0``, or the ID of the corresponding prepared
-   transfer. This allows the sender of a committed direct transfer, to
-   reliably identify the corresponding prepared transfer record (using
-   `debtor_id`, `creditor_id`, and `transfer_id` fields).
-
-
 AccountChange
 -------------
 
@@ -716,6 +624,98 @@ can safely remove a given account from their databases.
    clients have received the `AccountPurge`_ message, if they continue
    to receive old `AccountChange`_ messages for the purged account,
    those messages will be ignored.
+
+
+AccountTransfer
+---------------
+
+Emitted when a committed transfer has affected a given account.
+
+Each committed transfer affects exactly two accounts: the sender's,
+and the recipient's. Therefore, exactly two ``AccountTransfer``
+messages MUST be emitted for each committed transfer. The only
+exception to this rule is for special-purpose accounts that have no
+recipients for the message.
+
+debtor_id : int64
+   The ID of the debtor.
+
+creditor_id : int64
+   Along with ``debtor_id``, identifies the affected account.
+
+transfer_seqnum : int64
+   TODO: improve description
+   The sequential number of the transfer. MUST be a positive
+   number. For a newly created account, the sequential number of the
+   first transfer will have its lower 40 bits set to `0x0000000001`,
+   and its higher 24 bits calculated from the account's creation date
+   (the number of days since Jan 1st, 1970). Note that when an account
+   has been removed from the database, and then recreated again, for
+   this account, a gap will occur in the generated sequence of
+   seqnums.
+
+coordinator_type : string
+   Indicates the subsystem which requested the transfer. MUST be
+   between 1 and 30 symbols, ASCII only.
+
+committed_at_ts : date-time
+   The moment at which the transfer was committed.
+
+committed_amount : int64
+   TODO: rename?
+   The increase in the affected account's principal which the transfer
+   caused. It can be positive (increase), or negative (decrease), but
+   it MUST NOT be zero.
+
+other_party_identity : string
+   TODO: improve description
+   A string which (along with ``debtor_id``) identifies the other
+   party in the transfer. When ``committed_amount`` is positive, this
+   is the sender; when ``committed_amount`` is negative, this is the
+   recipient. Different server implementations may use different
+   formats for the identifier.
+
+transfer_message : string
+   This MUST be the value of the ``transfer_message`` field in the
+   ``FinalizePreparedTransfer`` message that fianlized the transfer.
+
+transfer_flags : int32
+   This MUST be the value of the ``transfer_flags`` field in the
+   ``FinalizePreparedTransfer`` message that fianlized the transfer.
+
+account_creation_date : date
+   The date on which the affected account was created.
+
+account_new_principal : int64
+   The affected account's principal, as it is after the transfer has
+   been committed.
+
+previous_transfer_seqnum : int64
+   TODO: improve description
+   The sequential number of the previous transfer. MUST be a positive
+   number. It will always be smaller than `transfer_seqnum`, and
+   sometimes the difference can be more than `1`. If there were no
+   previous transfers, the value will have its lower 40 bits set to
+   `0x0000000000`, and its higher 24 bits calculated from
+   `account_creation_date` (the number of days since Jan 1st, 1970).
+
+system_flags : int32
+   Various bit-flags characterizing the transfer.
+
+creditor_identity : string
+   A string which (along with ``debtor_id``) identifies the affected
+   account. Different server implementations may use different formats
+   for the identifier. Note that while ``creditor_id`` could be a
+   "local" identifier, recognized only by the system that created the
+   account, ``creditor_identity`` is always a globally recognized
+   identifier.
+
+transfer_id : int64
+   TODO: improve description
+   MUST contain either ``0``, or the ID of the corresponding prepared
+   transfer. This allows the sender of a committed direct transfer, to
+   reliably identify the corresponding prepared transfer record (using
+   `debtor_id`, `creditor_id`, and `transfer_id` fields).
 
 
 Requirements for Client Implementations
