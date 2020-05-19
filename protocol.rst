@@ -375,7 +375,7 @@ prepared_at_ts : date-time
    The moment at which the transfer was prepared.
 
 signal_ts : date-time
-   The moment at which this signal was emitted (the message's
+   The moment at which this message was sent (the message's
    timestamp).
 
 If a prepared transfer has not been finalized (committed or dismissed)
@@ -706,10 +706,15 @@ creditor_identity : string
    hand, MUST provide enough information to globally identify the
    removed account (an IBAN for example).
 
+The purpose of `AccountPurge`_ messages is to inform clients that they
+can safely remove an given account from their databases.
+
 .. [#purge-delay] The delay MUST be at least as long as indicated by
-   the value of the ``signal_ttl`` field in `AccountChange`_ messages.
-   The goal is to ensure that if clients receive more `AccountChange`_
-   messages for the purged account, they will be ignored.
+   the value of the ``signal_ttl`` field which is sent with
+   `AccountChange`_ messages.  The goal is to ensure that after
+   clients have received the `AccountPurge`_ message, if they continue
+   to receive old `AccountChange`_ messages for the purged account,
+   those messages will be ignored.
 
 
 Requirements for Client Implementations
