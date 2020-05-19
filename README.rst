@@ -9,7 +9,7 @@ This micro-service currently implements several `Dramatiq`_ actors
 using `Cap'n Proto`_.
 
 This micro-service needs the `swpt_debtors`_ helper micro-service to
-perform important maintenance operations:
+perform the following important maintenance operations:
 
 1. Accounts removal.
 2. Interest rate capitalization.
