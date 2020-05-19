@@ -78,7 +78,7 @@ def configure_account(
         if this_event <= prev_event:
             return
     elif is_old_signal():
-        return reject('MESSAGE_TIMEOUT')
+        return
 
     if not is_valid_config():
         return reject('INVALID_CONFIGURATION')

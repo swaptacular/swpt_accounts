@@ -78,14 +78,7 @@ def test_invalid_config(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123)
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountChangeSignal.query.all()) == 0
-    rcs = RejectedConfigSignal.query.filter_by(rejection_code='MESSAGE_TIMEOUT').one()
-    assert rcs.debtor_id == D_ID
-    assert rcs.creditor_id == C_ID
-    assert rcs.config_signal_ts == current_ts - timedelta(days=1000)
-    assert rcs.config_signal_seqnum == 123
-    assert rcs.status_flags == 0
-    assert rcs.negligible_amount == 0.0
-    assert rcs.config == ''
+    assert len(RejectedConfigSignal.query.all()) == 1
 
 
 def test_set_interest_rate(db_session, current_ts):
