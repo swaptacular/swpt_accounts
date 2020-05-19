@@ -3,20 +3,22 @@ swpt_accounts
 
 Swaptacular micro-service that manages user account balances
 
+.. _`generic messaging protocol`: protocol.rst
+
 This micro-service implements a `generic messaging
-protocol`_. Currently it defines several `Dramatiq`_ actors (see
-``swpt_accounts/actors.py``), and emits several types of events (see
-``swpt_accounts/events.py``). Eventually, it should migrate to using
-`Cap'n Proto`_. This micro-service needs the `swpt_debtors`_ helper
-micro-service to perform the following important maintenance
+protocol`_. Currently it defines several `Dramatiq`_ `actors`_, and
+emits several types of `events`_. Eventually, it should migrate to
+using `Cap'n Proto`_. This micro-service needs the `swpt_debtors`_
+helper micro-service to perform the following important maintenance
 operations:
 
 1. Accounts removal.
 2. Interest rate capitalization.
 3. Setting and updating interest rates.
 
-.. _`generic messaging protocol`: protocol.rst
 .. _swpt_debtors: https://github.com/epandurski/swpt_debtors
+.. _actors: swpt_accounts/actors.py
+.. _events: swpt_accounts/events.py
 
 
 How to run it
