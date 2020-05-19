@@ -707,7 +707,7 @@ creditor_identity : string
    removed account (an IBAN for example).
 
 The purpose of `AccountPurge`_ messages is to inform clients that they
-can safely remove an given account from their databases.
+can safely remove a given account from their databases.
 
 .. [#purge-delay] The delay MUST be at least as long as indicated by
    the value of the ``signal_ttl`` field which is sent with
