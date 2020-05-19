@@ -30,10 +30,10 @@ status_flags : int16
    these flags for different purposes. The lowest bit (bit ``0``) is
    reserved, and has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
-   are met, an account SHOULD be removed from the server's
-   database: 1) the account is "scheduled for deletion"; 2) the
-   account has no prepared transfers that await finalization; 3)
-   enough time has passed since account's creation;
+   are met, an account SHOULD be removed (or at least marked as
+   deleted) from the server's database: 1) the account is "scheduled
+   for deletion"; 2) the account has no prepared transfers that await
+   finalization; 3) enough time has passed since account's creation;
    [#creation-date]_ 4) accont's configuration have not been updated
    for some time; [#config-delay]_ 5) it is very unlikely that amount
    bigger that ``negligible_amount`` will be lost if the account is
