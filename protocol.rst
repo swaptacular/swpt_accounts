@@ -72,7 +72,7 @@ they MUST first verify whether the specified account already exists:
    an attempt MUST be made to create a new account with the requested
    configuration settings. If the new account has been successfully
    created, an `AccountChange`_ message MUST be sent; otherwise a
-   `RejectedConfig`_ message MUST be sent.
+   `RejectedConfig`_ message MUST be sent. [#schd-deletion]_
 
 .. [#forbid-transfers] Server implementations SHOULD forbid incoming
   transfer for "scheduled for deletion" accounts.
@@ -97,6 +97,9 @@ they MUST first verify whether the specified account already exists:
   seqnum1) % 0x100000000 < 0x80000000``. Timestamps must also be
   compared with care, because precision might have been lost when they
   were saved to the database.
+
+.. [#schd-deletion] Creating a new account with "scheduled for
+  deletion" flag SHOULD NOT be allowed.
 
 
 PrepareTransfer

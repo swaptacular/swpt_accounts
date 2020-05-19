@@ -78,7 +78,7 @@ def test_invalid_config(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123)
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountChangeSignal.query.all()) == 0
-    rcs = RejectedConfigSignal.query.filter_by(rejection_code='OUTDATED_CONFIGURATION').one()
+    rcs = RejectedConfigSignal.query.filter_by(rejection_code='DELETED_ACCOUNT').one()
     assert rcs.debtor_id == D_ID
     assert rcs.creditor_id == C_ID
     assert rcs.config_signal_ts == current_ts - timedelta(days=1000)
@@ -130,7 +130,8 @@ def amount(request):
 
 def test_make_debtor_payment(db_session, current_ts, amount):
     TRANSFER_MESSAGE = '{"transer_data": 123}'
-    p.configure_account(D_ID, C_ID, current_ts, 0,
+    p.configure_account(D_ID, C_ID, current_ts, 0),
+    p.configure_account(D_ID, C_ID, current_ts, 1,
                         status_flags=Account.STATUS_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=abs(amount))
     p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_MESSAGE)
 
