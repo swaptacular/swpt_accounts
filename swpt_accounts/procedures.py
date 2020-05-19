@@ -43,7 +43,7 @@ def configure_account(
     def is_valid_config():
         return negligible_amount >= 0.0 and config == ''
 
-    def is_outdated_signal():
+    def is_old_signal():
         signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
         return (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds
 
@@ -77,8 +77,8 @@ def configure_account(
         prev_event = (account.last_config_signal_ts, Seqnum(account.last_config_signal_seqnum))
         if this_event <= prev_event:
             return
-    elif is_outdated_signal():
-        return reject('OUTDATED_CONFIGURATION')
+    elif is_old_signal():
+        return reject('MESSAGE_TIMEOUT')
 
     if not is_valid_config():
         return reject('INVALID_CONFIGURATION')

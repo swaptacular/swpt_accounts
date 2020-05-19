@@ -78,7 +78,7 @@ def test_invalid_config(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123)
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountChangeSignal.query.all()) == 0
-    rcs = RejectedConfigSignal.query.filter_by(rejection_code='OUTDATED_CONFIGURATION').one()
+    rcs = RejectedConfigSignal.query.filter_by(rejection_code='MESSAGE_TIMEOUT').one()
     assert rcs.debtor_id == D_ID
     assert rcs.creditor_id == C_ID
     assert rcs.config_signal_ts == current_ts - timedelta(days=1000)
