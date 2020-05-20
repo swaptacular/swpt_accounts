@@ -79,18 +79,6 @@ debtor_id : int64
 creditor_id : int64
    Along with ``debtor_id``, identifies the account.
 
-ts : date-time
-   The moment at which this message was sent (the message's
-   timestamp). For a given account, later `ConfigureAccount`_ messages
-   MUST have later or equal timestamps, compared to earlier messages.
-
-seqnum : int32
-   The sequential number of the message. For a given account, later
-   `ConfigureAccount`_ messages SHOULD have bigger sequential numbers,
-   compared to earlier messages. Note that when the maximum ``int32``
-   value is reached, the next value SHOULD be ``-2147483648`` (signeld
-   32-bit integer wrapping).
-
 status_flags : int16
    Account configuration bit-flags. Server implementations may use
    these flags for different purposes. The lowest bit (bit ``0``) is
@@ -118,6 +106,18 @@ negligible_amount : float
 config : string
    Additional account configuration settings. Different server
    implementations may use different formats for this field.
+
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp). For a given account, later `ConfigureAccount`_ messages
+   MUST have later or equal timestamps, compared to earlier messages.
+
+seqnum : int32
+   The sequential number of the message. For a given account, later
+   `ConfigureAccount`_ messages SHOULD have bigger sequential numbers,
+   compared to earlier messages. Note that when the maximum ``int32``
+   value is reached, the next value SHOULD be ``-2147483648`` (signeld
+   32-bit integer wrapping).
 
 When server implementations process a `ConfigureAccount`_ message,
 they MUST first verify whether the specified account already exists:
@@ -208,14 +208,14 @@ recipient_identity : string
    the other hand, MUST provide enough information to globally
    identify the recipient's account (an IBAN for example).
    
-ts : date-time
-   The moment at which this message was sent (the message's
-   timestamp).
-
 minimum_account_balance : int64
    Determines the minimum amount that SHOULD remain available on
    sender's account after the requested amount has been secured. This
    can be a negative number.
+
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
 
 When server implementations process a `PrepareTransfer`_ message they:
 
@@ -353,13 +353,13 @@ negligible_amount : float
 config : string
    The value of the ``config`` field in the rejected message.
 
-ts : date-time
-   The moment at which this message was sent (the message's
-   timestamp).
-
 rejection_code : string
    The reason for the rejection of the `ConfigureAccount`_
    request. Between 0 and 30 symbols, ASCII only.
+
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
 
 
 RejectedTransfer
@@ -381,10 +381,6 @@ coordinator_request_id : int64
    view, so that the coordinator can pair this message with the issued
    request to prepare a transfer.
 
-ts : date-time
-   The moment at which this message was sent (the message's
-   timestamp).
-
 rejection_code : string
    The reason for the rejection of the transfer. MUST be between 0 and
    30 symbols, ASCII only.
@@ -401,6 +397,10 @@ debtor_id : int64
    
 sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
+
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
 
 
 PreparedTransfer
@@ -494,10 +494,6 @@ recipient_identity : string
 prepared_at : date-time
    The moment at which the transfer was prepared.
 
-ts : date-time
-   The moment at which this message was sent (the message's
-   timestamp).
-
 committed_amount : int64
    The transferred (committed) amount. This MUST always be a
    non-negative number. A ``0`` means either that the prepared
@@ -511,6 +507,10 @@ status_code : string
    ``"OK"``, and SHOULD hint at the reason for the
    failure. [#failed-commit]_ In all other cases, this value MUST be
    ``"OK"``.
+
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
 
 .. [#failed-commit] In this case ``committed_amount`` MUST be zero.
 
@@ -670,10 +670,6 @@ creditor_id : int64
 creation_date : date
    The date on which the removed account was created.
 
-ts : date-time
-   The moment at which this message was sent (the message's
-   timestamp).
-
 creditor_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    removed account. Different server implementations may use different
@@ -682,6 +678,10 @@ creditor_identity : string
    account. This identifier (along with ``debtor_id``), on the other
    hand, MUST provide enough information to globally identify the
    removed account (an IBAN for example).
+
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
 
 The purpose of `AccountPurge`_ messages is to inform clients that they
 can safely remove a given account from their databases.
