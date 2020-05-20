@@ -22,7 +22,7 @@ protocol supports the following operations:
    zero, deleting the account may result in a loss of non-negligible
    amount of money (tokens of the digital currency). Even if the
    balance was negligible at the moment of the deletion request, there
-   might had been a pending incoming transfer to the account, which
+   might have been a pending incoming transfer to the account, which
    would be lost had the account been deleted without the necessary
    precautions. To achieve safe deletion, this protocal requires that
    the account is scheduled for deletion, and the system takes care to
