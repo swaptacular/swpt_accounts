@@ -71,7 +71,7 @@ class RejectedTransferSignal(Signal):
       from the coordinator's point of view, so that the coordinator
       can match the event with the originating transfer request.
 
-    * `rejected_at_ts` is the moment at which the request to prepare a
+    * `rejected_at` is the moment at which the request to prepare a
       transfer was rejected.
 
     * `rejection_code` gives the reason for the rejection of the
@@ -92,7 +92,7 @@ class RejectedTransferSignal(Signal):
         available_amount = fields.Integer()
         debtor_id = fields.Integer()
         sender_creditor_id = fields.Integer()
-        rejected_at_ts = fields.DateTime(attribute='inserted_at_ts')
+        rejected_at = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -130,8 +130,7 @@ class PreparedTransferSignal(Signal):
       identifies recipient's account. Different implementations may
       use different formats for the identifier of recipient's account.
 
-    * `prepared_at_ts` is the moment at which the transfer was
-      prepared.
+    * `prepared_at` is the moment at which the transfer was prepared.
 
     * `ts` is the moment at which this signal was emitted.
 
@@ -146,7 +145,7 @@ class PreparedTransferSignal(Signal):
         coordinator_request_id = fields.Integer()
         sender_locked_amount = fields.Integer()
         recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
-        prepared_at_ts = fields.DateTime()
+        prepared_at_ts = fields.DateTime(data_key='prepared_at')
         ts = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -182,10 +181,9 @@ class FinalizedTransferSignal(Signal):
       identifies recipient's account. Different implementations may
       use different formats for the identifier of recipient's account.
 
-    * `prepared_at_ts` is the moment at which the transfer was
-      prepared.
+    * `prepared_at` is the moment at which the transfer was prepared.
 
-    * `finalized_at_ts` is the moment at which the transfer was
+    * `finalized_at` is the moment at which the transfer was
       finalized.
 
     * `committed_amount` is the transferred (committed) amount. It is
@@ -211,8 +209,8 @@ class FinalizedTransferSignal(Signal):
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
         recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
-        prepared_at_ts = fields.DateTime()
-        finalized_at_ts = fields.DateTime()
+        prepared_at_ts = fields.DateTime(data_key='prepared_at')
+        finalized_at_ts = fields.DateTime(data_key='finalized_at')
         committed_amount = fields.Integer()
         status_code = fields.String()
 
@@ -523,7 +521,7 @@ class RejectedConfigSignal(Signal):
       of the corresponding fields in the rejected `configure_account`
       message.
 
-    * `rejected_at_ts` is the moment at which the `configure_account`
+    * `rejected_at` is the moment at which the `configure_account`
       message was rejected.
 
     * `rejection_code` gives the reason for the rejection of the
@@ -540,7 +538,7 @@ class RejectedConfigSignal(Signal):
         status_flags = fields.Integer()
         negligible_amount = fields.Float(),
         config = fields.String()
-        rejected_at_ts = fields.DateTime(attribute='inserted_at_ts')
+        rejected_at = fields.DateTime(attribute='inserted_at_ts')
         rejection_code = fields.String()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)

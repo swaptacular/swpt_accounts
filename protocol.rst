@@ -349,7 +349,7 @@ negligible_amount : float
 config : string
    The value of the ``config`` field in the rejected message.
 
-rejected_at_ts : date-time
+rejected_at : date-time
    The moment at which the `ConfigureAccount`_ request was rejected.
 
 rejection_code : string
@@ -376,7 +376,7 @@ coordinator_request_id : int64
    view, so that the coordinator can pair this message with the issued
    request to prepare a transfer.
 
-rejected_at_ts : date-time
+rejected_at : date-time
    The moment at which the request to prepare a transfer was rejected.
 
 rejection_code : string
@@ -437,7 +437,7 @@ recipient_identity : string
    The value of the ``recipient_identity`` field in the corresponding
    `PrepareTransfer`_ message.
 
-prepared_at_ts : date-time
+prepared_at : date-time
    The moment at which the transfer was prepared.
 
 ts : date-time
@@ -488,10 +488,10 @@ recipient_identity : string
    The value of the ``recipient_identity`` field in the corresponding
    `PreparedTransfer`_ message.
 
-prepared_at_ts : date-time
+prepared_at : date-time
    The moment at which the transfer was prepared.
 
-finalized_at_ts : date-time
+finalized_at : date-time
    The moment at which the transfer was finalized.
 
 committed_amount : int64
