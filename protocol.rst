@@ -592,7 +592,7 @@ status : int32
    (from bit ``16`` to bit ``31``) MAY contain implementation-specific
    account status flags.
 
-creditor_identity : string
+account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    account. Different server implementations may use different formats
    for this string. Note that ``creditor_id`` is an ID which is
@@ -670,7 +670,7 @@ creditor_id : int64
 creation_date : date
    The date on which the removed account was created.
 
-creditor_identity : string
+account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    removed account. Different server implementations may use different
    formats for this string. Note that ``creditor_id`` is an ID which

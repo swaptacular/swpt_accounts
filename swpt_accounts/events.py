@@ -419,11 +419,11 @@ class AccountChangeSignal(Signal):
       since the signal was emitted (`ts`). Will always be bigger than
       `0.0`.
 
-    * `creditor_identity` is a string, which (along with `debtor_id`)
+    * `account_identity` is a string, which (along with `debtor_id`)
       identifies the account. Different implementations may use
       different formats for the identifier. Note that while
       `creditor_id` could be a "local" identifier, recognized only by
-      the system that created the account, `creditor_identity` is
+      the system that created the account, `account_identity` is
       always a globally recognized identifier.
 
     """
@@ -445,7 +445,7 @@ class AccountChangeSignal(Signal):
         status = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
         ttl = fields.Float()
-        creditor_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
+        account_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
         config = fields.Constant('')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -478,11 +478,11 @@ class AccountPurgeSignal(Signal):
 
     * `ts` is the moment at which this signal was emitted.
 
-    * `creditor_identity` is a string, which (along with `debtor_id`)
+    * `account_identity` is a string, which (along with `debtor_id`)
       identifies the account. Different implementations may use
       different formats for the identifier. Note that while
       `creditor_id` could be a "local" identifier, recognized only by
-      the system that created the account, `creditor_identity` is
+      the system that created the account, `account_identity` is
       always globally recognized identifier.
 
     """
@@ -492,7 +492,7 @@ class AccountPurgeSignal(Signal):
         creditor_id = fields.Integer()
         creation_date = fields.Date()
         inserted_at_ts = fields.DateTime(data_key='ts')
-        creditor_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
+        account_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
