@@ -71,8 +71,7 @@ class RejectedTransferSignal(Signal):
       from the coordinator's point of view, so that the coordinator
       can match the event with the originating transfer request.
 
-    * `rejected_at` is the moment at which the request to prepare a
-      transfer was rejected.
+    * `ts` is the moment at which the signal was sent.
 
     * `rejection_code` gives the reason for the rejection of the
       transfer. Between 0 and 30 symbols, ASCII only.
@@ -92,7 +91,7 @@ class RejectedTransferSignal(Signal):
         available_amount = fields.Integer()
         debtor_id = fields.Integer()
         sender_creditor_id = fields.Integer()
-        inserted_at_ts = fields.DateTime(data_key='rejected_at')
+        inserted_at_ts = fields.DateTime(data_key='ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -130,7 +129,7 @@ class PreparedTransferSignal(Signal):
       identifies recipient's account. Different implementations may
       use different formats for the identifier of recipient's account.
 
-    * `prepared_at` is the moment at which the transfer was prepared.
+    * `ts` is the moment at which the signal was sent.
 
     * `ts` is the moment at which this signal was emitted.
 
@@ -519,8 +518,7 @@ class RejectedConfigSignal(Signal):
       of the corresponding fields in the rejected `configure_account`
       message.
 
-    * `rejected_at` is the moment at which the `configure_account`
-      message was rejected.
+    * `ts` is the moment at which the signal was sent.
 
     * `rejection_code` gives the reason for the rejection of the
       `configure_account` message. Between 0 and 30 symbols, ASCII
@@ -536,7 +534,7 @@ class RejectedConfigSignal(Signal):
         status_flags = fields.Integer()
         negligible_amount = fields.Float(),
         config = fields.String()
-        inserted_at_ts = fields.DateTime(data_key='rejected_at')
+        inserted_at_ts = fields.DateTime(data_key='ts')
         rejection_code = fields.String()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)

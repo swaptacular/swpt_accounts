@@ -353,8 +353,9 @@ negligible_amount : float
 config : string
    The value of the ``config`` field in the rejected message.
 
-rejected_at : date-time
-   The moment at which the `ConfigureAccount`_ request was rejected.
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
 
 rejection_code : string
    The reason for the rejection of the `ConfigureAccount`_
@@ -380,8 +381,9 @@ coordinator_request_id : int64
    view, so that the coordinator can pair this message with the issued
    request to prepare a transfer.
 
-rejected_at : date-time
-   The moment at which the request to prepare a transfer was rejected.
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
 
 rejection_code : string
    The reason for the rejection of the transfer. MUST be between 0 and
