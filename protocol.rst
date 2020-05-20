@@ -264,10 +264,9 @@ transfer_id : int64
 
 committed_amount : int64
    The amount that has to be transferred. This MUST be a non-negative
-   number, which MUST NOT exceed the value of the
-   ``sender_locked_amount`` field in the corresponding
-   `PreparedTransfer`_ message. A ``0`` signifies that the transfer
-   MUST be dismissed.
+   number, which MUST NOT exceed the value of the ``locked_amount``
+   field in the corresponding `PreparedTransfer`_ message. A ``0``
+   signifies that the transfer MUST be dismissed.
 
 transfer_message : string
    A string that the coordinator (the client that finalizes the
@@ -319,7 +318,7 @@ transfer exists in server's database:
   `AccountTransfer`_ messages will be triggered eventually as well.
 
 .. [#unlock-amount] Note that ``committed_amount`` can be smaller that
-  ``sender_locked_amount``.
+  ``locked_amount``.
 
 
 Outgoing messages
@@ -434,7 +433,7 @@ coordinator_request_id : int64
    view, so that the coordinator can pair this message with the
    issued request to prepare a transfer.
 
-sender_locked_amount : int64
+locked_amount : int64
    The secured (prepared) amount for the transfer. This MUST always be
    a positive number. The actual transferred (committed) amount MUST
    NOT exceed this number.

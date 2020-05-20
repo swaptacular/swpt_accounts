@@ -121,7 +121,7 @@ class PreparedTransferSignal(Signal):
       from the coordinator's point of view, so that the coordinator
       can match the event with the originating transfer request.
 
-    * `sender_locked_amount` is the secured (prepared) amount for the
+    * `locked_amount` is the secured (prepared) amount for the
       transfer (always a positive number). The actual transferred
       (committed) amount may not exceed this number.
 
@@ -140,7 +140,7 @@ class PreparedTransferSignal(Signal):
         coordinator_type = fields.String()
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
-        sender_locked_amount = fields.Integer()
+        sender_locked_amount = fields.Integer(data_key='locked_amount')
         recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         inserted_at_ts = fields.DateTime(data_key='ts')
 
