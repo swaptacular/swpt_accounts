@@ -505,12 +505,12 @@ status_code : string
    failure. [#failed-commit]_ In all other cases, this value MUST be
    ``"OK"``.
 
-prepared_at : date-time
-   The moment at which the transfer was prepared.
-
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
+
+prepared_at : date-time
+   The moment at which the transfer was prepared.
 
 .. [#failed-commit] In this case ``committed_amount`` MUST be zero.
 
