@@ -144,7 +144,6 @@ class PreparedTransferSignal(Signal):
         coordinator_request_id = fields.Integer()
         sender_locked_amount = fields.Integer()
         recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
-        prepared_at_ts = fields.DateTime(data_key='prepared_at')
         inserted_at_ts = fields.DateTime(data_key='ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
