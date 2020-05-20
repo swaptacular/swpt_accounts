@@ -726,7 +726,7 @@ coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
    between 1 and 30 symbols, ASCII only.
 
-committed_at_ts : date-time
+committed_at : date-time
    The moment at which the transfer was committed.
 
 committed_amount : int64

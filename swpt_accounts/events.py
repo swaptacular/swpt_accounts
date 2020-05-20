@@ -71,7 +71,7 @@ class RejectedTransferSignal(Signal):
       from the coordinator's point of view, so that the coordinator
       can match the event with the originating transfer request.
 
-    * `ts` is the moment at which the signal was sent.
+    * `ts` is the moment at which this signal was emitted.
 
     * `rejection_code` gives the reason for the rejection of the
       transfer. Between 0 and 30 symbols, ASCII only.
@@ -128,8 +128,6 @@ class PreparedTransferSignal(Signal):
     * `recipient_identity` is a string, which (along with `debtor_id`)
       identifies recipient's account. Different implementations may
       use different formats for the identifier of recipient's account.
-
-    * `ts` is the moment at which the signal was sent.
 
     * `ts` is the moment at which this signal was emitted.
 
@@ -250,7 +248,7 @@ class AccountTransferSignal(Signal):
     * `coordinator_type` indicates the subsystem which initiated the
       transfer.
 
-    * `committed_at_ts` is the moment at which the transfer was
+    * `committed_at` is the moment at which the transfer was
       committed.
 
     * `committed_amount` is the increase in the account principal
@@ -309,7 +307,7 @@ class AccountTransferSignal(Signal):
         creditor_id = fields.Integer()
         transfer_seqnum = fields.Integer()
         coordinator_type = fields.String()
-        committed_at_ts = fields.DateTime()
+        committed_at_ts = fields.DateTime(data_key='committed_at')
         committed_amount = fields.Integer()
         other_party_identity = fields.Function(lambda obj: str(i64_to_u64(obj.other_creditor_id)))
         transfer_message = fields.String()
@@ -517,7 +515,7 @@ class RejectedConfigSignal(Signal):
       of the corresponding fields in the rejected `configure_account`
       message.
 
-    * `ts` is the moment at which the signal was sent.
+    * `ts` is the moment at which this signal was emitted.
 
     * `rejection_code` gives the reason for the rejection of the
       `configure_account` message. Between 0 and 30 symbols, ASCII
