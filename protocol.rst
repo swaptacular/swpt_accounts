@@ -443,9 +443,6 @@ recipient_identity : string
    The value of the ``recipient_identity`` field in the corresponding
    `PrepareTransfer`_ message.
 
-prepared_at : date-time
-   The moment at which the transfer was prepared.
-
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
