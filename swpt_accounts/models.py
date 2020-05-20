@@ -159,21 +159,23 @@ class Account(db.Model):
                 'decide whether an account can be safely deleted; 2) decide '
                 'whether a transfer is insignificant.',
     )
-    last_config_signal_ts = db.Column(
+    last_config_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=BEGINNING_OF_TIME,
-        comment='The value of the `signal_ts` attribute, received with the most recent '
-                '`configure_account` signal. It is used to decide whether to update the '
-                'configuration when a (potentially old) `configure_account` signal is received.',
+        comment='The value of the `ts` attribute, received with the most recent '
+                '`configure_account` signal. It is used to decide whether to update '
+                'the configuration when a (potentially old) `configure_account` '
+                'signal is received.',
     )
-    last_config_signal_seqnum = db.Column(
+    last_config_seqnum = db.Column(
         db.Integer,
         nullable=False,
         default=0,
-        comment='The value of the `signal_seqnum` attribute, received with the most recent '
+        comment='The value of the `seqnum` attribute, received with the most recent '
                 '`configure_account` signal. It is used to decide whether to update the '
-                'configuration when a (potentially old) `configure_account` signal is received.',
+                'configuration when a (potentially old) `configure_account` signal '
+                'is received.',
     )
     last_reminder_ts = db.Column(
         db.TIMESTAMP(timezone=True),

@@ -80,8 +80,8 @@ def test_scan_accounts(app_unsafe_session):
     assert acs.interest_rate == account.interest_rate
     assert acs.last_transfer_seqnum == account.last_transfer_seqnum
     assert acs.last_outgoing_transfer_date == account.last_outgoing_transfer_date
-    assert acs.last_config_signal_ts == account.last_config_signal_ts
-    assert acs.last_config_signal_seqnum == account.last_config_signal_seqnum
+    assert acs.last_config_ts == account.last_config_ts
+    assert acs.last_config_seqnum == account.last_config_seqnum
     assert acs.creation_date == account.creation_date
     assert acs.negligible_amount == account.negligible_amount
     assert acs.status == account.status

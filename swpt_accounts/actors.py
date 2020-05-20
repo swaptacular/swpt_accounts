@@ -7,8 +7,8 @@ from . import procedures
 def configure_account(
         debtor_id: int,
         creditor_id: int,
-        signal_ts: str,
-        signal_seqnum: int,
+        ts: str,
+        seqnum: int,
         status_flags: int = 0,
         negligible_amount: float = 0.0,
         config: str = '') -> None:
@@ -16,11 +16,11 @@ def configure_account(
     """Make sure the account `(debtor_id, creditor_id)` exists, then
     update its configuration settings.
 
-    * `signal_ts` is the current timestamp. For a given account, later
-      calls to `configure_account` MUST have later or equal
-      timestamps, compared to earlier calls.
+    * `ts` is the current timestamp. For a given account, later calls
+      to `configure_account` MUST have later or equal timestamps,
+      compared to earlier calls.
 
-    * `signal_seqnum` is the sequential number of the call (a 32-bit
+    * `seqnum` is the sequential number of the call (a 32-bit
       integer). For a given account, later calls to
       `configure_account` SHOULD have bigger sequential numbers,
       compared to earlier calls (except for the possible 32-bit
@@ -44,18 +44,18 @@ def configure_account(
 
     NOTE: In order to decide whether to update the configuration when
     a (potentially old) `configure_account` signal is received, the
-    implementation compares the `signal_ts` of the current call, to
-    the `signal_ts` of the latest call. Only if they are equal, the
-    `signal_seqnum`s are compared as well (correctly dealing with
-    possible integer wrapping).
+    implementation compares the `ts` of the current call, to the `ts`
+    of the latest call. Only if they are equal, the `seqnum`s are
+    compared as well (correctly dealing with possible integer
+    wrapping).
 
     """
 
     procedures.configure_account(
         debtor_id,
         creditor_id,
-        iso8601.parse_date(signal_ts),
-        signal_seqnum,
+        iso8601.parse_date(ts),
+        seqnum,
         status_flags,
         negligible_amount,
         config,
@@ -72,14 +72,14 @@ def prepare_transfer(
         debtor_id: int,
         sender_creditor_id: int,
         recipient_identity: str,
-        signal_ts: str,
+        ts: str,
         minimum_account_balance: int = 0) -> None:
 
     """Try to greedily secure an amount between `min_amount` (> 0) and
     `max_amount` (>= min_amount), to transfer it from sender's account
     to recipient's account.
 
-    * `signal_ts` MUST be the current timestamp.
+    * `ts` MUST be the current timestamp.
 
     * `minimum_account_balance` determines the amount that must remain
       available on sender's account after the requested amount has
@@ -191,7 +191,7 @@ def prepare_transfer(
         debtor_id,
         sender_creditor_id,
         recipient_identity,
-        iso8601.parse_date(signal_ts),
+        iso8601.parse_date(ts),
         minimum_account_balance,
     )
 

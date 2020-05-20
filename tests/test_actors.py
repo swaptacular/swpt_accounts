@@ -15,7 +15,7 @@ def test_prepare_transfer(db_session):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_identity='1234',
-        signal_ts=datetime.now(tz=timezone.utc).isoformat(),
+        ts=datetime.now(tz=timezone.utc).isoformat(),
     )
 
 
@@ -52,8 +52,8 @@ def test_configure_account(db_session):
     a.configure_account(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        signal_ts='2099-12-31T00:00:00Z',
-        signal_seqnum=0,
+        ts='2099-12-31T00:00:00Z',
+        seqnum=0,
         status_flags=0,
         negligible_amount=500.0,
         config='',

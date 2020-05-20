@@ -133,7 +133,7 @@ class PreparedTransferSignal(Signal):
     * `prepared_at_ts` is the moment at which the transfer was
       prepared.
 
-    * `signal_ts` is the moment at which this signal was emitted.
+    * `ts` is the moment at which this signal was emitted.
 
     """
 
@@ -147,7 +147,7 @@ class PreparedTransferSignal(Signal):
         sender_locked_amount = fields.Integer()
         recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         prepared_at_ts = fields.DateTime()
-        signal_ts = fields.DateTime(attribute='inserted_at_ts')
+        ts = fields.DateTime(attribute='inserted_at_ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -389,17 +389,17 @@ class AccountChangeSignal(Signal):
       negative balance can be zeroed out. (If there were no outgoing
       transfers, the value will be "1970-01-01".)
 
-    * `last_config_signal_ts` contains the value of the `signal_ts`
-      field of the last applied `configure_account` signal. This field
-      can be used to determine whether a sent configuration signal has
-      been processed. (If there were no applied configuration signals,
-      the value will be "1970-01-01T00:00:00+00:00".)
+    * `last_config_ts` contains the value of the `ts` field of the
+      last applied `configure_account` signal. This field can be used
+      to determine whether a sent configuration signal has been
+      processed. (If there were no applied configuration signals, the
+      value will be "1970-01-01T00:00:00+00:00".)
 
-    * `last_config_signal_seqnum` contains the value of the
-      `signal_seqnum` field of the last applied `configure_account`
-      signal. This field can be used to determine whether a sent
-      configuration signal has been processed. (If there were no
-      applied configuration signals, the value will be `0`.)
+    * `last_config_seqnum` contains the value of the `seqnum` field of
+      the last applied `configure_account` signal. This field can be
+      used to determine whether a sent configuration signal has been
+      processed. (If there were no applied configuration signals, the
+      value will be `0`.)
 
     * `creation_date` is the date on which the account was created.
 
@@ -419,12 +419,12 @@ class AccountChangeSignal(Signal):
       configuration signal contains an invalid configuration, the
       signal MUST be applied, but the `config` SHOULD NOT be updated.)
 
-    * `signal_ts` is the moment at which this signal was emitted.
+    * `ts` is the moment at which this signal was emitted.
 
-    * `signal_ttl` is the time-to-live (in seconds) for this
-      signal. The signal SHOULD be ignored if more than `signal_ttl`
-      seconds have elapsed since the signal was emitted
-      (`signal_ts`). Will always be bigger than `0.0`.
+    * `ttl` is the time-to-live (in seconds) for this signal. The
+      signal SHOULD be ignored if more than `ttl` seconds have elapsed
+      since the signal was emitted (`ts`). Will always be bigger than
+      `0.0`.
 
     * `creditor_identity` is a string, which (along with `debtor_id`)
       identifies the account. Different implementations may use
@@ -445,13 +445,13 @@ class AccountChangeSignal(Signal):
         interest_rate = fields.Float()
         last_transfer_seqnum = fields.Integer()
         last_outgoing_transfer_date = fields.Date()
-        last_config_signal_ts = fields.DateTime()
-        last_config_signal_seqnum = fields.Integer()
+        last_config_ts = fields.DateTime()
+        last_config_seqnum = fields.Integer()
         creation_date = fields.Date()
         negligible_amount = fields.Float()
         status = fields.Integer()
-        signal_ts = fields.DateTime(attribute='inserted_at_ts')
-        signal_ttl = fields.Float()
+        ts = fields.DateTime(attribute='inserted_at_ts')
+        ttl = fields.Float()
         creditor_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
         config = fields.Constant('')
 
@@ -465,14 +465,14 @@ class AccountChangeSignal(Signal):
     interest_rate = db.Column(db.REAL, nullable=False)
     last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     last_outgoing_transfer_date = db.Column(db.DATE, nullable=False)
-    last_config_signal_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    last_config_signal_seqnum = db.Column(db.Integer, nullable=False)
+    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    last_config_seqnum = db.Column(db.Integer, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     status = db.Column(db.Integer, nullable=False)
 
     @property
-    def signal_ttl(self):
+    def ttl(self):
         return current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * 86400.0
 
 
@@ -513,11 +513,11 @@ class RejectedConfigSignal(Signal):
 
     * `debtor_id` and `creditor_id` identify the account.
 
-    * `config_signal_ts` containg the value of the `signal_ts` field
-      in the rejected `configure_account` message.
+    * `config_ts` containg the value of the `ts` field in the rejected
+      `configure_account` message.
 
-    * `config_signal_seqnum` containg the value of the `signal_seqnum`
-      field in the rejected `configure_account` message.
+    * `config_seqnum` containg the value of the `seqnum` field in the
+      rejected `configure_account` message.
 
     * `status_flags`, `negligible_amount`, `config` contain the values
       of the corresponding fields in the rejected `configure_account`
@@ -535,8 +535,8 @@ class RejectedConfigSignal(Signal):
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
-        config_signal_ts = fields.DateTime()
-        config_signal_seqnum = fields.Integer()
+        config_ts = fields.DateTime()
+        config_seqnum = fields.Integer()
         status_flags = fields.Integer()
         negligible_amount = fields.Float(),
         config = fields.String()
@@ -546,8 +546,8 @@ class RejectedConfigSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    config_signal_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    config_signal_seqnum = db.Column(db.Integer, nullable=False)
+    config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    config_seqnum = db.Column(db.Integer, nullable=False)
     status_flags = db.Column(db.SmallInteger, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     config = db.Column(db.String, nullable=False)

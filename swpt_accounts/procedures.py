@@ -26,16 +26,16 @@ ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
 def configure_account(
         debtor_id: int,
         creditor_id: int,
-        signal_ts: datetime,
-        signal_seqnum: int,
+        ts: datetime,
+        seqnum: int,
         status_flags: int = 0,
         negligible_amount: float = 0.0,
         config: str = '') -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert signal_ts > BEGINNING_OF_TIME
-    assert MIN_INT32 <= signal_seqnum <= MAX_INT32
+    assert ts > BEGINNING_OF_TIME
+    assert MIN_INT32 <= seqnum <= MAX_INT32
     assert MIN_INT16 <= status_flags <= MAX_INT16
 
     current_ts = datetime.now(tz=timezone.utc)
@@ -45,14 +45,14 @@ def configure_account(
 
     def is_timestamp_too_far_in_the_past():
         signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-        return (current_ts - signal_ts).total_seconds() > signalbus_max_delay_seconds
+        return (current_ts - ts).total_seconds() > signalbus_max_delay_seconds
 
     def reject(rejection_code):
         db.session.add(RejectedConfigSignal(
             debtor_id=debtor_id,
             creditor_id=creditor_id,
-            config_signal_ts=signal_ts,
-            config_signal_seqnum=signal_seqnum,
+            config_ts=ts,
+            config_seqnum=seqnum,
             status_flags=status_flags,
             negligible_amount=negligible_amount,
             config=config,
@@ -67,15 +67,15 @@ def configure_account(
             account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         account.set_config_flags(status_flags)
         account.negligible_amount = negligible_amount
-        account.last_config_signal_ts = signal_ts
-        account.last_config_signal_seqnum = signal_seqnum
+        account.last_config_ts = ts
+        account.last_config_seqnum = seqnum
         _apply_account_change(account, 0, 0, current_ts)
 
     account = _get_account_instance(debtor_id, creditor_id, lock=True)
     if account:
-        this_event = (signal_ts, Seqnum(signal_seqnum))
-        prev_event = (account.last_config_signal_ts, Seqnum(account.last_config_signal_seqnum))
-        if this_event <= prev_event:
+        this_event = (ts, Seqnum(seqnum))
+        last_event = (account.last_config_ts, Seqnum(account.last_config_seqnum))
+        if this_event <= last_event:
             return
     elif is_timestamp_too_far_in_the_past():
         return
@@ -95,7 +95,7 @@ def prepare_transfer(
         debtor_id: int,
         sender_creditor_id: int,
         recipient_identity: str,
-        signal_ts: datetime,
+        ts: datetime,
         minimum_account_balance: int = 0) -> None:
 
     assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
@@ -104,7 +104,7 @@ def prepare_transfer(
     assert 0 < min_amount <= max_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
-    assert signal_ts > BEGINNING_OF_TIME
+    assert ts > BEGINNING_OF_TIME
     assert MIN_INT64 <= minimum_account_balance <= MAX_INT64
 
     if sender_creditor_id != ROOT_CREDITOR_ID:
@@ -438,8 +438,8 @@ def _insert_account_change_signal(account: Account, current_ts: datetime) -> Non
         interest_rate=account.interest_rate,
         last_transfer_seqnum=account.calc_last_transfer_seqnum(),
         last_outgoing_transfer_date=account.last_outgoing_transfer_date,
-        last_config_signal_ts=account.last_config_signal_ts,
-        last_config_signal_seqnum=account.last_config_signal_seqnum,
+        last_config_ts=account.last_config_ts,
+        last_config_seqnum=account.last_config_seqnum,
         creation_date=account.creation_date,
         negligible_amount=account.negligible_amount,
         status=account.status,

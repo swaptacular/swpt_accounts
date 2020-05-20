@@ -79,12 +79,12 @@ debtor_id : int64
 creditor_id : int64
    Along with ``debtor_id``, identifies the account.
 
-signal_ts : date-time
+ts : date-time
    The moment at which this message was sent (the message's
    timestamp). For a given account, later `ConfigureAccount`_ messages
    MUST have later or equal timestamps, compared to earlier messages.
 
-signal_seqnum : int32
+seqnum : int32
    The sequential number of the message. For a given account, later
    `ConfigureAccount`_ messages SHOULD have bigger sequential numbers,
    compared to earlier messages. Note that when the maximum ``int32``
@@ -148,12 +148,12 @@ they MUST first verify whether the specified account already exists:
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
 
-.. [#compare-config] To do this, server implementations MUST
-  compare the values of ``signal_ts`` and ``signal_seqnum`` fields in
-  the received message, to the values of these fields in the latest
-  applied `ConfigureAccount`_ message. ``signal_ts`` fields MUST be
-  compared first, and only if they are equal, ``signal_seqnum`` fields
-  MUST be compared as well.
+.. [#compare-config] To do this, server implementations MUST compare
+  the values of ``ts`` and ``seqnum`` fields in the received message,
+  to the values of these fields in the latest applied
+  `ConfigureAccount`_ message. ``ts`` fields MUST be compared first,
+  and only if they are equal, ``seqnum`` fields MUST be compared as
+  well.
 
 .. [#compare-seqnums] Note that when comparing "seqnum" fields, server
   implementations MUST correctly deal with the possible 32-bit integer
@@ -208,7 +208,7 @@ recipient_identity : string
    the other hand, MUST provide enough information to globally
    identify the recipient's account (an IBAN for example).
    
-signal_ts : date-time
+ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
 
@@ -333,11 +333,11 @@ debtor_id : int64
 creditor_id : int64
    The value of the ``creditor_id`` field in the rejected message.
 
-config_signal_ts : date-time
-   The value of the ``signal_ts`` field in the rejected message.
+config_ts : date-time
+   The value of the ``ts`` field in the rejected message.
 
-config_signal_seqnum : int32
-   The value of the ``signal_seqnum`` field in the rejected message.
+config_seqnum : int32
+   The value of the ``seqnum`` field in the rejected message.
 
 status_flags : int16
    The value of the ``status_flags`` field in the rejected message.
@@ -440,15 +440,15 @@ recipient_identity : string
 prepared_at_ts : date-time
    The moment at which the transfer was prepared.
 
-signal_ts : date-time
+ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
 
 If a prepared transfer has not been finalized (committed or dismissed)
 for a long while, the server SHOULD send another `PreparedTransfer`_
-message, identical to the previous one (except for the **signal_ts**
-field), to remind that a transfer has been prepared and is waiting for
-a resolution. This guarantees that prepared transfers will not be
+message, identical to the previous one (except for the **ts** field),
+to remind that a transfer has been prepared and is waiting for a
+resolution. This guarantees that prepared transfers will not be
 hanging in the server's database forever, even in the case of a lost
 message, or a complete database loss on the client's side.
 
@@ -555,14 +555,14 @@ interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
    account. This can be a negative number.
 
-last_config_signal_ts : date-time
-   MUST contain the value of the ``signal_ts`` field in the latest
-   applied `ConfigureAccount`_ message. If there have not been any
-   applied `ConfigureAccount`_ messages yet, the value MUST be
+last_config_ts : date-time
+   MUST contain the value of the ``ts`` field in the latest applied
+   `ConfigureAccount`_ message. If there have not been any applied
+   `ConfigureAccount`_ messages yet, the value MUST be
    "1970-01-01T00:00:00+00:00".
 
-last_config_signal_seqnum : int32
-   MUST contain the value of the ``signal_seqnum`` field in the latest
+last_config_seqnum : int32
+   MUST contain the value of the ``seqnum`` field in the latest
    applied `ConfigureAccount`_ message. If there have not been any
    applied `ConfigureAccount`_ messages yet, the value MUST be
    `0`. [#verify-config]_
@@ -609,23 +609,21 @@ last_transfer_seqnum : int64
    the account there have not been any emitted `AccountTransfer`_
    messages, the value MUST be ``0``.
 
-signal_ts : date-time
+ts : date-time
    The moment at which this message was emitted (the message's
    timestamp).
 
-signal_ttl : int32
+ttl : float
    The time-to-live (in seconds) for this message. The message MUST be
-   ignored if more than ``signal_ttl`` seconds have elapsed since the
-   message was emitted (``signal_ts``). This MUST be a positive
-   number.
+   ignored if more than ``ttl`` seconds have elapsed since the message
+   was emitted (``ts``). This MUST be a positive number.
 
 If for a given account, no `AccountChange`_ messages have been sent
 for a long while, the server SHOULD send a new `AccountChange`_
-message identical to the previous one (except for the **signal_ts**
-field), to remind that the account still exist. This guarantees that
-accounts will not be hanging in the server's database forever, even in
-the case of a lost message, or a complete database loss on the
-client's side.
+message identical to the previous one (except for the **ts** field),
+to remind that the account still exist. This guarantees that accounts
+will not be hanging in the server's database forever, even in the case
+of a lost message, or a complete database loss on the client's side.
 
 .. [#creation-date] Note that an account can be removed from the
    server's database, and then a new account with the same
@@ -648,9 +646,9 @@ client's side.
   has to be able to "wire" the accumulated interest to another
   account.
 
-.. [#verify-config] Note that ``last_config_signal_ts`` and
-   ``last_config_signal_seqnum`` can be used to determine whether a
-   sent `ConfigureAccount`_ message has been applied successfully.
+.. [#verify-config] Note that ``last_config_ts`` and
+   ``last_config_seqnum`` can be used to determine whether a sent
+   `ConfigureAccount`_ message has been applied successfully.
 
 
 AccountPurge
@@ -684,11 +682,11 @@ The purpose of `AccountPurge`_ messages is to inform clients that they
 can safely remove a given account from their databases.
 
 .. [#purge-delay] The delay MUST be at least as long as indicated by
-   the value of the ``signal_ttl`` field which is sent with
-   `AccountChange`_ messages.  The goal is to ensure that after
-   clients have received the `AccountPurge`_ message, if they continue
-   to receive old `AccountChange`_ messages for the purged account,
-   those messages will be ignored.
+   the value of the ``ttl`` field which is sent with `AccountChange`_
+   messages. The goal is to ensure that after clients have received
+   the `AccountPurge`_ message, if they continue to receive old
+   `AccountChange`_ messages for the purged account, those messages
+   will be ignored.
 
 
 AccountTransfer

@@ -40,7 +40,7 @@ def test_configure_account(db_session, current_ts):
     assert acs.interest == a.interest
     assert acs.interest_rate == a.interest_rate
     acs_obj = acs.__marshmallow_schema__.dump(acs)
-    assert acs_obj['signal_ttl'] == 14 * 24 * 60 * 60
+    assert acs_obj['ttl'] == 14 * 24 * 60 * 60
     assert acs_obj['last_transfer_seqnum'] == 0
 
     a = p.configure_account(D_ID, C_ID, current_ts, 0)
@@ -69,8 +69,8 @@ def test_invalid_config(db_session, current_ts):
     assert rcs.debtor_id == D_ID
     assert rcs.creditor_id == C_ID
     assert rcs.rejection_code == 'INVALID_CONFIGURATION'
-    assert rcs.config_signal_ts == current_ts
-    assert rcs.config_signal_seqnum == 123
+    assert rcs.config_ts == current_ts
+    assert rcs.config_seqnum == 123
     assert rcs.status_flags == 0x1fff
     assert rcs.negligible_amount == -10.0
     assert rcs.config == 'xxx'
@@ -387,7 +387,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=1234,
         recipient_identity=str(C_ID),
-        signal_ts=current_ts,
+        ts=current_ts,
     )
     p.process_transfer_requests(D_ID, 1234)
     rts = RejectedTransferSignal.query.one()
@@ -499,7 +499,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_identity='1234',
-        signal_ts=current_ts,
+        ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
@@ -532,7 +532,7 @@ def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_identity='1234',
-        signal_ts=current_ts,
+        ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     rts = RejectedTransferSignal.query.one()
@@ -556,7 +556,7 @@ def test_prepare_transfer_to_self(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_identity=str(C_ID),
-        signal_ts=current_ts,
+        ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     rts = RejectedTransferSignal.query.one()
@@ -581,7 +581,7 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_identity='1234',
-        signal_ts=current_ts,
+        ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     rts = RejectedTransferSignal.query.one()
@@ -608,7 +608,7 @@ def test_prepare_transfer_success(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_identity='1234',
-        signal_ts=current_ts,
+        ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
@@ -668,7 +668,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_identity='1234',
-        signal_ts=current_ts,
+        ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
@@ -721,7 +721,7 @@ def test_commit_to_debtor_account(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_identity=str(p.ROOT_CREDITOR_ID),
-        signal_ts=current_ts,
+        ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
@@ -776,7 +776,7 @@ def test_delayed_direct_transfer(db_session, current_ts):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient_identity='1234',
-        signal_ts=current_ts,
+        ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.one()

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 0b397723a7eb
+Revision ID: 11dd6438dd0f
 Revises: 
-Create Date: 2020-05-15 16:00:33.520399
+Create Date: 2020-05-20 18:20:33.459704
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '0b397723a7eb'
+revision = '11dd6438dd0f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -34,8 +34,8 @@ def upgrade():
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `account_transfer_signal` record is inserted. It is used to generate sequential numbers for the `account_transfer_signal.transfer_seqnum` column. Must never decrease. When the account is created, `last_transfer_seqnum` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
     sa.Column('status', sa.Integer(), nullable=False, comment='Contain additional account status bits. The lower 16 bits are configured by the owner of the account: 1 - scheduled for deletion. The higher 16 bits contain internal flags: 65536 - deleted, 131072 - established interest rate, 262144 - overflown.'),
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether a transfer is insignificant.'),
-    sa.Column('last_config_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The value of the `signal_ts` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
-    sa.Column('last_config_signal_seqnum', sa.Integer(), nullable=False, comment='The value of the `signal_seqnum` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
+    sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The value of the `ts` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
+    sa.Column('last_config_seqnum', sa.Integer(), nullable=False, comment='The value of the `seqnum` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` was sent to remind that the account still exists. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_id >= 0'),
@@ -59,8 +59,8 @@ def upgrade():
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False),
-    sa.Column('last_config_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('last_config_signal_seqnum', sa.Integer(), nullable=False),
+    sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('status', sa.Integer(), nullable=False),
@@ -153,8 +153,8 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('config_signal_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('config_signal_seqnum', sa.Integer(), nullable=False),
+    sa.Column('config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('config_seqnum', sa.Integer(), nullable=False),
     sa.Column('status_flags', sa.SmallInteger(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config', sa.String(), nullable=False),
