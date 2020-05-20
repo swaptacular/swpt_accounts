@@ -596,10 +596,10 @@ account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    account. Different server implementations may use different formats
    for this string. Note that ``creditor_id`` is an ID which is
-   recognizable only by the system that created the sender's
-   account. This identifier (along with ``debtor_id``), on the other
-   hand, MUST provide enough information to globally identify the
-   removed account (an IBAN for example).
+   recognizable only by the system that created the account. This
+   identifier (along with ``debtor_id``), on the other hand, MUST
+   provide enough information to globally identify the removed account
+   (an IBAN for example).
 
 last_outgoing_transfer_date : date
    The date of the latest transfer (not counting interest payments),
@@ -674,10 +674,10 @@ account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    removed account. Different server implementations may use different
    formats for this string. Note that ``creditor_id`` is an ID which
-   is recognizable only by the system that created the sender's
-   account. This identifier (along with ``debtor_id``), on the other
-   hand, MUST provide enough information to globally identify the
-   removed account (an IBAN for example).
+   is recognizable only by the system that created the account. This
+   identifier (along with ``debtor_id``), on the other hand, MUST
+   provide enough information to globally identify the removed account
+   (an IBAN for example).
 
 ts : date-time
    The moment at which this message was sent (the message's
