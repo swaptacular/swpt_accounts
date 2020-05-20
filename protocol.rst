@@ -265,8 +265,9 @@ transfer_id : int64
 committed_amount : int64
    The amount that has to be transferred. This MUST be a non-negative
    number, which MUST NOT exceed the value of the ``locked_amount``
-   field in the corresponding `PreparedTransfer`_ message. A ``0``
-   signifies that the transfer MUST be dismissed.
+   field in the corresponding `PreparedTransfer`_
+   message. [#unlock-amount]_ A ``0`` signifies that the transfer MUST
+   be dismissed.
 
 transfer_message : string
    A string that the coordinator (the client that finalizes the
