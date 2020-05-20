@@ -385,18 +385,18 @@ rejection_code : string
    The reason for the rejection of the transfer. MUST be between 0 and
    30 symbols, ASCII only.
 
+debtor_id : int64
+   The ID of the debtor.
+
+sender_creditor_id : int64
+   Along with ``debtor_id`` identifies the sender's account.
+
 available_amount : int64
    MUST be a non-negative number. If the transfer was rejected due to
    insufficient available amount, but there is a good chance for a new
    transfer request for a smaller amount to be successful, this field
    SHOULD contain the amount currently available on sender's account;
    otherwise this MUST be ``0``.
-
-debtor_id : int64
-   The ID of the debtor.
-   
-sender_creditor_id : int64
-   Along with ``debtor_id`` identifies the sender's account.
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -494,12 +494,6 @@ recipient_identity : string
 prepared_at : date-time
    The moment at which the transfer was prepared.
 
-committed_amount : int64
-   The transferred (committed) amount. This MUST always be a
-   non-negative number. A ``0`` means either that the prepared
-   transfer was dismissed, or that it was committed, but the commit
-   was unsuccessful for some reason.
-
 status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
    only. If the prepared transfer was committed, but the commit was
@@ -507,6 +501,12 @@ status_code : string
    ``"OK"``, and SHOULD hint at the reason for the
    failure. [#failed-commit]_ In all other cases, this value MUST be
    ``"OK"``.
+
+committed_amount : int64
+   The transferred (committed) amount. This MUST always be a
+   non-negative number. A ``0`` means either that the prepared
+   transfer was dismissed, or that it was committed, but the commit
+   was unsuccessful for some reason.
 
 ts : date-time
    The moment at which this message was sent (the message's
