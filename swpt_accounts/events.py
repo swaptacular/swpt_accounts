@@ -92,7 +92,7 @@ class RejectedTransferSignal(Signal):
         available_amount = fields.Integer()
         debtor_id = fields.Integer()
         sender_creditor_id = fields.Integer()
-        rejected_at = fields.DateTime(attribute='inserted_at_ts')
+        inserted_at_ts = fields.DateTime(data_key='rejected_at')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -146,7 +146,7 @@ class PreparedTransferSignal(Signal):
         sender_locked_amount = fields.Integer()
         recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         prepared_at_ts = fields.DateTime(data_key='prepared_at')
-        ts = fields.DateTime(attribute='inserted_at_ts')
+        inserted_at_ts = fields.DateTime(data_key='ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -448,7 +448,7 @@ class AccountChangeSignal(Signal):
         creation_date = fields.Date()
         negligible_amount = fields.Float()
         status = fields.Integer()
-        ts = fields.DateTime(attribute='inserted_at_ts')
+        inserted_at_ts = fields.DateTime(data_key='ts')
         ttl = fields.Float()
         creditor_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
         config = fields.Constant('')
@@ -481,8 +481,8 @@ class AccountPurgeSignal(Signal):
 
     * `creation_date` is the date on which the account was created.
 
-    * `purged_at_ts` is the moment at which the account was removed
-      from the database.
+    * `purged_at` is the moment at which the account was removed from
+      the database.
 
     * `creditor_identity` is a string, which (along with `debtor_id`)
       identifies the account. Different implementations may use
@@ -497,7 +497,7 @@ class AccountPurgeSignal(Signal):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         creation_date = fields.Date()
-        purged_at_ts = fields.DateTime(attribute='inserted_at_ts')
+        inserted_at_ts = fields.DateTime(data_key='purged_at')
         creditor_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -538,7 +538,7 @@ class RejectedConfigSignal(Signal):
         status_flags = fields.Integer()
         negligible_amount = fields.Float(),
         config = fields.String()
-        rejected_at = fields.DateTime(attribute='inserted_at_ts')
+        inserted_at_ts = fields.DateTime(data_key='rejected_at')
         rejection_code = fields.String()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -573,10 +573,10 @@ class AccountMaintenanceSignal(Signal):
       operation request. It can be used the match the
       `AccountMaintenanceSignal` with the originating request.
 
-    * `received_at_ts` is the moment at which the maintenance
-      operation request was received. (Note that `request_ts` and
-      `received_at_ts` are generated on different servers, so there
-      might be some discrepancies.)
+    * `received_at` is the moment at which the maintenance operation
+      request was received. (Note that `request_ts` and `received_at`
+      are generated on different servers, so there might be some
+      discrepancies.)
 
     """
 
@@ -584,7 +584,7 @@ class AccountMaintenanceSignal(Signal):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         request_ts = fields.DateTime()
-        received_at_ts = fields.DateTime(attribute='inserted_at_ts')
+        inserted_at_ts = fields.DateTime(data_key='received_at')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)

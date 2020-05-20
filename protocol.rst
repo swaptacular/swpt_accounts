@@ -666,7 +666,7 @@ creditor_id : int64
 creation_date : date
    The date on which the removed account was created.
 
-purged_at_ts : date-time
+purged_at : date-time
    The moment at which the account was removed from the database.
 
 creditor_identity : string
