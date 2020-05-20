@@ -495,8 +495,9 @@ recipient_identity : string
 prepared_at : date-time
    The moment at which the transfer was prepared.
 
-finalized_at : date-time
-   The moment at which the transfer was finalized.
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
 
 committed_amount : int64
    The transferred (committed) amount. This MUST always be a

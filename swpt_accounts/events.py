@@ -183,8 +183,7 @@ class FinalizedTransferSignal(Signal):
 
     * `prepared_at` is the moment at which the transfer was prepared.
 
-    * `finalized_at` is the moment at which the transfer was
-      finalized.
+    * `ts` is the moment at which this signal was emitted.
 
     * `committed_amount` is the transferred (committed) amount. It is
       always a non-negative number. A `0` means that the transfer has
@@ -210,7 +209,7 @@ class FinalizedTransferSignal(Signal):
         coordinator_request_id = fields.Integer()
         recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         prepared_at_ts = fields.DateTime(data_key='prepared_at')
-        finalized_at_ts = fields.DateTime(data_key='finalized_at')
+        finalized_at_ts = fields.DateTime(data_key='ts')
         committed_amount = fields.Integer()
         status_code = fields.String()
 
