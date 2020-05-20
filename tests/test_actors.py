@@ -14,7 +14,7 @@ def test_prepare_transfer(db_session):
         max_amount=200,
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
-        recipient_identity='1234',
+        recipient='1234',
         ts=datetime.now(tz=timezone.utc).isoformat(),
     )
 

@@ -125,7 +125,7 @@ class PreparedTransferSignal(Signal):
       transfer (always a positive number). The actual transferred
       (committed) amount may not exceed this number.
 
-    * `recipient_identity` is a string, which (along with `debtor_id`)
+    * `recipient` is a string, which (along with `debtor_id`)
       identifies recipient's account. Different implementations may
       use different formats for the identifier of recipient's account.
 
@@ -141,7 +141,7 @@ class PreparedTransferSignal(Signal):
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
         sender_locked_amount = fields.Integer(data_key='locked_amount')
-        recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
+        recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         inserted_at_ts = fields.DateTime(data_key='ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -173,7 +173,7 @@ class FinalizedTransferSignal(Signal):
       from the coordinator's point of view, so that the coordinator
       can match the event with the originating transfer request.
 
-    * `recipient_identity` is a string, which (along with `debtor_id`)
+    * `recipient` is a string, which (along with `debtor_id`)
       identifies recipient's account. Different implementations may
       use different formats for the identifier of recipient's account.
 
@@ -203,7 +203,7 @@ class FinalizedTransferSignal(Signal):
         coordinator_type = fields.String()
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
-        recipient_identity = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
+        recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         prepared_at_ts = fields.DateTime(data_key='prepared_at')
         finalized_at_ts = fields.DateTime(data_key='ts')
         committed_amount = fields.Integer()

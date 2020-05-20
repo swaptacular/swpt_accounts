@@ -94,7 +94,7 @@ def prepare_transfer(
         max_amount: int,
         debtor_id: int,
         sender_creditor_id: int,
-        recipient_identity: str,
+        recipient: str,
         ts: datetime,
         minimum_account_balance: int = 0) -> None:
 
@@ -121,7 +121,7 @@ def prepare_transfer(
         min_amount=min_amount,
         max_amount=max_amount,
         sender_creditor_id=sender_creditor_id,
-        recipient_creditor_id=u64_to_i64(int(recipient_identity)),
+        recipient_creditor_id=u64_to_i64(int(recipient)),
         minimum_account_balance=minimum_account_balance,
     ))
 

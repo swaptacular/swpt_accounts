@@ -71,7 +71,7 @@ def prepare_transfer(
         max_amount: int,
         debtor_id: int,
         sender_creditor_id: int,
-        recipient_identity: str,
+        recipient: str,
         ts: str,
         minimum_account_balance: int = 0) -> None:
 
@@ -88,13 +88,12 @@ def prepare_transfer(
 
     * `sender_creditor_id` (along with `debtor_id`) identify the
       sender's account. Note that `sender_creditor_id` is an integer,
-      while `recipient_identity` is a string. The reason for this is
-      that implementations will often want to use the `creditor_id`
-      field as a key in a lookup table, to obtain addition information
-      about sender's account (account authentication secrets for
-      example).
+      while `recipient` is a string. The reason for this is that
+      implementations will often want to use the `creditor_id` field
+      as a key in a lookup table, to obtain addition information about
+      sender's account (account authentication secrets for example).
 
-    * `recipient_identity` is a string, which (along with `debtor_id`)
+    * `recipient` is a string, which (along with `debtor_id`)
       identifies the recipient's account. Different implementations
       may use different formats for the identifier of recipient's
       account.
@@ -190,7 +189,7 @@ def prepare_transfer(
         max_amount,
         debtor_id,
         sender_creditor_id,
-        recipient_identity,
+        recipient,
         iso8601.parse_date(ts),
         minimum_account_balance,
     )

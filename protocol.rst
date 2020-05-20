@@ -199,7 +199,7 @@ debtor_id : int64
 sender_creditor_id : int64
    Along with ``debtor_id``, identifies the sender's account.
 
-recipient_identity : string
+recipient : string
    A string which (along with ``debtor_id``) globally identifies the
    recipient's account. Different server implementations may use
    different formats for this string. Note that ``sender_creditor_id``
@@ -438,8 +438,8 @@ locked_amount : int64
    a positive number. The actual transferred (committed) amount MUST
    NOT exceed this number.
 
-recipient_identity : string
-   The value of the ``recipient_identity`` field in the corresponding
+recipient : string
+   The value of the ``recipient`` field in the corresponding
    `PrepareTransfer`_ message.
 
 ts : date-time
@@ -486,8 +486,8 @@ coordinator_request_id : int64
    point of view, so that the coordinator can pair this message with
    the issued request to finalize the prepared transfer.
 
-recipient_identity : string
-   The value of the ``recipient_identity`` field in the corresponding
+recipient : string
+   The value of the ``recipient`` field in the corresponding
    `PreparedTransfer`_ message.
 
 prepared_at : date-time
