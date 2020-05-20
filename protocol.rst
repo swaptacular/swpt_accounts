@@ -281,6 +281,10 @@ transfer_flags : int32
    see. If the transfer is being dismissed, this MUST be
    ``0``. [#flags-limitations]_
 
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
+
 When server implementations processes a `FinalizePreparedTransfer`_
 message, they MUST first verify whether the specified prepared
 transfer exists in server's database:
@@ -666,8 +670,9 @@ creditor_id : int64
 creation_date : date
    The date on which the removed account was created.
 
-purged_at : date-time
-   The moment at which the account was removed from the database.
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
 
 creditor_identity : string
    A string which (along with ``debtor_id``) globally identifies the

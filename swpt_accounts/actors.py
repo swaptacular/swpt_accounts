@@ -203,7 +203,8 @@ def finalize_prepared_transfer(
         transfer_id: int,
         committed_amount: int,
         transfer_message: str,
-        transfer_flags: int) -> None:
+        transfer_flags: int,
+        ts: str) -> None:
 
     """Execute a prepared transfer.
 
@@ -226,6 +227,8 @@ def finalize_prepared_transfer(
       `transfer_flags` SHOULD be `0`. For the list of standard
       transfer flags, check `events.AccountTransferSignal`.
 
+    * `ts` is signal's timestamp.
+
     """
 
     procedures.finalize_prepared_transfer(
@@ -235,6 +238,7 @@ def finalize_prepared_transfer(
         committed_amount,
         transfer_message,
         transfer_flags,
+        iso8601.parse_date(ts),
     )
 
 

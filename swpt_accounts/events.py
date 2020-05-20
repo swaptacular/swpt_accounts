@@ -481,8 +481,7 @@ class AccountPurgeSignal(Signal):
 
     * `creation_date` is the date on which the account was created.
 
-    * `purged_at` is the moment at which the account was removed from
-      the database.
+    * `ts` is the moment at which this signal was emitted.
 
     * `creditor_identity` is a string, which (along with `debtor_id`)
       identifies the account. Different implementations may use
@@ -497,7 +496,7 @@ class AccountPurgeSignal(Signal):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         creation_date = fields.Date()
-        inserted_at_ts = fields.DateTime(data_key='purged_at')
+        inserted_at_ts = fields.DateTime(data_key='ts')
         creditor_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)

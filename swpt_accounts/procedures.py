@@ -133,7 +133,8 @@ def finalize_prepared_transfer(
         transfer_id: int,
         committed_amount: int,
         transfer_message: str = '',
-        transfer_flags: int = 0) -> None:
+        transfer_flags: int = 0,
+        ts: datetime = None) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
