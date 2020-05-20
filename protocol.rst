@@ -487,12 +487,15 @@ coordinator_request_id : int64
    point of view, so that the coordinator can pair this message with
    the issued request to finalize the prepared transfer.
 
+committed_amount : int64
+   The transferred (committed) amount. This MUST always be a
+   non-negative number. A ``0`` means either that the prepared
+   transfer was dismissed, or that it was committed, but the commit
+   was unsuccessful for some reason.
+
 recipient : string
    The value of the ``recipient`` field in the corresponding
    `PreparedTransfer`_ message.
-
-prepared_at : date-time
-   The moment at which the transfer was prepared.
 
 status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
@@ -502,11 +505,8 @@ status_code : string
    failure. [#failed-commit]_ In all other cases, this value MUST be
    ``"OK"``.
 
-committed_amount : int64
-   The transferred (committed) amount. This MUST always be a
-   non-negative number. A ``0`` means either that the prepared
-   transfer was dismissed, or that it was committed, but the commit
-   was unsuccessful for some reason.
+prepared_at : date-time
+   The moment at which the transfer was prepared.
 
 ts : date-time
    The moment at which this message was sent (the message's
