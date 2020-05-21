@@ -728,6 +728,14 @@ transfer_flags : int32
    This MUST be the value of the ``transfer_flags`` field in the
    `FinalizePrepared`_ that fianlized the transfer.
 
+sender : string
+   A string which (along with ``debtor_id``) identifies the sender's
+   account. [#account-identity]_
+
+recipient : string
+   A string which (along with ``debtor_id``) identifies the
+   recipient's account. [#account-identity]_
+
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
    between 1 and 30 symbols, ASCII only.
@@ -740,14 +748,6 @@ committed_amount : int64
    The increase in the affected account's principal which the transfer
    caused. It can be positive (increase), or negative (decrease), but
    it MUST NOT be zero.
-
-sender : string
-   A string which (along with ``debtor_id``) identifies the sender's
-   account. [#account-identity]_
-
-recipient : string
-   A string which (along with ``debtor_id``) identifies the
-   recipient's account. [#account-identity]_
 
 creation_date : date
    The date on which the affected account was created.
