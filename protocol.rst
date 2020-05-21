@@ -696,11 +696,9 @@ creation_date : date
 
 transfer_number : int64
    Along with ``debtor_id``, ``creditor_id``, and ``creation_date``,
-   uniquely identifies the committed transfer. This MUST be a positive
+   identifies the committed transfer. This MUST be a positive
    number. For a given account, later committed transfers MUST have
-   bigger ``transfer_number`` s. Note that dupicated transfer numbers
-   MAY occur when an account has been removed from the database, and
-   then recreated again (with a later ``creation_date``).
+   bigger ``transfer_number`` values. [#transfer-number]_
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
@@ -754,6 +752,10 @@ previous_transfer_number : int64
 Every committed transfer affects two accounts: the sender's, and the
 recipient's. Therefore, two separate `AccountTransfer`_ messages would
 be emitted for each committed transfer.
+
+.. [#transfer-number] Note that when an account has been removed from
+  the database, and then recreated again, the generation of transfer
+  numbers MAY commence from ``1`` again.
 
 
 Requirements for Client Implementations
