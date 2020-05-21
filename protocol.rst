@@ -754,8 +754,9 @@ transfer_flags : int32
    `FinalizePreparedTransfer`_ that committed the transfer.
 
 principal : int64
-   The affected account's principal, as it is after the transfer has
-   been committed.
+   The amount that the debtor owes to the creditor, without the
+   interest, after the transfer has been committed. This can be a
+   negative number.
 
 previous_transfer_seqnum : int64
    TODO: improve description
@@ -775,6 +776,10 @@ transfer_id : int64
    transfer. This allows the sender of a committed direct transfer, to
    reliably identify the corresponding prepared transfer record (using
    `debtor_id`, `creditor_id`, and `transfer_id` fields).
+
+ts : date-time
+   The moment at which this message was sent (the message's
+   timestamp).
 
 
 Requirements for Client Implementations

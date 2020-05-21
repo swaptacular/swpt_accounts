@@ -319,6 +319,7 @@ class AccountTransferSignal(Signal):
         sender = fields.Function(lambda obj: str(i64_to_u64(obj.sender_creditor_id)))
         recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         transfer_id = fields.Integer()
+        inserted_at_ts = fields.DateTime(data_key='ts')
 
     TRANSFER_FLAG_IS_PUBLIC = 1
     """Indicates that all transfer details have been made public. This can
