@@ -128,16 +128,13 @@ class Account(db.Model):
                 'to zero, and its higher 24 bits calculated from the value of `creation_date` '
                 '(the number of days since Jan 1st, 1970).',
     )
-    last_transfer_seqnum = db.Column(
+    last_transfer_number = db.Column(
         db.BigInteger,
         nullable=False,
-        default=(lambda context: date_to_int24(context.get_current_parameters()['creation_date']) << 40),
+        default=0,
         comment='Incremented when a new `account_transfer_signal` record is inserted. It is used '
-                'to generate sequential numbers for the `account_transfer_signal.transfer_seqnum` '
-                'column. Must never decrease. '
-                'When the account is created, `last_transfer_seqnum` has its lower 40 bits set '
-                'to zero, and its higher 24 bits calculated from the value of `creation_date` '
-                '(the number of days since Jan 1st, 1970).',
+                'to generate sequential numbers for the `account_transfer_signal.transfer_number` '
+                'column. Must never decrease. ',
     )
     status = db.Column(
         db.Integer,
@@ -191,7 +188,7 @@ class Account(db.Model):
         db.CheckConstraint(pending_transfers_count >= 0),
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(last_transfer_id >= 0),
-        db.CheckConstraint(last_transfer_seqnum >= 0),
+        db.CheckConstraint(last_transfer_number >= 0),
         db.CheckConstraint(negligible_amount >= 0.0),
         {
             'comment': 'Tells who owes what to whom.',
@@ -213,13 +210,6 @@ class Account(db.Model):
                 current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
 
         return current_balance
-
-    def calc_last_transfer_seqnum(self):
-        """Return `0` if there have not been any transfers yet."""
-
-        initial_seqnum = date_to_int24(self.creation_date) << 40
-        last_transfer_seqnum = self.last_transfer_seqnum
-        return last_transfer_seqnum if last_transfer_seqnum > initial_seqnum else 0
 
     def set_config_flags(self, value):
         """Set the lower 16 account status bits."""

@@ -1,6 +1,5 @@
 import pytest
 from datetime import datetime, timezone, timedelta
-from swpt_lib.utils import date_to_int24
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
@@ -55,7 +54,7 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['status'] == a.status
     assert acs_obj['account_identity'] == str(C_ID)
     assert acs_obj['last_outgoing_transfer_date'] == a.last_outgoing_transfer_date.isoformat()
-    assert acs_obj['last_transfer_seqnum'] == 0
+    assert acs_obj['last_transfer_number'] == 0
     assert isinstance(acs_obj['ts'], str)
     assert acs_obj['ttl'] == 14 * 24 * 60 * 60
 
@@ -165,13 +164,13 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 1
     cts1 = AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
-    transfer_seqnum1 = (date_to_int24(cts1.account_creation_date) << 40) + 1
+    transfer_number1 = 1
     assert cts1.coordinator_type == 'test'
     assert cts1.creditor_id == C_ID
     assert cts1.other_creditor_id == p.ROOT_CREDITOR_ID
     assert cts1.committed_amount == amount
     assert cts1.transfer_message == TRANSFER_MESSAGE
-    assert cts1.transfer_seqnum == transfer_seqnum1
+    assert cts1.transfer_number == transfer_number1
     assert cts1.account_new_principal == amount
     assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
     assert cts1.system_flags & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
@@ -179,7 +178,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_MESSAGE)
     p.process_pending_account_changes(D_ID, C_ID)
     cts = AccountTransferSignal.query.filter_by(
-        debtor_id=D_ID, creditor_id=C_ID, transfer_seqnum=transfer_seqnum1 + 1).one()
+        debtor_id=D_ID, creditor_id=C_ID, transfer_number=transfer_number1 + 1).one()
     assert cts.committed_amount == 2 * amount
     assert cts.account_new_principal == 3 * amount
     assert p.get_account(D_ID, C_ID).last_outgoing_transfer_date == BEGINNING_OF_TIME.date()

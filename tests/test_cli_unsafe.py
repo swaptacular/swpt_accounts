@@ -78,7 +78,7 @@ def test_scan_accounts(app_unsafe_session):
     assert acs.principal == account.principal
     assert acs.interest == account.interest
     assert acs.interest_rate == account.interest_rate
-    assert acs.last_transfer_seqnum == account.last_transfer_seqnum
+    assert acs.last_transfer_number == account.last_transfer_number
     assert acs.last_outgoing_transfer_date == account.last_outgoing_transfer_date
     assert acs.last_config_ts == account.last_config_ts
     assert acs.last_config_seqnum == account.last_config_seqnum

@@ -606,8 +606,8 @@ last_outgoing_transfer_date : date
    not been any outgoing transfers yet, the value MUST be
    "1970-01-01".
 
-last_transfer_seqnum : int64
-   MUST contain the value of the ``transfer_seqnum`` field in the
+last_transfer_number : int64
+   MUST contain the value of the ``transfer_number`` field in the
    latest emitted `AccountTransfer`_ message. If since the creation of
    the account there have not been any emitted `AccountTransfer`_
    messages, the value MUST be ``0``.
@@ -704,16 +704,13 @@ creditor_id : int64
 creation_date : date
    The date on which the affected account was created.
 
-transfer_seqnum : int64
-   TODO: improve description
-   The sequential number of the transfer. MUST be a positive
-   number. For a newly created account, the sequential number of the
-   first transfer will have its lower 40 bits set to `0x0000000001`,
-   and its higher 24 bits calculated from the account's creation date
-   (the number of days since Jan 1st, 1970). Note that when an account
-   has been removed from the database, and then recreated again, for
-   this account, a gap will occur in the generated sequence of
-   seqnums.
+transfer_number : int64
+   Along with ``debtor_id``, ``creditor_id``, and ``creation_date``,
+   uniquely identifies the committed transfer. This MUST be a positive
+   number. For a given account, later committed transfers MUST have
+   bigger ``transfer_number``s. Note that dupicated transfer numbers
+   MAY occur when an account has been removed from the database, and
+   then recreated again (with a later ``creation_date``).
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
@@ -762,8 +759,8 @@ ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
 
-previous_transfer_seqnum : int64
-   MUST contain the value of the ``transfer_seqnum`` field in the
+previous_transfer_number : int64
+   MUST contain the value of the ``transfer_number`` field in the
    previous `AccountTransfer`_ message for the affected account. If
    since the creation of the affected account, there have not been any
    other `AccountTransfer`_ messages, this MUST be ``0``.

@@ -153,7 +153,7 @@ class AccountTransferSignal(Signal):
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
-        transfer_seqnum = fields.Integer()
+        transfer_number = fields.Integer()
         coordinator_type = fields.String()
         committed_at_ts = fields.DateTime(data_key='committed_at')
         committed_amount = fields.Integer(data_key='amount')
@@ -161,7 +161,7 @@ class AccountTransferSignal(Signal):
         transfer_flags = fields.Integer()
         account_creation_date = fields.Date(data_key='creation_date')
         account_new_principal = fields.Integer(data_key='principal')
-        previous_transfer_seqnum = fields.Integer()
+        previous_transfer_number = fields.Integer()
         system_flags = fields.Integer()
         sender = fields.Function(lambda obj: str(i64_to_u64(obj.sender_creditor_id)))
         recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
@@ -179,7 +179,7 @@ class AccountTransferSignal(Signal):
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    transfer_seqnum = db.Column(db.BigInteger, primary_key=True)
+    transfer_number = db.Column(db.BigInteger, primary_key=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
@@ -188,7 +188,7 @@ class AccountTransferSignal(Signal):
     transfer_flags = db.Column(db.Integer, nullable=False)
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
-    previous_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    previous_transfer_number = db.Column(db.BigInteger, nullable=False)
     system_flags = db.Column(db.Integer, nullable=False)
 
     @property
@@ -209,7 +209,7 @@ class AccountChangeSignal(Signal):
         principal = fields.Integer()
         interest = fields.Float()
         interest_rate = fields.Float()
-        last_transfer_seqnum = fields.Integer()
+        last_transfer_number = fields.Integer()
         last_outgoing_transfer_date = fields.Date()
         last_config_ts = fields.DateTime()
         last_config_seqnum = fields.Integer()
@@ -229,7 +229,7 @@ class AccountChangeSignal(Signal):
     principal = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
-    last_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
+    last_transfer_number = db.Column(db.BigInteger, nullable=False)
     last_outgoing_transfer_date = db.Column(db.DATE, nullable=False)
     last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     last_config_seqnum = db.Column(db.Integer, nullable=False)

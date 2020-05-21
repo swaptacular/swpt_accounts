@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: fffa5510a682
+Revision ID: f339c60407c7
 Revises: 
-Create Date: 2020-05-21 16:01:43.470026
+Create Date: 2020-05-21 18:26:44.480411
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'fffa5510a682'
+revision = 'f339c60407c7'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -31,7 +31,7 @@ def upgrade():
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last meaningful change on the account happened. Must never decrease. Every change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or `status` is considered meaningful.'),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False, comment='Updated on each transfer for which this account is the sender. It is not updated on interest/demurrage payments. This field is used to determine when an account with negative balance can be zeroed out.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
-    sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False, comment='Incremented when a new `account_transfer_signal` record is inserted. It is used to generate sequential numbers for the `account_transfer_signal.transfer_seqnum` column. Must never decrease. When the account is created, `last_transfer_seqnum` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
+    sa.Column('last_transfer_number', sa.BigInteger(), nullable=False, comment='Incremented when a new `account_transfer_signal` record is inserted. It is used to generate sequential numbers for the `account_transfer_signal.transfer_number` column. Must never decrease. '),
     sa.Column('status', sa.Integer(), nullable=False, comment='Contain additional account status bits. The lower 16 bits are configured by the owner of the account: 1 - scheduled for deletion. The higher 16 bits contain internal flags: 65536 - deleted, 131072 - established interest rate, 262144 - overflown.'),
     sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether a transfer is insignificant.'),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The value of the `ts` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
@@ -39,7 +39,7 @@ def upgrade():
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` was sent to remind that the account still exists. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_id >= 0'),
-    sa.CheckConstraint('last_transfer_seqnum >= 0'),
+    sa.CheckConstraint('last_transfer_number >= 0'),
     sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.CheckConstraint('pending_transfers_count >= 0'),
@@ -57,7 +57,7 @@ def upgrade():
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
-    sa.Column('last_transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
@@ -85,7 +85,7 @@ def upgrade():
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
@@ -94,9 +94,9 @@ def upgrade():
     sa.Column('transfer_flags', sa.Integer(), nullable=False),
     sa.Column('account_creation_date', sa.DATE(), nullable=False),
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
-    sa.Column('previous_transfer_seqnum', sa.BigInteger(), nullable=False),
+    sa.Column('previous_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('system_flags', sa.Integer(), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_seqnum')
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_number')
     )
     op.create_table('finalized_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),

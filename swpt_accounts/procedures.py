@@ -434,7 +434,7 @@ def _insert_account_change_signal(account: Account, current_ts: datetime) -> Non
         principal=account.principal,
         interest=account.interest,
         interest_rate=account.interest_rate,
-        last_transfer_seqnum=account.calc_last_transfer_seqnum(),
+        last_transfer_number=account.last_transfer_number,
         last_outgoing_transfer_date=account.last_outgoing_transfer_date,
         last_config_ts=account.last_config_ts,
         last_config_seqnum=account.last_config_seqnum,
@@ -534,8 +534,8 @@ def _insert_account_transfer_signal(
         account_new_principal: int) -> None:
 
     assert committed_amount != 0
-    previous_transfer_seqnum = account.last_transfer_seqnum
-    account.last_transfer_seqnum += 1
+    previous_transfer_number = account.last_transfer_number
+    account.last_transfer_number += 1
 
     # NOTE: We do not send notifications for transfers from/to the
     # debtor's account, because the debtor's account does not have a
@@ -549,7 +549,7 @@ def _insert_account_transfer_signal(
         db.session.add(AccountTransferSignal(
             debtor_id=account.debtor_id,
             creditor_id=account.creditor_id,
-            transfer_seqnum=account.last_transfer_seqnum,
+            transfer_number=account.last_transfer_number,
             coordinator_type=coordinator_type,
             other_creditor_id=other_creditor_id,
             committed_at_ts=committed_at_ts,
@@ -558,7 +558,7 @@ def _insert_account_transfer_signal(
             transfer_flags=transfer_flags,
             account_creation_date=account.creation_date,
             account_new_principal=account_new_principal,
-            previous_transfer_seqnum=previous_transfer_seqnum,
+            previous_transfer_number=previous_transfer_number,
             system_flags=system_flags,
         ))
 
