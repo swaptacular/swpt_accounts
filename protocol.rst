@@ -598,12 +598,9 @@ status : int32
 
 account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
-   account. Different server implementations may use different formats
-   for this string. [#account-identity]_ Note that ``creditor_id`` is
-   an ID which is recognizable only by the system that created the
-   account. This identifier (along with ``debtor_id``), on the other
-   hand, MUST provide enough information to globally identify the
-   removed account (an IBAN for example).
+   account. [#account-identity]_ An empty string indicates that the
+   account does not have an identity yet. Once the account have got an
+   identity, it MUST not be changed until the account is deleted.
 
 last_outgoing_transfer_date : date
    The date of the latest transfer (not counting interest payments),
@@ -658,10 +655,12 @@ of a lost message, or a complete database loss on the client's side.
   ``last_config_seqnum`` can be used to determine whether a sent
   `ConfigureAccount`_ message has been applied successfully.
 
-.. [#account-identity] An empty string always indicates that the
-  account have not got an identity yet. Once the account have got an
-  identity, it MUST not be changed until the account is deleted.
-
+.. [#account-identity] Different server implementations may use
+  different formats for this identifier. Note that ``creditor_id`` is
+  an ID which is recognizable only by the system that created the
+  account. This identifier (along with ``debtor_id``), on the other
+  hand, MUST provide enough information to globally identify the
+  account (an IBAN for example).
 
 AccountPurge
 ------------
@@ -742,13 +741,13 @@ committed_amount : int64
    caused. It can be positive (increase), or negative (decrease), but
    it MUST NOT be zero.
 
-other_party_identity : string
-   TODO: improve description
-   A string which (along with ``debtor_id``) identifies the other
-   party in the transfer. When ``committed_amount`` is positive, this
-   is the sender; when ``committed_amount`` is negative, this is the
-   recipient. Different server implementations may use different
-   formats for the identifier.
+sender : string
+   A string which (along with ``debtor_id``) identifies the sender's
+   account. [#account-identity]_
+
+recipient : string
+   A string which (along with ``debtor_id``) identifies the
+   recipient's account. [#account-identity]_
 
 creation_date : date
    The date on which the affected account was created.
@@ -768,14 +767,6 @@ previous_transfer_seqnum : int64
 
 system_flags : int32
    Various bit-flags characterizing the transfer.
-
-creditor_identity : string
-   A string which (along with ``debtor_id``) identifies the affected
-   account. Different server implementations may use different formats
-   for the identifier. Note that while ``creditor_id`` could be a
-   "local" identifier, recognized only by the system that created the
-   account, ``creditor_identity`` is always a globally recognized
-   identifier.
 
 transfer_id : int64
    TODO: improve description
