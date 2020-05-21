@@ -171,6 +171,12 @@ Upon receiving this message, the server tries to secure some amount,
 to eventually transfer it from sender's account to recipient's
 account.
 
+debtor_id : int64
+   The ID of the debtor.
+
+creditor_id : int64
+   Along with ``debtor_id``, identifies the sender's account.
+
 coordinator_type : string
    Indicates the subsystem which sent this message. MUST be between 1
    and 30 symbols, ASCII only.
@@ -192,12 +198,6 @@ min_amount : int64
 max_amount : int64
    The secured amount SHOULD NOT exceed this value. This value MUST be
    equal or bigger than the value of ``min_amount``.
-
-debtor_id : int64
-   The ID of the debtor.
-
-creditor_id : int64
-   Along with ``debtor_id``, identifies the sender's account.
 
 recipient : string
    A string which (along with ``debtor_id``) globally identifies the
