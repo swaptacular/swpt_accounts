@@ -156,7 +156,7 @@ class PreparedTransferScanner(TableScanner):
                     coordinator_type=row[c.coordinator_type],
                     coordinator_id=row[c.coordinator_id],
                     coordinator_request_id=row[c.coordinator_request_id],
-                    sender_locked_amount=row[c.sender_locked_amount],
+                    locked_amount=row[c.sender_locked_amount],
                     recipient_creditor_id=row[c.recipient_creditor_id],
                     prepared_at_ts=row[c.prepared_at_ts],
                     inserted_at_ts=max(current_ts, row[c.prepared_at_ts]),

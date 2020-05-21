@@ -603,7 +603,7 @@ last_transfer_number : int64
    `AccountTransfer`_ messages, the value MUST be ``0``.
 
 ts : date-time
-   The moment at which this message was emitted (the message's
+   The moment at which this message was sent (the message's
    timestamp).
 
 ttl : float

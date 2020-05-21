@@ -174,7 +174,7 @@ def test_scan_prepared_transfers(app_unsafe_session):
     assert pts.coordinator_type == 'direct'
     assert pts.coordinator_id == 11
     assert pts.coordinator_request_id == 112
-    assert pts.sender_locked_amount == 100
+    assert pts.locked_amount == 100
     assert pts.recipient_creditor_id == 1234
     assert pts.prepared_at_ts == past_ts
 

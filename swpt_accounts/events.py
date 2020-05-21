@@ -98,7 +98,7 @@ class PreparedTransferSignal(Signal):
         coordinator_type = fields.String()
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
-        sender_locked_amount = fields.Integer(data_key='locked_amount')
+        locked_amount = fields.Integer()
         recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         inserted_at_ts = fields.DateTime(data_key='ts')
 
@@ -109,7 +109,7 @@ class PreparedTransferSignal(Signal):
     coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
-    sender_locked_amount = db.Column(db.BigInteger, nullable=False)
+    locked_amount = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
@@ -156,7 +156,7 @@ class AccountTransferSignal(Signal):
         transfer_number = fields.Integer()
         coordinator_type = fields.String()
         committed_at_ts = fields.DateTime(data_key='committed_at')
-        committed_amount = fields.Integer(data_key='amount')
+        amount = fields.Integer()
         transfer_message = fields.String()
         transfer_flags = fields.Integer()
         creation_date = fields.Date()
@@ -176,7 +176,7 @@ class AccountTransferSignal(Signal):
     transfer_number = db.Column(db.BigInteger, primary_key=True)
     coordinator_type = db.Column(db.String(30), nullable=False)
     committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    committed_amount = db.Column(db.BigInteger, nullable=False)
+    amount = db.Column(db.BigInteger, nullable=False)
     other_creditor_id = db.Column(db.BigInteger, nullable=False)
     transfer_message = db.Column(pg.TEXT, nullable=False)
     transfer_flags = db.Column(db.Integer, nullable=False)
@@ -186,11 +186,11 @@ class AccountTransferSignal(Signal):
 
     @property
     def sender_creditor_id(self):
-        return self.other_creditor_id if self.committed_amount >= 0 else self.creditor_id
+        return self.other_creditor_id if self.amount >= 0 else self.creditor_id
 
     @property
     def recipient_creditor_id(self):
-        return self.other_creditor_id if self.committed_amount < 0 else self.creditor_id
+        return self.other_creditor_id if self.amount < 0 else self.creditor_id
 
 
 class AccountChangeSignal(Signal):
@@ -291,10 +291,9 @@ class AccountMaintenanceSignal(Signal):
       operation request. It can be used to the match the
       `AccountMaintenanceSignal` with the originating request.
 
-    * `received_at` is the moment at which the maintenance operation
-      request was received. (Note that `request_ts` and `received_at`
-      are generated on different servers, so there might be some
-      discrepancies.)
+    * `ts` is the moment at which message was sent. (Note that
+      `request_ts` and `ts` are generated on different servers, so
+      there might be some discrepancies.)
 
     """
 
@@ -302,7 +301,7 @@ class AccountMaintenanceSignal(Signal):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         request_ts = fields.DateTime()
-        inserted_at_ts = fields.DateTime(data_key='received_at')
+        inserted_at_ts = fields.DateTime(data_key='ts')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
