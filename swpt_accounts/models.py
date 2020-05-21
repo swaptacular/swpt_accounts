@@ -369,13 +369,6 @@ class PendingAccountChange(db.Model):
                 'event, otherwise the notes are ignored. Can be NULL only if '
                 '`principal_delta` is zero.',
     )
-    transfer_flags = db.Column(
-        db.Integer,
-        comment='Contains various flags that characterize the committed transfer. If the '
-                'account change represents a committed transfer, the flags will be included '
-                'in the generated `on_account_transfer_signal` event, otherwise the flags are '
-                'ignored. Can be NULL only if `principal_delta` is zero.',
-    )
     other_creditor_id = db.Column(
         db.BigInteger,
         nullable=False,
@@ -388,7 +381,6 @@ class PendingAccountChange(db.Model):
 
     __table_args__ = (
         db.CheckConstraint(or_(principal_delta == 0, transfer_message != null())),
-        db.CheckConstraint(or_(principal_delta == 0, transfer_flags != null())),
         db.CheckConstraint(unlocked_amount >= 0),
         {
             'comment': 'Represents a pending change to a given account. Pending updates to '

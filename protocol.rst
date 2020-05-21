@@ -274,12 +274,6 @@ transfer_message : string
    the transfer is being dismissed, this MUST be an empty
    string. [#message-limitations]_
 
-transfer_flags : int32
-   Various bit-flags that the coordinator (the client that finalizes
-   the prepared transfer) wants the recipient and the sender to
-   see. If the transfer is being dismissed, this MUST be
-   ``0``. [#flags-limitations]_
-
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
@@ -308,10 +302,6 @@ transfer exists in server's database:
 .. [#message-limitations] Server implementations MAY impose additional
   restrictions on the format and the content of this string, as long
   as these restictions are precisely defined, and known in advance.
-
-.. [#flags-limitations] Server implementations MAY impose additional
-  restrictions on this value, as long as these restictions are
-  precisely defined, and known in advance.
 
 .. [#commit] When ``committed_amount`` is zero, this would be a no-op.
   When the commit is successful, an `AccountChange`_ message, and
@@ -737,10 +727,6 @@ committed_at : date-time
 
 transfer_message : string
    MUST contain the value of the ``transfer_message`` field in the
-   `FinalizePreparedTransfer`_ message that committed the transfer.
-
-transfer_flags : int32
-   MUST contain the value of the ``transfer_flags`` field in the
    `FinalizePreparedTransfer`_ message that committed the transfer.
 
 system_flags : int32

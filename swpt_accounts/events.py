@@ -158,7 +158,6 @@ class AccountTransferSignal(Signal):
         committed_at_ts = fields.DateTime(data_key='committed_at')
         committed_amount = fields.Integer(data_key='amount')
         transfer_message = fields.String()
-        transfer_flags = fields.Integer()
         account_creation_date = fields.Date(data_key='creation_date')
         account_new_principal = fields.Integer(data_key='principal')
         previous_transfer_number = fields.Integer()
@@ -166,11 +165,6 @@ class AccountTransferSignal(Signal):
         sender = fields.Function(lambda obj: str(i64_to_u64(obj.sender_creditor_id)))
         recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         inserted_at_ts = fields.DateTime(data_key='ts')
-
-    TRANSFER_FLAG_IS_PUBLIC = 1
-    """Indicates that all transfer details have been made public. This can
-    be used, for example, to obtain a legal evidence.
-    """
 
     SYSTEM_FLAG_IS_NEGLIGIBLE = 1
     """Indicates that the absolute value of `committed_amount` is not
@@ -185,7 +179,6 @@ class AccountTransferSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     other_creditor_id = db.Column(db.BigInteger, nullable=False)
     transfer_message = db.Column(pg.TEXT, nullable=False)
-    transfer_flags = db.Column(db.Integer, nullable=False)
     account_creation_date = db.Column(db.DATE, nullable=False)
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_number = db.Column(db.BigInteger, nullable=False)
