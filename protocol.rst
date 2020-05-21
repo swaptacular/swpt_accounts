@@ -714,18 +714,17 @@ recipient : string
    recipient's account. [#account-identity]_
 
 amount : int64
-   The increase in the affected account's principal, caused by the
-   transfer. This MUST NOT be zero. If it is a positive number (an
+   The increase in the affected account's principal (caused by the
+   transfer). This MUST NOT be zero. If it is a positive number (an
    addition to the principal), the affected account would be the
-   recipient of the transfer. If it is a negative number (a
-   subtraction from the principal), the affected account would be the
-   sender of the transfer.
+   recipient. If it is a negative number (a subtraction from the
+   principal), the affected account would be the sender.
 
 committed_at : date-time
    The moment at which the transfer was committed.
 
 transfer_message : string
-   MUST contain the value of the ``transfer_message`` field in the
+   MUST contain the value of the ``transfer_message`` field from the
    `FinalizePreparedTransfer`_ message that committed the transfer.
 
 transfer_flags : int32
