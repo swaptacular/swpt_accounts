@@ -6,7 +6,7 @@ from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountChangeSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
-    BEGINNING_OF_TIME, CT_DIRECT
+    AccountPurgeSignal, BEGINNING_OF_TIME, CT_DIRECT
 
 
 def test_version(db_session):
@@ -845,3 +845,18 @@ def test_delayed_direct_transfer(db_session, current_ts):
     fts = FinalizedTransferSignal.query.one()
     assert fts.status_code != 'OK'
     assert fts.committed_amount == 0
+
+
+def test_account_purge_signal(db_session, current_ts):
+    db_session.add(AccountPurgeSignal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        creation_date=current_ts.date(),
+    ))
+    db_session.commit()
+    aps = AccountPurgeSignal.query.one()
+    aps_obj = aps.__marshmallow_schema__.dump(aps)
+    assert aps_obj['debtor_id'] == D_ID
+    assert aps_obj['creditor_id'] == C_ID
+    assert aps_obj['creation_date'] == current_ts.date().isoformat()
+    assert isinstance(aps_obj['ts'], str)
