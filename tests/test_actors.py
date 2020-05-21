@@ -15,6 +15,7 @@ def test_prepare_transfer(db_session):
         debtor_id=D_ID,
         sender_creditor_id=C_ID,
         recipient='1234',
+        minimum_account_balance=0,
         ts=datetime.now(tz=timezone.utc).isoformat(),
     )
 
