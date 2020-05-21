@@ -748,8 +748,7 @@ previous_transfer_number : int64
    MUST contain the ``transfer_number`` of the previous
    `AccountTransfer`_ message that affected the same account. If since
    the creation of the account, there have not been any other
-   `AccountTransfer`_ messages that affected it, the value MUST be
-   ``0``.
+   committed transfers that affected it, the value MUST be ``0``.
 
 Every committed transfer affects two accounts: the sender's, and the
 recipient's. Therefore, two separate `AccountTransfer`_ messages would
