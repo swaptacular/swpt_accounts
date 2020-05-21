@@ -364,7 +364,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     committed_at_ts=change.inserted_at_ts,
                     committed_amount=change.principal_delta,
                     transfer_message=change.transfer_message,
-                    account_new_principal=_contain_principal_overflow(account.principal + principal_delta),
+                    principal=_contain_principal_overflow(account.principal + principal_delta),
                 )
             db.session.delete(change)
 
@@ -521,7 +521,7 @@ def _insert_account_transfer_signal(
         committed_at_ts: datetime,
         committed_amount: int,
         transfer_message: str,
-        account_new_principal: int) -> None:
+        principal: int) -> None:
 
     assert committed_amount != 0
     previous_transfer_number = account.last_transfer_number
@@ -546,8 +546,8 @@ def _insert_account_transfer_signal(
             committed_amount=committed_amount,
             transfer_message=transfer_message,
             transfer_flags=transfer_flags,
-            account_creation_date=account.creation_date,
-            account_new_principal=account_new_principal,
+            creation_date=account.creation_date,
+            principal=principal,
             previous_transfer_number=previous_transfer_number,
         ))
 
@@ -597,7 +597,7 @@ def _make_debtor_payment(
             committed_at_ts=current_ts,
             committed_amount=amount,
             transfer_message=transfer_message,
-            account_new_principal=_contain_principal_overflow(account.principal + amount),
+            principal=_contain_principal_overflow(account.principal + amount),
         )
 
         # NOTE: We do not need to update the principal and the

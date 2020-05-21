@@ -53,7 +53,7 @@ class Account(db.Model):
         db.DATE,
         nullable=False,
         comment='The date at which the account was created. This also becomes the value of '
-                'the `account_transfer_signal.account_creation_date` column for each transfer '
+                'the `account_transfer_signal.creation_date` column for each transfer '
                 'committed from/to the account.',
     )
     principal = db.Column(

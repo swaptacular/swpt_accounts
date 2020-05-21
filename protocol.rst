@@ -755,7 +755,7 @@ be emitted for each committed transfer.
 
 .. [#transfer-number] Note that when an account has been removed from
   the database, and then recreated again, the generation of transfer
-  numbers MAY commence from ``1`` again.
+  numbers MAY start from ``1`` again.
 
 
 Requirements for Client Implementations

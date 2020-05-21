@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7c91dce89c31
+Revision ID: 00d1fcff171d
 Revises: 
-Create Date: 2020-05-21 20:11:02.975612
+Create Date: 2020-05-21 21:09:31.347789
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '7c91dce89c31'
+revision = '00d1fcff171d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,7 +21,7 @@ def upgrade():
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creation_date', sa.DATE(), nullable=False, comment='The date at which the account was created. This also becomes the value of the `account_transfer_signal.account_creation_date` column for each transfer committed from/to the account.'),
+    sa.Column('creation_date', sa.DATE(), nullable=False, comment='The date at which the account was created. This also becomes the value of the `account_transfer_signal.creation_date` column for each transfer committed from/to the account.'),
     sa.Column('principal', sa.BigInteger(), nullable=False, comment='The owed amount, without the interest. Can be negative.'),
     sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account. Can be negative.'),
     sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest` gets zeroed and added to the principal once in a while (like once per week).'),
@@ -92,8 +92,8 @@ def upgrade():
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_message', sa.TEXT(), nullable=False),
     sa.Column('transfer_flags', sa.Integer(), nullable=False),
-    sa.Column('account_creation_date', sa.DATE(), nullable=False),
-    sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=False),
+    sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('previous_transfer_number', sa.BigInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_number')
     )

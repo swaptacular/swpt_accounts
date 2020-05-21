@@ -159,8 +159,8 @@ class AccountTransferSignal(Signal):
         committed_amount = fields.Integer(data_key='amount')
         transfer_message = fields.String()
         transfer_flags = fields.Integer()
-        account_creation_date = fields.Date(data_key='creation_date')
-        account_new_principal = fields.Integer(data_key='principal')
+        creation_date = fields.Date()
+        principal = fields.Integer()
         previous_transfer_number = fields.Integer()
         sender = fields.Function(lambda obj: str(i64_to_u64(obj.sender_creditor_id)))
         recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
@@ -180,8 +180,8 @@ class AccountTransferSignal(Signal):
     other_creditor_id = db.Column(db.BigInteger, nullable=False)
     transfer_message = db.Column(pg.TEXT, nullable=False)
     transfer_flags = db.Column(db.Integer, nullable=False)
-    account_creation_date = db.Column(db.DATE, nullable=False)
-    account_new_principal = db.Column(db.BigInteger, nullable=False)
+    creation_date = db.Column(db.DATE, nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_number = db.Column(db.BigInteger, nullable=False)
 
     @property
