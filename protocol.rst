@@ -595,11 +595,11 @@ status : int32
 account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    account. Different server implementations may use different formats
-   for this string. Note that ``creditor_id`` is an ID which is
-   recognizable only by the system that created the account. This
-   identifier (along with ``debtor_id``), on the other hand, MUST
-   provide enough information to globally identify the removed account
-   (an IBAN for example).
+   for this string. [#account-identity]_ Note that ``creditor_id`` is
+   an ID which is recognizable only by the system that created the
+   account. This identifier (along with ``debtor_id``), on the other
+   hand, MUST provide enough information to globally identify the
+   removed account (an IBAN for example).
 
 last_outgoing_transfer_date : date
    The date of the latest transfer (not counting interest payments),
@@ -630,10 +630,10 @@ will not be hanging in the server's database forever, even in the case
 of a lost message, or a complete database loss on the client's side.
 
 .. [#creation-date] Note that an account can be removed from the
-   server's database, and then a new account with the same
-   ``debtor_id`` and ``creditor_id`` can be created. Care MUST be
-   taken so that in this case the newly created account always has a
-   later ``creation_date``, compared to the preceding account.
+  server's database, and then a new account with the same
+  ``debtor_id`` and ``creditor_id`` can be created. Care MUST be taken
+  so that in this case the newly created account always has a later
+  ``creation_date``, compared to the preceding account.
 
 .. [#compare-change] ``creation_date``, ``change_ts``, and
   ``change_seqnum`` can be used to reliably determine the correct
@@ -651,8 +651,12 @@ of a lost message, or a complete database loss on the client's side.
   account.
 
 .. [#verify-config] Note that ``last_config_ts`` and
-   ``last_config_seqnum`` can be used to determine whether a sent
-   `ConfigureAccount`_ message has been applied successfully.
+  ``last_config_seqnum`` can be used to determine whether a sent
+  `ConfigureAccount`_ message has been applied successfully.
+
+.. [#account-identity] An empty string indicates that the account have
+  not got an identity yet. Once the account have got an identity, it
+  MUST not be changed until the account is deleted.
 
 
 AccountPurge
@@ -678,11 +682,11 @@ The purpose of `AccountPurge`_ messages is to inform clients that they
 can safely remove a given account from their databases.
 
 .. [#purge-delay] The delay MUST be at least as long as indicated by
-   the value of the ``ttl`` field which is sent with `AccountChange`_
-   messages. The goal is to ensure that after clients have received
-   the `AccountPurge`_ message, if they continue to receive old
-   `AccountChange`_ messages for the purged account, those messages
-   will be ignored.
+  the value of the ``ttl`` field which is sent with `AccountChange`_
+  messages. The goal is to ensure that after clients have received the
+  `AccountPurge`_ message, if they continue to receive old
+  `AccountChange`_ messages for the purged account, those messages
+  will be ignored.
 
 
 AccountTransfer
