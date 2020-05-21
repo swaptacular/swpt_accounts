@@ -658,9 +658,9 @@ of a lost message, or a complete database loss on the client's side.
   ``last_config_seqnum`` can be used to determine whether a sent
   `ConfigureAccount`_ message has been applied successfully.
 
-.. [#account-identity] An empty string indicates that the account have
-  not got an identity yet. Once the account have got an identity, it
-  MUST not be changed until the account is deleted.
+.. [#account-identity] An empty string always indicates that the
+  account have not got an identity yet. Once the account have got an
+  identity, it MUST not be changed until the account is deleted.
 
 
 AccountPurge
