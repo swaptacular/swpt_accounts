@@ -309,7 +309,7 @@ class AccountTransferSignal(Signal):
         transfer_seqnum = fields.Integer()
         coordinator_type = fields.String()
         committed_at_ts = fields.DateTime(data_key='committed_at')
-        committed_amount = fields.Integer()
+        committed_amount = fields.Integer(data_key='amount')
         transfer_message = fields.String()
         transfer_flags = fields.Integer()
         account_creation_date = fields.Date(data_key='creation_date')

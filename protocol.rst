@@ -709,6 +709,9 @@ debtor_id : int64
 creditor_id : int64
    Along with ``debtor_id``, identifies the affected account.
 
+creation_date : date
+   The date on which the affected account was created.
+
 transfer_seqnum : int64
    TODO: improve description
    The sequential number of the transfer. MUST be a positive
@@ -740,17 +743,13 @@ recipient : string
    A string which (along with ``debtor_id``) identifies the
    recipient's account. [#account-identity]_
 
+amount : int64
+   The increase in the affected account's principal which the transfer
+   caused. It can be positive (increase), or negative (decrease). It
+   MUST NOT be zero.
+
 committed_at : date-time
    The moment at which the transfer was committed.
-
-committed_amount : int64
-   TODO: rename?
-   The increase in the affected account's principal which the transfer
-   caused. It can be positive (increase), or negative (decrease), but
-   it MUST NOT be zero.
-
-creation_date : date
-   The date on which the affected account was created.
 
 account_new_principal : int64
    The affected account's principal, as it is after the transfer has
