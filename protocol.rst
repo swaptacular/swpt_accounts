@@ -765,9 +765,9 @@ ts : date-time
 
 previous_transfer_seqnum : int64
    This MUST be the value of the ``transfer_seqnum`` field in the
-   previous `AccountTransfer`_ message on the same account. If since
-   the creation of the account there have not been any emitted
-   `AccountTransfer`_ messages, the value MUST be ``0``.
+   previous `AccountTransfer`_ message for the same account. If there
+   have not been any other `AccountTransfer`_ messages since the
+   creation of the account, the value MUST be ``0``.
 
 
 Requirements for Client Implementations
