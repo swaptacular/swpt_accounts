@@ -79,7 +79,7 @@ class RejectedTransferSignal(Signal):
     * `available_amount` is the amount currently available on the sender's
       account.
 
-    * `debtor_id` and `sender_creditor_id` identify the sender's account.
+    * `debtor_id` and `creditor_id` identify the sender's account.
 
     """
 
@@ -90,7 +90,7 @@ class RejectedTransferSignal(Signal):
         rejection_code = fields.String()
         available_amount = fields.Integer()
         debtor_id = fields.Integer()
-        sender_creditor_id = fields.Integer()
+        sender_creditor_id = fields.Integer(data_key='creditor_id')
         inserted_at_ts = fields.DateTime(data_key='ts')
         recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
 
@@ -113,7 +113,7 @@ class PreparedTransferSignal(Signal):
     """Emitted when a new transfer has been prepared, or to remind that a
     prepared transfer must be finalized.
 
-    * `debtor_id` and `sender_creditor_id` identify sender's account.
+    * `debtor_id` and `creditor_id` identify sender's account.
 
     * `transfer_id` is an opaque ID generated for the prepared
       transfer. It will never be `0`.
@@ -137,7 +137,7 @@ class PreparedTransferSignal(Signal):
 
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
-        sender_creditor_id = fields.Integer()
+        sender_creditor_id = fields.Integer(data_key='creditor_id')
         transfer_id = fields.Integer()
         coordinator_type = fields.String()
         coordinator_id = fields.Integer()
@@ -166,7 +166,7 @@ class FinalizedTransferSignal(Signal):
     """Emitted when a transfer has been finalized and its corresponding
     prepared transfer record removed from the database.
 
-    * `debtor_id` and `sender_creditor_id` identify sender's account.
+    * `debtor_id` and `creditor_id` identify sender's account.
 
     * `transfer_id` is the opaque ID generated for the prepared transfer.
 
@@ -200,7 +200,7 @@ class FinalizedTransferSignal(Signal):
 
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
-        sender_creditor_id = fields.Integer()
+        sender_creditor_id = fields.Integer(data_key='creditor_id')
         transfer_id = fields.Integer()
         coordinator_type = fields.String()
         coordinator_id = fields.Integer()

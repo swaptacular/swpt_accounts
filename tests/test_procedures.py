@@ -411,7 +411,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
         min_amount=1,
         max_amount=200,
         debtor_id=D_ID,
-        sender_creditor_id=1234,
+        creditor_id=1234,
         recipient=str(C_ID),
         ts=current_ts,
     )
@@ -523,7 +523,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
         min_amount=1,
         max_amount=200,
         debtor_id=D_ID,
-        sender_creditor_id=C_ID,
+        creditor_id=C_ID,
         recipient='1234',
         ts=current_ts,
     )
@@ -545,7 +545,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     assert rts.coordinator_request_id == 2
     rts_obj = rts.__marshmallow_schema__.dump(rts)
     assert rts_obj['debtor_id'] == D_ID
-    assert rts_obj['sender_creditor_id'] == C_ID
+    assert rts_obj['creditor_id'] == C_ID
     assert isinstance(rts_obj['rejection_code'], str)
     assert rts_obj['coordinator_type'] == 'test'
     assert rts_obj['coordinator_id'] == 1
@@ -566,7 +566,7 @@ def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
         min_amount=1,
         max_amount=200,
         debtor_id=D_ID,
-        sender_creditor_id=C_ID,
+        creditor_id=C_ID,
         recipient='1234',
         ts=current_ts,
     )
@@ -590,7 +590,7 @@ def test_prepare_transfer_to_self(db_session, current_ts):
         min_amount=1,
         max_amount=200,
         debtor_id=D_ID,
-        sender_creditor_id=C_ID,
+        creditor_id=C_ID,
         recipient=str(C_ID),
         ts=current_ts,
     )
@@ -615,7 +615,7 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
         min_amount=1,
         max_amount=200,
         debtor_id=D_ID,
-        sender_creditor_id=C_ID,
+        creditor_id=C_ID,
         recipient='1234',
         ts=current_ts,
     )
@@ -642,7 +642,7 @@ def test_prepare_transfer_success(db_session, current_ts):
         min_amount=1,
         max_amount=200,
         debtor_id=D_ID,
-        sender_creditor_id=C_ID,
+        creditor_id=C_ID,
         recipient='1234',
         ts=current_ts,
     )
@@ -673,7 +673,7 @@ def test_prepare_transfer_success(db_session, current_ts):
 
     pts_obj = pts.__marshmallow_schema__.dump(pts)
     assert pts_obj['debtor_id'] == D_ID
-    assert pts_obj['sender_creditor_id'] == C_ID
+    assert pts_obj['creditor_id'] == C_ID
     assert pts_obj['transfer_id'] == pts.transfer_id
     assert pts_obj['coordinator_type'] == 'test'
     assert pts_obj['coordinator_id'] == 1
@@ -701,7 +701,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     fpt = FinalizedTransferSignal.query.one()
     fpt_obj = fpt.__marshmallow_schema__.dump(fpt)
     assert fpt_obj['debtor_id'] == D_ID
-    assert fpt_obj['sender_creditor_id'] == C_ID
+    assert fpt_obj['creditor_id'] == C_ID
     assert fpt_obj['transfer_id'] == pt.transfer_id
     assert fpt_obj['coordinator_type'] == 'test'
     assert fpt_obj['coordinator_id'] == 1
@@ -725,7 +725,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
         min_amount=1,
         max_amount=200,
         debtor_id=D_ID,
-        sender_creditor_id=C_ID,
+        creditor_id=C_ID,
         recipient='1234',
         ts=current_ts,
     )
@@ -778,7 +778,7 @@ def test_commit_to_debtor_account(db_session, current_ts):
         min_amount=1,
         max_amount=200,
         debtor_id=D_ID,
-        sender_creditor_id=C_ID,
+        creditor_id=C_ID,
         recipient=str(p.ROOT_CREDITOR_ID),
         ts=current_ts,
     )
@@ -833,7 +833,7 @@ def test_delayed_direct_transfer(db_session, current_ts):
         min_amount=1000,
         max_amount=1000,
         debtor_id=D_ID,
-        sender_creditor_id=C_ID,
+        creditor_id=C_ID,
         recipient='1234',
         ts=current_ts,
     )

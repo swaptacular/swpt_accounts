@@ -196,14 +196,14 @@ max_amount : int64
 debtor_id : int64
    The ID of the debtor.
 
-sender_creditor_id : int64
+creditor_id : int64
    Along with ``debtor_id``, identifies the sender's account.
 
 recipient : string
    A string which (along with ``debtor_id``) globally identifies the
    recipient's account. Different server implementations may use
-   different formats for this string. Note that ``sender_creditor_id``
-   is an ID which is recognizable only by the system that created the
+   different formats for this string. Note that ``creditor_id`` is an
+   ID which is recognizable only by the system that created the
    sender's account. This identifier (along with ``debtor_id``), on
    the other hand, MUST provide enough information to globally
    identify the recipient's account (an IBAN for example).
@@ -253,14 +253,14 @@ Upon receiving this message, the server finalizes a prepared transfer.
 debtor_id : int64
    The ID of the debtor.
 
-sender_creditor_id : int64
+creditor_id : int64
    Along with ``debtor_id``, identifies the sender's account.
 
 transfer_id : int64
    The opaque ID generated for the prepared transfer. This MUST always
    be a positive number. This ID, along with ``debtor_id`` and
-   ``sender_creditor_id``, uniquely identifies the prepared transfer
-   that has to be finalized.
+   ``creditor_id``, uniquely identifies the prepared transfer that has
+   to be finalized.
 
 committed_amount : int64
    The amount that has to be transferred. This MUST be a non-negative
@@ -370,7 +370,7 @@ Emitted when a request to prepare a transfer has been rejected.
 debtor_id : int64
    The ID of the debtor.
 
-sender_creditor_id : int64
+creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 rejection_code : string
@@ -416,13 +416,13 @@ prepared transfer has to be finalized.
 debtor_id : int64
    The ID of the debtor.
 
-sender_creditor_id : int64
+creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 transfer_id : int64
    An opaque ID generated for the prepared transfer. This MUST always
    be a positive number. This ID, along with ``debtor_id`` and
-   ``sender_creditor_id``, uniquely identifies the prepared transfer.
+   ``creditor_id``, uniquely identifies the prepared transfer.
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
@@ -468,13 +468,13 @@ Emitted when a transfer has been finalized.
 debtor_id : int64
    The ID of the debtor.
 
-sender_creditor_id : int64
+creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 transfer_id : int64
    The opaque ID generated for the prepared transfer. This MUST always
    be a positive number. This ID, along with ``debtor_id`` and
-   ``sender_creditor_id``, uniquely identifies the finalized prepared
+   ``creditor_id``, uniquely identifies the finalized prepared
    transfer.
 
 coordinator_type : string
@@ -798,25 +798,24 @@ status "initiated". This record will be used to act properly on
 
 If a `PreparedTransferSignal` is received for an "initiated" CR
 record, the status of the corresponding CR record MUST be set to
-"prepared", and the received values for `debtor_id`,
-`sender_creditor_id`, and `transfer_id` -- recorded. The
-"prepared" CR record MUST be, at some point, finalized (committed
-or dismissed), and the status set to "finalized".
+"prepared", and the received values for `debtor_id`, `creditor_id`,
+and `transfer_id` -- recorded. The "prepared" CR record MUST be, at
+some point, finalized (committed or dismissed), and the status set to
+"finalized".
 
-If a `PreparedTransferSignal` is received for a "prepared" CR
-record, the corresponding values of `debtor_id`,
-`sender_creditor_id`, and `transfer_id` MUST be compared. If they
-are the same, no action MUST be taken. If they differ, the newly
-prepared transfer MUST be immediately dismissed (by sending a
-message to the `finalize_prepared_transfer` actor with a zero
-`committed_amount`).
+If a `PreparedTransferSignal` is received for a "prepared" CR record,
+the corresponding values of `debtor_id`, `creditor_id`, and
+`transfer_id` MUST be compared. If they are the same, no action MUST
+be taken. If they differ, the newly prepared transfer MUST be
+immediately dismissed (by sending a message to the
+`finalize_prepared_transfer` actor with a zero `committed_amount`).
 
-If a `PreparedTransferSignal` is received for a "finalized" CR
-record, the corresponding values of `debtor_id`,
-`sender_creditor_id`, and `transfer_id` MUST be compared. If they
-are the same, the original message to the
-`finalize_prepared_transfer` actor MUST be sent again. If they
-differ, the newly prepared transfer MUST be immediately dismissed.
+If a `PreparedTransferSignal` is received for a "finalized" CR record,
+the corresponding values of `debtor_id`, `creditor_id`, and
+`transfer_id` MUST be compared. If they are the same, the original
+message to the `finalize_prepared_transfer` actor MUST be sent
+again. If they differ, the newly prepared transfer MUST be immediately
+dismissed.
 
 If a `PreparedTransferSignal` is received but a corresponding CR
 record is not found, the newly prepared transfer MUST be
@@ -840,11 +839,11 @@ IMPORTANT NOTES:
    `finalize_prepared_transfer` actor).
 
 3. "finalized" CR records, which have been committed (i.e. not
-   dismissed), SHOULD NOT be deleted right away. Instead, they
-   SHOULD stay in the database until a corresponding
+   dismissed), SHOULD NOT be deleted right away. Instead, they SHOULD
+   stay in the database until a corresponding
    `FinalizedTransferSignal` is received for them. (It MUST be
-   verified that the signal has the same `debtor_id`,
-   `sender_creditor_id`, and `transfer_id` as the CR record.)
+   verified that the signal has the same `debtor_id`, `creditor_id`,
+   and `transfer_id` as the CR record.)
 
    Only when the corresponding `FinalizedTransferSignal` has not
    been received for a very long time (1 year for example), the

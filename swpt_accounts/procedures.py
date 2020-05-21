@@ -93,7 +93,7 @@ def prepare_transfer(
         min_amount: int,
         max_amount: int,
         debtor_id: int,
-        sender_creditor_id: int,
+        creditor_id: int,
         recipient: str,
         ts: datetime,
         minimum_account_balance: int = 0) -> None:
@@ -103,11 +103,11 @@ def prepare_transfer(
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 < min_amount <= max_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert ts > BEGINNING_OF_TIME
     assert MIN_INT64 <= minimum_account_balance <= MAX_INT64
 
-    if sender_creditor_id != ROOT_CREDITOR_ID:
+    if creditor_id != ROOT_CREDITOR_ID:
         # NOTE: Only the debtor's account is allowed to go
         # deliberately negative. This is because only the debtor's
         # account is allowed to issue money.
@@ -120,7 +120,7 @@ def prepare_transfer(
         coordinator_request_id=coordinator_request_id,
         min_amount=min_amount,
         max_amount=max_amount,
-        sender_creditor_id=sender_creditor_id,
+        sender_creditor_id=creditor_id,
         recipient_creditor_id=u64_to_i64(int(recipient)),
         minimum_account_balance=minimum_account_balance,
     ))
@@ -129,7 +129,7 @@ def prepare_transfer(
 @atomic
 def finalize_prepared_transfer(
         debtor_id: int,
-        sender_creditor_id: int,
+        creditor_id: int,
         transfer_id: int,
         committed_amount: int,
         transfer_message: str = '',
@@ -137,13 +137,13 @@ def finalize_prepared_transfer(
         ts: datetime = None) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= sender_creditor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= transfer_id <= MAX_INT64
     assert committed_amount >= 0
     assert MIN_INT32 <= transfer_flags <= MAX_INT32
 
     current_ts = datetime.now(tz=timezone.utc)
-    pt = PreparedTransfer.lock_instance((debtor_id, sender_creditor_id, transfer_id))
+    pt = PreparedTransfer.lock_instance((debtor_id, creditor_id, transfer_id))
     if pt:
         status_code = pt.get_status_code(committed_amount, current_ts)
         if status_code != 'OK':

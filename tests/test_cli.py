@@ -24,7 +24,7 @@ def test_process_transfers_transfer_requests(app, db_session):
         min_amount=1,
         max_amount=200,
         debtor_id=D_ID,
-        sender_creditor_id=C_ID,
+        creditor_id=C_ID,
         recipient='1234',
         ts=datetime.now(tz=timezone.utc),
     )

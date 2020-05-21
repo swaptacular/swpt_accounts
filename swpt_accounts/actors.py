@@ -70,7 +70,7 @@ def prepare_transfer(
         min_amount: int,
         max_amount: int,
         debtor_id: int,
-        sender_creditor_id: int,
+        creditor_id: int,
         recipient: str,
         ts: str,
         minimum_account_balance: int = 0) -> None:
@@ -86,9 +86,9 @@ def prepare_transfer(
       been secured. For normal accounts it should be a non-negative
       number. For the debtor's account it can be any number.
 
-    * `sender_creditor_id` (along with `debtor_id`) identify the
-      sender's account. Note that `sender_creditor_id` is an integer,
-      while `recipient` is a string. The reason for this is that
+    * `creditor_id` (along with `debtor_id`) identify the sender's
+      account. Note that `creditor_id` is an integer, while
+      `recipient` is a string. The reason for this is that
       implementations will often want to use the `creditor_id` field
       as a key in a lookup table, to obtain addition information about
       sender's account (account authentication secrets for example).
@@ -111,24 +111,24 @@ def prepare_transfer(
     If a `PreparedTransferSignal` is received for an "initiated" CR
     record, the status of the corresponding CR record MUST be set to
     "prepared", and the received values for `debtor_id`,
-    `sender_creditor_id`, and `transfer_id` -- recorded. The
-    "prepared" CR record MUST be, at some point, finalized (committed
-    or dismissed), and the status set to "finalized".
+    `creditor_id`, and `transfer_id` -- recorded. The "prepared" CR
+    record MUST be, at some point, finalized (committed or dismissed),
+    and the status set to "finalized".
 
     If a `PreparedTransferSignal` is received for a "prepared" CR
-    record, the corresponding values of `debtor_id`,
-    `sender_creditor_id`, and `transfer_id` MUST be compared. If they
-    are the same, no action MUST be taken. If they differ, the newly
-    prepared transfer MUST be immediately dismissed (by sending a
-    message to the `finalize_prepared_transfer` actor with a zero
+    record, the corresponding values of `debtor_id`, `creditor_id`,
+    and `transfer_id` MUST be compared. If they are the same, no
+    action MUST be taken. If they differ, the newly prepared transfer
+    MUST be immediately dismissed (by sending a message to the
+    `finalize_prepared_transfer` actor with a zero
     `committed_amount`).
 
     If a `PreparedTransferSignal` is received for a "finalized" CR
-    record, the corresponding values of `debtor_id`,
-    `sender_creditor_id`, and `transfer_id` MUST be compared. If they
-    are the same, the original message to the
-    `finalize_prepared_transfer` actor MUST be sent again. If they
-    differ, the newly prepared transfer MUST be immediately dismissed.
+    record, the corresponding values of `debtor_id`, `creditor_id`,
+    and `transfer_id` MUST be compared. If they are the same, the
+    original message to the `finalize_prepared_transfer` actor MUST be
+    sent again. If they differ, the newly prepared transfer MUST be
+    immediately dismissed.
 
     If a `PreparedTransferSignal` is received but a corresponding CR
     record is not found, the newly prepared transfer MUST be
@@ -159,7 +159,7 @@ def prepare_transfer(
        SHOULD stay in the database until a corresponding
        `FinalizedTransferSignal` is received for them. (It MUST be
        verified that the signal has the same `debtor_id`,
-       `sender_creditor_id`, and `transfer_id` as the CR record.)
+       `creditor_id`, and `transfer_id` as the CR record.)
 
        Only when the corresponding `FinalizedTransferSignal` has not
        been received for a very long time (1 year for example), the
@@ -188,7 +188,7 @@ def prepare_transfer(
         min_amount,
         max_amount,
         debtor_id,
-        sender_creditor_id,
+        creditor_id,
         recipient,
         iso8601.parse_date(ts),
         minimum_account_balance,
@@ -198,7 +198,7 @@ def prepare_transfer(
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def finalize_prepared_transfer(
         debtor_id: int,
-        sender_creditor_id: int,
+        creditor_id: int,
         transfer_id: int,
         committed_amount: int,
         transfer_message: str,
@@ -207,10 +207,9 @@ def finalize_prepared_transfer(
 
     """Execute a prepared transfer.
 
-    * `debtor_id`, `sender_creditor_id`, and `transfer_id` uniquely
-      identify the prepared transfer. The values MUST be the same as
-      the values received with the corresponding
-      `PreparedTransferSignal`.
+    * `debtor_id`, `creditor_id`, and `transfer_id` uniquely identify
+      the prepared transfer. The values MUST be the same as the values
+      received with the corresponding `PreparedTransferSignal`.
 
     * `committed_amount` is the transferred amount. It MUST be
       non-negative. To dismiss the transfer, `committed_amount` should
@@ -232,7 +231,7 @@ def finalize_prepared_transfer(
 
     procedures.finalize_prepared_transfer(
         debtor_id,
-        sender_creditor_id,
+        creditor_id,
         transfer_id,
         committed_amount,
         transfer_message,
