@@ -721,6 +721,14 @@ transfer_seqnum : int64
    this account, a gap will occur in the generated sequence of
    seqnums.
 
+transfer_message : string
+   This MUST be the value of the ``transfer_message`` field in the
+   ``FinalizePreparedTransfer`` message that fianlized the transfer.
+
+transfer_flags : int32
+   This MUST be the value of the ``transfer_flags`` field in the
+   ``FinalizePreparedTransfer`` message that fianlized the transfer.
+
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
    between 1 and 30 symbols, ASCII only.
@@ -741,14 +749,6 @@ other_party_identity : string
    is the sender; when ``committed_amount`` is negative, this is the
    recipient. Different server implementations may use different
    formats for the identifier.
-
-transfer_message : string
-   This MUST be the value of the ``transfer_message`` field in the
-   ``FinalizePreparedTransfer`` message that fianlized the transfer.
-
-transfer_flags : int32
-   This MUST be the value of the ``transfer_flags`` field in the
-   ``FinalizePreparedTransfer`` message that fianlized the transfer.
 
 creation_date : date
    The date on which the affected account was created.
