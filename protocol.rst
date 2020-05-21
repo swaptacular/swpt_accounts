@@ -744,20 +744,24 @@ committed_at : date-time
    The moment at which the transfer was committed.
 
 transfer_message : string
-   This MUST be the value of the ``transfer_message`` field in the
+   MUST contain the value of the ``transfer_message`` field in the
    `FinalizePreparedTransfer`_ message that committed the transfer.
 
 transfer_flags : int32
-   This MUST be the value of the ``transfer_flags`` field in the
+   MUST contain be the value of the ``transfer_flags`` field in the
    `FinalizePreparedTransfer`_ that committed the transfer.
+
+system_flags : int32
+   Various bit-flags characterizing the transfer. Server
+   implementations may use these flags for different purposes. The
+   lowest bit (bit ``0``) is reserved, and has the meaning "negligible
+   transfer", indicating that this is an incoming transfer, whose
+   amount does not exceed the configured ``negligible_amount``.
 
 principal : int64
    The amount that the debtor owes to the creditor, without the
    interest, after the transfer has been committed. This can be a
    negative number.
-
-system_flags : int32
-   Various bit-flags characterizing the transfer.
 
 ts : date-time
    The moment at which this message was sent (the message's
