@@ -750,7 +750,7 @@ transfer_flags : int32
    This MUST be the value of the ``transfer_flags`` field in the
    ``FinalizePreparedTransfer`` message that fianlized the transfer.
 
-account_creation_date : date
+creation_date : date
    The date on which the affected account was created.
 
 account_new_principal : int64
@@ -764,7 +764,7 @@ previous_transfer_seqnum : int64
    sometimes the difference can be more than `1`. If there were no
    previous transfers, the value will have its lower 40 bits set to
    `0x0000000000`, and its higher 24 bits calculated from
-   `account_creation_date` (the number of days since Jan 1st, 1970).
+   `creation_date` (the number of days since Jan 1st, 1970).
 
 system_flags : int32
    Various bit-flags characterizing the transfer.

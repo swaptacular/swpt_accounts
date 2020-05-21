@@ -271,9 +271,8 @@ class AccountTransferSignal(Signal):
       parameter, with which the `finalize_prepared_transfer` actor was
       called.)
 
-    * `account_creation_date` is the date on which the account was
-      created. It can be used to differentiate transfers from
-      different "epochs".
+    * `creation_date` is the date on which the account was created. It
+      can be used to differentiate transfers from different "epochs".
 
     * `account_new_principal` is the account principal, after the
       transfer has been committd (between -MAX_INT64 and MAX_INT64).
@@ -283,8 +282,8 @@ class AccountTransferSignal(Signal):
       `transfer_seqnum`, and sometimes the difference can be more than
       `1`. If there were no previous transfers, the value will have
       its lower 40 bits set to `0x0000000000`, and its higher 24 bits
-      calculated from `account_creation_date` (the number of days
-      since Jan 1st, 1970).
+      calculated from `creation_date` (the number of days since Jan
+      1st, 1970).
 
     * `system_flags` contains various bit-flags characterizing the
       transfer.
@@ -314,7 +313,7 @@ class AccountTransferSignal(Signal):
         other_party_identity = fields.Function(lambda obj: str(i64_to_u64(obj.other_creditor_id)))
         transfer_message = fields.String()
         transfer_flags = fields.Integer()
-        account_creation_date = fields.Date()
+        account_creation_date = fields.Date(data_key='creation_date')
         account_new_principal = fields.Integer()
         previous_transfer_seqnum = fields.Integer()
         system_flags = fields.Integer()
