@@ -728,8 +728,8 @@ recipient : string
    recipient's account. [#account-identity]_
 
 amount : int64
-   The increase in the affected account's principal which the transfer
-   caused. This MUST NOT be zero. If it is a positive number (an
+   The increase in the affected account's principal, caused by the
+   transfer. This MUST NOT be zero. If it is a positive number (an
    addition to the principal), the affected account would be the
    recipient of the transfer. If it is a negative number (a
    subtraction from the principal), the affected account would be the
@@ -751,7 +751,7 @@ system_flags : int32
    implementations may use these flags for different purposes. The
    lowest bit (bit ``0``) is reserved, and has the meaning "negligible
    transfer", indicating that this is an incoming transfer, whose
-   amount does not exceed the configured ``negligible_amount``.
+   ``amount`` does not exceed the configured ``negligible_amount``.
 
 principal : int64
    The amount that the debtor owes to the creditor, without the
@@ -768,9 +768,9 @@ previous_transfer_seqnum : int64
    since the creation of the affected account, there have not been any
    other `AccountTransfer`_ messages, this MUST be ``0``.
 
-Each committed transfer affects two accounts: the sender's, and the
-recipient's. Therefore, two `AccountTransfer`_ messages would be
-emitted for each committed transfer.
+Every committed transfer affects two accounts: the sender's, and the
+recipient's. Therefore, two separate `AccountTransfer`_ messages would
+be emitted for each committed transfer.
 
 
 Requirements for Client Implementations
