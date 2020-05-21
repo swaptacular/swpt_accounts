@@ -722,11 +722,15 @@ transfer_seqnum : int64
 
 transfer_message : string
    This MUST be the value of the ``transfer_message`` field in the
-   `FinalizePreparedTransfer`_ message that fianlized the transfer.
+   `FinalizePreparedTransfer`_ message that committed the transfer.
 
 transfer_flags : int32
    This MUST be the value of the ``transfer_flags`` field in the
-   `FinalizePreparedTransfer`_ that fianlized the transfer.
+   `FinalizePreparedTransfer`_ that committed the transfer.
+
+coordinator_type : string
+   Indicates the subsystem which requested the transfer. MUST be
+   between 1 and 30 symbols, ASCII only.
 
 sender : string
    A string which (along with ``debtor_id``) identifies the sender's
@@ -735,10 +739,6 @@ sender : string
 recipient : string
    A string which (along with ``debtor_id``) identifies the
    recipient's account. [#account-identity]_
-
-coordinator_type : string
-   Indicates the subsystem which requested the transfer. MUST be
-   between 1 and 30 symbols, ASCII only.
 
 committed_at : date-time
    The moment at which the transfer was committed.
