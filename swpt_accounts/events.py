@@ -274,8 +274,8 @@ class AccountTransferSignal(Signal):
     * `creation_date` is the date on which the account was created. It
       can be used to differentiate transfers from different "epochs".
 
-    * `account_new_principal` is the account principal, after the
-      transfer has been committd (between -MAX_INT64 and MAX_INT64).
+    * `principal` is the account principal, after the transfer has
+      been committd (between -MAX_INT64 and MAX_INT64).
 
     * `previous_transfer_seqnum` is the sequential number (>= 0) of
       the previous transfer. It will always be smaller than
@@ -313,7 +313,7 @@ class AccountTransferSignal(Signal):
         transfer_message = fields.String()
         transfer_flags = fields.Integer()
         account_creation_date = fields.Date(data_key='creation_date')
-        account_new_principal = fields.Integer()
+        account_new_principal = fields.Integer(data_key='principal')
         previous_transfer_seqnum = fields.Integer()
         system_flags = fields.Integer()
         sender = fields.Function(lambda obj: str(i64_to_u64(obj.sender_creditor_id)))

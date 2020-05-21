@@ -753,7 +753,7 @@ transfer_flags : int32
    This MUST be the value of the ``transfer_flags`` field in the
    `FinalizePreparedTransfer`_ that committed the transfer.
 
-account_new_principal : int64
+principal : int64
    The affected account's principal, as it is after the transfer has
    been committed.
 
