@@ -723,14 +723,6 @@ transfer_seqnum : int64
    this account, a gap will occur in the generated sequence of
    seqnums.
 
-transfer_message : string
-   This MUST be the value of the ``transfer_message`` field in the
-   `FinalizePreparedTransfer`_ message that committed the transfer.
-
-transfer_flags : int32
-   This MUST be the value of the ``transfer_flags`` field in the
-   `FinalizePreparedTransfer`_ that committed the transfer.
-
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
    between 1 and 30 symbols, ASCII only.
@@ -745,11 +737,20 @@ recipient : string
 
 amount : int64
    The increase in the affected account's principal which the transfer
-   caused. It can be positive (increase), or negative (decrease). It
-   MUST NOT be zero.
+   caused. This MUST NOT be zero. If it is positive (increase), the
+   affected account is the recipient. If it is negative (decrease),
+   the affected account is the sender.
 
 committed_at : date-time
    The moment at which the transfer was committed.
+
+transfer_message : string
+   This MUST be the value of the ``transfer_message`` field in the
+   `FinalizePreparedTransfer`_ message that committed the transfer.
+
+transfer_flags : int32
+   This MUST be the value of the ``transfer_flags`` field in the
+   `FinalizePreparedTransfer`_ that committed the transfer.
 
 account_new_principal : int64
    The affected account's principal, as it is after the transfer has
