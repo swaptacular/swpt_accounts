@@ -695,12 +695,6 @@ AccountTransfer
 
 Emitted when a committed transfer has affected a given account.
 
-Each committed transfer affects exactly two accounts: the sender's,
-and the recipient's. Therefore, exactly two ``AccountTransfer``
-messages MUST be emitted for each committed transfer. The only
-exception to this rule is for special-purpose accounts that have no
-recipients for the message.
-
 debtor_id : int64
    The ID of the debtor.
 
@@ -770,9 +764,13 @@ ts : date-time
 
 previous_transfer_seqnum : int64
    MUST contain the value of the ``transfer_seqnum`` field in the
-   previous `AccountTransfer`_ message for the same account. If there
-   have not been any other `AccountTransfer`_ messages since the
-   creation of the account, this MUST be ``0``.
+   previous `AccountTransfer`_ message for the affected account. If
+   since the creation of the affected account, there have not been any
+   other `AccountTransfer`_ messages, this MUST be ``0``.
+
+Each committed transfer affects two accounts: the sender's, and the
+recipient's. Therefore, two `AccountTransfer`_ messages would be
+emitted for each committed transfer.
 
 
 Requirements for Client Implementations
