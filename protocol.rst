@@ -608,9 +608,9 @@ last_outgoing_transfer_date : date
 
 last_transfer_number : int64
    MUST contain the value of the ``transfer_number`` field in the
-   latest emitted `AccountTransfer`_ message. If since the creation of
-   the account there have not been any emitted `AccountTransfer`_
-   messages, the value MUST be ``0``.
+   latest emitted `AccountTransfer`_ message for the account. If since
+   the creation of the account there have not been any emitted
+   `AccountTransfer`_ messages, the value MUST be ``0``.
 
 ts : date-time
    The moment at which this message was emitted (the message's
@@ -763,7 +763,7 @@ previous_transfer_number : int64
    MUST contain the value of the ``transfer_number`` field in the
    previous `AccountTransfer`_ message for the affected account. If
    since the creation of the affected account, there have not been any
-   other `AccountTransfer`_ messages, this MUST be ``0``.
+   other `AccountTransfer`_ messages, the value MUST be ``0``.
 
 Every committed transfer affects two accounts: the sender's, and the
 recipient's. Therefore, two separate `AccountTransfer`_ messages would
