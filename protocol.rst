@@ -79,6 +79,12 @@ debtor_id : int64
 creditor_id : int64
    Along with ``debtor_id``, identifies the account.
 
+negligible_amount : float
+   The maximum amount that can be considered negligible. This MUST be
+   a non-negative number. It can be used to: 1) decide whether an
+   account can be safely deleted; 2) decide whether an incoming
+   transfer is insignificant.
+
 config_flags : int16
    Account configuration bit-flags. Server implementations may use
    these flags for different purposes. The lowest bit (bit ``0``) is
@@ -96,12 +102,6 @@ config_flags : int16
    SHOULD NOT be removed. Some time after an account has been removed
    from the server's database, an `AccountPurge`_ message MUST be sent
    to inform about that. [#purge-delay]_
-
-negligible_amount : float
-   The maximum amount that can be considered negligible. This MUST be
-   a non-negative number. It can be used to: 1) decide whether an
-   account can be safely deleted; 2) decide whether an incoming
-   transfer is insignificant.
 
 config : string
    Additional account configuration settings. Different server
