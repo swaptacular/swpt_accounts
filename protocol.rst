@@ -86,9 +86,9 @@ negligible_amount : float
    transfer is insignificant.
 
 config_flags : int16
-   Account configuration bit-flags. Server implementations may use
-   these flags for different purposes. The lowest bit (bit ``0``) is
-   reserved, and has the meaning "scheduled for
+   Account configuration bit-flags. Different server implementations
+   may use these flags for different purposes. The lowest bit (bit
+   ``0``) is reserved, and has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
    are met, an account SHOULD be removed (or at least marked as
    deleted) from the server's database: **1)** the account is
