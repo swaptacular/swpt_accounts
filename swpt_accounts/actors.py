@@ -9,8 +9,8 @@ def configure_account(
         creditor_id: int,
         ts: str,
         seqnum: int,
-        status_flags: int = 0,
         negligible_amount: float = 0.0,
+        config_flags: int = 0,
         config: str = '') -> None:
 
     """Make sure the account `(debtor_id, creditor_id)` exists, then
@@ -26,10 +26,10 @@ def configure_account(
       compared to earlier calls (except for the possible 32-bit
       integer wrapping, in case of an overflow).
 
-    * `status_flags` contains account configuration flags (a 16-bit
+    * `config_flags` contains account configuration flags (a 16-bit
       integer). When the configuration update is applied, the lower 16
       bits of the `Account.status` column (see `models.Account) will
-      be equal to those of `status_flags`.
+      be equal to those of `config_flags`.
 
     * `negligible_amount` is the maximum amount that should be
        considered negligible. It is used to: 1) decide whether an
@@ -56,8 +56,8 @@ def configure_account(
         creditor_id,
         iso8601.parse_date(ts),
         seqnum,
-        status_flags,
         negligible_amount,
+        config_flags,
         config,
     )
 

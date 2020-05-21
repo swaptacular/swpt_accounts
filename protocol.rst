@@ -79,7 +79,7 @@ debtor_id : int64
 creditor_id : int64
    Along with ``debtor_id``, identifies the account.
 
-status_flags : int16
+config_flags : int16
    Account configuration bit-flags. Server implementations may use
    these flags for different purposes. The lowest bit (bit ``0``) is
    reserved, and has the meaning "scheduled for
@@ -342,8 +342,8 @@ config_ts : date-time
 config_seqnum : int32
    The value of the ``seqnum`` field in the rejected message.
 
-status_flags : int16
-   The value of the ``status_flags`` field in the rejected message.
+config_flags : int16
+   The value of the ``config_flags`` field in the rejected message.
 
 negligible_amount : float
    The value of the ``negligible_amount`` field in the rejected
@@ -587,7 +587,7 @@ config : string
 
 status : int32
    Status bit-flags. The lowest 16 bits (from bit ``0`` to bit ``15``)
-   MUST contain the value of the ``status_flags`` field in the latest
+   MUST contain the value of the ``config_flags`` field in the latest
    applied `ConfigureAccount`_ message. If there have not been any
    applied `ConfigureAccount`_ messages yet, the lowest 16 bits SHOULD
    represent the default configuration settings. The highest 16 bits

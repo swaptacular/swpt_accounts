@@ -56,8 +56,8 @@ def test_configure_account(db_session):
         creditor_id=C_ID,
         ts='2099-12-31T00:00:00Z',
         seqnum=0,
-        status_flags=0,
         negligible_amount=500.0,
+        config_flags=0,
         config='',
     )
 

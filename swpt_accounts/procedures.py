@@ -28,15 +28,15 @@ def configure_account(
         creditor_id: int,
         ts: datetime,
         seqnum: int,
-        status_flags: int = 0,
         negligible_amount: float = 0.0,
+        config_flags: int = 0,
         config: str = '') -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= seqnum <= MAX_INT32
-    assert MIN_INT16 <= status_flags <= MAX_INT16
+    assert MIN_INT16 <= config_flags <= MAX_INT16
 
     current_ts = datetime.now(tz=timezone.utc)
 
@@ -53,7 +53,7 @@ def configure_account(
             creditor_id=creditor_id,
             config_ts=ts,
             config_seqnum=seqnum,
-            status_flags=status_flags,
+            config_flags=config_flags,
             negligible_amount=negligible_amount,
             config=config,
             rejection_code=rejection_code,
@@ -65,7 +65,7 @@ def configure_account(
         if account.status & Account.STATUS_DELETED_FLAG:
             account.status &= ~Account.STATUS_DELETED_FLAG
             account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        account.set_config_flags(status_flags)
+        account.set_config_flags(config_flags)
         account.negligible_amount = negligible_amount
         account.last_config_ts = ts
         account.last_config_seqnum = seqnum
