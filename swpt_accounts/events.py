@@ -478,13 +478,6 @@ class AccountPurgeSignal(Signal):
 
     * `ts` is the moment at which this signal was emitted.
 
-    * `account_identity` is a string, which (along with `debtor_id`)
-      identifies the account. Different implementations may use
-      different formats for the identifier. Note that while
-      `creditor_id` could be a "local" identifier, recognized only by
-      the system that created the account, `account_identity` is
-      always globally recognized identifier.
-
     """
 
     class __marshmallow__(Schema):
@@ -492,7 +485,6 @@ class AccountPurgeSignal(Signal):
         creditor_id = fields.Integer()
         creation_date = fields.Date()
         inserted_at_ts = fields.DateTime(data_key='ts')
-        account_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
