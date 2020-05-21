@@ -756,21 +756,18 @@ principal : int64
    interest, after the transfer has been committed. This can be a
    negative number.
 
-previous_transfer_seqnum : int64
-   TODO: improve description
-   The sequential number of the previous transfer. MUST be a positive
-   number. It will always be smaller than `transfer_seqnum`, and
-   sometimes the difference can be more than `1`. If there were no
-   previous transfers, the value will have its lower 40 bits set to
-   `0x0000000000`, and its higher 24 bits calculated from
-   `creation_date` (the number of days since Jan 1st, 1970).
-
 system_flags : int32
    Various bit-flags characterizing the transfer.
 
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
+
+previous_transfer_seqnum : int64
+   This MUST be the value of the ``transfer_seqnum`` field in the
+   previous `AccountTransfer`_ message on the same account. If since
+   the creation of the account there have not been any emitted
+   `AccountTransfer`_ messages, the value MUST be ``0``.
 
 
 Requirements for Client Implementations
