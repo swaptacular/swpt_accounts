@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: e5a8457ea582
+Revision ID: fffa5510a682
 Revises: 
-Create Date: 2020-05-21 12:31:21.378232
+Create Date: 2020-05-21 16:01:43.470026
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e5a8457ea582'
+revision = 'fffa5510a682'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -96,7 +96,6 @@ def upgrade():
     sa.Column('account_new_principal', sa.BigInteger(), nullable=False),
     sa.Column('previous_transfer_seqnum', sa.BigInteger(), nullable=False),
     sa.Column('system_flags', sa.Integer(), nullable=False),
-    sa.Column('transfer_id', sa.BigInteger(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_seqnum')
     )
     op.create_table('finalized_transfer_signal',
@@ -122,14 +121,12 @@ def upgrade():
     sa.Column('interest_delta', sa.BigInteger(), nullable=False, comment='The change in `account.interest`.'),
     sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.locked_amount`, and `account.pending_transfers_count` must be decremented.'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('transfer_id', sa.BigInteger(), nullable=True, comment="When the account change represents a committed direct transfer, and `creditor_id` is the creditor ID of the sender (that is: `coordinator_type = 'direct' and principal_delta < 0`), this column contains the ID of the corresponding prepared transfer (`prepared_transfer.transfer_id`). Otherwise it is NULL."),
     sa.Column('transfer_message', sa.TEXT(), nullable=True, comment='Notes from the sender. Can be any string that the sender wants the recipient to see. If the account change represents a committed transfer, the notes will be included in the generated `on_account_transfer_signal` event, otherwise the notes are ignored. Can be NULL only if `principal_delta` is zero.'),
     sa.Column('transfer_flags', sa.Integer(), nullable=True, comment='Contains various flags that characterize the committed transfer. If the account change represents a committed transfer, the flags will be included in the generated `on_account_transfer_signal` event, otherwise the flags are ignored. Can be NULL only if `principal_delta` is zero.'),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='If the account change represents a committed transfer, this is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, the value is irrelevant.'),
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('principal_delta = 0 OR transfer_flags IS NOT NULL'),
     sa.CheckConstraint('principal_delta = 0 OR transfer_message IS NOT NULL'),
-    sa.CheckConstraint('transfer_id > 0'),
     sa.CheckConstraint('unlocked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
     comment='Represents a pending change to a given account. Pending updates to `account.principal`, `account.interest`, and `account.locked_amount` are queued to this table, before being processed, because this allows multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'

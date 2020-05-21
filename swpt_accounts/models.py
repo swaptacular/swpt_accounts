@@ -371,13 +371,6 @@ class PendingAccountChange(db.Model):
                 '`account.pending_transfers_count` must be decremented.',
     )
     coordinator_type = db.Column(db.String(30), nullable=False)
-    transfer_id = db.Column(
-        db.BigInteger,
-        comment="When the account change represents a committed direct transfer, and `creditor_id` "
-                f"is the creditor ID of the sender (that is: `coordinator_type = '{CT_DIRECT}' and "
-                "principal_delta < 0`), this column contains the ID of the corresponding prepared "
-                "transfer (`prepared_transfer.transfer_id`). Otherwise it is NULL.",
-    )
     transfer_message = db.Column(
         pg.TEXT,
         comment='Notes from the sender. Can be any string that the sender wants the '
@@ -406,7 +399,6 @@ class PendingAccountChange(db.Model):
     __table_args__ = (
         db.CheckConstraint(or_(principal_delta == 0, transfer_message != null())),
         db.CheckConstraint(or_(principal_delta == 0, transfer_flags != null())),
-        db.CheckConstraint(transfer_id > 0),
         db.CheckConstraint(unlocked_amount >= 0),
         {
             'comment': 'Represents a pending change to a given account. Pending updates to '

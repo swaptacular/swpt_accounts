@@ -170,7 +170,6 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1.creditor_id == C_ID
     assert cts1.other_creditor_id == p.ROOT_CREDITOR_ID
     assert cts1.committed_amount == amount
-    assert cts1.transfer_id == 0
     assert cts1.transfer_message == TRANSFER_MESSAGE
     assert cts1.transfer_seqnum == transfer_seqnum1
     assert cts1.account_new_principal == amount
@@ -757,13 +756,11 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert cts1.creditor_id == C_ID
     assert cts1.other_creditor_id == 1234
     assert cts1.committed_amount == -40
-    assert cts1.transfer_id > 0
     cts2 = AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=1234).one()
     assert cts2.coordinator_type == 'direct'
     assert cts2.creditor_id == 1234
     assert cts2.other_creditor_id == C_ID
     assert cts2.committed_amount == 40
-    assert cts2.transfer_id == 0
 
 
 def test_commit_to_debtor_account(db_session, current_ts):

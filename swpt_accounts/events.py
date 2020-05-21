@@ -295,12 +295,6 @@ class AccountTransferSignal(Signal):
       the system that created the account, `creditor_identity` is
       always a globally recognized identifier.
 
-    * `transfer_id` will contain either `0`, or the ID of the
-       corresponding prepared transfer. This allows the sender of a
-       committed direct transfer, to reliably identify the
-       corresponding prepared transfer record (using `debtor_id`,
-       `creditor_id`, and `transfer_id` fields).
-
     """
 
     class __marshmallow__(Schema):
@@ -318,7 +312,6 @@ class AccountTransferSignal(Signal):
         system_flags = fields.Integer()
         sender = fields.Function(lambda obj: str(i64_to_u64(obj.sender_creditor_id)))
         recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
-        transfer_id = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
 
     TRANSFER_FLAG_IS_PUBLIC = 1
@@ -344,7 +337,6 @@ class AccountTransferSignal(Signal):
     account_new_principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     system_flags = db.Column(db.Integer, nullable=False)
-    transfer_id = db.Column(db.BigInteger, nullable=False)
 
     @property
     def sender_creditor_id(self):

@@ -257,10 +257,9 @@ creditor_id : int64
    Along with ``debtor_id``, identifies the sender's account.
 
 transfer_id : int64
-   The opaque ID generated for the prepared transfer. This MUST always
-   be a positive number. This ID, along with ``debtor_id`` and
-   ``creditor_id``, uniquely identifies the prepared transfer that has
-   to be finalized.
+   The opaque ID generated for the prepared transfer. This ID, along
+   with ``debtor_id`` and ``creditor_id``, uniquely identifies the
+   prepared transfer that has to be finalized.
 
 committed_amount : int64
    The amount that has to be transferred. This MUST be a non-negative
@@ -420,9 +419,9 @@ creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 transfer_id : int64
-   An opaque ID generated for the prepared transfer. This MUST always
-   be a positive number. This ID, along with ``debtor_id`` and
-   ``creditor_id``, uniquely identifies the prepared transfer.
+   An opaque ID generated for the prepared transfer. This ID, along
+   with ``debtor_id`` and ``creditor_id``, uniquely identifies the
+   prepared transfer.
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
@@ -472,10 +471,9 @@ creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
 transfer_id : int64
-   The opaque ID generated for the prepared transfer. This MUST always
-   be a positive number. This ID, along with ``debtor_id`` and
-   ``creditor_id``, uniquely identifies the finalized prepared
-   transfer.
+   The opaque ID generated for the prepared transfer. This ID, along
+   with ``debtor_id`` and ``creditor_id``, uniquely identifies the
+   finalized prepared transfer.
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
@@ -769,13 +767,6 @@ previous_transfer_seqnum : int64
 
 system_flags : int32
    Various bit-flags characterizing the transfer.
-
-transfer_id : int64
-   TODO: improve description
-   MUST contain either ``0``, or the ID of the corresponding prepared
-   transfer. This allows the sender of a committed direct transfer, to
-   reliably identify the corresponding prepared transfer record (using
-   `debtor_id`, `creditor_id`, and `transfer_id` fields).
 
 ts : date-time
    The moment at which this message was sent (the message's
