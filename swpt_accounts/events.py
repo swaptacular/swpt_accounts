@@ -523,7 +523,7 @@ class RejectedConfigSignal(Signal):
         config_ts = fields.DateTime()
         config_seqnum = fields.Integer()
         status_flags = fields.Integer()
-        negligible_amount = fields.Float(),
+        negligible_amount = fields.Float()
         config = fields.String()
         inserted_at_ts = fields.DateTime(data_key='ts')
         rejection_code = fields.String()

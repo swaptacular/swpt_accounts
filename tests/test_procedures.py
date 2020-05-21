@@ -40,8 +40,24 @@ def test_configure_account(db_session, current_ts):
     assert acs.interest == a.interest
     assert acs.interest_rate == a.interest_rate
     acs_obj = acs.__marshmallow_schema__.dump(acs)
-    assert acs_obj['ttl'] == 14 * 24 * 60 * 60
+    assert acs_obj['debtor_id'] == D_ID
+    assert acs_obj['creditor_id'] == C_ID
+    assert acs_obj['creation_date'] == a.creation_date.isoformat()
+    assert acs_obj['change_ts'] == a.last_change_ts.isoformat()
+    assert acs_obj['change_seqnum'] == a.last_change_seqnum
+    assert acs_obj['principal'] == a.principal
+    assert acs_obj['interest'] == a.interest
+    assert acs_obj['interest_rate'] == a.interest_rate
+    assert acs_obj['last_config_ts'] == a.last_config_ts.isoformat()
+    assert acs_obj['last_config_seqnum'] == a.last_config_seqnum
+    assert acs_obj['negligible_amount'] == a.negligible_amount
+    assert acs_obj['config'] == ''
+    assert acs_obj['status'] == a.status
+    assert acs_obj['account_identity'] == str(C_ID)
+    assert acs_obj['last_outgoing_transfer_date'] == a.last_outgoing_transfer_date.isoformat()
     assert acs_obj['last_transfer_seqnum'] == 0
+    assert isinstance(acs_obj['ts'], str)
+    assert acs_obj['ttl'] == 14 * 24 * 60 * 60
 
     a = p.configure_account(D_ID, C_ID, current_ts, 0)
     assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 1
@@ -74,6 +90,16 @@ def test_invalid_config(db_session, current_ts):
     assert rcs.status_flags == 0x1fff
     assert rcs.negligible_amount == -10.0
     assert rcs.config == 'xxx'
+    rcs_obj = rcs.__marshmallow_schema__.dump(rcs)
+    assert rcs_obj['debtor_id'] == D_ID
+    assert rcs_obj['creditor_id'] == C_ID
+    assert rcs_obj['config_ts'] == current_ts.isoformat()
+    assert rcs_obj['config_seqnum'] == 123
+    assert rcs_obj['status_flags'] == rcs.status_flags
+    assert rcs_obj['negligible_amount'] == rcs.negligible_amount
+    assert rcs_obj['config'] == 'xxx'
+    assert rcs_obj['rejection_code'] == 'INVALID_CONFIGURATION'
+    assert isinstance(rcs_obj['ts'], str)
 
     p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123)
     assert p.get_account(D_ID, C_ID) is None
@@ -517,6 +543,16 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
+    rts_obj = rts.__marshmallow_schema__.dump(rts)
+    assert rts_obj['debtor_id'] == D_ID
+    assert rts_obj['sender_creditor_id'] == C_ID
+    assert isinstance(rts_obj['rejection_code'], str)
+    assert rts_obj['coordinator_type'] == 'test'
+    assert rts_obj['coordinator_id'] == 1
+    assert rts_obj['coordinator_request_id'] == 2
+    assert rts_obj['available_amount'] == 0
+    assert rts_obj['recipient'] == '1234'
+    assert isinstance(rts_obj['ts'], str)
 
 
 def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
@@ -635,6 +671,17 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pt.recipient_creditor_id == 1234
     assert pt.sender_locked_amount == pts.sender_locked_amount
 
+    pts_obj = pts.__marshmallow_schema__.dump(pts)
+    assert pts_obj['debtor_id'] == D_ID
+    assert pts_obj['sender_creditor_id'] == C_ID
+    assert pts_obj['transfer_id'] == pts.transfer_id
+    assert pts_obj['coordinator_type'] == 'test'
+    assert pts_obj['coordinator_id'] == 1
+    assert pts_obj['coordinator_request_id'] == 2
+    assert pts_obj['locked_amount'] == pts.sender_locked_amount
+    assert pts_obj['recipient'] == '1234'
+    assert isinstance(pts_obj['ts'], str)
+
     # Discard the transfer.
     with pytest.raises(AssertionError):
         p.finalize_prepared_transfer(D_ID, C_ID, pt.transfer_id, -1)
@@ -651,7 +698,19 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert len(AccountChangeSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
     assert len(AccountTransferSignal.query.all()) == 0
-    assert len(FinalizedTransferSignal.query.all()) == 1
+    fpt = FinalizedTransferSignal.query.one()
+    fpt_obj = fpt.__marshmallow_schema__.dump(fpt)
+    assert fpt_obj['debtor_id'] == D_ID
+    assert fpt_obj['sender_creditor_id'] == C_ID
+    assert fpt_obj['transfer_id'] == pt.transfer_id
+    assert fpt_obj['coordinator_type'] == 'test'
+    assert fpt_obj['coordinator_id'] == 1
+    assert fpt_obj['coordinator_request_id'] == 2
+    assert fpt_obj['committed_amount'] == 0
+    assert fpt_obj['recipient'] == '1234'
+    assert fpt_obj['status_code'] == 'OK'
+    assert isinstance(fpt_obj['ts'], str)
+    assert fpt_obj['prepared_at'] == fpt.prepared_at_ts.isoformat()
 
 
 def test_commit_prepared_transfer(db_session, current_ts):
