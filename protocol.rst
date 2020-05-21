@@ -367,6 +367,12 @@ RejectedTransfer
 
 Emitted when a request to prepare a transfer has been rejected.
 
+debtor_id : int64
+   The ID of the debtor.
+
+sender_creditor_id : int64
+   Along with ``debtor_id`` identifies the sender's account.
+
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
    between 1 and 30 symbols, ASCII only.
@@ -385,18 +391,16 @@ rejection_code : string
    The reason for the rejection of the transfer. MUST be between 0 and
    30 symbols, ASCII only.
 
-debtor_id : int64
-   The ID of the debtor.
-
-sender_creditor_id : int64
-   Along with ``debtor_id`` identifies the sender's account.
-
 available_amount : int64
    MUST be a non-negative number. If the transfer was rejected due to
    insufficient available amount, but there is a good chance for a new
    transfer request for a smaller amount to be successful, this field
    SHOULD contain the amount currently available on sender's account;
    otherwise this MUST be ``0``.
+
+recipient : string
+   The value of the ``recipient`` field in the corresponding
+   `PrepareTransfer`_ message.
 
 ts : date-time
    The moment at which this message was sent (the message's

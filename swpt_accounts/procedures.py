@@ -648,6 +648,7 @@ def _process_transfer_request(
             rejection_code=rejection_code,
             available_amount=available_amount,
             sender_creditor_id=tr.sender_creditor_id,
+            recipient_creditor_id=tr.recipient_creditor_id,
         )
 
     def prepare(amount: int) -> PreparedTransferSignal:

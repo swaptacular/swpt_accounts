@@ -92,6 +92,7 @@ class RejectedTransferSignal(Signal):
         debtor_id = fields.Integer()
         sender_creditor_id = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
+        recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -101,6 +102,7 @@ class RejectedTransferSignal(Signal):
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
     available_amount = db.Column(db.BigInteger, nullable=False)
+    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
 
     @property
     def event_name(self):  # pragma: no cover
