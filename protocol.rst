@@ -748,7 +748,7 @@ transfer_message : string
    `FinalizePreparedTransfer`_ message that committed the transfer.
 
 transfer_flags : int32
-   MUST contain be the value of the ``transfer_flags`` field in the
+   MUST contain the value of the ``transfer_flags`` field in the
    `FinalizePreparedTransfer`_ message that committed the transfer.
 
 system_flags : int32
