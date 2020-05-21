@@ -373,6 +373,10 @@ debtor_id : int64
 sender_creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
+rejection_code : string
+   The reason for the rejection of the transfer. MUST be between 0 and
+   30 symbols, ASCII only.
+
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
    between 1 and 30 symbols, ASCII only.
@@ -386,10 +390,6 @@ coordinator_request_id : int64
    identifies the rejected request from the coordinator's point of
    view, so that the coordinator can pair this message with the issued
    request to prepare a transfer.
-
-rejection_code : string
-   The reason for the rejection of the transfer. MUST be between 0 and
-   30 symbols, ASCII only.
 
 available_amount : int64
    MUST be a non-negative number. If the transfer was rejected due to
