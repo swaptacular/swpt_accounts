@@ -697,9 +697,9 @@ creation_date : date
 transfer_number : int64
    Along with ``debtor_id``, ``creditor_id``, and ``creation_date``,
    uniquely identifies the committed transfer. This MUST be a positive
-   number. Also, during the lifetime of a given account, later
-   committed transfers MUST have bigger ``transfer_number``
-   values. [#transfer-number]_
+   number. During the lifetime of a given account, later committed
+   transfers MUST have bigger ``transfer_number``\s, compared to
+   earlier transfers. [#transfer-number]_
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
