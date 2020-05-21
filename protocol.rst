@@ -749,7 +749,7 @@ transfer_message : string
 
 transfer_flags : int32
    MUST contain be the value of the ``transfer_flags`` field in the
-   `FinalizePreparedTransfer`_ that committed the transfer.
+   `FinalizePreparedTransfer`_ message that committed the transfer.
 
 system_flags : int32
    Various bit-flags characterizing the transfer. Server
