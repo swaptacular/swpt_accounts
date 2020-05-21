@@ -723,11 +723,11 @@ transfer_seqnum : int64
 
 transfer_message : string
    This MUST be the value of the ``transfer_message`` field in the
-   ``FinalizePreparedTransfer`` message that fianlized the transfer.
+   `FinalizePrepared`_ message that fianlized the transfer.
 
 transfer_flags : int32
    This MUST be the value of the ``transfer_flags`` field in the
-   ``FinalizePreparedTransfer`` message that fianlized the transfer.
+   `FinalizePrepared`_ that fianlized the transfer.
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be

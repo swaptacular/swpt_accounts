@@ -310,14 +310,14 @@ class AccountTransferSignal(Signal):
         coordinator_type = fields.String()
         committed_at_ts = fields.DateTime(data_key='committed_at')
         committed_amount = fields.Integer()
-        other_party_identity = fields.Function(lambda obj: str(i64_to_u64(obj.other_creditor_id)))
         transfer_message = fields.String()
         transfer_flags = fields.Integer()
         account_creation_date = fields.Date(data_key='creation_date')
         account_new_principal = fields.Integer()
         previous_transfer_seqnum = fields.Integer()
         system_flags = fields.Integer()
-        creditor_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
+        sender = fields.Function(lambda obj: str(i64_to_u64(obj.sender_creditor_id)))
+        recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         transfer_id = fields.Integer()
 
     TRANSFER_FLAG_IS_PUBLIC = 1
@@ -344,6 +344,14 @@ class AccountTransferSignal(Signal):
     previous_transfer_seqnum = db.Column(db.BigInteger, nullable=False)
     system_flags = db.Column(db.Integer, nullable=False)
     transfer_id = db.Column(db.BigInteger, nullable=False)
+
+    @property
+    def sender_creditor_id(self):
+        return self.other_creditor_id if self.committed_amount >= 0 else self.creditor_id
+
+    @property
+    def recipient_creditor_id(self):
+        return self.other_creditor_id if self.committed_amount < 0 else self.creditor_id
 
 
 class AccountChangeSignal(Signal):
