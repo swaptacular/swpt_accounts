@@ -737,9 +737,10 @@ recipient : string
 
 amount : int64
    The increase in the affected account's principal which the transfer
-   caused. This MUST NOT be zero. If it is positive (increase), the
-   affected account is the recipient. If it is negative (decrease),
-   the affected account is the sender.
+   caused. This MUST NOT be zero. If it is a positive number (addition
+   to the principal), the affected account is the recipient. If it is
+   a negative number (subtraction from the principal), the affected
+   account is the sender.
 
 committed_at : date-time
    The moment at which the transfer was committed.
