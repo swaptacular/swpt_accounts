@@ -729,7 +729,7 @@ transfer_message : string
    MUST contain the value of the ``transfer_message`` field in the
    `FinalizePreparedTransfer`_ message that committed the transfer.
 
-system_flags : int32
+transfer_flags : int32
    Various bit-flags characterizing the transfer. Server
    implementations may use these flags for different purposes. The
    lowest bit (bit ``0``) is reserved, and has the meaning "negligible

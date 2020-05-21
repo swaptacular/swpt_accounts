@@ -173,7 +173,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1.transfer_number == transfer_number1
     assert cts1.account_new_principal == amount
     assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
-    assert cts1.system_flags & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
+    assert cts1.transfer_flags & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
 
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_MESSAGE)
     p.process_pending_account_changes(D_ID, C_ID)

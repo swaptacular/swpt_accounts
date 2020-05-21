@@ -531,10 +531,10 @@ def _insert_account_transfer_signal(
     # debtor's account, because the debtor's account does not have a
     # real owning creditor.
     if account.creditor_id != ROOT_CREDITOR_ID:
-        system_flags = 0
+        transfer_flags = 0
 
         if abs(committed_amount) <= account.negligible_amount:
-            system_flags |= AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
+            transfer_flags |= AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
 
         db.session.add(AccountTransferSignal(
             debtor_id=account.debtor_id,
@@ -545,10 +545,10 @@ def _insert_account_transfer_signal(
             committed_at_ts=committed_at_ts,
             committed_amount=committed_amount,
             transfer_message=transfer_message,
+            transfer_flags=transfer_flags,
             account_creation_date=account.creation_date,
             account_new_principal=account_new_principal,
             previous_transfer_number=previous_transfer_number,
-            system_flags=system_flags,
         ))
 
 
