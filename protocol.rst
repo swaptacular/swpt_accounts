@@ -722,11 +722,11 @@ transfer_seqnum : int64
 
 transfer_message : string
    This MUST be the value of the ``transfer_message`` field in the
-   `FinalizeTransfer`_ message that fianlized the transfer.
+   `FinalizePreparedTransfer`_ message that fianlized the transfer.
 
 transfer_flags : int32
    This MUST be the value of the ``transfer_flags`` field in the
-   `FinalizeTransfer`_ that fianlized the transfer.
+   `FinalizePreparedTransfer`_ that fianlized the transfer.
 
 sender : string
    A string which (along with ``debtor_id``) identifies the sender's
