@@ -510,8 +510,8 @@ prepared_at : date-time
 AccountChange
 -------------
 
-Emitted when there is a meaningful change in the state of an account,
-or to remind that an account still exists.
+Emitted when there has been a meaningful change in the state of an
+account, or to remind that an account still exists.
 
 debtor_id : int64
    The ID of the debtor.
@@ -531,11 +531,11 @@ change_ts : date-time
    compared to earlier messages.
 
 change_seqnum : int32
-   The sequential number of the change. For a given account, later
-   changes MUST have bigger sequential numbers, compared to earlier
-   changes. Note that when the maximum ``int32`` value is reached, the
-   next value MUST be ``-2147483648`` (signeld 32-bit integer
-   wrapping). [#compare-change]_ [#compare-seqnums]_
+   The sequential number of the latest meaningful change. For a given
+   account, later changes MUST have bigger sequential numbers,
+   compared to earlier changes. Note that when the maximum ``int32``
+   value is reached, the next value MUST be ``-2147483648`` (signeld
+   32-bit integer wrapping). [#compare-change]_ [#compare-seqnums]_
 
 principal : int64
    The amount that the debtor owes to the creditor, without the
