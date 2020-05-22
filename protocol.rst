@@ -510,8 +510,9 @@ prepared_at : date-time
 AccountChange
 -------------
 
-Emitted when there has been a meaningful change [#meaningful-change]_
-in the state of an account, or to remind that an account still exists.
+Emitted when there has been a meaningful change in the state of an
+account [#meaningful-change]_, or to remind that an account still
+exists.
 
 debtor_id : int64
    The ID of the debtor.
