@@ -127,7 +127,7 @@ def prepare_transfer(
 
 
 @atomic
-def finalize_prepared_transfer(
+def finalize_transfer(
         debtor_id: int,
         creditor_id: int,
         transfer_id: int,

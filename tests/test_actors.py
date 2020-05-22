@@ -20,8 +20,8 @@ def test_prepare_transfer(db_session):
     )
 
 
-def test_finalize_prepared_transfer(db_session):
-    a.finalize_prepared_transfer(
+def test_finalize_transfer(db_session):
+    a.finalize_transfer(
         debtor_id=D_ID,
         creditor_id=C_ID,
         transfer_id=666,

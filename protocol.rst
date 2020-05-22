@@ -245,8 +245,8 @@ When server implementations process a `PrepareTransfer`_ message they:
   MUST be precisely defined, and known in advance.
 
 
-FinalizePreparedTransfer
-------------------------
+FinalizeTransfer
+----------------
 
 Upon receiving this message, the server finalizes a prepared transfer.
 
@@ -278,9 +278,9 @@ ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
 
-When server implementations processes a `FinalizePreparedTransfer`_
-message, they MUST first verify whether the specified prepared
-transfer exists in server's database:
+When server implementations processes a `FinalizeTransfer`_ message,
+they MUST first verify whether the specified prepared transfer exists
+in server's database:
 
 1. If the specified prepared transfer exists, server implementations
    MUST:
@@ -726,7 +726,7 @@ committed_at : date-time
 
 transfer_message : string
    MUST contain the value of the ``transfer_message`` field from the
-   `FinalizePreparedTransfer`_ message that committed the transfer.
+   `FinalizeTransfer`_ message that committed the transfer.
 
 transfer_flags : int32
    Various bit-flags characterizing the transfer. Server
@@ -781,15 +781,14 @@ If a `PreparedTransferSignal` is received for a "prepared" CR record,
 the corresponding values of `debtor_id`, `creditor_id`, and
 `transfer_id` MUST be compared. If they are the same, no action MUST
 be taken. If they differ, the newly prepared transfer MUST be
-immediately dismissed (by sending a message to the
-`finalize_prepared_transfer` actor with a zero `committed_amount`).
+immediately dismissed (by sending a message to the `finalize_transfer`
+actor with a zero `committed_amount`).
 
 If a `PreparedTransferSignal` is received for a "finalized" CR record,
 the corresponding values of `debtor_id`, `creditor_id`, and
 `transfer_id` MUST be compared. If they are the same, the original
-message to the `finalize_prepared_transfer` actor MUST be sent
-again. If they differ, the newly prepared transfer MUST be immediately
-dismissed.
+message to the `finalize_transfer` actor MUST be sent again. If they
+differ, the newly prepared transfer MUST be immediately dismissed.
 
 If a `PreparedTransferSignal` is received but a corresponding CR
 record is not found, the newly prepared transfer MUST be
@@ -808,9 +807,9 @@ IMPORTANT NOTES:
 1. "initiated" CR records MAY be deleted whenever considered
    appropriate.
 
-2. "prepared" CR records MUST NOT be deleted. Instead, they MUST
-   be "finalized" first (by sending a message to the
-   `finalize_prepared_transfer` actor).
+2. "prepared" CR records MUST NOT be deleted. Instead, they MUST be
+   "finalized" first (by sending a message to the `finalize_transfer`
+   actor).
 
 3. "finalized" CR records, which have been committed (i.e. not
    dismissed), SHOULD NOT be deleted right away. Instead, they SHOULD

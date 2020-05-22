@@ -84,14 +84,13 @@ def prepare_transfer(
     and `transfer_id` MUST be compared. If they are the same, no
     action MUST be taken. If they differ, the newly prepared transfer
     MUST be immediately dismissed (by sending a message to the
-    `finalize_prepared_transfer` actor with a zero
-    `committed_amount`).
+    `finalize_transfer` actor with a zero `committed_amount`).
 
     If a `PreparedTransferSignal` is received for a "finalized" CR
     record, the corresponding values of `debtor_id`, `creditor_id`,
     and `transfer_id` MUST be compared. If they are the same, the
-    original message to the `finalize_prepared_transfer` actor MUST be
-    sent again. If they differ, the newly prepared transfer MUST be
+    original message to the `finalize_transfer` actor MUST be sent
+    again. If they differ, the newly prepared transfer MUST be
     immediately dismissed.
 
     If a `PreparedTransferSignal` is received but a corresponding CR
@@ -116,7 +115,7 @@ def prepare_transfer(
 
     2. "prepared" CR records MUST NOT be deleted. Instead, they MUST
        be "finalized" first (by sending a message to the
-       `finalize_prepared_transfer` actor).
+       `finalize_transfer` actor).
 
     3. "finalized" CR records, which have been committed (i.e. not
        dismissed), SHOULD NOT be deleted right away. Instead, they
@@ -160,7 +159,7 @@ def prepare_transfer(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def finalize_prepared_transfer(
+def finalize_transfer(
         debtor_id: int,
         creditor_id: int,
         transfer_id: int,
@@ -170,7 +169,7 @@ def finalize_prepared_transfer(
 
     """Finalize a prepared transfer."""
 
-    procedures.finalize_prepared_transfer(
+    procedures.finalize_transfer(
         debtor_id,
         creditor_id,
         transfer_id,
