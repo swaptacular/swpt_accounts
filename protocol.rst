@@ -589,7 +589,7 @@ account_identity : string
    account. [#account-identity]_ An empty string indicates that the
    account does not have an identity yet. Once the account have got an
    identity, the identity SHOULD NOT be changed until the account is
-   deleted.
+   removed from the server's database.
 
 last_outgoing_transfer_date : date
    The date of the latest transfer (not counting interest payments),
@@ -732,8 +732,8 @@ transfer_flags : int32
    Various bit-flags characterizing the transfer. Server
    implementations may use these flags for different purposes. The
    lowest bit (bit ``0``) is reserved, and has the meaning "negligible
-   transfer", indicating that this is an incoming transfer, whose
-   ``amount`` does not exceed the configured ``negligible_amount``.
+   transfer", indicating that the transferred ``amount`` does not
+   exceed the configured ``negligible_amount``.
 
 principal : int64
    The amount that the debtor owes to the creditor, without the
