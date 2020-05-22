@@ -13,43 +13,7 @@ def configure_account(
         config_flags: int = 0,
         config: str = '') -> None:
 
-    """Make sure the account `(debtor_id, creditor_id)` exists, then
-    update its configuration settings.
-
-    * `ts` is the current timestamp. For a given account, later calls
-      to `configure_account` MUST have later or equal timestamps,
-      compared to earlier calls.
-
-    * `seqnum` is the sequential number of the call (a 32-bit
-      integer). For a given account, later calls to
-      `configure_account` SHOULD have bigger sequential numbers,
-      compared to earlier calls (except for the possible 32-bit
-      integer wrapping, in case of an overflow).
-
-    * `config_flags` contains account configuration flags (a 16-bit
-      integer). When the configuration update is applied, the lower 16
-      bits of the `Account.status` column (see `models.Account) will
-      be equal to those of `config_flags`.
-
-    * `negligible_amount` is the maximum amount that should be
-       considered negligible. It is used to: 1) decide whether an
-       account can be safely deleted; 2) decide whether a transfer is
-       insignificant. MUST be non-negative.
-
-    * `config` contains additional account configuration
-      information. Different implementations may use different formats
-      for this field.
-
-    An `AccountChangeSignal` is always sent as a confirmation.
-
-    NOTE: In order to decide whether to update the configuration when
-    a (potentially old) `configure_account` signal is received, the
-    implementation compares the `ts` of the current call, to the `ts`
-    of the latest call. Only if they are equal, the `seqnum`s are
-    compared as well (correctly dealing with possible integer
-    wrapping).
-
-    """
+    """Make sure the account exists, and update its configuration settings."""
 
     procedures.configure_account(
         debtor_id,
@@ -204,24 +168,7 @@ def finalize_prepared_transfer(
         transfer_message: str,
         ts: str) -> None:
 
-    """Execute a prepared transfer.
-
-    * `debtor_id`, `creditor_id`, and `transfer_id` uniquely identify
-      the prepared transfer. The values MUST be the same as the values
-      received with the corresponding `PreparedTransferSignal`.
-
-    * `committed_amount` is the transferred amount. It MUST be
-      non-negative. To dismiss the transfer, `committed_amount` should
-      be `0`.
-
-    * `transfer_message` contains notes from the sender. Can be any
-      string that the sender wants the recipient to see. If the
-      transfer is dismissed, `transfer_message` SHOULD be an empty
-      string.
-
-    * `ts` is signal's timestamp.
-
-    """
+    """Finalize a prepared transfer."""
 
     procedures.finalize_prepared_transfer(
         debtor_id,
@@ -240,7 +187,7 @@ def change_interest_rate(
         interest_rate: float,
         request_ts: str) -> None:
 
-    """Change the interest rate on the account `(debtor_id, creditor_id)`."""
+    """Change the interest rate on the account."""
 
     procedures.change_interest_rate(
         debtor_id,
@@ -257,10 +204,10 @@ def capitalize_interest(
         accumulated_interest_threshold: int,
         request_ts: str) -> None:
 
-    """Clear the interest accumulated on the account `(debtor_id,
-    creditor_id)`, adding it to the principal. Does nothing if the
-    absolute value of the accumulated interest is smaller than
-    `abs(accumulated_interest_threshold)`.
+    """Clear the interest accumulated on the account, adding it to the principal.
+
+    Does nothing if the absolute value of the accumulated interest is
+    smaller than `abs(accumulated_interest_threshold)`.
 
     """
 
@@ -279,9 +226,11 @@ def zero_out_negative_balance(
         last_outgoing_transfer_date: str,
         request_ts: str) -> None:
 
-    """Zero out the balance on the account `(debtor_id, creditor_id)` if
-    the current balance is negative, and account's last outgoing
-    transfer date is less or equal to `last_outgoing_transfer_date`.
+    """Zero out the balance on the account, if possible.
+
+    The balance will be zeroed out only if the current balance is
+    negative, and account's last outgoing transfer date is less or
+    equal to `last_outgoing_transfer_date`.
 
     """
 
