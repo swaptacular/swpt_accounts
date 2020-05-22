@@ -210,7 +210,7 @@ class AccountChangeSignal(Signal):
         negligible_amount = fields.Float()
         status = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
-        ttl = fields.Float()
+        ttl = fields.Integer()
         account_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
         config = fields.Constant('')
 
@@ -232,7 +232,7 @@ class AccountChangeSignal(Signal):
 
     @property
     def ttl(self):
-        return current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * 86400.0
+        return int(current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * 86400)
 
 
 class AccountPurgeSignal(Signal):
