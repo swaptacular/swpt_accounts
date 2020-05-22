@@ -620,9 +620,10 @@ to remind that the account still exist. This guarantees that accounts
 will not be hanging in the server's database forever, even in the case
 of a lost message, or a complete database loss on the client's side.
 
-.. [#meaningful-change] Every change in the value of one of the fields
-  included in `AccountChange`_ messages (except for the ``ts`` field)
-  SHOULD be considered meaningful.
+.. [#meaningful-change] For a given account, every change in the value
+  of one of the fields included in `AccountChange`_ messages (except
+  for the ``ts`` field) should be considered meaningful, and therefore
+  an `AccountChange`_ message SHOULD be emitted to inform about it.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
