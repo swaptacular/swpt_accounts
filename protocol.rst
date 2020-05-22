@@ -510,8 +510,8 @@ prepared_at : date-time
 AccountChange
 -------------
 
-Emitted when there has been a meaningful change in the state of an
-account, or to remind that an account still exists.
+Emitted when there has been a meaningful change [#meaningful-change]_
+in the state of an account, or to remind that an account still exists.
 
 debtor_id : int64
    The ID of the debtor.
@@ -614,10 +614,14 @@ ttl : int32
 
 If for a given account, no `AccountChange`_ messages have been sent
 for a long while, the server SHOULD send a new `AccountChange`_
-message identical to the previous one (except for the **ts** field),
+message identical to the previous one (except for the ``ts`` field),
 to remind that the account still exist. This guarantees that accounts
 will not be hanging in the server's database forever, even in the case
 of a lost message, or a complete database loss on the client's side.
+
+.. [#meaningful-change] Every change in the value of one of the fields
+  included in `AccountChange`_ messages (except for the ``ts`` field)
+  SHOULD be considered meaningful.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
