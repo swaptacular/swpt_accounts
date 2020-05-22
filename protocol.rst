@@ -588,7 +588,8 @@ account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    account. [#account-identity]_ An empty string indicates that the
    account does not have an identity yet. Once the account have got an
-   identity, it MUST not be changed until the account is deleted.
+   identity, the identity SHOULD NOT be changed until the account is
+   deleted.
 
 last_outgoing_transfer_date : date
    The date of the latest transfer (not counting interest payments),
