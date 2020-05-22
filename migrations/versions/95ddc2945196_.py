@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 52f4bf87ec0e
+Revision ID: 95ddc2945196
 Revises: 
-Create Date: 2020-05-21 21:29:36.966063
+Create Date: 2020-05-22 13:42:34.258218
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '52f4bf87ec0e'
+revision = '95ddc2945196'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,21 +21,21 @@ def upgrade():
     op.create_table('account',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creation_date', sa.DATE(), nullable=False, comment='The date at which the account was created. This also becomes the value of the `account_transfer_signal.creation_date` column for each transfer committed from/to the account.'),
-    sa.Column('principal', sa.BigInteger(), nullable=False, comment='The owed amount, without the interest. Can be negative.'),
-    sa.Column('interest_rate', sa.REAL(), nullable=False, comment='Annual rate (in percents) at which interest accumulates on the account. Can be negative.'),
-    sa.Column('interest', sa.FLOAT(), nullable=False, comment='The amount of interest accumulated on the account before `last_change_ts`, but not added to the `principal` yet. Can be a negative number. `interest` gets zeroed and added to the principal once in a while (like once per week).'),
+    sa.Column('creation_date', sa.DATE(), nullable=False),
+    sa.Column('principal', sa.BigInteger(), nullable=False),
+    sa.Column('interest_rate', sa.REAL(), nullable=False),
+    sa.Column('interest', sa.FLOAT(), nullable=False),
+    sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
+    sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
+    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False),
+    sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.sender_locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
     sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every meaningful change on the account. Every change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or  `status` is considered meaningful. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last meaningful change on the account happened. Must never decrease. Every change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or `status` is considered meaningful.'),
-    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False, comment='Updated on each transfer for which this account is the sender. It is not updated on interest/demurrage payments. This field is used to determine when an account with negative balance can be zeroed out.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
-    sa.Column('last_transfer_number', sa.BigInteger(), nullable=False, comment='Incremented when a new `account_transfer_signal` record is inserted. It is used to generate sequential numbers for the `account_transfer_signal.transfer_number` column. Must never decrease. '),
     sa.Column('status', sa.Integer(), nullable=False, comment='Contain additional account status bits. The lower 16 bits are configured by the owner of the account: 1 - scheduled for deletion. The higher 16 bits contain internal flags: 65536 - deleted, 131072 - established interest rate, 262144 - overflown.'),
-    sa.Column('negligible_amount', sa.REAL(), nullable=False, comment='An amount that is considered negligible. It is used to: 1) decide whether an account can be safely deleted; 2) decide whether a transfer is insignificant.'),
-    sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The value of the `ts` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
-    sa.Column('last_config_seqnum', sa.Integer(), nullable=False, comment='The value of the `seqnum` attribute, received with the most recent `configure_account` signal. It is used to decide whether to update the configuration when a (potentially old) `configure_account` signal is received.'),
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountChangeSignal` was sent to remind that the account still exists. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_id >= 0'),
@@ -173,11 +173,11 @@ def upgrade():
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_request_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it (coordinating the transfer). The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, interest, circular.'),
-    sa.Column('coordinator_id', sa.BigInteger(), nullable=False, comment='Along with `coordinator_type`, uniquely identifies who initiated the transfer.'),
-    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False, comment="Along with `coordinator_type` and `coordinator_id` uniquely identifies the transfer request from the coordinator's point of view. When the transfer is prepared, those three values will be included in the generated `on_prepared_{coordinator_type}_transfer_signal` event, so that the coordinator can match the event with the originating transfer request."),
-    sa.Column('min_amount', sa.BigInteger(), nullable=False, comment='The minimum amount that should be secured for the transfer. (`prepared_transfer.sender_locked_amount` will be no smaller than this value.)'),
-    sa.Column('max_amount', sa.BigInteger(), nullable=False, comment='The maximum amount that should be secured for the transfer, if possible. (`prepared_transfer.sender_locked_amount` will be no bigger than this value.)'),
-    sa.Column('minimum_account_balance', sa.BigInteger(), nullable=False, comment="Determines the amount that must remain available on the sender's account after the requested amount has been secured. This is useful when the coordinator does not want to expend everything available on the account."),
+    sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
+    sa.Column('min_amount', sa.BigInteger(), nullable=False),
+    sa.Column('max_amount', sa.BigInteger(), nullable=False),
+    sa.Column('minimum_account_balance', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('min_amount <= max_amount'),
     sa.CheckConstraint('min_amount > 0'),
@@ -191,9 +191,9 @@ def upgrade():
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
-    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The moment at which the last `PreparedTransferSignal` was sent to remind that the prepared transfer must be finalized. A `NULL` means that no reminders have been sent yet. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('sender_locked_amount > 0'),
     sa.CheckConstraint('transfer_id > 0'),

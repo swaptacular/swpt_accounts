@@ -49,34 +49,15 @@ class Account(db.Model):
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    creation_date = db.Column(
-        db.DATE,
-        nullable=False,
-        comment='The date at which the account was created. This also becomes the value of '
-                'the `account_transfer_signal.creation_date` column for each transfer '
-                'committed from/to the account.',
-    )
-    principal = db.Column(
-        db.BigInteger,
-        nullable=False,
-        default=0,
-        comment='The owed amount, without the interest. Can be negative.',
-    )
-    interest_rate = db.Column(
-        db.REAL,
-        nullable=False,
-        default=0.0,
-        comment='Annual rate (in percents) at which interest accumulates on the account. Can '
-                'be negative.',
-    )
-    interest = db.Column(
-        db.FLOAT,
-        nullable=False,
-        default=0.0,
-        comment='The amount of interest accumulated on the account before `last_change_ts`, '
-                'but not added to the `principal` yet. Can be a negative number. `interest` '
-                'gets zeroed and added to the principal once in a while (like once per week).',
-    )
+    creation_date = db.Column(db.DATE, nullable=False)
+    principal = db.Column(db.BigInteger, nullable=False, default=0)
+    interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
+    interest = db.Column(db.FLOAT, nullable=False, default=0.0)
+    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
+    last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
+    last_outgoing_transfer_date = db.Column(db.DATE, nullable=False, default=BEGINNING_OF_TIME.date())
+    negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
     locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
@@ -110,14 +91,6 @@ class Account(db.Model):
                 'never decrease. Every change in `principal`, `interest_rate`, `interest`, '
                 '`negligible_amount`, or `status` is considered meaningful.',
     )
-    last_outgoing_transfer_date = db.Column(
-        db.DATE,
-        nullable=False,
-        default=BEGINNING_OF_TIME.date(),
-        comment='Updated on each transfer for which this account is the sender. It is not updated '
-                'on interest/demurrage payments. This field is used to determine when an account '
-                'with negative balance can be zeroed out.',
-    )
     last_transfer_id = db.Column(
         db.BigInteger,
         nullable=False,
@@ -127,14 +100,6 @@ class Account(db.Model):
                 'When the account is created, `last_transfer_id` has its lower 40 bits set '
                 'to zero, and its higher 24 bits calculated from the value of `creation_date` '
                 '(the number of days since Jan 1st, 1970).',
-    )
-    last_transfer_number = db.Column(
-        db.BigInteger,
-        nullable=False,
-        default=0,
-        comment='Incremented when a new `account_transfer_signal` record is inserted. It is used '
-                'to generate sequential numbers for the `account_transfer_signal.transfer_number` '
-                'column. Must never decrease. ',
     )
     status = db.Column(
         db.Integer,
@@ -147,32 +112,6 @@ class Account(db.Model):
                 f"{STATUS_DELETED_FLAG} - deleted, "
                 f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "
                 f"{STATUS_OVERFLOWN_FLAG} - overflown."
-    )
-    negligible_amount = db.Column(
-        db.REAL,
-        nullable=False,
-        default=0.0,
-        comment='An amount that is considered negligible. It is used to: 1) '
-                'decide whether an account can be safely deleted; 2) decide '
-                'whether a transfer is insignificant.',
-    )
-    last_config_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=BEGINNING_OF_TIME,
-        comment='The value of the `ts` attribute, received with the most recent '
-                '`configure_account` signal. It is used to decide whether to update '
-                'the configuration when a (potentially old) `configure_account` '
-                'signal is received.',
-    )
-    last_config_seqnum = db.Column(
-        db.Integer,
-        nullable=False,
-        default=0,
-        comment='The value of the `seqnum` attribute, received with the most recent '
-                '`configure_account` signal. It is used to decide whether to update the '
-                'configuration when a (potentially old) `configure_account` signal '
-                'is received.',
     )
     last_reminder_ts = db.Column(
         db.TIMESTAMP(timezone=True),
@@ -231,39 +170,11 @@ class TransferRequest(db.Model):
                 'identifier, all lowercase, no double underscores. Example: direct, interest, '
                 'circular.',
     )
-    coordinator_id = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='Along with `coordinator_type`, uniquely identifies who initiated the transfer.',
-    )
-    coordinator_request_id = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment="Along with `coordinator_type` and `coordinator_id` uniquely identifies the "
-                "transfer request from the coordinator's point of view. When the transfer is "
-                "prepared, those three values will be included in the generated "
-                "`on_prepared_{coordinator_type}_transfer_signal` event, so that the "
-                "coordinator can match the event with the originating transfer request.",
-    )
-    min_amount = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The minimum amount that should be secured for the transfer. '
-                '(`prepared_transfer.sender_locked_amount` will be no smaller than this value.)',
-    )
-    max_amount = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The maximum amount that should be secured for the transfer, if possible. '
-                '(`prepared_transfer.sender_locked_amount` will be no bigger than this value.)',
-    )
-    minimum_account_balance = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment="Determines the amount that must remain available on the sender's account after "
-                "the requested amount has been secured. This is useful when the coordinator "
-                "does not want to expend everything available on the account.",
-    )
+    coordinator_id = db.Column(db.BigInteger, nullable=False)
+    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
+    min_amount = db.Column(db.BigInteger, nullable=False)
+    max_amount = db.Column(db.BigInteger, nullable=False)
+    minimum_account_balance = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
 
     __table_args__ = (
@@ -287,13 +198,13 @@ class PreparedTransfer(db.Model):
     coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
+    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
+    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     sender_locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
         comment="The actual transferred (committed) amount may not exceed this number.",
     )
-    recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     last_reminder_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         comment='The moment at which the last `PreparedTransferSignal` was sent to remind '
