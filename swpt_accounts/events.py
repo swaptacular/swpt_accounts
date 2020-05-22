@@ -11,7 +11,7 @@ __all__ = [
     'PreparedTransferSignal',
     'FinalizedTransferSignal',
     'AccountTransferSignal',
-    'AccountChangeSignal',
+    'AccountUpdateSignal',
     'AccountPurgeSignal',
     'RejectedConfigSignal',
     'AccountMaintenanceSignal',
@@ -193,7 +193,7 @@ class AccountTransferSignal(Signal):
         return self.other_creditor_id if self.amount < 0 else self.creditor_id
 
 
-class AccountChangeSignal(Signal):
+class AccountUpdateSignal(Signal):
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()

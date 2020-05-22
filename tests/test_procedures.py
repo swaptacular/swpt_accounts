@@ -4,7 +4,7 @@ from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
-    AccountChangeSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
+    AccountUpdateSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
     AccountPurgeSignal, BEGINNING_OF_TIME, CT_DIRECT
 
 
@@ -32,7 +32,7 @@ def test_configure_account(db_session, current_ts):
     assert a.pending_transfers_count == 0
     assert a.interest_rate == 0.0
     assert a.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
-    acs = AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
+    acs = AccountUpdateSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert acs.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     assert acs.status == a.status
     assert acs.principal == a.principal
@@ -59,27 +59,27 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['ttl'] == 14 * 24 * 60 * 60
 
     a = p.configure_account(D_ID, C_ID, current_ts, 0)
-    assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 1
+    assert len(AccountUpdateSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 1
     a = p.configure_account(D_ID, C_ID, current_ts, 1)
-    assert len(AccountChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 2
+    assert len(AccountUpdateSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 2
 
 
 def test_ignored_config(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
-    assert len(AccountChangeSignal.query.all()) == 1
+    assert len(AccountUpdateSignal.query.all()) == 1
     assert len(RejectedConfigSignal.query.all()) == 0
 
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, C_ID, current_ts, -1)
     p.configure_account(D_ID, C_ID, current_ts - timedelta(microseconds=1), 1)
-    assert len(AccountChangeSignal.query.all()) == 1
+    assert len(AccountUpdateSignal.query.all()) == 1
     assert len(RejectedConfigSignal.query.all()) == 0
 
 
 def test_invalid_config(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 123, -10.0, config_flags=0x1fff, config='xxx')
     assert p.get_account(D_ID, C_ID) is None
-    assert len(AccountChangeSignal.query.all()) == 0
+    assert len(AccountUpdateSignal.query.all()) == 0
     rcs = RejectedConfigSignal.query.one()
     assert rcs.debtor_id == D_ID
     assert rcs.creditor_id == C_ID
@@ -102,7 +102,7 @@ def test_invalid_config(db_session, current_ts):
 
     p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123)
     assert p.get_account(D_ID, C_ID) is None
-    assert len(AccountChangeSignal.query.all()) == 0
+    assert len(AccountUpdateSignal.query.all()) == 0
     assert len(RejectedConfigSignal.query.all()) == 1
 
 
@@ -110,7 +110,7 @@ def test_set_interest_rate(db_session, current_ts):
     # The account does not exist.
     p.change_interest_rate(D_ID, C_ID, 7.0, current_ts)
     assert p.get_account(D_ID, C_ID) is None
-    assert len(AccountChangeSignal.query.all()) == 0
+    assert len(AccountUpdateSignal.query.all()) == 0
 
     # The account does exist.
     p.configure_account(D_ID, C_ID, current_ts, 0)
@@ -118,7 +118,7 @@ def test_set_interest_rate(db_session, current_ts):
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
     assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-    assert len(AccountChangeSignal.query.all()) == 2
+    assert len(AccountUpdateSignal.query.all()) == 2
 
     # Too old request timestamp.
     p.change_interest_rate(D_ID, C_ID, 1.0, BEGINNING_OF_TIME)
@@ -253,7 +253,7 @@ def test_process_pending_account_changes(db_session, current_ts):
     assert len(p.get_accounts_with_pending_changes()) == 1
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID) is None
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
-    assert AccountChangeSignal.query.filter_by(
+    assert AccountUpdateSignal.query.filter_by(
         debtor_id=D_ID,
         creditor_id=p.ROOT_CREDITOR_ID,
         principal=-10000,
@@ -395,10 +395,10 @@ def test_delete_account(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     assert q.one().status & Account.STATUS_DELETED_FLAG
     assert q.one().status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
-    assert AccountChangeSignal.query.\
-        filter(AccountChangeSignal.debtor_id == D_ID).\
-        filter(AccountChangeSignal.creditor_id == C_ID).\
-        filter(AccountChangeSignal.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
+    assert AccountUpdateSignal.query.\
+        filter(AccountUpdateSignal.debtor_id == D_ID).\
+        filter(AccountUpdateSignal.creditor_id == C_ID).\
+        filter(AccountUpdateSignal.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
         one_or_none()
 
 
@@ -528,7 +528,7 @@ def test_resurrect_deleted_account_transfer(db_session, current_ts):
 def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     p.configure_account(D_ID, 1234, current_ts, 0)
     p.configure_account(D_ID, C_ID, current_ts, 0)
-    assert len(AccountChangeSignal.query.all()) == 2
+    assert len(AccountUpdateSignal.query.all()) == 2
     p.prepare_transfer(
         coordinator_type='test',
         coordinator_id=1,
@@ -546,7 +546,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     assert a.pending_transfers_count == 0
     p.process_pending_account_changes(D_ID, 1234)
     p.process_pending_account_changes(D_ID, C_ID)
-    assert len(AccountChangeSignal.query.all()) == 2
+    assert len(AccountUpdateSignal.query.all()) == 2
     assert len(PreparedTransfer.query.all()) == 0
     assert len(PreparedTransferSignal.query.all()) == 0
     assert len(AccountTransferSignal.query.all()) == 0
@@ -645,7 +645,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert 1234 != C_ID
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
-    assert len(AccountChangeSignal.query.all()) == 2
+    assert len(AccountUpdateSignal.query.all()) == 2
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 100})
     p.prepare_transfer(
@@ -665,7 +665,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert a.pending_transfers_count == 1
     p.process_pending_account_changes(D_ID, 1234)
     p.process_pending_account_changes(D_ID, C_ID)
-    assert len(AccountChangeSignal.query.all()) == 2
+    assert len(AccountUpdateSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
     assert len(FinalizedTransferSignal.query.all()) == 0
     pts = PreparedTransferSignal.query.one()
@@ -708,7 +708,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert a.interest == 0.0
     assert a.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     assert not PreparedTransfer.query.one_or_none()
-    assert len(AccountChangeSignal.query.all()) == 2
+    assert len(AccountUpdateSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
     assert len(AccountTransferSignal.query.all()) == 0
     fpt = FinalizedTransferSignal.query.one()
@@ -760,7 +760,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert a2.interest == 0.0
     assert a2.last_outgoing_transfer_date > BEGINNING_OF_TIME.date()
     assert not PreparedTransfer.query.one_or_none()
-    assert len(AccountChangeSignal.query.all()) == 4
+    assert len(AccountUpdateSignal.query.all()) == 4
     assert len(RejectedTransferSignal.query.all()) == 0
     assert len(FinalizedTransferSignal.query.all()) == 1
 

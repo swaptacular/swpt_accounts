@@ -117,7 +117,7 @@ class Account(db.Model):
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=BEGINNING_OF_TIME,
-        comment='The moment at which the last `AccountChangeSignal` was sent to remind that '
+        comment='The moment at which the last `AccountUpdateSignal` was sent to remind that '
                 'the account still exists. This column helps to prevent sending reminders too '
                 'often.',
     )

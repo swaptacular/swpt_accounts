@@ -128,7 +128,7 @@ they MUST first verify whether the specified account already exists:
    the received message turns out to be an old one, it MUST be
    ignored. Otherwise, an attempt MUST be made to update the account's
    configuration with the requested new configuration. If the new
-   configuration has been successfully applied, an `AccountChange`_
+   configuration has been successfully applied, an `AccountUpdate`_
    message MUST be sent; otherwise a `RejectedConfig`_ message MUST be
    sent.
 
@@ -136,7 +136,7 @@ they MUST first verify whether the specified account already exists:
    MUST be checked. If it is too far in the past, the message MUST be
    ignored. Otherwise, an attempt MUST be made to create a new account
    with the requested configuration settings. If the new account has
-   been successfully created, an `AccountChange`_ message MUST be
+   been successfully created, an `AccountUpdate`_ message MUST be
    sent; otherwise a `RejectedConfig`_ message MUST be sent.
 
 .. [#forbid-transfers] Server implementations SHOULD forbid incoming
@@ -304,7 +304,7 @@ in server's database:
   as these restictions are precisely defined, and known in advance.
 
 .. [#commit] When ``committed_amount`` is zero, this would be a no-op.
-  When the commit is successful, an `AccountChange`_ message, and
+  When the commit is successful, an `AccountUpdate`_ message, and
   `AccountTransfer`_ messages will be triggered eventually as well.
 
 .. [#unlock-amount] Note that ``committed_amount`` can be smaller that
@@ -507,7 +507,7 @@ prepared_at : date-time
 .. [#failed-commit] In this case ``committed_amount`` MUST be zero.
 
 
-AccountChange
+AccountUpdate
 -------------
 
 Emitted when there has been a meaningful change in the state of an
@@ -528,7 +528,7 @@ creation_date : date
 last_change_ts : date-time
    The moment at which the latest meaningful change in the state of
    the account has happened. For a given account, later
-   `AccountChange`_ messages MUST have later or equal
+   `AccountUpdate`_ messages MUST have later or equal
    ``last_change_ts``, compared to earlier messages.
 
 last_change_seqnum : int32
@@ -613,17 +613,17 @@ ttl : int32
    ignored if more than ``ttl`` seconds have elapsed since the message
    was emitted (``ts``). This MUST be a positive number.
 
-If for a given account, no `AccountChange`_ messages have been sent
-for a long while, the server SHOULD send a new `AccountChange`_
+If for a given account, no `AccountUpdate`_ messages have been sent
+for a long while, the server SHOULD send a new `AccountUpdate`_
 message identical to the previous one (except for the ``ts`` field),
 to remind that the account still exist. This guarantees that accounts
 will not be hanging in the server's database forever, even in the case
 of a lost message, or a complete database loss on the client's side.
 
 .. [#meaningful-change] For a given account, every change in the value
-  of one of the fields included in `AccountChange`_ messages (except
+  of one of the fields included in `AccountUpdate`_ messages (except
   for the ``ts`` field) should be considered meaningful, and therefore
-  an `AccountChange`_ message SHOULD be emitted to inform about it.
+  an `AccountUpdate`_ message SHOULD be emitted to inform about it.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
@@ -633,7 +633,7 @@ of a lost message, or a complete database loss on the client's side.
 
 .. [#compare-change] ``creation_date``, ``last_change_ts``, and
   ``last_change_seqnum`` can be used to reliably determine the correct
-  order in a sequence of `AccountChange`_ massages, even if the
+  order in a sequence of `AccountUpdate`_ massages, even if the
   changes occurred in a very short period of time. When considering
   two changes, ``creation_date`` fields MUST be compared first, if
   they are equal ``last_change_ts`` fields MUST be compared, and if
@@ -681,10 +681,10 @@ The purpose of `AccountPurge`_ messages is to inform clients that they
 can safely remove a given account from their databases.
 
 .. [#purge-delay] The delay MUST be at least as long as indicated by
-  the value of the ``ttl`` field which is sent with `AccountChange`_
+  the value of the ``ttl`` field which is sent with `AccountUpdate`_
   messages. The goal is to ensure that after clients have received the
   `AccountPurge`_ message, if they continue to receive old
-  `AccountChange`_ messages for the purged account, those messages
+  `AccountUpdate`_ messages for the purged account, those messages
   will be ignored.
 
 

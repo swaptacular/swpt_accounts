@@ -9,7 +9,7 @@ from .extensions import db
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
-    AccountChangeSignal, AccountTransferSignal, AccountMaintenanceSignal,
+    AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
     MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64,
     BEGINNING_OF_TIME, SECONDS_IN_DAY,
@@ -420,7 +420,7 @@ def _insert_account_change_signal(account: Account, current_ts: datetime) -> Non
 
     account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
     account.last_change_ts = max(account.last_change_ts, current_ts)
-    db.session.add(AccountChangeSignal(
+    db.session.add(AccountUpdateSignal(
         debtor_id=account.debtor_id,
         creditor_id=account.creditor_id,
         last_change_seqnum=account.last_change_seqnum,

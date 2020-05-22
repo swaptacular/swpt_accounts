@@ -7,14 +7,14 @@ C_ID = 1
 
 
 def test_scan_accounts(app_unsafe_session):
-    from swpt_accounts.models import Account, AccountChangeSignal, AccountPurgeSignal
+    from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal
 
     # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
     past_ts = datetime(1970, 1, 1, tzinfo=timezone.utc)
     app = app_unsafe_session
     Account.query.delete()
-    AccountChangeSignal.query.delete()
+    AccountUpdateSignal.query.delete()
     AccountPurgeSignal.query.delete()
     db.session.commit()
     account = Account(
@@ -69,8 +69,8 @@ def test_scan_accounts(app_unsafe_session):
     result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--days', '0.000001', '--quit-early'])
     assert result.exit_code == 0
     assert len(Account.query.all()) == 3
-    assert len(AccountChangeSignal.query.all()) == 1
-    acs = AccountChangeSignal.query.one()
+    assert len(AccountUpdateSignal.query.all()) == 1
+    acs = AccountUpdateSignal.query.one()
     assert acs.debtor_id == account.debtor_id
     assert acs.creditor_id == account.creditor_id
     assert acs.last_change_ts == account.last_change_ts == past_ts
@@ -99,10 +99,10 @@ def test_scan_accounts(app_unsafe_session):
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])
     assert result.exit_code == 0
     assert len(Account.query.all()) == 3
-    assert len(AccountChangeSignal.query.all()) == 1
+    assert len(AccountUpdateSignal.query.all()) == 1
 
     Account.query.delete()
-    AccountChangeSignal.query.delete()
+    AccountUpdateSignal.query.delete()
     AccountPurgeSignal.query.delete()
     db.session.commit()
 

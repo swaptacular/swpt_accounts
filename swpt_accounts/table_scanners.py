@@ -4,13 +4,13 @@ from swpt_lib.scan_table import TableScanner
 from sqlalchemy.sql.expression import tuple_
 from flask import current_app
 from .extensions import db
-from .models import Account, AccountChangeSignal, AccountPurgeSignal, PreparedTransfer, PreparedTransferSignal
+from .models import Account, AccountUpdateSignal, AccountPurgeSignal, PreparedTransfer, PreparedTransferSignal
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
-# TODO: Use bulk-inserts for `AccountChangeSignal`s,
+# TODO: Use bulk-inserts for `AccountUpdateSignal`s,
 #       `RejectedTransferSignal`s, and `PreparedTransferSignal`s when
 #       we decide to disable auto-flushing. This is necessary, because
 #       currently SQLAlchemy issues individual inserts with `RETURNING
@@ -103,7 +103,7 @@ class AccountScanner(TableScanner):
                     filter(self.pk.in_(pks_to_remind)).\
                     update({Account.last_reminder_ts: current_ts}, synchronize_session=False)
                 db.session.add_all([
-                    AccountChangeSignal(
+                    AccountUpdateSignal(
                         debtor_id=account.debtor_id,
                         creditor_id=account.creditor_id,
                         last_change_seqnum=account.last_change_seqnum,
