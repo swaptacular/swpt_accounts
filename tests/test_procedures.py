@@ -42,8 +42,8 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['debtor_id'] == D_ID
     assert acs_obj['creditor_id'] == C_ID
     assert acs_obj['creation_date'] == a.creation_date.isoformat()
-    assert acs_obj['change_ts'] == a.last_change_ts.isoformat()
-    assert acs_obj['change_seqnum'] == a.last_change_seqnum
+    assert acs_obj['last_change_ts'] == a.last_change_ts.isoformat()
+    assert acs_obj['last_change_seqnum'] == a.last_change_seqnum
     assert acs_obj['principal'] == a.principal
     assert acs_obj['interest'] == a.interest
     assert acs_obj['interest_rate'] == a.interest_rate

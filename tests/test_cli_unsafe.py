@@ -73,8 +73,8 @@ def test_scan_accounts(app_unsafe_session):
     acs = AccountChangeSignal.query.one()
     assert acs.debtor_id == account.debtor_id
     assert acs.creditor_id == account.creditor_id
-    assert acs.change_ts == account.last_change_ts == past_ts
-    assert acs.change_seqnum == account.last_change_seqnum == 0
+    assert acs.last_change_ts == account.last_change_ts == past_ts
+    assert acs.last_change_seqnum == account.last_change_seqnum == 0
     assert acs.principal == account.principal
     assert acs.interest == account.interest
     assert acs.interest_rate == account.interest_rate

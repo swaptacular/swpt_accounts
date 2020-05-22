@@ -524,13 +524,13 @@ creation_date : date
    removed from the server's database, its ``creation_date`` MUST NOT
    be changed. [#creation-date]_
 
-change_ts : date-time
+last_change_ts : date-time
    The moment at which the latest meaningful change in the state of
    the account has happened. For a given account, later
-   `AccountChange`_ messages MUST have later or equal ``change_ts``,
-   compared to earlier messages.
+   `AccountChange`_ messages MUST have later or equal
+   ``last_change_ts``, compared to earlier messages.
 
-change_seqnum : int32
+last_change_seqnum : int32
    The sequential number of the latest meaningful change. For a given
    account, later changes MUST have bigger sequential numbers,
    compared to earlier changes. Note that when the maximum ``int32``
@@ -625,20 +625,21 @@ of a lost message, or a complete database loss on the client's side.
   so that in this case the newly created account always has a later
   ``creation_date``, compared to the preceding account.
 
-.. [#compare-change] ``creation_date``, ``change_ts``, and
-  ``change_seqnum`` can be used to reliably determine the correct
-  order in a sequence of changes, even if the changes occurred in a
-  very short period of time. When considering two changes,
-  ``creation_date`` fields MUST be compared first, if they are equal
-  ``change_ts`` fields MUST be compared, and if they are equal,
-  ``change_seqnum`` fields MUST be compared as well.
+.. [#compare-change] ``creation_date``, ``last_change_ts``, and
+  ``last_change_seqnum`` can be used to reliably determine the correct
+  order in a sequence of `AccountChange`_ massages, even if the
+  changes occurred in a very short period of time. When considering
+  two changes, ``creation_date`` fields MUST be compared first, if
+  they are equal ``last_change_ts`` fields MUST be compared, and if
+  they are equal, ``last_change_seqnum`` fields MUST be compared as
+  well.
 
 .. [#interest] Note that the ``interest`` field shows the amount of
-  interest accumulated on the account only up to the ``change_ts``
-  moment. Also, any amount that is shown as accumulated interest,
-  SHOULD be available for transfers. That is: the owner of the account
-  has to be able to "wire" the accumulated interest to another
-  account.
+  interest accumulated on the account only up to the
+  ``last_change_ts`` moment. Also, any amount that is shown as
+  accumulated interest, SHOULD be available for transfers. That is:
+  the owner of the account has to be able to "wire" the accumulated
+  interest to another account.
 
 .. [#verify-config] Note that ``last_config_ts`` and
   ``last_config_seqnum`` can be used to determine whether a sent

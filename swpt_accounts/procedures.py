@@ -423,8 +423,8 @@ def _insert_account_change_signal(account: Account, current_ts: datetime) -> Non
     db.session.add(AccountChangeSignal(
         debtor_id=account.debtor_id,
         creditor_id=account.creditor_id,
-        change_seqnum=account.last_change_seqnum,
-        change_ts=account.last_change_ts,
+        last_change_seqnum=account.last_change_seqnum,
+        last_change_ts=account.last_change_ts,
         principal=account.principal,
         interest=account.interest,
         interest_rate=account.interest_rate,
