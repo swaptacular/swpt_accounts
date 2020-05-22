@@ -531,11 +531,11 @@ change_ts : date-time
    compared to earlier messages.
 
 change_seqnum : int32
-   The sequential number of the message. For a given account, later
-   `AccountChange`_ messages MUST have bigger sequential numbers,
-   compared to earlier messages. Note that when the maximum ``int32``
-   value is reached, the next value MUST be ``-2147483648`` (signeld
-   32-bit integer wrapping). [#compare-change]_ [#compare-seqnums]_
+   The sequential number of the change. For a given account, later
+   changes MUST have bigger sequential numbers, compared to earlier
+   changes. Note that when the maximum ``int32`` value is reached, the
+   next value MUST be ``-2147483648`` (signeld 32-bit integer
+   wrapping). [#compare-change]_ [#compare-seqnums]_
 
 principal : int64
    The amount that the debtor owes to the creditor, without the
@@ -627,11 +627,11 @@ of a lost message, or a complete database loss on the client's side.
 
 .. [#compare-change] ``creation_date``, ``change_ts``, and
   ``change_seqnum`` can be used to reliably determine the correct
-  order in a sequence of `AccountChange`_ messages, even if the
-  changes occurred in a very short period of time. When considering
-  two changes, ``creation_date`` fields MUST be compared first, if
-  they are equal ``change_ts`` fields MUST be compared, and if they
-  are equal, ``change_seqnum`` fields MUST be compared as well.
+  order in a sequence of changes, even if the changes occurred in a
+  very short period of time. When considering two changes,
+  ``creation_date`` fields MUST be compared first, if they are equal
+  ``change_ts`` fields MUST be compared, and if they are equal,
+  ``change_seqnum`` fields MUST be compared as well.
 
 .. [#interest] Note that the ``interest`` field shows the amount of
   interest accumulated on the account only up to the ``change_ts``
