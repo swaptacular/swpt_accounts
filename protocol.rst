@@ -786,6 +786,8 @@ be emitted for each committed transfer.
 Requirements for Client Implementations
 =======================================
 
+TODO:
+
 Before sending a `PrepareTransfer`_ message, the sender MUST create a
 Coordinator Request (CR) database record, with a primary key of
 `(coordinator_type, coordinator_id, coordinator_request_id)`, and
