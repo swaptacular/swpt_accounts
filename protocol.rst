@@ -590,14 +590,15 @@ config : string
 status_flags : int32
    Account status bit-flags. Different server implementations may use
    these flags for different purposes. The lowest bit (bit ``0``) is
-   reserved, and has the meaning "inactive". TODO
+   reserved, and has the meaning "inactive account", indicating that
+   the account can not participate in incoming or outgoing transfers.
 
 account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
    account. [#account-identity]_ An empty string indicates that the
-   account does not have an identity yet. Once the account have got an
-   identity, the identity SHOULD NOT be changed until the account is
-   removed from the server's database.
+   account does not have an identity yet. [#missing-identity]_ Once
+   the account have got an identity, the identity SHOULD NOT be
+   changed until the account is removed from the server's database.
 
 last_outgoing_transfer_date : date
    The date of the latest transfer (not counting interest payments),
@@ -664,6 +665,10 @@ of a lost message, or a complete database loss on the client's side.
   account. This identifier (along with ``debtor_id``), on the other
   hand, MUST provide enough information to globally identify the
   account (an IBAN for example).
+
+.. [#missing-identity] In this case the ``status_flags`` MUST indicate
+  that the account is an "inactive account".
+
 
 AccountPurge
 ------------
