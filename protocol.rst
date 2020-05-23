@@ -575,14 +575,14 @@ negligible_amount : float
    applied `ConfigureAccount`_ messages yet, the value SHOULD
    represent the default configuration settings.
 
-config : string
-   MUST contain the value of the ``config`` field in the latest
+config_flags : int32
+   MUST contain the value of the ``config_flags`` field in the latest
    applied `ConfigureAccount`_ message. If there have not been any
    applied `ConfigureAccount`_ messages yet, the value SHOULD
    represent the default configuration settings.
 
-config_flags : int32
-   MUST contain the value of the ``config_flags`` field in the latest
+config : string
+   MUST contain the value of the ``config`` field in the latest
    applied `ConfigureAccount`_ message. If there have not been any
    applied `ConfigureAccount`_ messages yet, the value SHOULD
    represent the default configuration settings.
