@@ -117,6 +117,7 @@ class AccountScanner(TableScanner):
                         last_config_seqnum=account.last_config_seqnum,
                         creation_date=account.creation_date,
                         negligible_amount=account.negligible_amount,
+                        config_flags=account.config_flags,
                         status=account.status,
                         inserted_at_ts=max(current_ts, account.last_change_ts),
                     )

@@ -90,7 +90,7 @@ negligible_amount : float
    account can be safely deleted; 2) decide whether an incoming
    transfer is insignificant.
 
-config_flags : int16
+config_flags : int32
    Account configuration bit-flags. Different server implementations
    may use these flags for different purposes. The lowest bit (bit
    ``0``) is reserved, and has the meaning "scheduled for
@@ -337,7 +337,7 @@ config_ts : date-time
 config_seqnum : int32
    The value of the ``seqnum`` field in the rejected message.
 
-config_flags : int16
+config_flags : int32
    The value of the ``config_flags`` field in the rejected message.
 
 negligible_amount : float
@@ -581,14 +581,16 @@ config : string
    applied `ConfigureAccount`_ messages yet, the value SHOULD
    represent the default configuration settings.
 
-status : int32
-   Status bit-flags. The lowest 16 bits (from bit ``0`` to bit ``15``)
+config_flags : int32
    MUST contain the value of the ``config_flags`` field in the latest
    applied `ConfigureAccount`_ message. If there have not been any
-   applied `ConfigureAccount`_ messages yet, the lowest 16 bits SHOULD
-   represent the default configuration settings. The highest 16 bits
-   (from bit ``16`` to bit ``31``) MAY contain implementation-specific
-   account status flags.
+   applied `ConfigureAccount`_ messages yet, the value SHOULD
+   represent the default configuration settings.
+
+status : int32
+   Account status bit-flags. Different server implementations may use
+   these flags for different purposes. The lowest bit (bit ``0``) is
+   reserved, and has the meaning "inactive". TODO
 
 account_identity : string
    A string which (along with ``debtor_id``) globally identifies the

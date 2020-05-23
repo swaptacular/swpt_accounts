@@ -11,8 +11,7 @@ from .models import (
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
     AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
-    MIN_INT16, MAX_INT16, MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64,
-    BEGINNING_OF_TIME, SECONDS_IN_DAY,
+    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, SECONDS_IN_DAY,
     CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT
 )
 
@@ -36,7 +35,7 @@ def configure_account(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= seqnum <= MAX_INT32
-    assert MIN_INT16 <= config_flags <= MAX_INT16
+    assert MIN_INT32 <= config_flags <= MAX_INT32
 
     current_ts = datetime.now(tz=timezone.utc)
 
@@ -65,7 +64,7 @@ def configure_account(
         if account.status & Account.STATUS_DELETED_FLAG:
             account.status &= ~Account.STATUS_DELETED_FLAG
             account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        account.set_config_flags(config_flags)
+        account.config_flags = config_flags
         account.negligible_amount = negligible_amount
         account.last_config_ts = ts
         account.last_config_seqnum = seqnum
@@ -214,7 +213,7 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
             account.interest = float(_calc_account_accumulated_interest(account, current_ts))
             account.interest_rate = interest_rate
             account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-            _insert_account_change_signal(account, current_ts)
+            _insert_account_update_signal(account, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
 
@@ -276,7 +275,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
         else:
             current_balance = account.calc_current_balance(current_ts)
             has_negligible_balance = 0 <= current_balance <= max(2.0, account.negligible_amount)
-            is_scheduled_for_deletion = account.status & Account.STATUS_SCHEDULED_FOR_DELETION_FLAG
+            is_scheduled_for_deletion = account.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
             can_be_deleted = has_negligible_balance and is_scheduled_for_deletion
 
         if can_be_deleted:
@@ -410,7 +409,7 @@ def _contain_principal_overflow(value: int) -> int:
     return value
 
 
-def _insert_account_change_signal(account: Account, current_ts: datetime) -> None:
+def _insert_account_update_signal(account: Account, current_ts: datetime) -> None:
     # NOTE: Callers of this function should be very careful, because
     # it updates `account.last_change_ts` without updating
     # `account.interest`. This will result in an incorrect value for
@@ -434,6 +433,7 @@ def _insert_account_change_signal(account: Account, current_ts: datetime) -> Non
         last_config_seqnum=account.last_config_seqnum,
         creation_date=account.creation_date,
         negligible_amount=account.negligible_amount,
+        config_flags=account.config_flags,
         status=account.status,
         inserted_at_ts=account.last_change_ts,
     ))
@@ -462,12 +462,12 @@ def _lock_or_create_account(debtor_id: int, creditor_id: int, current_ts: dateti
     account = _get_account_instance(debtor_id, creditor_id, lock=True)
     if account is None:
         account = _create_account(debtor_id, creditor_id, current_ts)
-        _insert_account_change_signal(account, current_ts)
+        _insert_account_update_signal(account, current_ts)
 
     if account.status & Account.STATUS_DELETED_FLAG:
         account.status &= ~Account.STATUS_DELETED_FLAG
         account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        _insert_account_change_signal(account, current_ts)
+        _insert_account_update_signal(account, current_ts)
 
     return account
 
@@ -557,7 +557,7 @@ def _mark_account_as_deleted(account: Account, current_ts: datetime):
     account.interest = 0.0
     account.locked_amount = 0
     account.status |= Account.STATUS_DELETED_FLAG
-    _insert_account_change_signal(account, current_ts)
+    _insert_account_update_signal(account, current_ts)
 
 
 def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:
@@ -567,7 +567,7 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
     if principal != principal_possibly_overflown:
         account.status |= Account.STATUS_OVERFLOWN_FLAG
     account.principal = principal
-    _insert_account_change_signal(account, current_ts)
+    _insert_account_update_signal(account, current_ts)
 
 
 def _make_debtor_payment(
@@ -712,6 +712,6 @@ def _get_accessible_recipient_account_pks(transfer_requests: List[TransferReques
         query(Account.debtor_id, Account.creditor_id).\
         filter(ACCOUNT_PK.in_(account_pks)).\
         filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
-        filter(Account.status.op('&')(Account.STATUS_SCHEDULED_FOR_DELETION_FLAG) == 0).\
+        filter(Account.config_flags.op('&')(Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG) == 0).\
         all()
     return set(account_pks)

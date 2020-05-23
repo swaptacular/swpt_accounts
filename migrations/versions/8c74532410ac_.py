@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 498bba8ca798
+Revision ID: 8c74532410ac
 Revises: 
-Create Date: 2020-05-22 15:23:08.955786
+Create Date: 2020-05-23 14:31:33.499899
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '498bba8ca798'
+revision = '8c74532410ac'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -22,6 +22,8 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
+    sa.Column('last_change_seqnum', sa.Integer(), nullable=False),
+    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
@@ -30,12 +32,11 @@ def upgrade():
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
+    sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.sender_locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
-    sa.Column('last_change_seqnum', sa.Integer(), nullable=False, comment='Incremented (with wrapping) on every meaningful change on the account. Every change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or  `status` is considered meaningful. This column, along with the `last_change_ts` column, allows to reliably determine the correct order of changes, even if they occur in a very short period of time.'),
-    sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last meaningful change on the account happened. Must never decrease. Every change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or `status` is considered meaningful.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
-    sa.Column('status', sa.Integer(), nullable=False, comment='Contain additional account status bits. The lower 16 bits are configured by the owner of the account: 1 - scheduled for deletion. The higher 16 bits contain internal flags: 65536 - deleted, 131072 - established interest rate, 262144 - overflown.'),
+    sa.Column('status', sa.Integer(), nullable=False, comment='Contain additional account status bits: 65536 - deleted, 131072 - established interest rate, 262144 - overflown.'),
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdateSignal` was sent to remind that the account still exists. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_id >= 0'),
@@ -94,6 +95,7 @@ def upgrade():
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
+    sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('status', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
@@ -149,7 +151,7 @@ def upgrade():
     sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('config_seqnum', sa.Integer(), nullable=False),
-    sa.Column('config_flags', sa.SmallInteger(), nullable=False),
+    sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config', sa.String(), nullable=False),
     sa.Column('rejection_code', sa.String(length=30), nullable=False),

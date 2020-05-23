@@ -39,10 +39,8 @@ def get_now_utc() -> datetime:
 
 
 class Account(db.Model):
-    # Status's lower 16 bits are configured by the owner of the account:
-    STATUS_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
+    CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
 
-    # Status's higher 16 bits contain internal flags:
     STATUS_DELETED_FLAG = 1 << 16
     STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 1 << 17
     STATUS_OVERFLOWN_FLAG = 1 << 18
@@ -50,6 +48,8 @@ class Account(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     creation_date = db.Column(db.DATE, nullable=False)
+    last_change_seqnum = db.Column(db.Integer, nullable=False, default=0)
+    last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     interest = db.Column(db.FLOAT, nullable=False, default=0.0)
@@ -58,6 +58,7 @@ class Account(db.Model):
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
     last_outgoing_transfer_date = db.Column(db.DATE, nullable=False, default=BEGINNING_OF_TIME.date())
     negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
+    config_flags = db.Column(db.Integer, nullable=False, default=0)
     locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
@@ -73,24 +74,6 @@ class Account(db.Model):
         default=0,
         comment='The number of `pending_transfer` records for this account.',
     )
-    last_change_seqnum = db.Column(
-        db.Integer,
-        nullable=False,
-        default=0,
-        comment='Incremented (with wrapping) on every meaningful change on the account. Every '
-                'change in `principal`, `interest_rate`, `interest`, `negligible_amount`, or  '
-                '`status` is considered meaningful. This column, along with the `last_change_ts` '
-                'column, allows to reliably determine the correct order of changes, even if '
-                'they occur in a very short period of time.',
-    )
-    last_change_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=get_now_utc,
-        comment='The moment at which the last meaningful change on the account happened. Must '
-                'never decrease. Every change in `principal`, `interest_rate`, `interest`, '
-                '`negligible_amount`, or `status` is considered meaningful.',
-    )
     last_transfer_id = db.Column(
         db.BigInteger,
         nullable=False,
@@ -105,10 +88,7 @@ class Account(db.Model):
         db.Integer,
         nullable=False,
         default=PRISTINE_ACCOUNT_STATUS,
-        comment="Contain additional account status bits. "
-                "The lower 16 bits are configured by the owner of the account: "
-                f"{STATUS_SCHEDULED_FOR_DELETION_FLAG} - scheduled for deletion. "
-                "The higher 16 bits contain internal flags: "
+        comment="Contain additional account status bits: "
                 f"{STATUS_DELETED_FLAG} - deleted, "
                 f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "
                 f"{STATUS_OVERFLOWN_FLAG} - overflown."
@@ -149,13 +129,6 @@ class Account(db.Model):
                 current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
 
         return current_balance
-
-    def set_config_flags(self, value):
-        """Set the lower 16 account status bits."""
-
-        value &= 0xffff
-        self.status &= 0xffff0000
-        self.status |= value
 
 
 class TransferRequest(db.Model):

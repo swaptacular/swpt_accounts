@@ -208,11 +208,12 @@ class AccountUpdateSignal(Signal):
         last_config_seqnum = fields.Integer()
         creation_date = fields.Date()
         negligible_amount = fields.Float()
+        config = fields.Constant('')
+        config_flags = fields.Integer()
         status = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
         ttl = fields.Integer()
         account_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
-        config = fields.Constant('')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -228,6 +229,7 @@ class AccountUpdateSignal(Signal):
     last_config_seqnum = db.Column(db.Integer, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
+    config_flags = db.Column(db.Integer, nullable=False)
     status = db.Column(db.Integer, nullable=False)
 
     @property
@@ -264,7 +266,7 @@ class RejectedConfigSignal(Signal):
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
     config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     config_seqnum = db.Column(db.Integer, nullable=False)
-    config_flags = db.Column(db.SmallInteger, nullable=False)
+    config_flags = db.Column(db.Integer, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     config = db.Column(db.String, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
