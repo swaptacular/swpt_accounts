@@ -19,7 +19,7 @@ debtor can be expressed with a negative account balance, the
 relationship is not supposed to work in the reverse direction. The
 protocol supports the following operations:
 
-1. Creditors can open accounts with debtors.
+1. Creditors can open accounts with debtors. [#one-account-limit]_
 
 2. Creditors can re-configure existing accounts. Notably, creditors
    can schedule accounts for deletion, and specify an amount on the
@@ -70,6 +70,12 @@ mind:
    implementations. For example, it should be possible to implement a
    proxy/adapter that allows clients that "talk" this protocol to
    create bank accounts and make bank transfers.
+
+.. [#one-account-limit] A given creditor can have *at most one
+  account* with a given debtor. This limitation greatly simplifies the
+  protocol, at the cost of making rare use cases less convenient. (To
+  have more than one account with the same debtor, the creditor will
+  have to use more that one ``creditor_id``.)
 
 
 Incoming messages
