@@ -534,7 +534,7 @@ last_change_ts : date-time
    The moment at which the latest meaningful change in the state of
    the account has happened. For a given account, later
    `AccountUpdate`_ messages MUST have later or equal
-   ``last_change_ts``, compared to earlier messages.
+   ``last_change_ts``\s, compared to earlier messages.
 
 last_change_seqnum : int32
    The sequential number of the latest meaningful change. For a given
