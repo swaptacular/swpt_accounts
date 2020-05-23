@@ -2,6 +2,9 @@
 Swaptacular Messaging Protocol
 ++++++++++++++++++++++++++++++
 
+.. contents::
+   :depth: 1
+
 
 Overview
 ========
