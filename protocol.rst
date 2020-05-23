@@ -184,7 +184,8 @@ creditor_id : int64
 
 coordinator_type : string
    Indicates the subsystem which sent this message. MUST be between 1
-   and 30 symbols, ASCII only.
+   and 30 symbols, ASCII only. Random examples: ``"direct"`` for
+   direct payments, ``"interest"`` for interest payments.
 
 coordinator_id : int64
    Along with ``coordinator_type``, identifies the client that sent
