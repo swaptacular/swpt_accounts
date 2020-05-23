@@ -557,6 +557,13 @@ interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
    account. This can be a negative number.
 
+status_flags : int32
+   Account status bit-flags. Different server implementations may use
+   these flags for different purposes. The lowest 16 bits are
+   reserved. Bit ``0`` has the meaning "inactive account", indicating
+   that the account can not participate in incoming or outgoing
+   transfers.
+
 last_config_ts : date-time
    MUST contain the value of the ``ts`` field in the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
@@ -586,13 +593,6 @@ config : string
    applied `ConfigureAccount`_ message. If there have not been any
    applied `ConfigureAccount`_ messages yet, the value SHOULD
    represent the default configuration settings.
-
-status_flags : int32
-   Account status bit-flags. Different server implementations may use
-   these flags for different purposes. The lowest 16 bits are
-   reserved. Bit ``0`` has the meaning "inactive account", indicating
-   that the account can not participate in incoming or outgoing
-   transfers.
 
 account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
