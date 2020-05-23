@@ -20,7 +20,7 @@ BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
-PRISTINE_ACCOUNT_STATUS = 0
+PRISTINE_ACCOUNT_STATUS_FLAGS = 0
 
 # Reserved coordinator types:
 CT_INTEREST = 'interest'
@@ -84,10 +84,10 @@ class Account(db.Model):
                 'to zero, and its higher 24 bits calculated from the value of `creation_date` '
                 '(the number of days since Jan 1st, 1970).',
     )
-    status = db.Column(
+    status_flags = db.Column(
         db.Integer,
         nullable=False,
-        default=PRISTINE_ACCOUNT_STATUS,
+        default=PRISTINE_ACCOUNT_STATUS_FLAGS,
         comment="Contain additional account status bits: "
                 f"{STATUS_DELETED_FLAG} - deleted, "
                 f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "

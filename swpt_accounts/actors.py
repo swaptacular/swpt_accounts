@@ -260,11 +260,12 @@ def try_to_delete_account(
 
     Note that when a "normal" account has been successfully marked as
     deleted, it could be "resurrected" (with "scheduled for deletion"
-    status) by a delayed incoming transfer. Therefore, this function
-    does not guarantee that the account will be marked as deleted
-    successfully, or that it will "stay" deleted for long. To achieve
-    a reliable deletion, this function may need to be called
-    repeatedly, until the account has been purged from the database.
+    configuration flag) by a delayed incoming transfer. Therefore,
+    this function does not guarantee that the account will be marked
+    as deleted successfully, or that it will "stay" deleted for
+    long. To achieve a reliable deletion, this function may need to be
+    called repeatedly, until the account has been purged from the
+    database.
 
     """
 

@@ -210,7 +210,7 @@ class AccountUpdateSignal(Signal):
         negligible_amount = fields.Float()
         config = fields.Constant('')
         config_flags = fields.Integer()
-        status = fields.Integer()
+        status_flags = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
         ttl = fields.Integer()
         account_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
@@ -230,7 +230,7 @@ class AccountUpdateSignal(Signal):
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     config_flags = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.Integer, nullable=False)
+    status_flags = db.Column(db.Integer, nullable=False)
 
     @property
     def ttl(self):

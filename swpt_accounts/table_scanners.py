@@ -55,14 +55,14 @@ class AccountScanner(TableScanner):
             # re-created in a single day, the `creation_date` of the
             # new account will be the same as the `creation_date` of
             # the old account. We need to make sure this never happens.
-            row[c.status] & deleted_flag
+            row[c.status_flags] & deleted_flag
             and row[c.last_change_ts] < purge_cutoff_ts
             and row[c.creation_date] < date_few_days_ago)
         ]
         if pks_to_purge:
             to_purge = db.session.query(Account.debtor_id, Account.creditor_id, Account.creation_date).\
                 filter(self.pk.in_(pks_to_purge)).\
-                filter(Account.status.op('&')(deleted_flag) == deleted_flag).\
+                filter(Account.status_flags.op('&')(deleted_flag) == deleted_flag).\
                 filter(Account.last_change_ts < purge_cutoff_ts).\
                 filter(Account.creation_date < date_few_days_ago).\
                 with_for_update().\
@@ -85,14 +85,14 @@ class AccountScanner(TableScanner):
             # NOTE: A reminder informing that the account still exists
             # should be sent when there has been no meaningful change
             # for a while, and no reminder has been recently sent.
-            not row[c.status] & deleted_flag
+            not row[c.status_flags] & deleted_flag
             and row[c.last_change_ts] < heartbeat_cutoff_ts
             and row[c.last_reminder_ts] < heartbeat_cutoff_ts)
         ]
         if pks_to_remind:
             to_remind = Account.query.\
                 filter(self.pk.in_(pks_to_remind)).\
-                filter(Account.status.op('&')(deleted_flag) == 0).\
+                filter(Account.status_flags.op('&')(deleted_flag) == 0).\
                 filter(Account.last_change_ts < heartbeat_cutoff_ts).\
                 filter(Account.last_reminder_ts < heartbeat_cutoff_ts).\
                 with_for_update().\
@@ -118,7 +118,7 @@ class AccountScanner(TableScanner):
                         creation_date=account.creation_date,
                         negligible_amount=account.negligible_amount,
                         config_flags=account.config_flags,
-                        status=account.status,
+                        status_flags=account.status_flags,
                         inserted_at_ts=max(current_ts, account.last_change_ts),
                     )
                     for account in to_remind

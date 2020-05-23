@@ -25,7 +25,7 @@ def test_scan_accounts(app_unsafe_session):
         locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=3,
-        status=0,
+        status_flags=0,
         last_change_ts=past_ts,
     )
     db.session.add(account)
@@ -37,7 +37,7 @@ def test_scan_accounts(app_unsafe_session):
         locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=3,
-        status=Account.STATUS_DELETED_FLAG,
+        status_flags=Account.STATUS_DELETED_FLAG,
         last_change_ts=past_ts,
     ))
     db.session.add(Account(
@@ -48,7 +48,7 @@ def test_scan_accounts(app_unsafe_session):
         locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=2,
-        status=0,
+        status_flags=0,
     ))
     db.session.add(Account(
         debtor_id=D_ID,
@@ -58,7 +58,7 @@ def test_scan_accounts(app_unsafe_session):
         locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=1,
-        status=0,
+        status_flags=0,
         last_change_ts=past_ts,
         last_reminder_ts=current_ts - timedelta(seconds=10),
     ))
@@ -85,7 +85,7 @@ def test_scan_accounts(app_unsafe_session):
     assert acs.creation_date == account.creation_date
     assert acs.negligible_amount == account.negligible_amount
     assert acs.config_flags == account.config_flags
-    assert acs.status == account.status
+    assert acs.status_flags == account.status_flags
 
     assert len(Account.query.filter_by(creditor_id=123).all()) == 0
     aps = AccountPurgeSignal.query.filter_by(debtor_id=D_ID, creditor_id=123).one()
@@ -127,7 +127,7 @@ def test_scan_prepared_transfers(app_unsafe_session):
         locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=2,
-        status=0,
+        status_flags=0,
     ))
     db.session.flush()
     db.session.add(PreparedTransfer(

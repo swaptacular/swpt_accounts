@@ -587,7 +587,7 @@ config : string
    applied `ConfigureAccount`_ messages yet, the value SHOULD
    represent the default configuration settings.
 
-status : int32
+status_flags : int32
    Account status bit-flags. Different server implementations may use
    these flags for different purposes. The lowest bit (bit ``0``) is
    reserved, and has the meaning "inactive". TODO

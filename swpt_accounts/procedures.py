@@ -61,9 +61,9 @@ def configure_account(
     def configure(account):
         if account is None:
             account = _create_account(debtor_id, creditor_id, current_ts)
-        if account.status & Account.STATUS_DELETED_FLAG:
-            account.status &= ~Account.STATUS_DELETED_FLAG
-            account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+        if account.status_flags & Account.STATUS_DELETED_FLAG:
+            account.status_flags &= ~Account.STATUS_DELETED_FLAG
+            account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         account.config_flags = config_flags
         account.negligible_amount = negligible_amount
         account.last_config_ts = ts
@@ -205,14 +205,14 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
         if interest_rate < INTEREST_RATE_FLOOR:
             interest_rate = INTEREST_RATE_FLOOR
 
-        has_established_interest_rate = account.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+        has_established_interest_rate = account.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         has_incorrect_interest_rate = not has_established_interest_rate or account.interest_rate != interest_rate
         signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
         is_request_outdated = (current_ts - request_ts).total_seconds() > signalbus_max_delay_seconds
         if not is_request_outdated and has_incorrect_interest_rate:
             account.interest = float(_calc_account_accumulated_interest(account, current_ts))
             account.interest_rate = interest_rate
-            account.status |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+            account.status_flags |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
             _insert_account_update_signal(account, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
@@ -374,7 +374,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
 @atomic
 def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optional[Account]:
     account = _get_account_instance(debtor_id, creditor_id, lock=lock)
-    if account and not account.status & Account.STATUS_DELETED_FLAG:
+    if account and not account.status_flags & Account.STATUS_DELETED_FLAG:
         return account
     return None
 
@@ -434,7 +434,7 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
         creation_date=account.creation_date,
         negligible_amount=account.negligible_amount,
         config_flags=account.config_flags,
-        status=account.status,
+        status_flags=account.status_flags,
         inserted_at_ts=account.last_change_ts,
     ))
 
@@ -464,9 +464,9 @@ def _lock_or_create_account(debtor_id: int, creditor_id: int, current_ts: dateti
         account = _create_account(debtor_id, creditor_id, current_ts)
         _insert_account_update_signal(account, current_ts)
 
-    if account.status & Account.STATUS_DELETED_FLAG:
-        account.status &= ~Account.STATUS_DELETED_FLAG
-        account.status &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    if account.status_flags & Account.STATUS_DELETED_FLAG:
+        account.status_flags &= ~Account.STATUS_DELETED_FLAG
+        account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         _insert_account_update_signal(account, current_ts)
 
     return account
@@ -556,7 +556,7 @@ def _mark_account_as_deleted(account: Account, current_ts: datetime):
     account.principal = 0
     account.interest = 0.0
     account.locked_amount = 0
-    account.status |= Account.STATUS_DELETED_FLAG
+    account.status_flags |= Account.STATUS_DELETED_FLAG
     _insert_account_update_signal(account, current_ts)
 
 
@@ -565,7 +565,7 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
     principal_possibly_overflown = account.principal + principal_delta
     principal = _contain_principal_overflow(principal_possibly_overflown)
     if principal != principal_possibly_overflown:
-        account.status |= Account.STATUS_OVERFLOWN_FLAG
+        account.status_flags |= Account.STATUS_OVERFLOWN_FLAG
     account.principal = principal
     _insert_account_update_signal(account, current_ts)
 
@@ -711,7 +711,7 @@ def _get_accessible_recipient_account_pks(transfer_requests: List[TransferReques
     account_pks = db.session.\
         query(Account.debtor_id, Account.creditor_id).\
         filter(ACCOUNT_PK.in_(account_pks)).\
-        filter(Account.status.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
+        filter(Account.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
         filter(Account.config_flags.op('&')(Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG) == 0).\
         all()
     return set(account_pks)

@@ -25,7 +25,7 @@ def test_configure_account(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     a = p.get_account(D_ID, C_ID)
     assert isinstance(a, Account)
-    assert a.status == 0
+    assert a.status_flags == 0
     assert a.principal == 0
     assert a.interest == 0.0
     assert a.locked_amount == 0
@@ -34,7 +34,7 @@ def test_configure_account(db_session, current_ts):
     assert a.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     acs = AccountUpdateSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert acs.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
-    assert acs.status == a.status
+    assert acs.status_flags == a.status_flags
     assert acs.principal == a.principal
     assert acs.interest == a.interest
     assert acs.interest_rate == a.interest_rate
@@ -52,7 +52,7 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['negligible_amount'] == a.negligible_amount
     assert acs_obj['config'] == ''
     assert acs_obj['config_flags'] == a.config_flags
-    assert acs_obj['status'] == a.status
+    assert acs_obj['status_flags'] == a.status_flags
     assert acs_obj['account_identity'] == str(C_ID)
     assert acs_obj['last_outgoing_transfer_date'] == a.last_outgoing_transfer_date.isoformat()
     assert acs_obj['last_transfer_number'] == 0
@@ -118,7 +118,7 @@ def test_set_interest_rate(db_session, current_ts):
     p.change_interest_rate(D_ID, C_ID, 7.0, current_ts)
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
-    assert a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    assert a.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     assert len(AccountUpdateSignal.query.all()) == 2
 
     # Too old request timestamp.
@@ -268,11 +268,11 @@ def test_positive_overflow(db_session, current_ts):
 
     p.make_debtor_payment('test', D_ID, C_ID, MAX_INT64)
     p.process_pending_account_changes(D_ID, C_ID)
-    assert not p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
+    assert not p.get_account(D_ID, C_ID).status_flags & Account.STATUS_OVERFLOWN_FLAG
 
     p.make_debtor_payment('test', D_ID, C_ID, 1)
     p.process_pending_account_changes(D_ID, C_ID)
-    assert p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
+    assert p.get_account(D_ID, C_ID).status_flags & Account.STATUS_OVERFLOWN_FLAG
 
 
 def test_negative_overflow(db_session, current_ts):
@@ -280,11 +280,11 @@ def test_negative_overflow(db_session, current_ts):
 
     p.make_debtor_payment('test', D_ID, C_ID, -MAX_INT64)
     p.process_pending_account_changes(D_ID, C_ID)
-    assert not p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
+    assert not p.get_account(D_ID, C_ID).status_flags & Account.STATUS_OVERFLOWN_FLAG
 
     p.make_debtor_payment('test', D_ID, C_ID, -2)
     p.process_pending_account_changes(D_ID, C_ID)
-    assert p.get_account(D_ID, C_ID).status & Account.STATUS_OVERFLOWN_FLAG
+    assert p.get_account(D_ID, C_ID).status_flags & Account.STATUS_OVERFLOWN_FLAG
 
 
 def test_get_available_amount(db_session, current_ts):
@@ -388,18 +388,18 @@ def test_delete_account(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
-    assert not a.status & Account.STATUS_DELETED_FLAG
+    assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert not a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
     p.configure_account(D_ID, C_ID, current_ts, 1, config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
     p.try_to_delete_account(D_ID, C_ID, current_ts)
     assert p.get_account(D_ID, C_ID) is None
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    assert q.one().status & Account.STATUS_DELETED_FLAG
+    assert q.one().status_flags & Account.STATUS_DELETED_FLAG
     assert q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
     assert AccountUpdateSignal.query.\
         filter(AccountUpdateSignal.debtor_id == D_ID).\
         filter(AccountUpdateSignal.creditor_id == C_ID).\
-        filter(AccountUpdateSignal.status.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
+        filter(AccountUpdateSignal.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
         one_or_none()
 
 
@@ -412,7 +412,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
     p.try_to_delete_account(D_ID, C_ID, current_ts)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
-    assert not a.status & Account.STATUS_DELETED_FLAG
+    assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
     # Verify that incoming transfers are not allowed:
@@ -439,7 +439,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
 
     # Verify that re-creating the account clears CONFIG_SCHEDULED_FOR_DELETION_FLAG:
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
-    assert not q.one().status & Account.STATUS_DELETED_FLAG
+    assert not q.one().status_flags & Account.STATUS_DELETED_FLAG
     assert not q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
@@ -453,7 +453,7 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     assert p.get_account(D_ID, C_ID) is None
     a = q.one()
     assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-    assert a.status & Account.STATUS_DELETED_FLAG
+    assert a.status_flags & Account.STATUS_DELETED_FLAG
     assert a.principal == 0
     assert a.interest == 0
     changes = PendingAccountChange.query.all()
@@ -468,7 +468,7 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     assert cts1.principal == 0
     a = q.one()
     assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-    assert a.status & Account.STATUS_DELETED_FLAG
+    assert a.status_flags & Account.STATUS_DELETED_FLAG
     assert a.principal == 0
     assert a.interest == 0
 
@@ -483,14 +483,14 @@ def test_delete_debtor_account(db_session, current_ts):
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID, current_ts)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
-    assert not a.status & Account.STATUS_DELETED_FLAG
+    assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert not a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
     # The principal is zero.
     p.make_debtor_payment('test', D_ID, C_ID, -1)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID, current_ts)
-    assert q.one().status & Account.STATUS_DELETED_FLAG
+    assert q.one().status_flags & Account.STATUS_DELETED_FLAG
     assert not q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
@@ -503,8 +503,8 @@ def test_resurrect_deleted_account_create(db_session, current_ts):
     p.try_to_delete_account(D_ID, C_ID, current_ts)
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
     assert q.one().interest_rate == 10.0
-    assert not q.one().status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-    assert not q.one().status & Account.STATUS_DELETED_FLAG
+    assert not q.one().status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    assert not q.one().status_flags & Account.STATUS_DELETED_FLAG
     assert not q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
@@ -521,8 +521,8 @@ def test_resurrect_deleted_account_transfer(db_session, current_ts):
     a = p.get_account(D_ID, C_ID)
     assert a is not None
     assert a.interest_rate == 10.0
-    assert not a.status & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-    assert not a.status & Account.STATUS_DELETED_FLAG
+    assert not a.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+    assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
@@ -829,7 +829,7 @@ def test_zero_out_negative_balance(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 1, config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
     p.try_to_delete_account(D_ID, C_ID, current_ts)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    assert q.one().status & Account.STATUS_DELETED_FLAG
+    assert q.one().status_flags & Account.STATUS_DELETED_FLAG
     assert q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
