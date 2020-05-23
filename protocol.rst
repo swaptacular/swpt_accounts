@@ -92,8 +92,8 @@ negligible_amount : float
 
 config_flags : int32
    Account configuration bit-flags. Different server implementations
-   may use these flags for different purposes. The lowest bit (bit
-   ``0``) is reserved, and has the meaning "scheduled for
+   may use these flags for different purposes. The lowest 16 bits are
+   reserved. Bit ``0`` has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
    are met, an account SHOULD be removed (or at least marked as
    deleted) from the server's database: **1)** the account is
@@ -589,9 +589,10 @@ config : string
 
 status_flags : int32
    Account status bit-flags. Different server implementations may use
-   these flags for different purposes. The lowest bit (bit ``0``) is
-   reserved, and has the meaning "inactive account", indicating that
-   the account can not participate in incoming or outgoing transfers.
+   these flags for different purposes. The lowest 16 bits are
+   reserved. Bit ``0`` has the meaning "inactive account", indicating
+   that the account can not participate in incoming or outgoing
+   transfers.
 
 account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
@@ -750,7 +751,7 @@ transfer_message : string
 transfer_flags : int32
    Various bit-flags characterizing the transfer. Server
    implementations may use these flags for different purposes. The
-   lowest bit (bit ``0``) is reserved, and has the meaning "negligible
+   lowest 16 bits are reserved. Bit ``0`` has the meaning "negligible
    transfer", indicating that the transferred ``amount`` does not
    exceed the configured ``negligible_amount``.
 
