@@ -144,8 +144,8 @@ they MUST first verify whether the specified account already exists:
    been successfully created, an `AccountUpdate`_ message MUST be
    sent; otherwise a `RejectedConfig`_ message MUST be sent.
 
-.. [#forbid-transfers] Server implementations SHOULD forbid incoming
-  transfer for "scheduled for deletion" accounts.
+.. [#forbid-transfers] Server implementations SHOULD NOT accept
+  incoming transfers for "scheduled for deletion" accounts.
 
 .. [#config-delay] How long this "some time" is, depends on how far
   int the past an `ConfigureAccount`_ message has to be, in order to
