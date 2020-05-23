@@ -29,7 +29,7 @@ protocol supports the following operations:
    balance was negligible at the moment of the deletion request, there
    might have been a pending incoming transfer to the account, which
    would be lost had the account been deleted without the necessary
-   precautions. To achieve safe deletion, this protocal requires that
+   precautions. To achieve safe deletion, this protocol requires that
    the account is scheduled for deletion, and the system takes care to
    delete the account when (and if) it is safe to do so.
 
@@ -99,7 +99,7 @@ config_flags : int32
    deleted) from the server's database: **1)** the account is
    "scheduled for deletion"; **2)** the account has no prepared
    transfers that await finalization; **3)** enough time has passed
-   since account's creation; [#creation-date]_ **4)** accont's
+   since account's creation; [#creation-date]_ **4)** account's
    configuration have not been updated for some time; [#config-delay]_
    **5)** it is very unlikely that amount bigger that
    ``negligible_amount`` will be lost if the account is removed from
@@ -121,7 +121,7 @@ seqnum : int32
    The sequential number of the message. For a given account, later
    `ConfigureAccount`_ messages SHOULD have bigger sequential numbers,
    compared to earlier messages. Note that when the maximum ``int32``
-   value is reached, the next value SHOULD be ``-2147483648`` (signeld
+   value is reached, the next value SHOULD be ``-2147483648`` (signed
    32-bit integer wrapping).
 
 When server implementations process a `ConfigureAccount`_ message,
@@ -147,9 +147,9 @@ they MUST first verify whether the specified account already exists:
 .. [#forbid-transfers] Server implementations SHOULD NOT accept
   incoming transfers for "scheduled for deletion" accounts.
 
-.. [#config-delay] How long this "some time" is, depends on how far
-  int the past an `ConfigureAccount`_ message has to be, in order to
-  be ignored. The goal is to avoid the scenario in which an account is
+.. [#config-delay] How long this "some time" is, depends on how far in
+  the past an `ConfigureAccount`_ message has to be, in order to be
+  ignored. The goal is to avoid the scenario in which an account is
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
 
@@ -206,12 +206,7 @@ max_amount : int64
 
 recipient : string
    A string which (along with ``debtor_id``) globally identifies the
-   recipient's account. Different server implementations may use
-   different formats for this string. Note that ``creditor_id`` is an
-   ID which is recognizable only by the system that created the
-   sender's account. This identifier (along with ``debtor_id``), on
-   the other hand, MUST provide enough information to globally
-   identify the recipient's account (an IBAN for example).
+   recipient's account. [#account-identity]_
    
 minimum_account_balance : int64
    Determines the minimum amount that SHOULD remain available on
@@ -298,7 +293,7 @@ in server's database:
 
    * Remove the prepared transfer from server's database.
 
-   * Send a `FinalizedTransfer`_ message with the apropriate
+   * Send a `FinalizedTransfer`_ message with the appropriate
      ``status_code``.
 
 2. If the specified prepared transfer does not exist, the message MUST
@@ -306,7 +301,7 @@ in server's database:
 
 .. [#message-limitations] Server implementations MAY impose additional
   restrictions on the format and the content of this string, as long
-  as these restictions are precisely defined, and known in advance.
+  as these restrictions are precisely defined, and known in advance.
 
 .. [#commit] When ``committed_amount`` is zero, this would be a no-op.
   When the commit is successful, an `AccountUpdate`_ message, and
@@ -540,7 +535,7 @@ last_change_seqnum : int32
    The sequential number of the latest meaningful change. For a given
    account, later changes MUST have bigger sequential numbers,
    compared to earlier changes. Note that when the maximum ``int32``
-   value is reached, the next value MUST be ``-2147483648`` (signeld
+   value is reached, the next value MUST be ``-2147483648`` (signed
    32-bit integer wrapping). [#compare-change]_ [#compare-seqnums]_
 
 principal : int64
@@ -752,8 +747,8 @@ transfer_flags : int32
    Various bit-flags characterizing the transfer. Server
    implementations may use these flags for different purposes. The
    lowest 16 bits are reserved. Bit ``0`` has the meaning "negligible
-   transfer", indicating that the transferred ``amount`` does not
-   exceed the configured ``negligible_amount``.
+   transfer", indicating that the transferred amount does not exceed
+   the configured ``negligible_amount``. [#negligible-transfer]_
 
 principal : int64
    The amount that the debtor owes to the creditor, without the
@@ -777,6 +772,9 @@ be emitted for each committed transfer.
 .. [#transfer-number] Note that when an account has been removed from
   the database, and then recreated again, the generation of transfer
   numbers MAY start from ``1`` again.
+
+.. [#negligible-transfer] That is: ``abs(amount) <=
+   negligible_amount``.
 
 
 Requirements for Client Implementations
