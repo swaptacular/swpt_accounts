@@ -184,8 +184,7 @@ creditor_id : int64
 
 coordinator_type : string
    Indicates the subsystem which sent this message. MUST be between 1
-   and 30 symbols, ASCII only. Random examples: ``"direct"`` for
-   direct payments, ``"interest"`` for interest payments.
+   and 30 symbols, ASCII only. [#coordinator-type]_
 
 coordinator_id : int64
    Along with ``coordinator_type``, identifies the client that sent
@@ -244,6 +243,12 @@ When server implementations process a `PrepareTransfer`_ message they:
 * MUST NOT impose unnecessary limitations on the time in which the
   prepared transfer can/should be committed. All imposed limitations
   MUST be precisely defined, and known in advance.
+
+
+.. [#coordinator-type] Random examples: ``"direct"`` might be used for
+  payments initiated directly by the owner of the account,
+  ``"interest"`` might be used for payments initiated by the interest
+  capitalization service.
 
 
 FinalizeTransfer
