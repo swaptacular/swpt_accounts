@@ -156,6 +156,13 @@ they MUST first verify whether the specified account already exists:
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
 
+.. [#purge-delay] The delay MUST be at least as long as indicated by
+  the value of the ``ttl`` field which is sent with `AccountUpdate`_
+  messages. The goal is to ensure that after clients have received the
+  `AccountPurge`_ message, if they continue to receive old
+  `AccountUpdate`_ messages for the purged account, those messages
+  will be ignored.
+
 .. [#compare-config] To do this, server implementations MUST compare
   the values of ``ts`` and ``seqnum`` fields in the received message,
   to the values of these fields in the latest applied
@@ -696,13 +703,6 @@ ts : date-time
 
 The purpose of `AccountPurge`_ messages is to inform clients that they
 can safely remove a given account from their databases.
-
-.. [#purge-delay] The delay MUST be at least as long as indicated by
-  the value of the ``ttl`` field which is sent with `AccountUpdate`_
-  messages. The goal is to ensure that after clients have received the
-  `AccountPurge`_ message, if they continue to receive old
-  `AccountUpdate`_ messages for the purged account, those messages
-  will be ignored.
 
 
 AccountTransfer
