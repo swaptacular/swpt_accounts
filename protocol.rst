@@ -666,8 +666,8 @@ of a lost message, or a complete database loss on the client's side.
   hand, MUST provide enough information to globally identify the
   account (an IBAN for example).
 
-.. [#missing-identity] In this case the ``status_flags`` MUST indicate
-  that the account is an "inactive account".
+.. [#missing-identity] In this case the ``status_flags`` field MUST
+  indicate that the account is an "inactive account".
 
 
 AccountPurge
