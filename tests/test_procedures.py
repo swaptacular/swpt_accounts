@@ -32,6 +32,7 @@ def test_configure_account(db_session, current_ts):
     assert a.pending_transfers_count == 0
     assert a.interest_rate == 0.0
     assert a.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
+    assert not a.status_flags & Account.STATUS_UNREACHABLE_FLAG
     acs = AccountUpdateSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     assert acs.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     assert acs.status_flags == a.status_flags
@@ -414,6 +415,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
     assert a is not None
     assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+    assert a.status_flags & Account.STATUS_UNREACHABLE_FLAG
 
     # Verify that incoming transfers are not allowed:
     p.configure_account(D_ID, 1234, current_ts, 0)

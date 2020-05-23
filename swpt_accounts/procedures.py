@@ -61,9 +61,16 @@ def configure_account(
     def configure(account):
         if account is None:
             account = _create_account(debtor_id, creditor_id, current_ts)
+
         if account.status_flags & Account.STATUS_DELETED_FLAG:
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
             account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+
+        if config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG:
+            account.status_flags |= Account.STATUS_UNREACHABLE_FLAG
+        else:
+            account.status_flags &= ~Account.STATUS_UNREACHABLE_FLAG
+
         account.config_flags = config_flags
         account.negligible_amount = negligible_amount
         account.last_config_ts = ts
@@ -301,13 +308,13 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
 
     if transfer_requests:
         sender_account = get_account(debtor_id, creditor_id, lock=True)
-        accessible_recipient_account_pks = _get_accessible_recipient_account_pks(transfer_requests)
+        reachable_recipient_account_pks = _get_reachable_recipient_account_pks(transfer_requests)
         rejected_transfer_signals = []
         prepared_transfer_signals = []
 
         for tr in transfer_requests:
-            is_recipient_accessible = (debtor_id, tr.recipient_creditor_id) in accessible_recipient_account_pks
-            signal = _process_transfer_request(tr, sender_account, is_recipient_accessible, current_ts)
+            is_recipient_reachable = (debtor_id, tr.recipient_creditor_id) in reachable_recipient_account_pks
+            signal = _process_transfer_request(tr, sender_account, is_recipient_reachable, current_ts)
             if isinstance(signal, RejectedTransferSignal):
                 rejected_transfer_signals.append(signal)
             else:
@@ -612,7 +619,7 @@ def _make_debtor_payment(
 def _process_transfer_request(
         tr: TransferRequest,
         sender_account: Optional[Account],
-        is_recipient_accessible: bool,
+        is_recipient_reachable: bool,
         current_ts: datetime) -> Union[RejectedTransferSignal, PreparedTransferSignal]:
 
     def reject(rejection_code: str, available_amount: int) -> RejectedTransferSignal:
@@ -672,7 +679,7 @@ def _process_transfer_request(
     # NOTE: Transfers to the debtor's account must be allowed even
     # when the debtor's account does not exist. In this case, it will
     # be created when the transfer is committed.
-    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_accessible:
+    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
         return reject('RECIPIENT_NOT_ACCESSIBLE', 0)
 
     # NOTE: The available amount should be checked last, because if
@@ -702,7 +709,7 @@ def _insert_account_maintenance_signal(
     ))
 
 
-def _get_accessible_recipient_account_pks(transfer_requests: List[TransferRequest]) -> Set[Tuple[int, int]]:
+def _get_reachable_recipient_account_pks(transfer_requests: List[TransferRequest]) -> Set[Tuple[int, int]]:
     # TODO: To achieve better scalability, consider using some fast
     #       distributed key-store (Redis?) containing the (debtor_id,
     #       creditor_id) tuples for all accessible accounts.
@@ -712,6 +719,6 @@ def _get_accessible_recipient_account_pks(transfer_requests: List[TransferReques
         query(Account.debtor_id, Account.creditor_id).\
         filter(ACCOUNT_PK.in_(account_pks)).\
         filter(Account.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
-        filter(Account.config_flags.op('&')(Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG) == 0).\
+        filter(Account.status_flags.op('&')(Account.STATUS_UNREACHABLE_FLAG) == 0).\
         all()
     return set(account_pks)

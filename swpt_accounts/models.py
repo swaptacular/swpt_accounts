@@ -41,6 +41,7 @@ def get_now_utc() -> datetime:
 class Account(db.Model):
     CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
 
+    STATUS_UNREACHABLE_FLAG = 1 << 0
     STATUS_DELETED_FLAG = 1 << 16
     STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 1 << 17
     STATUS_OVERFLOWN_FLAG = 1 << 18

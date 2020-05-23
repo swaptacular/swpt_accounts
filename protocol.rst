@@ -560,9 +560,8 @@ interest_rate : float
 status_flags : int32
    Account status bit-flags. Different server implementations may use
    these flags for different purposes. The lowest 16 bits are
-   reserved. Bit ``0`` has the meaning "inactive account", indicating
-   that the account can not participate in incoming or outgoing
-   transfers.
+   reserved. Bit ``0`` has the meaning "unreachable account",
+   indicating that the account can not receive incoming transfers.
 
 last_config_ts : date-time
    MUST contain the value of the ``ts`` field in the latest applied
@@ -669,7 +668,7 @@ of a lost message, or a complete database loss on the client's side.
 
 .. [#missing-identity] When the account does not have an identity yet,
   the ``status_flags`` field MUST indicate that the account is an
-  "inactive account".
+  "unreachable account".
 
 
 AccountPurge
