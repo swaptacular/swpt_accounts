@@ -849,6 +849,7 @@ statuses:
   decided by the race between the two different finalizing
   messages. In most cases, this would be a serious problem.
 
+
 Received `PreparedTransfer`_ message
 ------------------------------------
 
