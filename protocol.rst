@@ -801,22 +801,24 @@ be emitted for each committed transfer.
 Requirements for Client Implementations
 =======================================
 
-TODO:
+CRR
+---
 
-Before sending a `PrepareTransfer`_ message, the sender SHOULD create
-a Coordinator Request (CR) database record, with a primary key of
-(``coordinator_type``, ``coordinator_id``,
-``coordinator_request_id``), and status "initiated". This record will
-be used to act properly on `PreparedTransfer`_ and `RejectedTransfer`_
-messages.
+Before sending a `PrepareTransfer`_ message, client implementations
+MUST create a **Coordinator Request Record** (CRR_) in the client's
+database. The primary key for this record should be the
+(``coordinator_type``, ``coordinator_id``, ``coordinator_request_id``)
+tuple. The status of the newly created CCR_ MUST be set to
+"initiated". This record will be used to act properly on received
+`PreparedTransfer`_ and `RejectedTransfer`_ messages.
 
 
 When a `PreparedTransfer`_ message is received
 ----------------------------------------------
 
 When client implementations processes a `PreparedTransfer`_ message,
-they MUST first try find a matching CR database record [#cr-match]_,
-and verify its status:
+they MUST first try find a matching CRR_ in the client's database
+[#crr-match]_, and verify its status:
 
 * If a corresponding CR record does not exist, the newly prepared
   transfer MUST be immediately dismissed. [#dismiss-transfer]_
@@ -844,11 +846,11 @@ and verify its status:
 .. [#dismiss-transfer] A prepared transfer is dismissed by sending a
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
 
-.. [#cr-match] The values of ``coordinator_type``, ``coordinator_id``,
-  and ``coordinator_request_id`` in the received message MUST be same
-  as the corresponding values in the matching CR. The values of
-  ``debtor_id``, ``creditor_id``, ``recipient`` and ``locked_amount``
-  SHOULD be verified as well.
+.. [#crr-match] The values of ``coordinator_type``,
+  ``coordinator_id``, and ``coordinator_request_id`` in the received
+  message MUST be same as the corresponding values in the matching
+  CR. The values of ``debtor_id``, ``creditor_id``, ``recipient`` and
+  ``locked_amount`` SHOULD be verified as well.
 
 
 When a `RejectedTransfer`_ is received
