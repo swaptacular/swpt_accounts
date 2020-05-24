@@ -801,14 +801,14 @@ be emitted for each committed transfer.
 Requirements for Client Implementations
 =======================================
 
-CRR
----
+CR record
+---------
 
 Before sending a `PrepareTransfer`_ message, client implementations
-MUST create a *Coordinator Request Record* (CRR_) in the client's
-database. The primary key for this record should be the
+MUST create a *Coordinator Request record* (`CR record`_) in the
+client's database. The primary key for this record should be the
 (``coordinator_type``, ``coordinator_id``, ``coordinator_request_id``)
-tuple. The status of the newly created CCR_ MUST be set to
+tuple. The status of the newly created `CR record`_ MUST be set to
 "initiated". This record will be used to act properly on received
 `PreparedTransfer`_ and `RejectedTransfer`_ messages.
 
@@ -817,34 +817,34 @@ When a `PreparedTransfer`_ message is received
 ----------------------------------------------
 
 When client implementations process a `PreparedTransfer`_ message,
-they MUST first try to find a matching CRR_ in the client's database
-[#crr-match]_, and verify its status:
+they MUST first try to find a matching `CR record`_ in the client's
+database [#crr-match]_, and verify its status:
 
-* If a matching CRR_ does not exist, the newly prepared transfer MUST
-  be immediately dismissed. [#dismiss-transfer]_
+* If a matching `CR record`_ does not exist, the newly prepared
+  transfer MUST be immediately dismissed. [#dismiss-transfer]_
 
-* If a matching CRR_ exists, the way to proceed depend on the status
-  of the record:
+* If a matching `CR record`_ exists, the way to proceed depend on the
+  status of the record:
 
   "initiated" :
      The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
      fields in the received message MUST be recorded, and the the
-     status of the CCR_ MUST be set to
+     status of the `CR record`_ MUST be set to
      "prepared". [#prepared-records]_
 
 * If the status is "prepared", the values of ``debtor_id``,
   ``creditor_id``, and ``transfer_id`` in the received message MUST be
-  compared to the values recorded in the CR. If they are the same, no
-  action MUST be taken. If they differ, the newly prepared transfer
-  MUST be immediately dismissed. [#dismiss-transfer]_
+  compared to the values recorded in the `CR record`_. If they are the
+  same, no action MUST be taken. If they differ, the newly prepared
+  transfer MUST be immediately dismissed. [#dismiss-transfer]_
 
 * If the status is "finalized", the values of ``debtor_id``,
   ``creditor_id``, and ``transfer_id`` in the received message MUST be
-  compared to the values recorded in the CR. If they are the same, the
-  exact `FinalizeTransfer`_ message, which has been sent to finalize
-  the transfer (except for the ``ts`` field), MUST be sent again. If
-  they differ, the newly prepared transfer MUST be immediately
-  dismissed. [#dismiss-transfer]_
+  compared to the values recorded in the `CR record`_. If they are the
+  same, the exact `FinalizeTransfer`_ message, which has been sent to
+  finalize the transfer (except for the ``ts`` field), MUST be sent
+  again. If they differ, the newly prepared transfer MUST be
+  immediately dismissed. [#dismiss-transfer]_
 
 .. [#dismiss-transfer] A prepared transfer is dismissed by sending a
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
@@ -855,8 +855,8 @@ they MUST first try to find a matching CRR_ in the client's database
   CRR_. The values of ``debtor_id``, ``creditor_id``, ``recipient``
   and ``locked_amount`` MAY be verified as well.
 
-.. [#prepared-records] "prepared" CCR_\s MUST be, at some point,
-  finalized (committed or dismissed), and the status set to
+.. [#prepared-records] "prepared" `CC record`_\s MUST be, at some
+  point, finalized (committed or dismissed), and the status set to
   "finalized".
 
 
