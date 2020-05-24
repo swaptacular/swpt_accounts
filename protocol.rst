@@ -859,8 +859,8 @@ record`_:
 .. [#prepared-records] Note that at some point a `FinalizeTransfer`_
   message MUST be sent for each "prepared" `CR record`_, and the
   record's status set to "finalized". Often this will be done
-  immediately, and in that case, the `CR record`_ would change its
-  status from "initiated", directly to "finalized".
+  immediately, in which case the `CR record`_ will change its status
+  from "initiated", directly to "finalized".
 
 
 Received `FinalizedTransfer`_ message
