@@ -853,12 +853,14 @@ record`_:
   ``locked_amount`` fields in the received `PreparedTransfer`_ message
   MAY be verified as well.
 
-.. [#dismiss-transfer] A prepared transfer can be dismissed by sending
-  a `FinalizeTransfer`_ message, with zero ``committed_amount``.
+.. [#dismiss-transfer] A prepared transfer is dismissed by sending a
+  `FinalizeTransfer`_ message, with zero ``committed_amount``.
 
-.. [#prepared-records] Note that "prepared" `CR record`_\s MUST be, at
-  some point, finalized (committed or dismissed), and their status set
-  to "finalized".
+.. [#prepared-records] Note that at some point a `FinalizeTransfer`_
+  message MUST be sent for each "prepared" `CR record`_, and the
+  record's status set to "finalized". Often this will be done
+  immediately, and in that case, the `CR record`_ would change its
+  status from "initiated", directly to "finalized".
 
 
 Received `FinalizedTransfer`_ message
