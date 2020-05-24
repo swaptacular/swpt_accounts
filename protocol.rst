@@ -538,7 +538,7 @@ prepared_at : date-time
 AccountUpdate
 -------------
 
-Emitted when there has been a meaningful change in the state of an
+Emitted if there has been a meaningful change in the state of an
 account [#meaningful-change]_, or to remind that an account still
 exists.
 
@@ -654,7 +654,13 @@ of a lost message, or a complete database loss on the client's side.
 .. [#meaningful-change] For a given account, every change in the value
   of one of the fields included in `AccountUpdate`_ messages (except
   for the ``ts`` field) should be considered meaningful, and therefore
-  an `AccountUpdate`_ message SHOULD be emitted to inform about it.
+  an `AccountUpdate`_ message SHOULD *eventually* be emitted to inform
+  about it. There is no requirement, though, `AccountUpdate`_ messages
+  to be emitted instantly, following each individual meaningful
+  change. For example, for a series of transactions committed on the
+  account in a short period of time, the server may emit only one
+  `AccountUpdate`_ message, announce only the final state of the
+  account.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
