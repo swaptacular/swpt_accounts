@@ -854,10 +854,11 @@ database [#crr-match]_:
 
 .. [#crr-match] The matching `CR record`_ MUST have the same
   ``coordinator_type``, ``coordinator_id``, and
-  ``coordinator_request_id`` values, as in the received
+  ``coordinator_request_id`` values as the received
   `PreparedTransfer`_ message. Additionally, the values of
   ``debtor_id``, ``creditor_id``, ``recipient`` and ``locked_amount``
-  fields MAY be verified as well.
+  fields in the received `PreparedTransfer`_ message MAY be verified
+  as well.
 
 .. [#prepared-records] "prepared" `CR record`_\s MUST be, at some
   point, finalized (committed or dismissed), and the status set to
@@ -867,11 +868,15 @@ database [#crr-match]_:
 When a `RejectedTransfer`_ is received
 --------------------------------------
 
-If a `RejectedTransferSignal` is received for an "initiated" CR
-record, the CR record SHOULD be deleted.
+When client implementations process a `RejectedTransfer`_ message,
+they MUST first try to find a matching `CR record`_ in the client's
+database [#crr-match]_:
 
-If a `RejectedTransferSignal` is received in any other case, no
-action MUST be taken.
+* If a matching `CR record`_ exists, and its status is "initiated",
+  the `CR record`_ SHOULD be deleted.
+
+* In any other case, the received message MUST be ignored.
+
 
 IMPORTANT NOTES:
 
