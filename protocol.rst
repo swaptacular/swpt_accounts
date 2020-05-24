@@ -805,12 +805,12 @@ CR record
 ---------
 
 Before sending a `PrepareTransfer`_ message, client implementations
-MUST create a *coordinator request record* (`CR record`_) in the
-client's database. The primary key for this record should be the
-(``coordinator_type``, ``coordinator_id``, ``coordinator_request_id``)
-tuple. Every `CR record`_ has 3 possible statuses: "initiated",
-"prepared", and "finalized". The status of the newly created records
-MUST be set to "initiated".
+MUST create a new *coordinator request record* (`CR record`_) in the
+client's database. The primary key for coordinator request records
+SHOULD be the (``coordinator_type``, ``coordinator_id``,
+``coordinator_request_id``) tuple. Every `CR record`_ has 3 possible
+statuses: "initiated", "prepared", and "finalized". The status of the
+newly created records MUST be set to "initiated".
 
 
 Received `PreparedTransfer`_ message
