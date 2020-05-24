@@ -808,14 +808,14 @@ Before sending a `PrepareTransfer`_ message, client implementations
 MUST create a *coordinator request record* (`CR record`_) for the
 transfer in the client's database. The primary key for coordinator
 request records SHOULD be the (``coordinator_type``,
-``coordinator_id``, ``coordinator_request_id``) tuple. Every `CR
-record`_ has 3 possible statuses:
+``coordinator_id``, ``coordinator_request_id``) tuple. `CR record`_\s
+have 3 possible statuses:
 
 "initiated" :
    Indicates that a `PrepareTransfer`_ request has been sent, and no
    response has been received yet. Records with this status MAY be
-   deleted whenever considered appropriate. All newly created `CR
-   record`_\s MUST have "initiated" status.
+   deleted whenever considered appropriate. Newly created `CR
+   record`_\s MUST receive this status.
 
 "prepared" :
    Indicates that a `PrepareTransfer`_ request has been sent, and a
