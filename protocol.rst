@@ -839,7 +839,7 @@ record`_:
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be compared
    to the values stored in the `CR record`_. If they are the same, the
-   exact `FinalizeTransfer`_ message (except for the ``ts`` field),
+   same `FinalizeTransfer`_ message (except for the ``ts`` field),
    which was sent to finalize the transfer, MUST be sent again; if
    they differ, the newly prepared transfer MUST be immediately
    dismissed. [#dismiss-transfer]_
@@ -847,10 +847,9 @@ record`_:
 .. [#crr-match] The matching `CR record`_ MUST have the same
   ``coordinator_type``, ``coordinator_id``, and
   ``coordinator_request_id`` values as the received
-  `PreparedTransfer`_ message. Additionally, the values of
-  ``debtor_id``, ``creditor_id``, ``transfer_id``, ``recipient``, and
-  ``locked_amount`` fields in the received `PreparedTransfer`_ message
-  MAY be verified as well.
+  `PreparedTransfer`_ message. Additionally, the values of the other
+  fields in the received `PreparedTransfer`_ message MAY be verified
+  as well, so as to ensure that the server behaves as expected.
 
 .. [#dismiss-transfer] A prepared transfer is dismissed by sending a
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
