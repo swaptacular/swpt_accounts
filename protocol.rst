@@ -809,8 +809,52 @@ MUST create a new *coordinator request record* (`CR record`_) for the
 transfer in the client's database. The primary key for coordinator
 request records SHOULD be the (``coordinator_type``,
 ``coordinator_id``, ``coordinator_request_id``) tuple. Every `CR
-record`_ has 3 possible statuses: "initiated", "prepared", and
-"finalized". The status of the newly created records MUST be set to
+record`_ has 3 possible statuses:
+
+"initiated" :
+   A `PrepareTransfer`_ request has been sent, and no response has
+   been received yet. Records with this status MAY be deleted whenever
+   considered appropriate.
+
+"prepared" :
+   A `PrepareTransfer`_ request has been sent, and a
+   `PreparedTransfer`_ response has been received. Records with this
+   status MUST NOT be deleted. Instead, they MUST be finalized first
+   (committed or dismissed), by sending a `FinalizeTransfer`_ message.
+
+"finalized" :
+   A `PrepareTransfer`_ request has been sent, a `PreparedTransfer`_
+   response has been received, and a `FinalizeTransfer`_ message have
+   been sent to dismiss or commit the prepared transfer. *Dismissed*
+   records with this status MAY be deleted whenever considered
+   appropriate. *Committed* records with this status SHOULD NOT be
+   deleted right away. Instead, they SHOULD stay in the database until
+   a corresponding `FinalizedTransfer`_ message is received for
+   them. [#staled-records]_
+
+NOTE: The retention of committed `CR record`_\s is necessary to
+prevent problems caused by message re-delivery. Consider the following
+scenario: a transfer has been prepared and committed (finalized), but
+the `PreparedTransfer`_ message is re-delivered a second time. Had the
+`CR record`_ been deleted right away, the already committed transfer
+would be dismissed the second time, and the fate of the transfer would
+be decided by the race between the two different finalizing
+messages. In most cases, this would be a serious problem.
+
+* **"finalized"** `CR record`_\s, which have been committed, SHOULD
+  NOT be deleted right away. Instead, they SHOULD stay in the database
+  until a corresponding `FinalizedTransfer`_ message is received for
+  them. (It MUST be verified that the signal has the same
+  ``debtor_id``, ``creditor_id``, and ``transfer_id`` as the CR
+  record.)
+
+.. [#staled-records] Only when the corresponding `FinalizedTransfer`_
+  message has not been received for a very long time (1 year for
+  example), the committed, finalized `CR record`_ MAY be deleted with
+  a warning.
+
+
+The status of the newly created records MUST be set to
 "initiated".
 
 
@@ -868,8 +912,11 @@ Received `FinalizedTransfer`_ message
 
 When client implementations process a `FinalizedTransfer`_ message,
 they MUST first try to find a matching `CR record`_ in the client's
-database. [#crr-match]_ If a matching record exists, the record SHOULD
-be deleted; otherwise the message MUST be ignored.
+database. [#crr-match]_ If a matching record exists, and the values of
+``debtor_id``, ``creditor_id``, and ``transfer_id`` fields in the
+received `PreparedTransfer`_ message are the same as the values stored
+in the `CR record`_, the record SHOULD be deleted; otherwise the
+message MUST be ignored.
 
 
 Received `RejectedTransfer`_ message
