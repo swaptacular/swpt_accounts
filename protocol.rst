@@ -849,7 +849,7 @@ tuple. CR records have 3 possible statuses:
   has not been received for a very long time (1 year for example), the
   CR record for the committed transfer MAY be deleted, nevertheless.
 
-.. [#dismissed-records] Note that `FinalizedTransfer`_ messages are be
+.. [#dismissed-records] Note that `FinalizedTransfer`_ messages are
   emitted for dismissed transfers as well. Therefore, the most
   straightforward policy is to delete CR records for both committed
   and dismissed transfers in the same way.
