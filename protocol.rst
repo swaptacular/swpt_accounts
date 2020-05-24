@@ -830,14 +830,15 @@ statuses:
    `FinalizeTransfer`_ message have been sent to dismiss or commit the
    transfer. `CR record`_\s for *dismissed transfers* MAY be deleted
    whenever considered appropriate. `CR record`_\s for *committed
-   tranfers* SHOULD NOT be deleted right away, instead, they SHOULD
-   stay in the database until a corresponding `FinalizedTransfer`_
-   message is received for them. [#staled-records]_ [#cr-retention]_
+   tranfers*, however, SHOULD NOT be deleted right away, instead, they
+   SHOULD stay in the database until a corresponding
+   `FinalizedTransfer`_ message is received for
+   them. [#staled-records]_ [#cr-retention]_
 
-.. [#staled-records] Only when the corresponding `FinalizedTransfer`_
+.. [#staled-records] Only if the corresponding `FinalizedTransfer`_
   message has not been received for a very long time (1 year for
-  example), the committed, finalized `CR record`_ MAY be deleted with
-  a warning.
+  example), the `CR record`_ for the committed transfer MAY be deleted
+  with a warning.
 
 .. [#cr-retention] The retention of committed `CR record`_\s is
   necessary to prevent problems caused by message
