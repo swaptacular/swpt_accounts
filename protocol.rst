@@ -813,9 +813,9 @@ tuple. CR records have 3 possible statuses:
 
 "initiated" :
    Indicates that a `PrepareTransfer`_ request has been sent, and no
-   response has been received yet. Records with this status MAY be
-   deleted whenever considered appropriate. Newly created CR records
-   MUST receive this status.
+   response has been received yet. CR records with this status MAY be
+   deleted whenever considered appropriate. Newly created records MUST
+   receive this status.
 
 "prepared" :
    Indicates that a `PrepareTransfer`_ request has been sent, and a
@@ -831,23 +831,22 @@ tuple. CR records have 3 possible statuses:
    transfer. CR records for *dismissed transfers* MAY be deleted
    whenever considered appropriate. CR records for *committed
    tranfers*, however, SHOULD NOT be deleted right away. Instead, they
-   SHOULD stay in the database until a corresponding
-   `FinalizedTransfer`_ message is received for them. [#cr-retention]_
-   [#staled-records]_
+   SHOULD stay in the database until a `FinalizedTransfer`_ message is
+   received for them. [#cr-retention]_ [#staled-records]_
 
-.. [#cr-retention] The retention of committed `CR record`_\s is
-  necessary to prevent problems caused by message
-  re-delivery. Consider the following scenario: a transfer has been
-  prepared and committed (finalized), but the `PreparedTransfer`_
-  message is re-delivered a second time. Had the `CR record`_ been
-  deleted right away, the already committed transfer would be
-  dismissed the second time, and the fate of the transfer would be
-  decided by the race between the two different finalizing
-  messages. In most cases, this would be a serious problem.
+.. [#cr-retention] The retention of committed CR records is necessary
+  to prevent problems caused by message re-delivery. Consider the
+  following scenario: a transfer has been prepared and committed
+  (finalized), but the `PreparedTransfer`_ message is re-delivered a
+  second time. Had the CR record been deleted right away, the already
+  committed transfer would be dismissed the second time, and the fate
+  of the transfer would be decided by the race between the two
+  different finalizing messages. In most cases, this would be a
+  serious problem.
 
 .. [#staled-records] Only if the corresponding `FinalizedTransfer`_
   message has not been received for a very long time (1 year for
-  example), the `CR record`_ for the committed transfer MAY be deleted
+  example), the CR record for the committed transfer MAY be deleted
   with a warning.
 
 
