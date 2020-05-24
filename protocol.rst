@@ -828,26 +828,26 @@ statuses:
    Indicates that a `PrepareTransfer`_ request has been sent, a
    `PreparedTransfer`_ response has been received, and a
    `FinalizeTransfer`_ message have been sent to dismiss or commit the
-   transfer. `CR record`_\s for *dismissed* transfers MAY be deleted
-   whenever considered appropriate. `CR record`_\s for *committed*
-   tranfers SHOULD NOT be deleted right away. Instead, they SHOULD
+   transfer. `CR record`_\s for *dismissed transfers* MAY be deleted
+   whenever considered appropriate. `CR record`_\s for *committed
+   tranfers* SHOULD NOT be deleted right away, instead, they SHOULD
    stay in the database until a corresponding `FinalizedTransfer`_
-   message is received for them. [#staled-records]_
+   message is received for them. [#staled-records]_ [#cr-retention]_
 
 .. [#staled-records] Only when the corresponding `FinalizedTransfer`_
   message has not been received for a very long time (1 year for
   example), the committed, finalized `CR record`_ MAY be deleted with
   a warning.
 
-  The retention of committed `CR record`_\s is necessary to prevent
-  problems caused by message re-delivery. Consider the following
-  scenario: a transfer has been prepared and committed (finalized),
-  but the `PreparedTransfer`_ message is re-delivered a second
-  time. Had the `CR record`_ been deleted right away, the already
-  committed transfer would be dismissed the second time, and the fate
-  of the transfer would be decided by the race between the two
-  different finalizing messages. In most cases, this would be a
-  serious problem.
+.. [#cr-retention] The retention of committed `CR record`_\s is
+  necessary to prevent problems caused by message
+  re-delivery. Consider the following scenario: a transfer has been
+  prepared and committed (finalized), but the `PreparedTransfer`_
+  message is re-delivered a second time. Had the `CR record`_ been
+  deleted right away, the already committed transfer would be
+  dismissed the second time, and the fate of the transfer would be
+  decided by the race between the two different finalizing
+  messages. In most cases, this would be a serious problem.
 
 Received `PreparedTransfer`_ message
 ------------------------------------
