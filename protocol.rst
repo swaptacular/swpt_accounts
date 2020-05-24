@@ -809,8 +809,7 @@ MUST create a *coordinator request record* (`CR record`_) in the
 client's database. The primary key for this record should be the
 (``coordinator_type``, ``coordinator_id``, ``coordinator_request_id``)
 tuple. The status of the newly created `CR record`_ MUST be set to
-"initiated". This record will be used to act properly on received
-`PreparedTransfer`_ and `RejectedTransfer`_ messages.
+"initiated".
 
 
 Received `PreparedTransfer`_ message
