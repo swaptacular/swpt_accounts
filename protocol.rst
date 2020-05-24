@@ -890,7 +890,7 @@ finalized
 .. [#crr-match] The matching `CR record`_ MUST have the same
   ``coordinator_type``, ``coordinator_id``, and
   ``coordinator_request_id`` values as the received
-  `PreparedTransfer`_ message. Additionally, the values of the other
+  `PreparedTransfer`_ message. Additionally, the values of other
   fields in the received message MAY be verified as well, so as to
   ensure that the server behaves as expected.
 
@@ -899,9 +899,9 @@ finalized
 
 .. [#prepared-records] Note that at some point a `FinalizeTransfer`_
   message MUST be sent for each "prepared" `CR record`_, and the
-  record's status set to "finalized". Often this will be done
+  record's status MUST be set to "finalized". Often this will be done
   immediately, in which case the `CR record`_ will change its status
-  from "initiated", directly to "finalized".
+  from "initiated", to "finalized" directly.
 
 
 Received `FinalizedTransfer`_ message
