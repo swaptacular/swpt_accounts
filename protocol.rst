@@ -868,13 +868,10 @@ database [#crr-match]_:
 Received `FinalizedTransfer`_ message
 -------------------------------------
 
-When client implementations process a `PreparedTransfer`_ message,
+When client implementations process a `FinalizedTransfer`_ message,
 they MUST first try to find a matching `CR record`_ in the client's
-database [#crr-match]_:
-
-* If a matching `CR record`_ exists, it SHOULD be deleted.
-
-* In any other case, the received message MUST be ignored.
+database. [#crr-match]_ If a matching `CR record`_ exists, the record
+SHOULD be deleted; otherwise the message MUST be ignored.
 
 
 Received `RejectedTransfer`_ message
@@ -882,12 +879,9 @@ Received `RejectedTransfer`_ message
 
 When client implementations process a `RejectedTransfer`_ message,
 they MUST first try to find a matching `CR record`_ in the client's
-database [#crr-match]_:
-
-* If a matching `CR record`_ exists, and its status is
-  **"initiated"**, the `CR record`_ SHOULD be deleted.
-
-* In any other case, the received message MUST be ignored.
+database. [#crr-match]_ If a matching `CR record`_ exists, and its
+status is "initiated", the record SHOULD be deleted; otherwise the
+message MUST be ignored.
 
 
 Important notes
