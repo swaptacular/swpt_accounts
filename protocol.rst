@@ -805,9 +805,10 @@ CR record
 ---------
 
 Before sending a `PrepareTransfer`_ message, client implementations
-MUST create a *coordinator request record* (`CR record`_) for the
-requested transfer in the client's database. The primary key for those
-records SHOULD be the (``coordinator_type``, ``coordinator_id``,
+MUST create a *coordinator request record* (`CR record`_) in the
+client's database, to track the progress of the requested
+transfer. The primary key for coordinator request records SHOULD be
+the (``coordinator_type``, ``coordinator_id``,
 ``coordinator_request_id``) tuple. `CR record`_\s have 3 possible
 statuses:
 
