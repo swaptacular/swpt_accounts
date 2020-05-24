@@ -852,11 +852,12 @@ database [#crr-match]_:
 .. [#dismiss-transfer] A prepared transfer is dismissed by sending a
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
 
-.. [#crr-match] The values of ``coordinator_type``,
-  ``coordinator_id``, and ``coordinator_request_id`` in the received
-  message MUST be same as the corresponding values in the matching `CR
-  record`_. The values of ``debtor_id``, ``creditor_id``,
-  ``recipient`` and ``locked_amount`` MAY be verified as well.
+.. [#crr-match] The matching `CR record`_ MUST have the same
+  ``coordinator_type``, ``coordinator_id``, and
+  ``coordinator_request_id`` values, as in the received
+  `PreparedTransfer`_ message. Additionally, the values of
+  ``debtor_id``, ``creditor_id``, ``recipient`` and ``locked_amount``
+  fields MAY be verified as well.
 
 .. [#prepared-records] "prepared" `CR record`_\s MUST be, at some
   point, finalized (committed or dismissed), and the status set to
