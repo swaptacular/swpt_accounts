@@ -306,7 +306,7 @@ ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
 
-When server implementations processes a `FinalizeTransfer`_ message,
+When server implementations process a `FinalizeTransfer`_ message,
 they MUST first verify whether the specified prepared transfer exists
 in server's database:
 
@@ -816,18 +816,22 @@ tuple. The status of the newly created CCR_ MUST be set to
 When a `PreparedTransfer`_ message is received
 ----------------------------------------------
 
-When client implementations processes a `PreparedTransfer`_ message,
+When client implementations process a `PreparedTransfer`_ message,
 they MUST first try to find a matching CRR_ in the client's database
 [#crr-match]_, and verify its status:
 
 * If a matching CRR_ does not exist, the newly prepared transfer MUST
   be immediately dismissed. [#dismiss-transfer]_
 
-* If the status is "initiated", the status MUST be set to "prepared",
-  and the values of ``debtor_id``, ``creditor_id``, and
-  ``transfer_id`` in the received message -- recorded. The "prepared"
-  CR record MUST be, at some point, finalized (committed or
-  dismissed), and the status set to "finalized".
+* If a matching CRR_ exists, the way to proceed depend on the status
+  of the record:
+
+  initiated :
+     the status is "initiated", the status MUST be set to "prepared",
+     and the values of ``debtor_id``, ``creditor_id``, and
+     ``transfer_id`` in the received message -- recorded. The
+     "prepared" CR record MUST be, at some point, finalized (committed
+     or dismissed), and the status set to "finalized".
 
 * If the status is "prepared", the values of ``debtor_id``,
   ``creditor_id``, and ``transfer_id`` in the received message MUST be
