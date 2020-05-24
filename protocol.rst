@@ -825,7 +825,6 @@ tuple. CR records have 3 possible statuses:
    message.
 
 "finalized" :
-
    Indicates that a `PrepareTransfer`_ request has been sent, a
    `PreparedTransfer`_ response has been received, and a
    `FinalizeTransfer`_ message has been sent to dismiss or commit the
