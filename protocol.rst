@@ -833,6 +833,7 @@ tuple. CR records have 3 possible statuses:
    tranfers*, however, SHOULD NOT be deleted right away. Instead, they
    SHOULD stay in the database until a `FinalizedTransfer`_ message is
    received for them. [#cr-retention]_ [#staled-records]_
+   [#dismissed-records]_
 
 .. [#cr-retention] The retention of committed CR records is necessary
   to prevent problems caused by message re-delivery. Consider the
@@ -847,6 +848,11 @@ tuple. CR records have 3 possible statuses:
 .. [#staled-records] Only if the corresponding `FinalizedTransfer`_
   message has not been received for a very long time (1 year for
   example), the CR record for the committed transfer MAY be deleted.
+
+.. [#dismissed-records] Note that `FinalizedTransfer`_ messages will
+  be emitted for dismissed transfers as well. Therefore, the most
+  straightforward policy is to delete CR records for both dismissed
+  and committed transfers the same way.
 
 
 Received `PreparedTransfer`_ message
