@@ -826,8 +826,8 @@ record`_:
 "initiated" :
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be stored
-   in the `CR record`_, and the the status of the `CR record`_ MUST be
-   set to "prepared". [#prepared-records]_
+   in the `CR record`_, and the the status of the record MUST be set
+   to "prepared". [#prepared-records]_
 
 "prepared" :
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
@@ -853,12 +853,12 @@ record`_:
   ``locked_amount`` fields in the received `PreparedTransfer`_ message
   MAY be verified as well.
 
-.. [#dismiss-transfer] A prepared transfer is dismissed by sending a
-  `FinalizeTransfer`_ message, with zero ``committed_amount``.
+.. [#dismiss-transfer] A prepared transfer can be dismissed by sending
+  a `FinalizeTransfer`_ message, with zero ``committed_amount``.
 
-.. [#prepared-records] "prepared" `CR record`_\s MUST be, at some
-  point, finalized (committed or dismissed), and the status set to
-  "finalized".
+.. [#prepared-records] Note that "prepared" `CR record`_\s MUST be, at
+  some point, finalized (committed or dismissed), and their status set
+  to "finalized".
 
 
 Received `FinalizedTransfer`_ message
