@@ -805,40 +805,36 @@ CR record
 ---------
 
 Before sending a `PrepareTransfer`_ message, client implementations
-MUST create a *coordinator request record* (`CR record`_) in the
-client's database, to track the progress of the requested
-transfer. The primary key for coordinator request records SHOULD be
-the (``coordinator_type``, ``coordinator_id``,
-``coordinator_request_id``) tuple. `CR record`_\s have 3 possible
-statuses:
+MUST create a *coordinator request record* (CR record) in the client's
+database, to track the progress of the requested transfer. The primary
+key for coordinator request records SHOULD be the
+(``coordinator_type``, ``coordinator_id``, ``coordinator_request_id``)
+tuple. CR records have 3 possible statuses:
 
 "initiated" :
    Indicates that a `PrepareTransfer`_ request has been sent, and no
    response has been received yet. Records with this status MAY be
-   deleted whenever considered appropriate. Newly created `CR
-   record`_\s MUST receive this status.
+   deleted whenever considered appropriate. Newly created CR records
+   MUST receive this status.
 
 "prepared" :
    Indicates that a `PrepareTransfer`_ request has been sent, and a
-   `PreparedTransfer`_ response has been received. Records with this
-   status MUST NOT be deleted. Instead, they MUST be finalized first
-   (committed or dismissed), by sending a `FinalizeTransfer`_ message.
+   `PreparedTransfer`_ response has been received. CR records with
+   this status MUST NOT be deleted. Instead, they MUST be finalized
+   first (committed or dismissed), by sending a `FinalizeTransfer`_
+   message.
 
 "finalized" :
+
    Indicates that a `PrepareTransfer`_ request has been sent, a
    `PreparedTransfer`_ response has been received, and a
-   `FinalizeTransfer`_ message have been sent to dismiss or commit the
-   transfer. `CR record`_\s for *dismissed transfers* MAY be deleted
-   whenever considered appropriate. `CR record`_\s for *committed
-   tranfers*, however, SHOULD NOT be deleted right away, instead, they
+   `FinalizeTransfer`_ message has been sent to dismiss or commit the
+   transfer. CR records for *dismissed transfers* MAY be deleted
+   whenever considered appropriate. CR records for *committed
+   tranfers*, however, SHOULD NOT be deleted right away. Instead, they
    SHOULD stay in the database until a corresponding
-   `FinalizedTransfer`_ message is received for
-   them. [#staled-records]_ [#cr-retention]_
-
-.. [#staled-records] Only if the corresponding `FinalizedTransfer`_
-  message has not been received for a very long time (1 year for
-  example), the `CR record`_ for the committed transfer MAY be deleted
-  with a warning.
+   `FinalizedTransfer`_ message is received for them. [#cr-retention]_
+   [#staled-records]_
 
 .. [#cr-retention] The retention of committed `CR record`_\s is
   necessary to prevent problems caused by message
@@ -849,6 +845,11 @@ statuses:
   dismissed the second time, and the fate of the transfer would be
   decided by the race between the two different finalizing
   messages. In most cases, this would be a serious problem.
+
+.. [#staled-records] Only if the corresponding `FinalizedTransfer`_
+  message has not been received for a very long time (1 year for
+  example), the `CR record`_ for the committed transfer MAY be deleted
+  with a warning.
 
 
 Received `PreparedTransfer`_ message
