@@ -811,20 +811,20 @@ key for coordinator request records SHOULD be the
 (``coordinator_type``, ``coordinator_id``, ``coordinator_request_id``)
 tuple. CR records have 3 possible statuses:
 
-"initiated" :
+initiated :
    Indicates that a `PrepareTransfer`_ request has been sent, and no
    response has been received yet. CR records with this status MAY be
    deleted whenever considered appropriate. Newly created records MUST
    receive this status.
 
-"prepared" :
+prepared :
    Indicates that a `PrepareTransfer`_ request has been sent, and a
    `PreparedTransfer`_ response has been received. CR records with
    this status MUST NOT be deleted. Instead, they MUST be finalized
    first (committed or dismissed), by sending a `FinalizeTransfer`_
    message.
 
-"finalized" :
+finalized :
    Indicates that a `PrepareTransfer`_ request has been sent, a
    `PreparedTransfer`_ response has been received, and a
    `FinalizeTransfer`_ message has been sent to dismiss or commit the
@@ -852,7 +852,7 @@ tuple. CR records have 3 possible statuses:
 .. [#dismissed-records] Note that `FinalizedTransfer`_ messages are
   emitted for dismissed transfers as well. Therefore, the most
   straightforward policy is to delete CR records for both committed
-  and dismissed transfers in the same way.
+  and dismissed transfers the same way.
 
 
 Received `PreparedTransfer`_ message
@@ -865,20 +865,20 @@ prepared transfer MUST be immediately dismissed [#dismiss-transfer]_;
 otherwise, the way to proceed depends on the status of the `CR
 record`_:
 
-"initiated" :
+initiated :
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be stored
    in the `CR record`_, and the the status of the record MUST be set
    to "prepared". [#prepared-records]_
 
-"prepared" :
+prepared :
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be compared
    to the values stored in the `CR record`_. If they are the same, no
    action MUST be taken; if they differ, the newly prepared transfer
    MUST be immediately dismissed. [#dismiss-transfer]_
 
-"finalized" :
+finalized :
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be compared
    to the values stored in the `CR record`_. If they are the same, the
