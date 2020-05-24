@@ -846,8 +846,7 @@ tuple. CR records have 3 possible statuses:
 
 .. [#staled-records] Only if the corresponding `FinalizedTransfer`_
   message has not been received for a very long time (1 year for
-  example), the CR record for the committed transfer MAY be deleted
-  with a warning.
+  example), the CR record for the committed transfer MAY be deleted.
 
 
 Received `PreparedTransfer`_ message
