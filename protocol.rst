@@ -815,14 +815,17 @@ When a `PreparedTransfer`_ message is received
 ----------------------------------------------
 
 When client implementations processes a `PreparedTransfer`_ message,
-they MUST first verify the status of the corresponding CR database
-record:
+they MUST first try find a matching CR database record [#cr-match]_,
+and verify its status:
+
+* If a corresponding CR record does not exist, the newly prepared
+  transfer MUST be immediately dismissed. [#dismiss-transfer]_
 
 * If the status is "initiated", the status MUST be set to "prepared",
-  and the received values for ``debtor_id``, ``creditor_id``, and
-  ``transfer_id`` -- recorded. The "prepared" CR record MUST be, at
-  some point, finalized (committed or dismissed), and the status set
-  to "finalized".
+  and the values of ``debtor_id``, ``creditor_id``, and
+  ``transfer_id`` in the received message -- recorded. The "prepared"
+  CR record MUST be, at some point, finalized (committed or
+  dismissed), and the status set to "finalized".
 
 * If the status is "prepared", the values of ``debtor_id``,
   ``creditor_id``, and ``transfer_id`` in the received message MUST be
@@ -838,11 +841,14 @@ record:
   they differ, the newly prepared transfer MUST be immediately
   dismissed. [#dismiss-transfer]_
 
-* If a corresponding CR record does not exist, the newly prepared
-  transfer MUST be immediately dismissed. [#dismiss-transfer]_
-
 .. [#dismiss-transfer] A prepared transfer is dismissed by sending a
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
+
+.. [#cr-match] The values of ``coordinator_type``, ``coordinator_id``,
+  and ``coordinator_request_id`` in the received message MUST be same
+  as the corresponding values in the matching CR. The values of
+  ``debtor_id``, ``creditor_id``, ``recipient`` and ``locked_amount``
+  SHOULD be verified as well.
 
 
 When a `RejectedTransfer`_ is received
