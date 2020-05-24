@@ -5,7 +5,7 @@ Swaptacular Messaging Protocol
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
 :Date: 2020-05-24
-:Version: 1.0
+:Version: 0.1
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
