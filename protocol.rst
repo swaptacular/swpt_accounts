@@ -814,29 +814,32 @@ messages.
 When a `PreparedTransfer`_ message is received
 ----------------------------------------------
 
-* If a `PreparedTransfer`_ message is received for an "initiated" CR
-  record, the status of the corresponding CR record MUST be set to
-  "prepared", and the received values for ``debtor_id``,
-  ``creditor_id``, and ``transfer_id`` -- recorded. The "prepared" CR
-  record MUST be, at some point, finalized (committed or dismissed),
-  and the status set to "finalized".
+When client implementations processes a `PreparedTransfer`_ message,
+they MUST first verify the status of the corresponding CR database
+record:
 
-* If a `PreparedTransfer`_ message is received for a "prepared" CR
-  record, the corresponding values of ``debtor_id``, ``creditor_id``,
-  and ``transfer_id`` MUST be compared. If they are the same, no
+* If the status is "initiated", the status MUST be set to "prepared",
+  and the received values for ``debtor_id``, ``creditor_id``, and
+  ``transfer_id`` -- recorded. The "prepared" CR record MUST be, at
+  some point, finalized (committed or dismissed), and the status set
+  to "finalized".
+
+* If the status is "prepared", the values of ``debtor_id``,
+  ``creditor_id``, and ``transfer_id`` in the received message MUST be
+  compared to the values recorded in the CR. If they are the same, no
   action MUST be taken. If they differ, the newly prepared transfer
   MUST be immediately dismissed. [#dismiss-transfer]_
 
-* If a `PreparedTransfer`_ message is received for a "finalized" CR
-  record, the corresponding values of ``debtor_id``, ``creditor_id``,
-  and ``transfer_id`` MUST be compared. If they are the same, the
-  finalizing `FinalizeTransfer`_ message MUST be sent again. If they
-  differ, the newly prepared transfer MUST be immediately
+* If the status is "finalized", the values of ``debtor_id``,
+  ``creditor_id``, and ``transfer_id`` in the received message MUST be
+  compared to the values recorded in the CR. If they are the same, the
+  exact `FinalizeTransfer`_ message, which has been sent to finalize
+  the transfer (except for the ``ts`` field), MUST be sent again. If
+  they differ, the newly prepared transfer MUST be immediately
   dismissed. [#dismiss-transfer]_
 
-* If a `PreparedTransfer`_ is received but a corresponding CR record
-  is not found, the newly prepared transfer MUST be immediately
-  dismissed. [#dismiss-transfer]_
+* If a corresponding CR record does not exist, the newly prepared
+  transfer MUST be immediately dismissed. [#dismiss-transfer]_
 
 .. [#dismiss-transfer] A prepared transfer is dismissed by sending a
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
