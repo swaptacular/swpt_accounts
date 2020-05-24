@@ -656,10 +656,10 @@ of a lost message, or a complete database loss on the client's side.
   for the ``ts`` field) should be considered meaningful, and therefore
   an `AccountUpdate`_ message SHOULD *eventually* be emitted to inform
   about it. There is no requirement, though, `AccountUpdate`_ messages
-  to be emitted instantly, following each individual meaningful
-  change. For example, for a series of transactions committed on the
-  account in a short period of time, the server may emit only one
-  `AccountUpdate`_ message, announce only the final state of the
+  to be emitted instantly, following each individual change. For
+  example, if a series of transactions are committed on the account in
+  a short period of time, the server may emit only one
+  `AccountUpdate`_ message, announcing only the final state of the
   account.
 
 .. [#creation-date] Note that an account can be removed from the
