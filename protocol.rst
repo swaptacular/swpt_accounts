@@ -813,8 +813,8 @@ tuple. The status of the newly created `CR record`_ MUST be set to
 `PreparedTransfer`_ and `RejectedTransfer`_ messages.
 
 
-When a `PreparedTransfer`_ message is received
-----------------------------------------------
+Received `PreparedTransfer`_ message
+------------------------------------
 
 When client implementations process a `PreparedTransfer`_ message,
 they MUST first try to find a matching `CR record`_ in the client's
@@ -865,49 +865,49 @@ database [#crr-match]_:
   "finalized".
 
 
-When a `RejectedTransfer`_ is received
---------------------------------------
+Received `RejectedTransfer`_ message
+------------------------------------
 
 When client implementations process a `RejectedTransfer`_ message,
 they MUST first try to find a matching `CR record`_ in the client's
 database [#crr-match]_:
 
-* If a matching `CR record`_ exists, and its status is "initiated",
-  the `CR record`_ SHOULD be deleted.
+* If a matching `CR record`_ exists, and its status is
+  **"initiated"**, the `CR record`_ SHOULD be deleted.
 
 * In any other case, the received message MUST be ignored.
 
 
-IMPORTANT NOTES:
+Important notes
+---------------
 
-1. "initiated" CR records MAY be deleted whenever considered
-   appropriate.
+* **"initiated"** `CR record`_\s MAY be deleted whenever considered
+  appropriate.
 
-2. "prepared" CR records MUST NOT be deleted. Instead, they MUST be
-   "finalized" first (by sending a message to the `finalize_transfer`
-   actor).
+* **"prepared"** `CR record`_\s MUST NOT be deleted. Instead, they
+  MUST be finalized first, by sending a `FinalizeTransfer`_ message.
 
-3. "finalized" CR records, which have been committed (i.e. not
+3. **"finalized"** `CR record`_\s, which have been committed (i.e. not
    dismissed), SHOULD NOT be deleted right away. Instead, they SHOULD
-   stay in the database until a corresponding
-   `FinalizedTransferSignal` is received for them. (It MUST be
-   verified that the signal has the same `debtor_id`, `creditor_id`,
-   and `transfer_id` as the CR record.)
+   stay in the database until a corresponding `FinalizedTransfer`_
+   message is received for them. (It MUST be verified that the signal
+   has the same ``debtor_id``, ``creditor_id``, and ``transfer_id`` as
+   the CR record.)
 
-   Only when the corresponding `FinalizedTransferSignal` has not
+   Only when the corresponding `FinalizedTransfer`_ message has not
    been received for a very long time (1 year for example), the
-   "finalized" CR record MAY be deleted with a warning.
+   "finalized" `CR record`_ MAY be deleted with a warning.
 
-   NOTE: The retention of committed CR records is necessary to
+   NOTE: The retention of committed `CR record`_\s is necessary to
    prevent problems caused by message re-delivery. Consider the
    following scenario: a transfer has been prepared and committed
-   (finalized), but the `PreparedTransferSignal` message is
-   re-delivered a second time. Had the CR record been deleted
-   right away, the already committed transfer would be dismissed
-   the second time, and the fate of the transfer would be decided
-   by the race between the two different finalizing messages. In
-   most cases, this would be a serious problem.
+   (finalized), but the `PreparedTransfer`_ message is re-delivered a
+   second time. Had the `CR record`_ been deleted right away, the
+   already committed transfer would be dismissed the second time, and
+   the fate of the transfer would be decided by the race between the
+   two different finalizing messages. In most cases, this would be a
+   serious problem.
 
-4. "finalized" CR records, which have been dismissed (i.e. not
+4. **"finalized"** `CR record`_\s, which have been dismissed (i.e. not
    committed), MAY be deleted either right away, or when a
-   corresponding `FinalizedTransferSignal` is received for them.
+   corresponding `FinalizedTransfer`_ is received for them.
