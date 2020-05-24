@@ -911,9 +911,8 @@ When client implementations process a `FinalizedTransfer`_ message,
 they MUST first try to find a matching `CR record`_ in the client's
 database. [#crr-match]_ If a matching record exists, and the values of
 ``debtor_id``, ``creditor_id``, and ``transfer_id`` fields in the
-received `FinalizedTransfer`_ message are the same as the values
-stored in the CR record, the record SHOULD be deleted; otherwise the
-message MUST be ignored.
+received message are the same as the values stored in the CR record,
+the record SHOULD be deleted; otherwise the message MUST be ignored.
 
 
 Received `RejectedTransfer`_ message
