@@ -848,8 +848,8 @@ record`_:
   ``coordinator_type``, ``coordinator_id``, and
   ``coordinator_request_id`` values as the received
   `PreparedTransfer`_ message. Additionally, the values of the other
-  fields in the received `PreparedTransfer`_ message MAY be verified
-  as well, so as to ensure that the server behaves as expected.
+  fields in the received message MAY be verified as well, so as to
+  ensure that the server behaves as expected.
 
 .. [#dismiss-transfer] A prepared transfer is dismissed by sending a
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
