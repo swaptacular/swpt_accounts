@@ -845,14 +845,14 @@ tuple. CR records have 3 possible statuses:
   different finalizing messages. In most cases, this would be a
   serious problem.
 
-.. [#staled-records] Only if the corresponding `FinalizedTransfer`_
-  message has not been received for a very long time (1 year for
-  example), the CR record for the committed transfer MAY be deleted.
+.. [#staled-records] If the corresponding `FinalizedTransfer`_ message
+  has not been received for a very long time (1 year for example), the
+  CR record for the committed transfer MAY be deleted, nevertheless.
 
-.. [#dismissed-records] Note that `FinalizedTransfer`_ messages will
-  be emitted for dismissed transfers as well. Therefore, the most
-  straightforward policy is to delete CR records for both dismissed
-  and committed transfers the same way.
+.. [#dismissed-records] Note that `FinalizedTransfer`_ messages are be
+  emitted for dismissed transfers as well. Therefore, the most
+  straightforward policy is to delete CR records for both committed
+  and dismissed transfers in the same way.
 
 
 Received `PreparedTransfer`_ message
