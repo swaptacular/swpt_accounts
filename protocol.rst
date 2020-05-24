@@ -826,12 +826,11 @@ they MUST first try to find a matching CRR_ in the client's database
 * If a matching CRR_ exists, the way to proceed depend on the status
   of the record:
 
-  initiated :
-     the status is "initiated", the status MUST be set to "prepared",
-     and the values of ``debtor_id``, ``creditor_id``, and
-     ``transfer_id`` in the received message -- recorded. The
-     "prepared" CR record MUST be, at some point, finalized (committed
-     or dismissed), and the status set to "finalized".
+  "initiated" :
+     The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
+     fields in the received message MUST be recorded, and the the
+     status of the CCR_ MUST be set to
+     "prepared". [#prepared-records]_
 
 * If the status is "prepared", the values of ``debtor_id``,
   ``creditor_id``, and ``transfer_id`` in the received message MUST be
@@ -855,6 +854,10 @@ they MUST first try to find a matching CRR_ in the client's database
   message MUST be same as the corresponding values in the matching
   CRR_. The values of ``debtor_id``, ``creditor_id``, ``recipient``
   and ``locked_amount`` MAY be verified as well.
+
+.. [#prepared-records] "prepared" CCR_\s MUST be, at some point,
+  finalized (committed or dismissed), and the status set to
+  "finalized".
 
 
 When a `RejectedTransfer`_ is received
