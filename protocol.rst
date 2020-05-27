@@ -1042,9 +1042,9 @@ performed:
    currently processed message is the same as the value of the
    ``last_transfer_number`` field in the corresponding `AL record`_,
    the ``last_transfer_number``\'s value MUST be updated to contain
-   the transfer number of the *latest sequential transfer* in the
-   stored set of processed `AccountTransfer`_
-   messages. [#sequential-transfer]_ [#transfer-chain]_
+   the transfer number of the *latest sequential transfer* in the set
+   of processed `AccountTransfer`_ messages. [#sequential-transfer]_
+   [#transfer-chain]_
 
 .. [#matching-alr] The corresponding `AL record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
