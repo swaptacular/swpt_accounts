@@ -1008,16 +1008,15 @@ records SHOULD be the (``creditor_id``, ``debtor_id``,
 ``creation_date``) tuple. As a minimum, `AL record`_\s MUST also be
 able to store a set of processed `AccountTransfer`_ messages, plus a
 ``transfer_number`` field, which contains the transfer number of the
-latest sequential transfer that has been added to the given account's
+latest transfer that has been added to the given account's
 ledger. [#sequential-transfer]_ [#transfer-chain]_
 
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
   received and processed out-of-order. For example, *transfer #3* can
   be processed right after *transfer #1*, and only then, *transfer #2*
-  might be received. In this case, the natural sequence of transfers
-  in the ledger MUST be preserved, and therefore, *transfer #3* MUST
-  be added to the ledger only after *transfer #2* has been added as
-  well.
+  be received. In this case, the natural sequence of transfers in the
+  ledger need to be preserved, and therefore, *transfer #3* MUST NOT
+  be added to the ledger before *transfer #2* has been added as well.
 
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
