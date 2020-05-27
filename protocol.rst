@@ -831,7 +831,7 @@ verify whether a corresponding `AD record`_ already exists:
 
 1. If a corresponding `AD record`_ already exists, the timestamp of
    the latest received account heartbeat (it is stored in the AD
-   record) MUST be updated to be the value of the ``ts`` field in the
+   record) MUST be updated with the value of the ``ts`` field in the
    received message. [#ts-update]_ Then it MUST be verified whether
    the same or a later `AccountUpdate`_ message has been received
    already. [#compare-change]_ [#compare-seqnums]_ If the received
@@ -846,9 +846,9 @@ verify whether a corresponding `AD record`_ already exists:
 .. [#latest-heartbeat-ts] The ``ts`` field is needed to store the
   timestamp of the latest received account heartbeat.
 
-.. [#ts-update] The timestamp of the latest received account heartbeat
-  SHOULD NOT be changed if the value of ``ts`` field in the received
-  message is smaller (earlier timestamp).
+.. [#ts-update] That is: the timestamp of the latest received account
+  heartbeat MUST NOT be changed if the value of the ``ts`` field in
+  the received message is smaller (an earlier timestamp).
 
 
 Received `AccountPurge`_ message
