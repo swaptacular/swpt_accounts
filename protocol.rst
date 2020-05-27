@@ -849,9 +849,9 @@ When client implementations process an `AccountPurge`_ message, they
 MUST first verify whether a corresponding `AD record`_ already exists:
 
 1. If a corresponding `AD record`_ already exists, the value of the
-   ``creation_date`` field in the received message MUST be compared to
-   the value stored in the AD record. If the value received with the
-   `AccountPurge`_ message is smaller (an earlier date), the message
+   ``creation_date`` field in the received `AccountPurge`_ message
+   MUST be compared to the value stored in the AD record. If the value
+   received with the message is smaller (an earlier date), the message
    MUST be ignored; otherwise the AD record SHOULD be removed.
 
 2. If a corresponding `AD record`_ does not exist, the message MUST be
