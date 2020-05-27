@@ -1014,9 +1014,9 @@ ledger. [#sequential-transfer]_ [#transfer-chain]_
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
   received and processed out-of-order. For example, *transfer #3* can
   be processed right after *transfer #1*, and only then, *transfer #2*
-  be received. In this case, the sequence of transfers in the ledger
-  need to be preserved, and therefore, *transfer #3* MUST NOT be added
-  to the ledger before *transfer #2* has been added as well.
+  be received. In this case, the correct order of transfers in the
+  ledger must be preserved, and therefore, *transfer #3* MUST NOT be
+  added to the ledger before *transfer #2* has been added as well.
 
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
