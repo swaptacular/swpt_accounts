@@ -807,25 +807,25 @@ be emitted for each committed transfer.
 Requirements for Client Implementations
 =======================================
 
-CR record
+RT record
 ---------
 
 Before sending a `PrepareTransfer`_ message, client implementations
-MUST create a *coordinator request record* (CR record) in the client's
+MUST create a *running transfer record* (RT record) in the client's
 database, to track the progress of the requested transfer. The primary
-key for coordinator request records SHOULD be the
-(``coordinator_type``, ``coordinator_id``, ``coordinator_request_id``)
-tuple. `CR record`_\s have 3 possible statuses:
+key for running transfer records SHOULD be the (``coordinator_type``,
+``coordinator_id``, ``coordinator_request_id``) tuple. `RT record`_\s
+have 3 possible statuses:
 
 initiated
    Indicates that a `PrepareTransfer`_ request has been sent, and no
-   response has been received yet. `CR record`_\s with this status MAY
+   response has been received yet. `RT record`_\s with this status MAY
    be deleted whenever considered appropriate. Newly created records
    MUST receive this status.
 
 prepared
    Indicates that a `PrepareTransfer`_ request has been sent, and a
-   `PreparedTransfer`_ response has been received. `CR record`_\s with
+   `PreparedTransfer`_ response has been received. `RT record`_\s with
    this status MUST NOT be deleted. Instead, they MUST be finalized
    first (committed or dismissed), by sending a `FinalizeTransfer`_
    message.
@@ -834,18 +834,18 @@ finalized
    Indicates that a `PrepareTransfer`_ request has been sent, a
    `PreparedTransfer`_ response has been received, and a
    `FinalizeTransfer`_ message has been sent to dismiss or commit the
-   transfer. `CR record`_\s for *dismissed transfers* MAY be deleted
-   whenever considered appropriate. CR records for *committed
+   transfer. `RT record`_\s for *dismissed transfers* MAY be deleted
+   whenever considered appropriate. RT records for *committed
    tranfers*, however, SHOULD NOT be deleted right away. Instead, they
    SHOULD stay in the database until a `FinalizedTransfer`_ message is
    received for them. [#cr-retention]_ [#staled-records]_
    [#dismissed-records]_
 
-.. [#cr-retention] The retention of committed `CR record`_\s is
+.. [#cr-retention] The retention of committed `RT record`_\s is
   necessary to prevent problems caused by message
   re-delivery. Consider the following scenario: a transfer has been
   prepared and committed (finalized), but the `PreparedTransfer`_
-  message is re-delivered a second time. Had the CR record been
+  message is re-delivered a second time. Had the RT record been
   deleted right away, the already committed transfer would be
   dismissed the second time, and the fate of the transfer would be
   decided by the race between the two different finalizing
@@ -853,12 +853,12 @@ finalized
 
 .. [#staled-records] If the corresponding `FinalizedTransfer`_ message
   has not been received for a very long time (1 year for example), the
-  `CR record`_ for the committed transfer MAY be deleted,
+  `RT record`_ for the committed transfer MAY be deleted,
   nevertheless.
 
 .. [#dismissed-records] Note that `FinalizedTransfer`_ messages are
   emitted for dismissed transfers as well. Therefore, the most
-  straightforward policy is to delete `CR record`_\s for both
+  straightforward policy is to delete `RT record`_\s for both
   committed and dismissed transfers the same way.
 
 
@@ -866,34 +866,34 @@ Received `PreparedTransfer`_ message
 ------------------------------------
 
 When client implementations process a `PreparedTransfer`_ message,
-they MUST first try to find a matching `CR record`_ in the client's
+they MUST first try to find a matching `RT record`_ in the client's
 database. [#crr-match]_ If a matching record does not exist, the newly
 prepared transfer MUST be immediately dismissed [#dismiss-transfer]_;
-otherwise, the way to proceed depends on the status of the CR record:
+otherwise, the way to proceed depends on the status of the RT record:
 
 initiated
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be stored
-   in the `CR record`_, and the the status of the record MUST be set
+   in the `RT record`_, and the the status of the record MUST be set
    to "prepared". [#prepared-records]_
 
 prepared
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be compared
-   to the values stored in the `CR record`_. If they are the same, no
+   to the values stored in the `RT record`_. If they are the same, no
    action MUST be taken; if they differ, the newly prepared transfer
    MUST be immediately dismissed. [#dismiss-transfer]_
 
 finalized
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be compared
-   to the values stored in the `CR record`_. If they are the same, the
+   to the values stored in the `RT record`_. If they are the same, the
    same `FinalizeTransfer`_ message (except for the ``ts`` field),
    which was sent to finalize the transfer, MUST be sent again; if
    they differ, the newly prepared transfer MUST be immediately
    dismissed. [#dismiss-transfer]_
 
-.. [#crr-match] The matching `CR record`_ MUST have the same
+.. [#crr-match] The matching `RT record`_ MUST have the same
   ``coordinator_type``, ``coordinator_id``, and
   ``coordinator_request_id`` values as the received
   `PreparedTransfer`_ message. Additionally, the values of other
@@ -904,9 +904,9 @@ finalized
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
 
 .. [#prepared-records] Note that at some point a `FinalizeTransfer`_
-  message MUST be sent for each "prepared" `CR record`_, and the
+  message MUST be sent for each "prepared" `RT record`_, and the
   record's status MUST be set to "finalized". Often this can be done
-  immediately, in which case the CR record will change its status from
+  immediately, in which case the RT record will change its status from
   "initiated", to "finalized" directly.
 
 
@@ -914,10 +914,10 @@ Received `FinalizedTransfer`_ message
 -------------------------------------
 
 When client implementations process a `FinalizedTransfer`_ message,
-they MUST first try to find a matching `CR record`_ in the client's
+they MUST first try to find a matching `RT record`_ in the client's
 database. [#crr-match]_ If a matching record exists, and the values of
 ``debtor_id``, ``creditor_id``, and ``transfer_id`` fields in the
-received message are the same as the values stored in the CR record,
+received message are the same as the values stored in the RT record,
 the record SHOULD be deleted; otherwise the message MUST be ignored.
 
 
@@ -925,7 +925,7 @@ Received `RejectedTransfer`_ message
 ------------------------------------
 
 When client implementations process a `RejectedTransfer`_ message,
-they MUST first try to find a matching `CR record`_ in the client's
+they MUST first try to find a matching `RT record`_ in the client's
 database. [#crr-match]_ If a matching record exists, and its status is
 "initiated", the record SHOULD be deleted; otherwise the message MUST
 be ignored.
