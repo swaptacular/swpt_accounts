@@ -954,6 +954,7 @@ When client implementations process an `AccountUpdate`_ message, they
 MUST first verify message's ``ts`` and ``ttl`` fields. If the message
 has "expired", it MUST be ignored. Otherwise, implementations MUST
 verify whether a corresponding `AD record`_ already exists:
+[#matching-adr]_
 
 1. If a corresponding `AD record`_ already exists, the timestamp of
    the latest received account heartbeat (it is stored in the AD
@@ -993,6 +994,10 @@ MUST first verify whether a corresponding `AD record`_ already exists:
 
 .. [#latest-heartbeat] `AD record`_\'s ``ts`` field stores the
   timestamp of the latest received account heartbeat.
+
+.. [#matching-adr] The corresponding `AD record`_ MUST have the same
+  values for ``creditor_id`` and ``debtor_id`` as the currently
+  processed `AccountUpdate`_ message.
 
 .. [#heartbeat-update] That is: the timestamp of the latest received account
   heartbeat, stored in the `AD record`_, MUST be changed only if the
