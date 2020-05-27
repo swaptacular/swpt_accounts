@@ -1006,17 +1006,18 @@ maintain *account ledger records* (AL records) in their databases, to
 store accounts' ledger data. The primary key for account ledger
 records SHOULD be the (``creditor_id``, ``debtor_id``,
 ``creation_date``) tuple. As a minimum, `AL record`_\s MUST also be
-able to store a set of received `AccountTransfer`_ messages, plus a
+able to store a set of processed `AccountTransfer`_ messages, plus a
 ``transfer_number`` field, containing the transfer number of the
 latest transfer that has been added to the given account's
 ledger. [#sequential-transfer]_
 
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
-  received out-of-order. For example, *transfer #3* can be received
-  right after *transfer #1*, and only then, *transfer #2* might be
-  received. In this case, the natural sequence of transfers in the
-  ledger MUST be preserved, and therefore, *transfer #3* MUST be added
-  to the ledger only after *transfer #2* has been added as well.
+  received and processed out-of-order. For example, *transfer #3* can
+  be processed right after *transfer #1*, and only then, *transfer #2*
+  might be received. In this case, the natural sequence of transfers
+  in the ledger MUST be preserved, and therefore, *transfer #3* MUST
+  be added to the ledger only after *transfer #2* has been added as
+  well.
 
 
 Received `AccountTransfer`_ message
@@ -1029,16 +1030,16 @@ SHOULD be created. [#new-alr]_ Then, if there is a corresponding AL
 record (it may have been just created), the following steps MUST be
 performed:
 
-1. The processed message MUST be added to the set of received
-   `AccountTransfer`_ messages, which is stored in the corresponding
-   `AL record`_.
+1. The processed message MUST be added to the set of processed
+   `AccountTransfer`_ messages, stored in the corresponding `AL
+   record`_.
 
 2. If the value of the ``previous_transfer_number`` field in the
    processed message is the same as the value of the
    ``transfer_number`` field in the corresponding `AL record`_, the
    ``transfer_number``\'s value MUST be updated to contain the
    transfer number of the latest sequential transfer in the stored set
-   of received `AccountTransfer`_ messages. [#sequential-transfer]_
+   of processed `AccountTransfer`_ messages. [#sequential-transfer]_
 
 .. [#matching-alr] The corresponding `AL record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
