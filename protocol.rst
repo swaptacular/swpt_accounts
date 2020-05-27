@@ -1042,7 +1042,7 @@ performed:
    currently processed message is the same as the value of the
    ``transfer_number`` field in the corresponding `AL record`_, the
    ``transfer_number``\'s value MUST be updated to contain the
-   transfer number of the latest *sequential* transfer in the stored
+   transfer number of the *latest sequential transfer* in the stored
    set of processed `AccountTransfer`_
    messages. [#sequential-transfer]_ [#transfer-chain]_
 
