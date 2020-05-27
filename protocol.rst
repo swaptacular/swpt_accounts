@@ -1023,16 +1023,20 @@ Received `AccountTransfer`_ message
 ```````````````````````````````````
 
 When client implementations process an `AccountTransfer`_ message,
-they MUST first verify whether a corresponding `AL record`_ already
-exists.
+they MUST perform the following steps:
 
-1. If a corresponding `AL record`_ does not exist, a new AL record
-   SHOULD be created for the given account. The value of the
-   ``transfer_number`` field in new AL record MUST be `0`.
+1. Verify whether a corresponding `AL record`_ already exists. If it
+   does not not exist, a new AL record SHOULD be created. [#new-alr]_
 
-2. If a corresponding `AL record`_ already exists, the value of the
-   ``creation_date`` field in the received `AccountPurge`_ message
-   MUST be compared to the value stored in the AD record. If the value
-   received with the message is smaller (an earlier date), the message
-   MUST be ignored; otherwise the AD record SHOULD be removed.
 
+If a corresponding `AL record`_ already exists (or has been just
+created), the value of the ``creation_date`` field in the received
+`AccountPurge`_ message MUST be compared to the value stored in the AD
+record. If the value received with the message is smaller (an earlier
+date), the message MUST be ignored; otherwise the AD record SHOULD be
+removed.
+
+.. [#new-alr] The newly created `AL record`_ MUST have the same values
+  for ``creditor_id``, ``debtor_id``, and ``creation_date`` as the
+  processed message, an empty set of stored `AccountTransfer`_
+  massages, and ``transfer_number`` with the value of ``0``.
