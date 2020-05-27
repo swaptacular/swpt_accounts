@@ -1019,10 +1019,10 @@ ledger. [#sequential-transfer]_ [#transfer-chain]_
   be added to the ledger only after *transfer #2* has been added as
   well.
 
-.. [#transfer-chain] `AccountTransfer`_ messages are chained in a
+.. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
   in each message refers to the value of the ``transfer_number`` field
-  in the preceding message.
+  in the previous message.
 
 
 Received `AccountTransfer`_ message
