@@ -809,6 +809,75 @@ be emitted for each committed transfer.
 Requirements for Client Implementations
 =======================================
 
+Received `PreparedTransfer`_ message
+````````````````````````````````````
+
+When client implementations process a `PreparedTransfer`_ message,
+they MUST first try to find a matching `RT record`_ in the client's
+database. [#crr-match]_ If a matching record does not exist, the newly
+prepared transfer MUST be immediately dismissed [#dismiss-transfer]_;
+otherwise, the way to proceed depends on the status of the RT record:
+
+initiated
+   The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
+   fields in the received `PreparedTransfer`_ message MUST be stored
+   in the `RT record`_, and the the status of the record MUST be set
+   to "prepared". [#prepared-records]_
+
+prepared
+   The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
+   fields in the received `PreparedTransfer`_ message MUST be compared
+   to the values stored in the `RT record`_. If they are the same, no
+   action MUST be taken; if they differ, the newly prepared transfer
+   MUST be immediately dismissed. [#dismiss-transfer]_
+
+finalized
+   The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
+   fields in the received `PreparedTransfer`_ message MUST be compared
+   to the values stored in the `RT record`_. If they are the same, the
+   same `FinalizeTransfer`_ message (except for the ``ts`` field),
+   which was sent to finalize the transfer, MUST be sent again; if
+   they differ, the newly prepared transfer MUST be immediately
+   dismissed. [#dismiss-transfer]_
+
+.. [#crr-match] The matching `RT record`_ MUST have the same
+  ``coordinator_type``, ``coordinator_id``, and
+  ``coordinator_request_id`` values as the received
+  `PreparedTransfer`_ message. Additionally, the values of other
+  fields in the received message MAY be verified as well, so as to
+  ensure that the server behaves as expected.
+
+.. [#dismiss-transfer] A prepared transfer is dismissed by sending a
+  `FinalizeTransfer`_ message, with zero ``committed_amount``.
+
+.. [#prepared-records] Note that at some point a `FinalizeTransfer`_
+  message MUST be sent for each "prepared" `RT record`_, and the
+  record's status MUST be set to "finalized". Often this can be done
+  immediately, in which case the RT record will change its status from
+  "initiated", to "finalized" directly.
+
+
+Received `FinalizedTransfer`_ message
+`````````````````````````````````````
+
+When client implementations process a `FinalizedTransfer`_ message,
+they MUST first try to find a matching `RT record`_ in the client's
+database. [#crr-match]_ If a matching record exists, and the values of
+``debtor_id``, ``creditor_id``, and ``transfer_id`` fields in the
+received message are the same as the values stored in the RT record,
+the record SHOULD be deleted; otherwise the message MUST be ignored.
+
+
+Received `RejectedTransfer`_ message
+````````````````````````````````````
+
+When client implementations process a `RejectedTransfer`_ message,
+they MUST first try to find a matching `RT record`_ in the client's
+database. [#crr-match]_ If a matching record exists, and its status is
+"initiated", the record SHOULD be deleted; otherwise the message MUST
+be ignored.
+
+
 AD record
 ---------
 
@@ -945,72 +1014,3 @@ finalized
   emitted for dismissed transfers as well. Therefore, the most
   straightforward policy is to delete `RT record`_\s for both
   committed and dismissed transfers the same way.
-
-
-Received `PreparedTransfer`_ message
-````````````````````````````````````
-
-When client implementations process a `PreparedTransfer`_ message,
-they MUST first try to find a matching `RT record`_ in the client's
-database. [#crr-match]_ If a matching record does not exist, the newly
-prepared transfer MUST be immediately dismissed [#dismiss-transfer]_;
-otherwise, the way to proceed depends on the status of the RT record:
-
-initiated
-   The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
-   fields in the received `PreparedTransfer`_ message MUST be stored
-   in the `RT record`_, and the the status of the record MUST be set
-   to "prepared". [#prepared-records]_
-
-prepared
-   The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
-   fields in the received `PreparedTransfer`_ message MUST be compared
-   to the values stored in the `RT record`_. If they are the same, no
-   action MUST be taken; if they differ, the newly prepared transfer
-   MUST be immediately dismissed. [#dismiss-transfer]_
-
-finalized
-   The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
-   fields in the received `PreparedTransfer`_ message MUST be compared
-   to the values stored in the `RT record`_. If they are the same, the
-   same `FinalizeTransfer`_ message (except for the ``ts`` field),
-   which was sent to finalize the transfer, MUST be sent again; if
-   they differ, the newly prepared transfer MUST be immediately
-   dismissed. [#dismiss-transfer]_
-
-.. [#crr-match] The matching `RT record`_ MUST have the same
-  ``coordinator_type``, ``coordinator_id``, and
-  ``coordinator_request_id`` values as the received
-  `PreparedTransfer`_ message. Additionally, the values of other
-  fields in the received message MAY be verified as well, so as to
-  ensure that the server behaves as expected.
-
-.. [#dismiss-transfer] A prepared transfer is dismissed by sending a
-  `FinalizeTransfer`_ message, with zero ``committed_amount``.
-
-.. [#prepared-records] Note that at some point a `FinalizeTransfer`_
-  message MUST be sent for each "prepared" `RT record`_, and the
-  record's status MUST be set to "finalized". Often this can be done
-  immediately, in which case the RT record will change its status from
-  "initiated", to "finalized" directly.
-
-
-Received `FinalizedTransfer`_ message
-`````````````````````````````````````
-
-When client implementations process a `FinalizedTransfer`_ message,
-they MUST first try to find a matching `RT record`_ in the client's
-database. [#crr-match]_ If a matching record exists, and the values of
-``debtor_id``, ``creditor_id``, and ``transfer_id`` fields in the
-received message are the same as the values stored in the RT record,
-the record SHOULD be deleted; otherwise the message MUST be ignored.
-
-
-Received `RejectedTransfer`_ message
-````````````````````````````````````
-
-When client implementations process a `RejectedTransfer`_ message,
-they MUST first try to find a matching `RT record`_ in the client's
-database. [#crr-match]_ If a matching record exists, and its status is
-"initiated", the record SHOULD be deleted; otherwise the message MUST
-be ignored.
