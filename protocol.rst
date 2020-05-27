@@ -848,8 +848,8 @@ received for a very long time (1 year for example), the account's `AD
 record`_ SHOULD be removed from the client's
 database. [#latest-heartbeat]_
 
-.. [#latest-heartbeat] The ``ts`` field is used to store the timestamp
-  of the latest received account heartbeat.
+.. [#latest-heartbeat] `AD record`_\'s ``ts`` field stores the
+  timestamp of the latest received account heartbeat.
 
 .. [#heartbeat-update] That is: the timestamp of the latest received account
   heartbeat, stored in the `AD record`_, MUST be changed only if the
