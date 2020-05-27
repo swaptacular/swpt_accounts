@@ -965,7 +965,7 @@ verify whether a corresponding `AD record`_ already exists:
    [#compare-seqnums]_ If the received message turns out to be an old
    one, further actions MUST NOT be taken; otherwise, the
    corresponding AD record MUST be updated with the data contained in
-   the message.
+   the received message.
 
 2. If a corresponding `AD record`_ does not exist, a new AD record
    SHOULD be created, storing the relevant data received with the
