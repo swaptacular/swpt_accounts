@@ -1030,9 +1030,9 @@ Received `AccountTransfer`_ message
 
 When client implementations process an `AccountTransfer`_ message,
 they MUST first verify whether a corresponding `AL record`_ already
-exists. [#matching-alr]_ If it does not not exist, a new AL record
-SHOULD be created. [#new-alr]_ Then, if there is a corresponding AL
-record (it may have been just created), the following steps MUST be
+exists. [#matching-alr]_ If it does not exist, a new AL record SHOULD
+be created. [#new-alr]_ Then, if there is a corresponding AL record
+(it may have been just created), the following steps MUST be
 performed:
 
 1. The currently processed message MUST be added to the set of
