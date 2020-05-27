@@ -843,8 +843,8 @@ verify whether a corresponding `AD record`_ already exists:
    SHOULD be created, storing the relevant data received with the
    message.
 
-.. [#latest-heartbeat-ts] ``ts`` stores the timestamp of the latest
-  received account heartbeat.
+.. [#latest-heartbeat-ts] The ``ts`` field is needed to store the
+  timestamp of the latest received account heartbeat.
 
 
 Received `AccountPurge`_ message
