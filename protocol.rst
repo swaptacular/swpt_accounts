@@ -836,7 +836,7 @@ verify whether a corresponding `AD record`_ already exists:
    the same or a later `AccountUpdate`_ message has been received
    already. [#compare-change]_ [#compare-seqnums]_ If the received
    message turns out to be an old one, further actions MUST NOT be
-   taken. Otherwise, the corresponding AD record MUST be updated with
+   taken; otherwise, the corresponding AD record MUST be updated with
    the data contained in the message.
 
 2. If a corresponding `AD record`_ does not exist, a new AD record
