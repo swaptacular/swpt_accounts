@@ -835,7 +835,7 @@ verify whether a corresponding `AD record`_ already exists:
    received message. [#ts-update]_ Then it MUST be verified whether
    the same or a later `AccountUpdate`_ message has been received
    already. [#compare-change]_ [#compare-seqnums]_ If the received
-   message turns out to be an old one, further Acton's MUST NOT be
+   message turns out to be an old one, further actions MUST NOT be
    taken. Otherwise, the corresponding AD record MUST be updated with
    the data contained in the message.
 
