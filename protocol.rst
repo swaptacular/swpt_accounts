@@ -1012,8 +1012,11 @@ sequential transfer that has been added to the given account's
 ledger. [#sequential-transfer]_
 
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
-  processd out-of-order. For example, transfer #3 can be processed
-  right after transfer #1, and only then, transfer #2 may be received.
+  received out-of-order. For example, "transfer #3" could be received
+  right after transfer #1, and only then, "transfer #2" might be
+  received. In this case, the natural sequence of transfers would be
+  broken, and "transfer #3" would habe to be added to the ledger only
+  after transfer #2 had been processed as well.
 
 
 Received `AccountTransfer`_ message
