@@ -1030,12 +1030,12 @@ be created. [#new-thr]_ Then, if there is a corresponding TH record
 (it may have been just created), the following steps MUST be
 performed:
 
-1. The currently processed message MUST be added to the set of
-   processed `AccountTransfer`_ messages, stored in the corresponding
-   `TH record`_.
+1. The received message MUST be added to the set of processed
+   `AccountTransfer`_ messages, stored in the corresponding `TH
+   record`_.
 
 2. If the value of the ``previous_transfer_number`` field in the
-   currently processed message is the same as the value of the
+   received message is the same as the value of the
    ``last_transfer_number`` field in the corresponding `TH record`_,
    the ``last_transfer_number``\'s value MUST be updated to contain
    the transfer number of the *latest sequential transfer* in the set
@@ -1059,10 +1059,10 @@ performed:
 
 .. [#matching-thr] The corresponding `TH record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
-  the currently processed `AccountTransfer`_ message.
+  the received `AccountTransfer`_ message.
 
 .. [#new-thr] The newly created `TH record`_ MUST have the same values
   for ``creditor_id``, ``debtor_id``, and ``creation_date`` as the
-  currently processed `AccountTransfer`_ message, an empty set of
-  stored `AccountTransfer`_ massages, and a ``last_transfer_number``
-  field with the value of ``0``.
+  received `AccountTransfer`_ message, an empty set of stored
+  `AccountTransfer`_ massages, and a ``last_transfer_number`` field
+  with the value of ``0``.
