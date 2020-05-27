@@ -958,7 +958,7 @@ verify whether a corresponding `AD record`_ already exists:
 
 1. If a corresponding `AD record`_ already exists, the timestamp of
    the latest received account heartbeat (it is stored in the AD
-   record) MUST be updated with the value of the ``ts`` field in the
+   record) MUST be advanced to the value of the ``ts`` field in the
    received message. [#heartbeat-update]_ Then it MUST be verified
    whether the same or a later `AccountUpdate`_ message has been
    received already. [#compare-change]_ [#compare-seqnums]_ If the
