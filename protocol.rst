@@ -1017,9 +1017,9 @@ given account's transfer history. [#sequential-transfer]_
   be processed right after *transfer #1*, and only then *transfer #2*
   to be received. In this case, *transfer #3* MUST NOT be added to
   account's transfer history before *transfer #2* has been processed
-  as well. Thus, in this example, ``last_transfer_number`` will be
-  updated from ``1`` to ``3``, but only after *transfer #2* has been
-  processed successfully.
+  as well. Thus, in this example, the value of
+  ``last_transfer_number`` will be updated from ``1`` to ``3``, but
+  only after *transfer #2* has been processed successfully.
 
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
