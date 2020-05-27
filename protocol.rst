@@ -645,11 +645,13 @@ ttl : int32
    was emitted (``ts``). This MUST be a positive number.
 
 If for a given account, no `AccountUpdate`_ messages have been sent
-for a long while, the server SHOULD send a new `AccountUpdate`_
-message identical to the previous one (except for the ``ts`` field),
-to remind that the account still exist. This guarantees that accounts
-will not be hanging in the server's database forever, even in the case
-of a lost message, or a complete database loss on the client's side.
+for a long while (1 week for example), the server MUST send a new
+`AccountUpdate`_ message identical to the previous one (except for the
+``ts`` field), to remind that the account still exist. This guarantees
+that accounts will not be hanging in the server's database forever,
+even in the case of a lost message, or a complete database loss on the
+client's side. Also, this serves the purpose of a "heartbeat",
+allowing clients to detect "dead" account records in their databases.
 
 .. [#meaningful-change] For a given account, every change in the value
   of one of the fields included in `AccountUpdate`_ messages (except
