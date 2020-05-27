@@ -992,12 +992,12 @@ MUST first verify whether a corresponding `AD record`_ already exists:
    ignored.
 
 
-.. [#latest-heartbeat] `AD record`_\'s ``ts`` field stores the
-  timestamp of the latest received account heartbeat.
+.. [#latest-heartbeat] Note that the `AD record`_\'s ``ts`` field
+  stores the timestamp of the latest received account heartbeat.
 
 .. [#matching-adr] The corresponding `AD record`_ MUST have the same
-  values for ``creditor_id`` and ``debtor_id`` as the currently
-  processed `AccountUpdate`_ message.
+  values for ``creditor_id`` and ``debtor_id`` as the received
+  `AccountUpdate`_ message.
 
 .. [#heartbeat-update] That is: the timestamp of the latest received account
   heartbeat, stored in the `AD record`_, MUST be changed only if the
