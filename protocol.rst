@@ -1029,15 +1029,14 @@ created. [#new-alr]_ Then if there is a corresponding AL record (it
 may have been just created), the following steps MUST be performed:
 
 1. The processed message MUST be added to the set of received
-   `AccountTransfer`_ messages stored in the AL record.
+   `AccountTransfer`_ messages, which is stored in the AL record.
 
 2. If the value of the ``previous_transfer_number`` field in the
    processed message is the same as the value of the
    ``transfer_number`` field in the corresponding AL record, the
    ``transfer_number``\'s value MUST be updated to contain the value
-   of the latest sequential transfer in the set of received
-   `AccountTransfer`_ messages stored in the AL
-   record. [#sequential-transfer]_
+   of the latest sequential transfer in the stored set of received
+   `AccountTransfer`_ messages. [#sequential-transfer]_
 
 .. [#new-alr] The newly created `AL record`_ MUST have the same values
   for ``creditor_id``, ``debtor_id``, and ``creation_date`` as the
