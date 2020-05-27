@@ -813,7 +813,7 @@ AD record
 ---------
 
 Client implementations SHOULD maintain *account data records* (AD
-record) in their databases, so as to store accounts' current status
+record) in their databases, to store accounts' current status
 data. The primary key for account data records SHOULD be the
 (``creditor_id``, ``debtor_id``) tuple. As a minimum, `AD record`_\s
 MUST also be able to store the values of ``creation_date``,
