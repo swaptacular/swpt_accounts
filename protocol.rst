@@ -847,8 +847,8 @@ verify whether a corresponding `AD record`_ already exists:
   timestamp of the latest received account heartbeat.
 
 .. [#ts-update] That is: the timestamp of the latest received account
-  heartbeat, stored in the `AD record`_, MUST be changed only if value
-  of the ``ts`` field in the received `AccountUpdate`_ message
+  heartbeat, stored in the `AD record`_, MUST be changed only if the
+  value of the ``ts`` field in the received `AccountUpdate`_ message
   represents a later timestamp.
 
 
