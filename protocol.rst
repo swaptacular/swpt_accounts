@@ -1032,10 +1032,10 @@ may have been just created), the following steps MUST be performed:
    `AccountTransfer`_ messages stored in the AL record.
 
 2. If the value of the ``previous_transfer_number`` field in the
-   processed message is the same as the value of `AL record`_\'s
-   ``transfer_number`` field, the value of the ``transfer_number``
-   field in the AL record MUST be updated to contain the value of the
-   latest sequential transfer in the set of received
+   processed message is the same as the value of the
+   ``transfer_number`` field in the corresponding AL record, the
+   ``transfer_number``\'s value MUST be updated to contain the value
+   of the latest sequential transfer in the set of received
    `AccountTransfer`_ messages stored in the AL
    record. [#sequential-transfer]_
 
