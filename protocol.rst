@@ -1024,9 +1024,9 @@ Received `AccountTransfer`_ message
 
 When client implementations process an `AccountTransfer`_ message,
 they MUST first verify whether a corresponding `AL record`_ already
-exists. [#matching-alr]_ If it does not not exist, a new AL
-record SHOULD be created. [#new-alr]_ Then if there is a corresponding
-AL record (it may have been just created), the following steps MUST be
+exists. [#matching-alr]_ If it does not not exist, a new AL record
+SHOULD be created. [#new-alr]_ Then, if there is a corresponding AL
+record (it may have been just created), the following steps MUST be
 performed:
 
 1. The processed message MUST be added to the set of received
@@ -1036,10 +1036,9 @@ performed:
 2. If the value of the ``previous_transfer_number`` field in the
    processed message is the same as the value of the
    ``transfer_number`` field in the corresponding `AL record`_, the
-   ``transfer_number``\'s value MUST be updated to contain the value
-   of the ``transfer_number`` field in the latest sequential transfer
-   in the stored set of received `AccountTransfer`_
-   messages. [#sequential-transfer]_
+   ``transfer_number``\'s value MUST be updated to contain the
+   transfer number of the latest sequential transfer in the stored set
+   of received `AccountTransfer`_ messages. [#sequential-transfer]_
 
 .. [#matching-alr] The corresponding `AL record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
