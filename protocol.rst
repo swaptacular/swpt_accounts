@@ -936,9 +936,9 @@ the record SHOULD be deleted; otherwise the message MUST be ignored.
 AD record
 ---------
 
-Client implementations *which keep creditor accounts*, SHOULD maintain
-*account data records* (AD record) in their databases, to store
-accounts' current status data. The primary key for account data
+Client implementations *that manage creditor accounts*, SHOULD
+maintain *account data records* (AD records) in their databases, to
+store accounts' current status data. The primary key for account data
 records SHOULD be the (``creditor_id``, ``debtor_id``) tuple. As a
 minimum, `AD record`_\s MUST also be able to store the values of
 ``creation_date``, ``last_change_ts``, ``last_change_seqnum``, and
@@ -1001,14 +1001,14 @@ MUST first verify whether a corresponding `AD record`_ already exists:
 AL record
 ---------
 
-Client implementations *which keep creditor accounts*, SHOULD maintain
-*account ledger records* (AL record) in their databases, to store
-accounts' ledger data. The primary key for account ledger records
-SHOULD be the (``creditor_id``, ``debtor_id``, ``creation_date``)
-tuple. As a minimum, `AL record`_\s MUST also be able to store a set
-of received `AccountTransfer`_ messages, and the value of the
-``transfer_number`` field of the latest sequential transfer, added to
-account's ledger. [#sequential-transfer]_
+Client implementations *that manage creditor accounts*, SHOULD
+maintain *account ledger records* (AL records) in their databases, to
+store accounts' ledger data. The primary key for account ledger
+records SHOULD be the (``creditor_id``, ``debtor_id``,
+``creation_date``) tuple. As a minimum, `AL record`_\s MUST also be
+able to store a set of received `AccountTransfer`_ messages, and the
+value of the ``transfer_number`` field of the latest sequential
+transfer, added to account's ledger. [#sequential-transfer]_
 
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages MAY be
   processd out-of-order. For example transfer #3 may be processed
