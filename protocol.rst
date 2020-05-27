@@ -830,10 +830,10 @@ has "expired", it MUST be ignored. Otherwise, implementations MUST
 verify whether a corresponding `AD record`_ already exists:
 
 1. If a corresponding `AD record`_ already exists, the timestamp of
-   the latest received account heartbeat (it is stored in the AD
-   record) MUST be set to be the value of the ``ts`` field in the
-   received message. Then it MUST be verified whether the same or a
-   later `AccountUpdate`_ message has been received
+   the latest received account heartbeat (stored in the AD record)
+   MUST be set to be the value of the ``ts`` field in the received
+   message. Then it MUST be verified whether the same or a later
+   `AccountUpdate`_ message has been received
    already. [#compare-change]_ [#compare-seqnums]_ If the received
    message turns out to be an old one, it MUST be ignored. Otherwise,
    the corresponding AD record MUST be updated with the data contained
