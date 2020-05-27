@@ -1004,10 +1004,10 @@ AL record
 Client implementations *which keep creditor accounts*, SHOULD maintain
 *account ledger records* (AL record) in their databases, to store
 accounts' ledger data. The primary key for account ledger records
-SHOULD be the (``creditor_id``, ``debtor_id``) tuple. As a minimum,
-`AL record`_\s MUST also be able to store the values of
-``creation_date``, ``transfer_number``, and ``principal`` fields, from
-the latest received `AccountTransfer`_ message.
+SHOULD be the (``creditor_id``, ``debtor_id``, ``creation_date``)
+tuple. As a minimum, `AL record`_\s MUST also be able to store the
+value of the ``transfer_number`` field, from the latest received
+`AccountTransfer`_ message.
 
 
 Received `AccountTransfer`_ message
