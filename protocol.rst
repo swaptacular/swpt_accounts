@@ -864,6 +864,23 @@ finalized
   committed and dismissed transfers the same way.
 
 
+Received `RejectedTransfer`_ message
+````````````````````````````````````
+
+When client implementations process a `RejectedTransfer`_ message,
+they MUST first try to find a matching `RT record`_ in the client's
+database. [#crr-match]_ If a matching record exists, and its status is
+"initiated", the record SHOULD be deleted; otherwise the message MUST
+be ignored.
+
+.. [#crr-match] The matching `RT record`_ MUST have the same
+  ``coordinator_type``, ``coordinator_id``, and
+  ``coordinator_request_id`` values as the received
+  `PreparedTransfer`_ message. Additionally, the values of other
+  fields in the received message MAY be verified as well, so as to
+  ensure that the server behaves as expected.
+
+
 Received `PreparedTransfer`_ message
 ````````````````````````````````````
 
@@ -895,13 +912,6 @@ finalized
    they differ, the newly prepared transfer MUST be immediately
    dismissed. [#dismiss-transfer]_
 
-.. [#crr-match] The matching `RT record`_ MUST have the same
-  ``coordinator_type``, ``coordinator_id``, and
-  ``coordinator_request_id`` values as the received
-  `PreparedTransfer`_ message. Additionally, the values of other
-  fields in the received message MAY be verified as well, so as to
-  ensure that the server behaves as expected.
-
 .. [#dismiss-transfer] A prepared transfer is dismissed by sending a
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
 
@@ -921,16 +931,6 @@ database. [#crr-match]_ If a matching record exists, and the values of
 ``debtor_id``, ``creditor_id``, and ``transfer_id`` fields in the
 received message are the same as the values stored in the RT record,
 the record SHOULD be deleted; otherwise the message MUST be ignored.
-
-
-Received `RejectedTransfer`_ message
-````````````````````````````````````
-
-When client implementations process a `RejectedTransfer`_ message,
-they MUST first try to find a matching `RT record`_ in the client's
-database. [#crr-match]_ If a matching record exists, and its status is
-"initiated", the record SHOULD be deleted; otherwise the message MUST
-be ignored.
 
 
 AD record
