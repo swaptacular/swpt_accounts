@@ -1014,9 +1014,9 @@ ledger. [#sequential-transfer]_
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
   received out-of-order. For example, *transfer #3* can be received
   right after *transfer #1*, and only then, *transfer #2* might be
-  received. In this case, the natural sequence of transfers MUST be
-  maintained, and *transfer #3* MUST be added to the ledger only after
-  *transfer #2* has been added as well.
+  received. In this case, the natural sequence of transfers in the
+  ledger MUST be preserved, and therefore *transfer #3* MUST be added
+  to the ledger only after *transfer #2* has been added as well.
 
 
 Received `AccountTransfer`_ message
