@@ -1006,10 +1006,10 @@ maintain *account ledger records* (AL records) in their databases, to
 store accounts' ledger data. The primary key for account ledger
 records SHOULD be the (``creditor_id``, ``debtor_id``,
 ``creation_date``) tuple. As a minimum, `AL record`_\s MUST also be
-able to store a set of received `AccountTransfer`_ messages for the
-given account, and a ``transfer_number`` field, containing the
-transfer number of the latest transfer that has been added to the
-given account's ledger. [#sequential-transfer]_
+able to store a set of received `AccountTransfer`_ messages, plus a
+``transfer_number`` field, containing the transfer number of the
+latest transfer that has been added to the given account's
+ledger. [#sequential-transfer]_
 
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
   received out-of-order. For example, *transfer #3* can be received
