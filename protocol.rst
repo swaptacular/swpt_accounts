@@ -848,7 +848,8 @@ verify whether a corresponding `AD record`_ already exists:
 
 .. [#ts-update] That is: the timestamp of the latest received account
   heartbeat MUST NOT be changed if the value of the ``ts`` field in
-  the received message is smaller (an earlier timestamp).
+  the received `AccountUpdate`_ message is smaller (an earlier
+  timestamp).
 
 
 Received `AccountPurge`_ message
