@@ -247,7 +247,7 @@ When server implementations process a `PrepareTransfer`_ message they:
 * SHOULD NOT prepare a transfer without verifying that the recipient's
   account exists, and does accept incoming transfers.
 
-* SHOULD NOT allow transfers in which the sender and the recipient is
+* MUST NOT allow transfers in which the sender and the recipient is
   the same account.
 
 * MUST send a `PreparedTransfer`_ message if the requested transfer
@@ -469,12 +469,12 @@ ts : date-time
    timestamp).
 
 If a prepared transfer has not been finalized (committed or dismissed)
-for a long while, the server SHOULD send another `PreparedTransfer`_
-message, identical to the previous one (except for the **ts** field),
-to remind that a transfer has been prepared and is waiting for a
-resolution. This guarantees that prepared transfers will not be
-hanging in the server's database forever, even in the case of a lost
-message, or a complete database loss on the client's side.
+for a long while (1 week for example), the server MUST send another
+`PreparedTransfer`_ message, identical to the previous one (except for
+the **ts** field), to remind that a transfer has been prepared and is
+waiting for a resolution. This guarantees that prepared transfers will
+not be hanging in the server's database forever, even in the case of a
+lost message, or a complete database loss on the client's side.
 
 
 FinalizedTransfer
