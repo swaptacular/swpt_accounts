@@ -843,26 +843,6 @@ finalized
    received for them. [#cr-retention]_ [#staled-records]_
    [#dismissed-records]_
 
-.. [#cr-retention] The retention of committed `RT record`_\s is
-  necessary to prevent problems caused by message
-  re-delivery. Consider the following scenario: a transfer has been
-  prepared and committed (finalized), but the `PreparedTransfer`_
-  message is re-delivered a second time. Had the RT record been
-  deleted right away, the already committed transfer would be
-  dismissed the second time, and the fate of the transfer would be
-  decided by the race between the two different finalizing
-  messages. In most cases, this would be a serious problem.
-
-.. [#staled-records] If the corresponding `FinalizedTransfer`_ message
-  has not been received for a very long time (1 year for example), the
-  `RT record`_ for the committed transfer MAY be deleted,
-  nevertheless.
-
-.. [#dismissed-records] Note that `FinalizedTransfer`_ messages are
-  emitted for dismissed transfers as well. Therefore, the most
-  straightforward policy is to delete `RT record`_\s for both
-  committed and dismissed transfers the same way.
-
 
 Received `RejectedTransfer`_ message
 ````````````````````````````````````
@@ -872,13 +852,6 @@ they MUST first try to find a matching `RT record`_ in the client's
 database. [#crr-match]_ If a matching record exists, and its status is
 "initiated", the record SHOULD be deleted; otherwise the message MUST
 be ignored.
-
-.. [#crr-match] The matching `RT record`_ MUST have the same
-  ``coordinator_type``, ``coordinator_id``, and
-  ``coordinator_request_id`` values as the received
-  `PreparedTransfer`_ message. Additionally, the values of other
-  fields in the received message MAY be verified as well, so as to
-  ensure that the server behaves as expected.
 
 
 Received `PreparedTransfer`_ message
@@ -912,15 +885,6 @@ finalized
    they differ, the newly prepared transfer MUST be immediately
    dismissed. [#dismiss-transfer]_
 
-.. [#dismiss-transfer] A prepared transfer is dismissed by sending a
-  `FinalizeTransfer`_ message, with zero ``committed_amount``.
-
-.. [#prepared-records] Note that at some point a `FinalizeTransfer`_
-  message MUST be sent for each "prepared" `RT record`_, and the
-  record's status MUST be set to "finalized". Often this can be done
-  immediately, in which case the RT record will change its status from
-  "initiated", to "finalized" directly.
-
 
 Received `FinalizedTransfer`_ message
 `````````````````````````````````````
@@ -931,6 +895,43 @@ database. [#crr-match]_ If a matching record exists, and the values of
 ``debtor_id``, ``creditor_id``, and ``transfer_id`` fields in the
 received message are the same as the values stored in the RT record,
 the record SHOULD be deleted; otherwise the message MUST be ignored.
+
+
+.. [#cr-retention] The retention of committed `RT record`_\s is
+  necessary to prevent problems caused by message
+  re-delivery. Consider the following scenario: a transfer has been
+  prepared and committed (finalized), but the `PreparedTransfer`_
+  message is re-delivered a second time. Had the RT record been
+  deleted right away, the already committed transfer would be
+  dismissed the second time, and the fate of the transfer would be
+  decided by the race between the two different finalizing
+  messages. In most cases, this would be a serious problem.
+
+.. [#staled-records] If the corresponding `FinalizedTransfer`_ message
+  has not been received for a very long time (1 year for example), the
+  `RT record`_ for the committed transfer MAY be deleted,
+  nevertheless.
+
+.. [#dismissed-records] Note that `FinalizedTransfer`_ messages are
+  emitted for dismissed transfers as well. Therefore, the most
+  straightforward policy is to delete `RT record`_\s for both
+  committed and dismissed transfers the same way.
+
+.. [#crr-match] The matching `RT record`_ MUST have the same
+  ``coordinator_type``, ``coordinator_id``, and
+  ``coordinator_request_id`` values as the received
+  `PreparedTransfer`_ message. Additionally, the values of other
+  fields in the received message MAY be verified as well, so as to
+  ensure that the server behaves as expected.
+
+.. [#dismiss-transfer] A prepared transfer is dismissed by sending a
+  `FinalizeTransfer`_ message, with zero ``committed_amount``.
+
+.. [#prepared-records] Note that at some point a `FinalizeTransfer`_
+  message MUST be sent for each "prepared" `RT record`_, and the
+  record's status MUST be set to "finalized". Often this can be done
+  immediately, in which case the RT record will change its status from
+  "initiated", to "finalized" directly.
 
 
 AD record
@@ -973,14 +974,6 @@ received for a very long time (1 year for example), the account's `AD
 record`_ SHOULD be removed from the client's
 database. [#latest-heartbeat]_
 
-.. [#latest-heartbeat] `AD record`_\'s ``ts`` field stores the
-  timestamp of the latest received account heartbeat.
-
-.. [#heartbeat-update] That is: the timestamp of the latest received account
-  heartbeat, stored in the `AD record`_, MUST be changed only if the
-  value of the ``ts`` field in the received `AccountUpdate`_ message
-  represents a later timestamp.
-
 
 Received `AccountPurge`_ message
 ````````````````````````````````
@@ -998,6 +991,15 @@ MUST first verify whether a corresponding `AD record`_ already exists:
    ignored.
 
 
+.. [#latest-heartbeat] `AD record`_\'s ``ts`` field stores the
+  timestamp of the latest received account heartbeat.
+
+.. [#heartbeat-update] That is: the timestamp of the latest received account
+  heartbeat, stored in the `AD record`_, MUST be changed only if the
+  value of the ``ts`` field in the received `AccountUpdate`_ message
+  represents a later timestamp.
+
+
 TH record
 ---------
 
@@ -1011,20 +1013,6 @@ messages, plus a ``last_transfer_number`` field, which contains the
 transfer number of the latest transfer that has been added to the
 given account's transfer history. [#sequential-transfer]_
 [#transfer-chain]_
-
-.. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
-  processed out-of-order. For example, it is possible *transfer #3* to
-  be processed right after *transfer #1*, and only then *transfer #2*
-  to be received. In this case, *transfer #3* MUST NOT be added to the
-  account's transfer history before *transfer #2* has been processed
-  as well. Thus, in this example, the value of
-  ``last_transfer_number`` will be updated from ``1`` to ``3``, but
-  only after *transfer #2* has been processed successfully.
-
-.. [#transfer-chain] Note that `AccountTransfer`_ messages form a
-  singly linked list. That is: the ``previous_transfer_number`` field
-  in each message refers to the value of the ``transfer_number`` field
-  in the previous message.
 
 
 Received `AccountTransfer`_ message
@@ -1048,6 +1036,21 @@ performed:
    the transfer number of the *latest sequential transfer* in the set
    of processed `AccountTransfer`_ messages. [#sequential-transfer]_
    [#transfer-chain]_
+
+
+.. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
+  processed out-of-order. For example, it is possible *transfer #3* to
+  be processed right after *transfer #1*, and only then *transfer #2*
+  to be received. In this case, *transfer #3* MUST NOT be added to the
+  account's transfer history before *transfer #2* has been processed
+  as well. Thus, in this example, the value of
+  ``last_transfer_number`` will be updated from ``1`` to ``3``, but
+  only after *transfer #2* has been processed successfully.
+
+.. [#transfer-chain] Note that `AccountTransfer`_ messages form a
+  singly linked list. That is: the ``previous_transfer_number`` field
+  in each message refers to the value of the ``transfer_number`` field
+  in the previous message.
 
 .. [#matching-thr] The corresponding `TH record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
