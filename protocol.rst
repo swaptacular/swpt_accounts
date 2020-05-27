@@ -809,6 +809,34 @@ be emitted for each committed transfer.
 Requirements for Client Implementations
 =======================================
 
+AD record
+---------
+
+Client implementations SHOULD maintain *account data records* (AD
+record) in their databases, so as to store accounts' current status
+data. The primary key for account data records SHOULD be the
+(``creditor_id``, ``debtor_id``) tuple. As a minimum, `AD record`_\s
+SHOULD be able to store the values of ``creation_date``,
+``last_change_ts``, and ``last_change_seqnum`` fields from the latest
+received `AccountUpdate`_ message.
+
+When client implementations process an `AccountUpdate`_ message, they
+MUST first verify message's ``ts`` and ``ttl`` fields. If the message
+has "expired", it MUST be ignored. Otherwise, implementations MUST
+verify whether a corresponding `AD record`_ already exists:
+
+1. If a corresponding `AD record`_ already exists, the client
+   implementation MUST decide whether the same or a later
+   `AccountUpdate`_ message has been received
+   already. [#compare-change]_ [#compare-seqnums]_ If the received
+   message turns out to be an old one, it MUST be ignored. Otherwise,
+   the corresponding AD record MUST be updated with the data contained
+   in the message.
+
+2. If a corresponding `AD record`_ does not exist, a new AD record
+   SHOULD be created, storing the data received with the message.
+
+
 RT record
 ---------
 
