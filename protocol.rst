@@ -1005,12 +1005,23 @@ Client implementations *which keep creditor accounts*, SHOULD maintain
 *account ledger records* (AL record) in their databases, to store
 accounts' ledger data. The primary key for account ledger records
 SHOULD be the (``creditor_id``, ``debtor_id``, ``creation_date``)
-tuple. As a minimum, `AL record`_\s MUST also be able to store the
-value of the ``transfer_number`` field, from the latest received
-`AccountTransfer`_ message.
+tuple. As a minimum, `AL record`_\s MUST also be able to store a set
+of received `AccountTransfer`_ messages, and the value of the
+``transfer_number`` field of the latest sequential transfer, added to
+account's ledger. [#sequential-transfer]_
+
+.. [#sequential-transfer] Note that `AccountTransfer`_ messages MAY be
+  processd out-of-order. For example transfer #3 may be processed
+  right after transfer #1, and only then, transfer #2 might be
+  received.
 
 
 Received `AccountTransfer`_ message
 ```````````````````````````````````
 
+When client implementations process an `AccountTransfer`_ message,
+they MUST first verify whether a corresponding `AD record`_ already
+exists:
+
 TODO
+
