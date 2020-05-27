@@ -998,25 +998,27 @@ MUST first verify whether a corresponding `AD record`_ already exists:
    ignored.
 
 
-AL record
+TH record
 ---------
 
 Client implementations *that manage creditor accounts*, SHOULD
-maintain *account ledger records* (AL records) in their databases, to
-store accounts' ledger data. The primary key for account ledger
-records SHOULD be the (``creditor_id``, ``debtor_id``,
-``creation_date``) tuple. As a minimum, `AL record`_\s MUST also be
-able to store a set of processed `AccountTransfer`_ messages, plus a
-``last_transfer_number`` field, which contains the transfer number of
-the latest transfer that has been added to the given account's
-ledger. [#sequential-transfer]_ [#transfer-chain]_
+maintain *transfer history records* (TH records) in their databases,
+to store accounts' transfer history data. The primary key for
+transfers history records SHOULD be the (``creditor_id``,
+``debtor_id``, ``creation_date``) tuple. As a minimum, `TH record`_\s
+MUST also be able to store a set of processed `AccountTransfer`_
+messages, plus a ``last_transfer_number`` field, which contains the
+transfer number of the latest transfer that has been added to the
+given account's transfer history. [#sequential-transfer]_
+[#transfer-chain]_
 
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
   received and processed out-of-order. For example, *transfer #3* can
   be processed right after *transfer #1*, and only then, *transfer #2*
-  be received. In this case, the correct order of transfers in the
-  ledger must be preserved, and therefore, *transfer #3* MUST NOT be
-  added to the ledger before *transfer #2* has been processed as well.
+  be received. In such cases, the correct order of transfers in
+  account's transfer history must be preserved, and therefore,
+  *transfer #3* MUST NOT be added to account's transfer history before
+  *transfer #2* has been processed as well.
 
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
@@ -1028,30 +1030,30 @@ Received `AccountTransfer`_ message
 ```````````````````````````````````
 
 When client implementations process an `AccountTransfer`_ message,
-they MUST first verify whether a corresponding `AL record`_ already
-exists. [#matching-alr]_ If it does not exist, a new AL record SHOULD
-be created. [#new-alr]_ Then, if there is a corresponding AL record
+they MUST first verify whether a corresponding `TH record`_ already
+exists. [#matching-thr]_ If it does not exist, a new TH record SHOULD
+be created. [#new-thr]_ Then, if there is a corresponding TH record
 (it may have been just created), the following steps MUST be
 performed:
 
 1. The currently processed message MUST be added to the set of
    processed `AccountTransfer`_ messages, stored in the corresponding
-   `AL record`_.
+   `TH record`_.
 
 2. If the value of the ``previous_transfer_number`` field in the
    currently processed message is the same as the value of the
-   ``last_transfer_number`` field in the corresponding `AL record`_,
+   ``last_transfer_number`` field in the corresponding `TH record`_,
    the ``last_transfer_number``\'s value MUST be updated to contain
    the transfer number of the *latest sequential transfer* in the set
    of processed `AccountTransfer`_ messages. [#sequential-transfer]_
    [#transfer-chain]_
 
-.. [#matching-alr] The corresponding `AL record`_ MUST have the same
+.. [#matching-thr] The corresponding `TH record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
   the currently processed `AccountTransfer`_ message.
 
-.. [#new-alr] The newly created `AL record`_ MUST have the same values
+.. [#new-thr] The newly created `TH record`_ MUST have the same values
   for ``creditor_id``, ``debtor_id``, and ``creation_date`` as the
   currently processed `AccountTransfer`_ message, an empty set of
   stored `AccountTransfer`_ massages, and a ``last_transfer_number``
-  with the value of ``0``.
+  field with the value of ``0``.
