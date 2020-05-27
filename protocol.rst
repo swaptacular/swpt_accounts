@@ -1015,7 +1015,7 @@ given account's transfer history. [#sequential-transfer]_
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
   processed out-of-order. For example, it is possible *transfer #3* to
   be processed right after *transfer #1*, and only then *transfer #2*
-  to be received. In this case, *transfer #3* MUST NOT be added to
+  to be received. In this case, *transfer #3* MUST NOT be added to the
   account's transfer history before *transfer #2* has been processed
   as well. Thus, in this example, the value of
   ``last_transfer_number`` will be updated from ``1`` to ``3``, but
