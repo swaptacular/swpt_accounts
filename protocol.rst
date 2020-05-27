@@ -1006,7 +1006,7 @@ maintain *account ledger records* (AL records) in their databases, to
 store accounts' ledger data. The primary key for account ledger
 records SHOULD be the (``creditor_id``, ``debtor_id``,
 ``creation_date``) tuple. As a minimum, `AL record`_\s MUST also be
-able to store a set of received `AccountTransfer`_ messages for each
+able to store a set of received `AccountTransfer`_ messages for the
 given account, and the value of the ``transfer_number`` field of the
 latest transfer that has been added to the given account's
 ledger. [#sequential-transfer]_
@@ -1028,13 +1028,10 @@ they MUST perform the following steps:
 1. Verify whether a corresponding `AL record`_ already exists. If it
    does not not exist, a new AL record SHOULD be created. [#new-alr]_
 
-
-If a corresponding `AL record`_ already exists (or has been just
-created), the value of the ``creation_date`` field in the received
-`AccountPurge`_ message MUST be compared to the value stored in the AD
-record. If the value received with the message is smaller (an earlier
-date), the message MUST be ignored; otherwise the AD record SHOULD be
-removed.
+2. If a corresponding `AL record`_ exists (it may have been created in
+   the previous step), it MUST be verified whether the processed
+   message is in the set of `AccountTransfer`_ messages already stored
+   in the AL record.
 
 .. [#new-alr] The newly created `AL record`_ MUST have the same values
   for ``creditor_id``, ``debtor_id``, and ``creation_date`` as the
