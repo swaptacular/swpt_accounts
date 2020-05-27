@@ -817,8 +817,12 @@ record) in their databases, so as to store accounts' current status
 data. The primary key for account data records SHOULD be the
 (``creditor_id``, ``debtor_id``) tuple. As a minimum, `AD record`_\s
 SHOULD be able to store the values of ``creation_date``,
-``last_change_ts``, and ``last_change_seqnum`` fields from the latest
+``last_change_ts``, and ``last_change_seqnum`` fields, from the latest
 received `AccountUpdate`_ message.
+
+
+Received `AccountUpdate`_ message
+---------------------------------
 
 When client implementations process an `AccountUpdate`_ message, they
 MUST first verify message's ``ts`` and ``ttl`` fields. If the message
@@ -834,7 +838,14 @@ verify whether a corresponding `AD record`_ already exists:
    in the message.
 
 2. If a corresponding `AD record`_ does not exist, a new AD record
-   SHOULD be created, storing the data received with the message.
+   SHOULD be created, storing the relevant data received with the
+   message.
+
+
+Received `AccountUpdate`_ message
+---------------------------------
+
+TODO
 
 
 RT record
