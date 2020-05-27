@@ -1014,9 +1014,9 @@ ledger. [#sequential-transfer]_ [#transfer-chain]_
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
   received and processed out-of-order. For example, *transfer #3* can
   be processed right after *transfer #1*, and only then, *transfer #2*
-  be received. In this case, the natural sequence of transfers in the
-  ledger need to be preserved, and therefore, *transfer #3* MUST NOT
-  be added to the ledger before *transfer #2* has been added as well.
+  be received. In this case, the sequence of transfers in the ledger
+  need to be preserved, and therefore, *transfer #3* MUST NOT be added
+  to the ledger before *transfer #2* has been added as well.
 
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
@@ -1042,9 +1042,9 @@ performed:
    currently processed message is the same as the value of the
    ``transfer_number`` field in the corresponding `AL record`_, the
    ``transfer_number``\'s value MUST be updated to contain the
-   transfer number of the latest sequential transfer in the stored set
-   of processed `AccountTransfer`_ messages. [#sequential-transfer]_
-   [#transfer-chain]_
+   transfer number of the latest *sequential* transfer in the stored
+   set of processed `AccountTransfer`_
+   messages. [#sequential-transfer]_ [#transfer-chain]_
 
 .. [#matching-alr] The corresponding `AL record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
