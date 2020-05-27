@@ -1037,6 +1037,7 @@ date), the message MUST be ignored; otherwise the AD record SHOULD be
 removed.
 
 .. [#new-alr] The newly created `AL record`_ MUST have the same values
-  for ``creditor_id``, ``debtor_id``, and ``creation_date`` as the
-  processed message, an empty set of stored `AccountTransfer`_
-  massages, and ``transfer_number`` with the value of ``0``.
+  for ``creditor_id``, ``debtor_id``, and ``creation_date`` as in the
+  processed `AccountTransfer`_ message, an empty set of stored
+  `AccountTransfer`_ massages, and ``transfer_number`` with the value
+  of ``0``.
