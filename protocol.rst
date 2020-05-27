@@ -9,7 +9,7 @@ Swaptacular Messaging Protocol
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
-   :depth: 2
+   :depth: 3
 
 
 Overview
@@ -823,7 +823,7 @@ message. [#latest-heartbeat]_
 
 
 Received `AccountUpdate`_ message
----------------------------------
+`````````````````````````````````
 
 When client implementations process an `AccountUpdate`_ message, they
 MUST first verify message's ``ts`` and ``ttl`` fields. If the message
@@ -859,7 +859,7 @@ database. [#latest-heartbeat]_
 
 
 Received `AccountPurge`_ message
---------------------------------
+````````````````````````````````
 
 When client implementations process an `AccountPurge`_ message, they
 MUST first verify whether a corresponding `AD record`_ already exists:
@@ -930,7 +930,7 @@ finalized
 
 
 Received `PreparedTransfer`_ message
-------------------------------------
+````````````````````````````````````
 
 When client implementations process a `PreparedTransfer`_ message,
 they MUST first try to find a matching `RT record`_ in the client's
@@ -978,7 +978,7 @@ finalized
 
 
 Received `FinalizedTransfer`_ message
--------------------------------------
+`````````````````````````````````````
 
 When client implementations process a `FinalizedTransfer`_ message,
 they MUST first try to find a matching `RT record`_ in the client's
@@ -989,7 +989,7 @@ the record SHOULD be deleted; otherwise the message MUST be ignored.
 
 
 Received `RejectedTransfer`_ message
-------------------------------------
+````````````````````````````````````
 
 When client implementations process a `RejectedTransfer`_ message,
 they MUST first try to find a matching `RT record`_ in the client's
