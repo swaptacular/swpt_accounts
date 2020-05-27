@@ -1016,7 +1016,7 @@ ledger. [#sequential-transfer]_ [#transfer-chain]_
   be processed right after *transfer #1*, and only then, *transfer #2*
   be received. In this case, the correct order of transfers in the
   ledger must be preserved, and therefore, *transfer #3* MUST NOT be
-  added to the ledger before *transfer #2* has been added as well.
+  added to the ledger before *transfer #2* has been processed as well.
 
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
