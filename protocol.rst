@@ -844,8 +844,8 @@ verify whether a corresponding `AD record`_ already exists:
    message.
 
 If for a given account, no `AccountUpdate`_ messages have been
-received for a very long time (1 year for example), the account's `AS
-record`_ MAY be removed from the client's
+received for a very long time (1 year for example), the account's `AD
+record`_ SHOULD be removed from the client's
 database. [#latest-heartbeat-ts]
 
 .. [#latest-heartbeat] The ``ts`` field is used to store the timestamp
