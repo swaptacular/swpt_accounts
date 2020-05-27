@@ -1007,8 +1007,8 @@ store accounts' ledger data. The primary key for account ledger
 records SHOULD be the (``creditor_id``, ``debtor_id``,
 ``creation_date``) tuple. As a minimum, `AL record`_\s MUST also be
 able to store a set of received `AccountTransfer`_ messages for each
-account, and the value of the ``transfer_number`` field of the latest
-sequential transfer that has been added to the given account's
+given account, and the value of the ``transfer_number`` field of the
+latest transfer that has been added to the given account's
 ledger. [#sequential-transfer]_
 
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
