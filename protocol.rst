@@ -817,9 +817,8 @@ record) in their databases, so as to store accounts' current status
 data. The primary key for account data records SHOULD be the
 (``creditor_id``, ``debtor_id``) tuple. As a minimum, `AD record`_\s
 MUST be able to store the values of ``creation_date``,
-``last_change_ts``, ``last_change_seqnum``, and ``ts``
-[#latest-heartbeat-ts]_ fields, from the latest received
-`AccountUpdate`_ message.
+``last_change_ts``, ``last_change_seqnum``, and ``ts`` fields, from
+the latest received `AccountUpdate`_ message. [#latest-heartbeat-ts]_
 
 
 Received `AccountUpdate`_ message
@@ -830,11 +829,11 @@ MUST first verify message's ``ts`` and ``ttl`` fields. If the message
 has "expired", it MUST be ignored. Otherwise, implementations MUST
 verify whether a corresponding `AD record`_ already exists:
 
-1. If a corresponding `AD record`_ already exists, the value of the
-   ``ts`` field stored in the AD record (the timestamp of the latest
-   received heartbeat) MUST be updated with the value received with
-   the message. Then the client implementation MUST decide whether the
-   same or a later `AccountUpdate`_ message has been received
+1. If a corresponding `AD record`_ already exists, the stored
+   timestamp of the latest received heartbeat MUST be changed to be
+   the value of the messages's ``ts`` field. Then the client
+   implementation MUST decide whether the same or a later
+   `AccountUpdate`_ message has been received
    already. [#compare-change]_ [#compare-seqnums]_ If the received
    message turns out to be an old one, it MUST be ignored. Otherwise,
    the corresponding AD record MUST be updated with the data contained
