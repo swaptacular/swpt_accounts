@@ -993,8 +993,9 @@ MUST first verify whether a corresponding `AD record`_ already exists:
    ignored.
 
 
-.. [#latest-heartbeat] Note that `AD record`_\'s ``last_heartbeat_ts``
-  field stores the timestamp of the latest received account heartbeat.
+.. [#latest-heartbeat] Note that the `AD record`_\'s
+  ``last_heartbeat_ts`` field stores the timestamp of the latest
+  received account heartbeat.
 
 .. [#matching-adr] The corresponding `AD record`_ MUST have the same
   values for ``creditor_id`` and ``debtor_id`` as the received
