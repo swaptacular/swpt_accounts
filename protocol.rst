@@ -843,7 +843,7 @@ verify whether a corresponding `AD record`_ already exists:
    SHOULD be created, storing the relevant data received with the
    message.
 
-If for a given account, no `AccountUpdate`_ messages have been
+If for a given account, `AccountUpdate`_ messages have not been
 received for a very long time (1 year for example), the account's `AD
 record`_ SHOULD be removed from the client's
 database. [#latest-heartbeat]_
