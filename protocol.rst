@@ -846,9 +846,10 @@ verify whether a corresponding `AD record`_ already exists:
 .. [#latest-heartbeat-ts] The ``ts`` field is needed to store the
   timestamp of the latest received account heartbeat.
 
-.. [#ts-update] That is: the timestamp stored in the `AD record`_ MUST
-  be changed only if value of the ``ts`` field in the received
-  `AccountUpdate`_ message represents a later timestamp.
+.. [#ts-update] That is: the timestamp of the latest received account
+  heartbeat, stored in the `AD record`_, MUST be changed only if value
+  of the ``ts`` field in the received `AccountUpdate`_ message
+  represents a later timestamp.
 
 
 Received `AccountPurge`_ message
