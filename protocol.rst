@@ -1015,7 +1015,7 @@ ledger. [#sequential-transfer]_
   received out-of-order. For example, *transfer #3* can be received
   right after *transfer #1*, and only then, *transfer #2* might be
   received. In this case, the natural sequence of transfers in the
-  ledger MUST be preserved, and therefore *transfer #3* MUST be added
+  ledger MUST be preserved, and therefore, *transfer #3* MUST be added
   to the ledger only after *transfer #2* has been added as well.
 
 
@@ -1023,8 +1023,16 @@ Received `AccountTransfer`_ message
 ```````````````````````````````````
 
 When client implementations process an `AccountTransfer`_ message,
-they MUST first verify whether a corresponding `AD record`_ already
-exists:
+they MUST first verify whether a corresponding `AL record`_ already
+exists.
 
-TODO
+1. If a corresponding `AL record`_ does not exist, a new AL record
+   SHOULD be created for the given account. The value of the
+   ``transfer_number`` field in new AL record MUST be `0`.
+
+2. If a corresponding `AL record`_ already exists, the value of the
+   ``creation_date`` field in the received `AccountPurge`_ message
+   MUST be compared to the value stored in the AD record. If the value
+   received with the message is smaller (an earlier date), the message
+   MUST be ignored; otherwise the AD record SHOULD be removed.
 
