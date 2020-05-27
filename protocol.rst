@@ -818,7 +818,7 @@ data. The primary key for account data records SHOULD be the
 (``creditor_id``, ``debtor_id``) tuple. As a minimum, `AD record`_\s
 MUST also be able to store the values of ``creation_date``,
 ``last_change_ts``, ``last_change_seqnum``, and ``ts`` fields, from
-the latest received `AccountUpdate`_ message. [#latest-heartbeat-ts]_
+the latest received `AccountUpdate`_ message. [#latest-heartbeat]_
 
 
 Received `AccountUpdate`_ message
@@ -832,21 +832,26 @@ verify whether a corresponding `AD record`_ already exists:
 1. If a corresponding `AD record`_ already exists, the timestamp of
    the latest received account heartbeat (it is stored in the AD
    record) MUST be updated with the value of the ``ts`` field in the
-   received message. [#ts-update]_ Then it MUST be verified whether
-   the same or a later `AccountUpdate`_ message has been received
-   already. [#compare-change]_ [#compare-seqnums]_ If the received
-   message turns out to be an old one, further actions MUST NOT be
-   taken; otherwise, the corresponding AD record MUST be updated with
-   the data contained in the message.
+   received message. [#heartbeat-update]_ Then it MUST be verified
+   whether the same or a later `AccountUpdate`_ message has been
+   received already. [#compare-change]_ [#compare-seqnums]_ If the
+   received message turns out to be an old one, further actions MUST
+   NOT be taken; otherwise, the corresponding AD record MUST be
+   updated with the data contained in the message.
 
 2. If a corresponding `AD record`_ does not exist, a new AD record
    SHOULD be created, storing the relevant data received with the
    message.
 
-.. [#latest-heartbeat-ts] The ``ts`` field is needed to store the
-  timestamp of the latest received account heartbeat.
+If for a given account, no `AccountUpdate`_ messages have been
+received for a very long time (1 year for example), the account's `AS
+record`_ MAY be removed from the client's
+database. [#latest-heartbeat-ts]
 
-.. [#ts-update] That is: the timestamp of the latest received account
+.. [#latest-heartbeat] The ``ts`` field is used to store the timestamp
+  of the latest received account heartbeat.
+
+.. [#heartbeat-update] That is: the timestamp of the latest received account
   heartbeat, stored in the `AD record`_, MUST be changed only if the
   value of the ``ts`` field in the received `AccountUpdate`_ message
   represents a later timestamp.
