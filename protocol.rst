@@ -942,9 +942,10 @@ maintain *account data records* (AD records) in their databases, to
 store accounts' current status data. The primary key for account data
 records SHOULD be the (``creditor_id``, ``debtor_id``) tuple. As a
 minimum, `AD record`_\s MUST also be able to store the values of
-``creation_date``, ``last_change_ts``, ``last_change_seqnum``, and
-``ts`` fields, from the latest received `AccountUpdate`_
-message. [#latest-heartbeat]_
+``creation_date``, ``last_change_ts``, and ``last_change_seqnum``
+fields from the latest received `AccountUpdate`_ message, plus a
+``last_heartbeat_ts`` field, which contains the timestamp of the
+latest received account heartbeat.
 
 
 Received `AccountUpdate`_ message
@@ -956,15 +957,15 @@ has "expired", it MUST be ignored. Otherwise, implementations MUST
 verify whether a corresponding `AD record`_ already exists:
 [#matching-adr]_
 
-1. If a corresponding `AD record`_ already exists, the timestamp of
-   the latest received account heartbeat (it is stored in the AD
-   record) MUST be advanced to the value of the ``ts`` field in the
-   received message. [#heartbeat-update]_ Then it MUST be verified
-   whether the same or a later `AccountUpdate`_ message has been
-   received already. [#compare-change]_ [#compare-seqnums]_ If the
-   received message turns out to be an old one, further actions MUST
-   NOT be taken; otherwise, the corresponding AD record MUST be
-   updated with the data contained in the message.
+1. If a corresponding `AD record`_ already exists, the value of its
+   ``last_heartbeat_ts`` field MUST be advanced to the value of the
+   ``ts`` field in the received message. [#heartbeat-update]_ Then it
+   MUST be verified whether the same or a later `AccountUpdate`_
+   message has been received already. [#compare-change]_
+   [#compare-seqnums]_ If the received message turns out to be an old
+   one, further actions MUST NOT be taken; otherwise, the
+   corresponding AD record MUST be updated with the data contained in
+   the message.
 
 2. If a corresponding `AD record`_ does not exist, a new AD record
    SHOULD be created, storing the relevant data received with the
@@ -992,17 +993,17 @@ MUST first verify whether a corresponding `AD record`_ already exists:
    ignored.
 
 
-.. [#latest-heartbeat] Note that the `AD record`_\'s ``ts`` field
-  stores the timestamp of the latest received account heartbeat.
+.. [#latest-heartbeat] Note that the `AD record`_\'s
+  ``last_heartbeat_ts`` field stores the timestamp of the latest
+  received account heartbeat.
 
 .. [#matching-adr] The corresponding `AD record`_ MUST have the same
   values for ``creditor_id`` and ``debtor_id`` as the received
   `AccountUpdate`_ message.
 
-.. [#heartbeat-update] That is: the timestamp of the latest received account
-  heartbeat, stored in the `AD record`_, MUST be changed only if the
-  value of the ``ts`` field in the received `AccountUpdate`_ message
-  represents a later timestamp.
+.. [#heartbeat-update] That is: the value of the ``last_heartbeat_ts``
+  field MUST be changed only if the value of the ``ts`` field in the
+  received `AccountUpdate`_ message represents a later timestamp.
 
 
 TH record
