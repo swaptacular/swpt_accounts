@@ -1007,9 +1007,9 @@ store accounts' ledger data. The primary key for account ledger
 records SHOULD be the (``creditor_id``, ``debtor_id``,
 ``creation_date``) tuple. As a minimum, `AL record`_\s MUST also be
 able to store a set of processed `AccountTransfer`_ messages, plus a
-``transfer_number`` field, containing the transfer number of the
-latest transfer that has been added to the given account's
-ledger. [#sequential-transfer]_
+``transfer_number`` field, which contains the transfer number of the
+latest sequential transfer that has been added to the given account's
+ledger. [#sequential-transfer]_ [#transfer-chain]_
 
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
   received and processed out-of-order. For example, *transfer #3* can
@@ -1018,6 +1018,11 @@ ledger. [#sequential-transfer]_
   in the ledger MUST be preserved, and therefore, *transfer #3* MUST
   be added to the ledger only after *transfer #2* has been added as
   well.
+
+.. [#transfer-chain] `AccountTransfer`_ messages are chained in a
+  singly linked list. That is: the ``previous_transfer_number`` field
+  in each message refers to the value of the ``transfer_number`` field
+  in the preceding message.
 
 
 Received `AccountTransfer`_ message
@@ -1040,6 +1045,7 @@ performed:
    ``transfer_number``\'s value MUST be updated to contain the
    transfer number of the latest sequential transfer in the stored set
    of processed `AccountTransfer`_ messages. [#sequential-transfer]_
+   [#transfer-chain]_
 
 .. [#matching-alr] The corresponding `AL record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
