@@ -812,13 +812,14 @@ Requirements for Client Implementations
 AD record
 ---------
 
-Client implementations SHOULD maintain *account data records* (AD
-record) in their databases, to store accounts' current status
-data. The primary key for account data records SHOULD be the
-(``creditor_id``, ``debtor_id``) tuple. As a minimum, `AD record`_\s
-MUST also be able to store the values of ``creation_date``,
-``last_change_ts``, ``last_change_seqnum``, and ``ts`` fields, from
-the latest received `AccountUpdate`_ message. [#latest-heartbeat]_
+Client implementations *which keep creditor accounts*, SHOULD maintain
+*account data records* (AD record) in their databases, to store
+accounts' current status data. The primary key for account data
+records SHOULD be the (``creditor_id``, ``debtor_id``) tuple. As a
+minimum, `AD record`_\s MUST also be able to store the values of
+``creation_date``, ``last_change_ts``, ``last_change_seqnum``, and
+``ts`` fields, from the latest received `AccountUpdate`_
+message. [#latest-heartbeat]_
 
 
 Received `AccountUpdate`_ message
