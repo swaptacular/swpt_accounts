@@ -1017,8 +1017,9 @@ given account's transfer history. [#sequential-transfer]_
   be processed right after *transfer #1*, and only then, *transfer #2*
   be received. In such cases, the correct order of transfers in
   account's transfer history must be preserved, and therefore,
-  *transfer #3* MUST NOT be added to account's transfer history before
-  *transfer #2* has been processed as well.
+  *transfer #3* MUST NOT be added to account's transfer history (in
+  other words, set ``last_transfer_number`` to ``3``) before *transfer
+  #2* has been processed as well.
 
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
