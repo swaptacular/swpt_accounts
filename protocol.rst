@@ -831,8 +831,8 @@ database, to track the progress of the requested transfer. The primary
 key for running transfer records SHOULD be the (``coordinator_type``,
 ``coordinator_id``, ``coordinator_request_id``) tuple. As a minimum,
 `RT record`_\s MUST also be able to store the values of ``debtor_id``,
-``creditor_id``, and ``transfer_id``. RT records have 3 possible
-statuses:
+``creditor_id``, and ``transfer_id`` fields. RT records have 3
+possible statuses:
 
 initiated
    Indicates that a `PrepareTransfer`_ request has been sent, and no
