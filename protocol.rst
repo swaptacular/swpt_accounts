@@ -1087,10 +1087,12 @@ performed:
   with the value of ``0``.
 
 .. [#thr-adr-relation] `TH record`_\s and `AD record`_\s MAY have
-  related lifespans. In particular, when an `AD record`_ is removed
-  from the client's database, the associated TH records (that is, TH
-  records which have the same ``creditor_id`` and ``debtor_id``, and
-  the same or earlier ``creation_date``) MAY be removed as well. In
-  addition, TH records MAY also maintain a ``last_heartbeat_ts``
-  field, which similarly is advanced when an `AccountUpdate`_ message
-  is received, to help detect "dead" accounts.
+  related, or exactly the same lifespans. In particular: 1) A dummy TH
+  record MAY be created when a AD record is being created, and vice
+  versa; 2) When an `AD record`_ is removed from the client's
+  database, the associated TH records (that is, TH records which have
+  the same ``creditor_id`` and ``debtor_id``, and the same or earlier
+  ``creation_date``) MAY be removed as well; 3) TH records MAY also
+  maintain a ``last_heartbeat_ts`` field, which similarly is advanced
+  when an `AccountUpdate`_ message is received, to help detect "dead"
+  accounts.
