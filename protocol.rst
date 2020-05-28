@@ -829,8 +829,10 @@ Before sending a `PrepareTransfer`_ message, client implementations
 MUST create a *running transfer record* (RT record) in the client's
 database, to track the progress of the requested transfer. The primary
 key for running transfer records SHOULD be the (``coordinator_type``,
-``coordinator_id``, ``coordinator_request_id``) tuple. `RT record`_\s
-have 3 possible statuses:
+``coordinator_id``, ``coordinator_request_id``) tuple. As a minimum,
+RT record MUST also be able to store the values of the ``debtor_id``,
+``creditor_id``, and ``transfer_id`` fields, plus a status. `RT
+record`_\s have 3 possible statuses:
 
 initiated
    Indicates that a `PrepareTransfer`_ request has been sent, and no
