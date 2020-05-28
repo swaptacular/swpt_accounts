@@ -831,8 +831,8 @@ database, to track the progress of the requested transfer. The primary
 key for running transfer records SHOULD be the (``coordinator_type``,
 ``coordinator_id``, ``coordinator_request_id``) tuple. As a minimum,
 `RT record`_\s MUST also be able to store the values of ``debtor_id``,
-``creditor_id``, ``transfer_id``, and ``committed_amount``. RT records
-have 3 possible statuses:
+``creditor_id``, and ``transfer_id``. RT records have 3 possible
+statuses:
 
 initiated
    Indicates that a `PrepareTransfer`_ request has been sent, and no
@@ -944,9 +944,8 @@ otherwise the message MUST be ignored.
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
 
 .. [#prepared-records] Note that at some point a `FinalizeTransfer`_
-  message MUST be sent for each "prepared" `RT record`_, the record's
-  status MUST be set to "finalized", and ``committed_amount`` set the
-  amount committed in the transfer. Often this can be done
+  message MUST be sent for each "prepared" `RT record`_, and the
+  record's status MUST be set to "finalized". Often this can be done
   immediately, in which case the RT record will change its status from
   "initiated", to "finalized" directly.
 
