@@ -753,11 +753,13 @@ coordinator_type : string
 
 sender : string
    A string which (along with ``debtor_id``) identifies the sender's
-   account. [#account-identity]_
+   account. [#account-identity]_ An empty string signifies that the
+   sender is unknown.
 
 recipient : string
    A string which (along with ``debtor_id``) identifies the
-   recipient's account. [#account-identity]_
+   recipient's account. [#account-identity]_ An empty string signifies
+   that the recipient is unknown.
 
 amount : int64
    The increase in the affected account's principal (caused by the
