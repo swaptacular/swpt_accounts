@@ -1005,8 +1005,8 @@ MUST first verify whether a corresponding `AD record`_ already exists:
   field MUST be changed only if the value of the ``ts`` field in the
   received `AccountUpdate`_ message represents a later
   timestamp. Also, care MAY be taken to ensure that the new value of
-  ``last_heartbeat_ts`` is not far in the future, which could happen
-  if the server is not behaving correctly.
+  ``last_heartbeat_ts`` is not far in the future, which can happen if
+  the server is not behaving correctly.
 
 
 TH record
