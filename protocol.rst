@@ -776,7 +776,7 @@ transfer_message : string
    message, this field MUST contain the value of the
    ``transfer_message`` field from the message that committed the
    transfer. Otherwise, it SHOULD contain information pertaining to
-   the reason for the transfer. [#message-limitations]_
+   the reason for the transfer.
 
 transfer_flags : int32
    Various bit-flags characterizing the transfer. Server
