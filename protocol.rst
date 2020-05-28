@@ -900,11 +900,12 @@ finalized
    they differ, the newly prepared transfer MUST be immediately
    dismissed. [#dismiss-transfer]_
 
-**NOTE:** At some point a `FinalizeTransfer`_ message MUST be sent for
-each "prepared" `RT record`_, and the record's status MUST be set to
-"finalized". Often this can be done immediately, when the
-`PreparedTransfer`_ message is received, in which case the RT record
-will change its status from "initiated", to "finalized" directly.
+**Important note:** At some point a `FinalizeTransfer`_ message MUST
+be sent for each "prepared" `RT record`_, and the record's status MUST
+be set to "finalized". Often this can be done immediately, in which
+case when the `PreparedTransfer`_ message is received the matching RT
+record will change its status from "initiated", to "finalized"
+directly.
 
 
 Received `FinalizedTransfer`_ message
