@@ -987,8 +987,8 @@ MUST first verify whether a corresponding `AD record`_ already exists:
    ``creation_date`` field in the received `AccountPurge`_ message
    MUST be compared to the value stored in the AD record. If the value
    received with the message is smaller (an earlier date), the message
-   MUST be ignored; otherwise the AD record SHOULD be
-   removed. [#remove-thr]_
+   MUST be ignored; otherwise the AD record SHOULD be removed from the
+   client's database. [#remove-thr]_
 
 2. If a corresponding `AD record`_ does not exist, the message MUST be
    ignored.
@@ -1009,7 +1009,10 @@ MUST first verify whether a corresponding `AD record`_ already exists:
   ``last_heartbeat_ts`` field stores the timestamp of the latest
   received account heartbeat.
 
-.. [#remove-thr] TODO
+.. [#remove-thr] When removing an `AD record`_ from the client's
+  database, `TH record`_\s with the same values for ``creditor_id``
+  and ``debtor_id``, and smaller or equal values for
+  ``creation_date``, MAY be removed too.
 
 
 TH record
