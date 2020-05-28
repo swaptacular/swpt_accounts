@@ -1087,8 +1087,8 @@ performed:
   with the value of ``0``.
 
 .. [#thr-adr-relation] The lifespan of `TH record`_\s and `AD
-  record`_\s MAY be related, or exactly the same. In particular: 1) A
-  dummy TH record MAY be created when a new AD record is being
+  record`_\s MAY be related, or exactly the same. In particular: 1) An
+  empty TH record MAY be created when a new AD record is being
   created, and vice versa; 2) When an AD record is being removed from
   the client's database, the associated TH records MAY be removed as
   well.
