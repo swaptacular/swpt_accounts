@@ -57,6 +57,7 @@ class Account(db.Model):
     last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
+    last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     last_outgoing_transfer_date = db.Column(db.DATE, nullable=False, default=BEGINNING_OF_TIME.date())
     negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
     config_flags = db.Column(db.Integer, nullable=False, default=0)

@@ -636,6 +636,13 @@ last_transfer_number : int64
    the creation of the account there have not been any emitted
    `AccountTransfer`_ messages, the value MUST be ``0``.
 
+last_transfer_committed_at : date-time
+   MUST contain the value of the ``committed_at`` field in the latest
+   emitted `AccountTransfer`_ message for the account. If since the
+   creation of the account there have not been any emitted
+   `AccountTransfer`_ messages, the value MUST be
+   "1970-01-01T00:00:00+00:00".
+
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).

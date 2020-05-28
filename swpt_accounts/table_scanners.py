@@ -112,6 +112,7 @@ class AccountScanner(TableScanner):
                         interest=account.interest,
                         interest_rate=account.interest_rate,
                         last_transfer_number=account.last_transfer_number,
+                        last_transfer_committed_at_ts=account.last_transfer_committed_at_ts,
                         last_outgoing_transfer_date=account.last_outgoing_transfer_date,
                         last_config_ts=account.last_config_ts,
                         last_config_seqnum=account.last_config_seqnum,

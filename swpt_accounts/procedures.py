@@ -435,6 +435,7 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
         interest=account.interest,
         interest_rate=account.interest_rate,
         last_transfer_number=account.last_transfer_number,
+        last_transfer_committed_at_ts=account.last_transfer_committed_at_ts,
         last_outgoing_transfer_date=account.last_outgoing_transfer_date,
         last_config_ts=account.last_config_ts,
         last_config_seqnum=account.last_config_seqnum,
@@ -533,6 +534,7 @@ def _insert_account_transfer_signal(
     assert amount != 0
     previous_transfer_number = account.last_transfer_number
     account.last_transfer_number += 1
+    account.last_transfer_committed_at = committed_at_ts
 
     # NOTE: We do not send notifications for transfers from/to the
     # debtor's account, because the debtor's account does not have a
