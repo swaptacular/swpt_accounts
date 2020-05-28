@@ -974,7 +974,7 @@ verify whether a corresponding `AD record`_ already exists:
 If for a given account, `AccountUpdate`_ messages have not been
 received for a very long time (1 year for example), the account's `AD
 record`_ SHOULD be removed from the client's
-database. [#latest-heartbeat]_ [#remove-thr]_
+database. [#latest-heartbeat]_ [#thr-adr-relation]_
 
 
 Received `AccountPurge`_ message
@@ -989,7 +989,7 @@ MUST first verify whether a corresponding `AD record`_ already exists:
    MUST be compared to the value stored in the AD record. If the value
    received with the message is smaller (an earlier date), the message
    MUST be ignored; otherwise the AD record SHOULD be removed from the
-   client's database. [#remove-thr]_
+   client's database. [#thr-adr-relation]_
 
 2. If a corresponding `AD record`_ does not exist, the message MUST be
    ignored.
@@ -1010,27 +1010,20 @@ MUST first verify whether a corresponding `AD record`_ already exists:
   ``last_heartbeat_ts`` field stores the timestamp of the latest
   received account heartbeat.
 
-.. [#remove-thr] When removing an `AD record`_ from the client's
-  database, the associated `TH record`_\s (that is, TH records which
-  have the same ``creditor_id`` and ``debtor_id``, and the same or
-  earlier ``creation_date``) MAY be removed too. In addition, TH
-  records MAY have their own ``last_heartbeat_ts`` field to help
-  detect accounts for which the TH record is not needed anymore.
-
 
 TH record
 ---------
 
 Client implementations *that manage creditor accounts*, SHOULD
 maintain *transfer history records* (TH records) in their databases,
-to store accounts' transfer history data. The primary key for
-transfers history records SHOULD be the (``creditor_id``,
-``debtor_id``, ``creation_date``) tuple. As a minimum, `TH record`_\s
-MUST also be able to store a set of processed `AccountTransfer`_
-messages, plus a ``last_transfer_number`` field, which contains the
-transfer number of the latest transfer that has been added to the
-given account's transfer history. [#sequential-transfer]_
-[#transfer-chain]_
+to store accounts' transfer history data. [#thr-adr-relation]_ The
+primary key for transfers history records SHOULD be the
+(``creditor_id``, ``debtor_id``, ``creation_date``) tuple. As a
+minimum, `TH record`_\s MUST also be able to store a set of processed
+`AccountTransfer`_ messages, plus a ``last_transfer_number`` field,
+which contains the transfer number of the latest transfer that has
+been added to the given account's transfer
+history. [#sequential-transfer]_ [#transfer-chain]_
 
 
 Received `AccountTransfer`_ message
@@ -1079,3 +1072,13 @@ performed:
   received `AccountTransfer`_ message, an empty set of stored
   `AccountTransfer`_ massages, and a ``last_transfer_number`` field
   with the value of ``0``.
+
+.. [#thr-adr-relation] `TH record`_\s and `AD record`_\s MAY be
+  implemented as one entity, or as two entities with closely related
+  livespans. In particular, when an `AD record`_ is removed from the
+  client's database, the associated `TH record`_\s (that is, TH
+  records which have the same ``creditor_id`` and ``debtor_id``, and
+  the same or earlier ``creation_date``) MAY be removed too. In
+  addition, TH records MAY have their own ``last_heartbeat_ts`` field
+  to help detect accounts for which the TH record is not needed
+  anymore.
