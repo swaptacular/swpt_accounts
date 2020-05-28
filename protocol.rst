@@ -882,7 +882,7 @@ initiated
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be stored
    in the `RT record`_, and the the status of the record MUST be set
-   to "prepared". [#prepared-records]_
+   to "prepared".
 
 prepared
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
@@ -899,6 +899,12 @@ finalized
    which was sent to finalize the transfer, MUST be sent again; if
    they differ, the newly prepared transfer MUST be immediately
    dismissed. [#dismiss-transfer]_
+
+**NOTE:** At some point a `FinalizeTransfer`_ message MUST be sent for
+each "prepared" `RT record`_, and the record's status MUST be set to
+"finalized". Often this can be done immediately, when the
+`PreparedTransfer`_ message is received, in which case the RT record
+will change its status from "initiated", to "finalized" directly.
 
 
 Received `FinalizedTransfer`_ message
@@ -942,12 +948,6 @@ otherwise the message MUST be ignored.
 
 .. [#dismiss-transfer] A prepared transfer is dismissed by sending a
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
-
-.. [#prepared-records] Note that at some point a `FinalizeTransfer`_
-  message MUST be sent for each "prepared" `RT record`_, and the
-  record's status MUST be set to "finalized". Often this can be done
-  immediately, in which case the RT record will change its status from
-  "initiated", to "finalized" directly.
 
 
 AD record
