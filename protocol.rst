@@ -974,7 +974,7 @@ verify whether a corresponding `AD record`_ already exists:
 If for a given account, `AccountUpdate`_ messages have not been
 received for a very long time (1 year for example), the account's `AD
 record`_ SHOULD be removed from the client's
-database. [#latest-heartbeat]_
+database. [#latest-heartbeat]_ [#remove-thr]_
 
 
 Received `AccountPurge`_ message
@@ -987,26 +987,29 @@ MUST first verify whether a corresponding `AD record`_ already exists:
    ``creation_date`` field in the received `AccountPurge`_ message
    MUST be compared to the value stored in the AD record. If the value
    received with the message is smaller (an earlier date), the message
-   MUST be ignored; otherwise the AD record SHOULD be removed.
+   MUST be ignored; otherwise the AD record SHOULD be
+   removed. [#remove-thr]_
 
 2. If a corresponding `AD record`_ does not exist, the message MUST be
    ignored.
 
-
-.. [#latest-heartbeat] Note that the `AD record`_\'s
-  ``last_heartbeat_ts`` field stores the timestamp of the latest
-  received account heartbeat.
 
 .. [#matching-adr] The corresponding `AD record`_ MUST have the same
   values for ``creditor_id`` and ``debtor_id`` as the received
   `AccountUpdate`_ message.
 
 .. [#heartbeat-update] That is: the value of the ``last_heartbeat_ts``
-  field MUST be changed only if the value of the ``ts`` field in the
+  field SHOULD be changed only if the value of the ``ts`` field in the
   received `AccountUpdate`_ message represents a later
-  timestamp. Also, care MAY be taken to ensure that the new value of
-  ``last_heartbeat_ts`` is not far in the future, which can happen if
-  the server is not behaving correctly.
+  timestamp. Also, care SHOULD be taken to ensure that the new value
+  of ``last_heartbeat_ts`` is not far in the future, which can happen
+  if the server is not behaving correctly.
+
+.. [#latest-heartbeat] Note that the `AD record`_\'s
+  ``last_heartbeat_ts`` field stores the timestamp of the latest
+  received account heartbeat.
+
+.. [#remove-thr] TODO
 
 
 TH record
