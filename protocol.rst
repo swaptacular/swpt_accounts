@@ -268,7 +268,7 @@ When server implementations process a `PrepareTransfer`_ message they:
 
 
 .. [#coordinator-type] Random examples: ``"direct"`` might be used for
-  payments initiated directly by the owner of the account,
+  payments initiated directly by the owner of the sender's account,
   ``"interest"`` might be used for payments initiated by the interest
   capitalization service.
 
@@ -772,8 +772,11 @@ committed_at : date-time
    The moment at which the transfer was committed.
 
 transfer_message : string
-   MUST contain the value of the ``transfer_message`` field from the
-   `FinalizeTransfer`_ message that committed the transfer.
+   If the transfer has been committed by a `FinalizeTransfer`_
+   message, this field MUST contain the value of the
+   ``transfer_message`` field from the message that committed the
+   transfer. Otherwise, it SHOULD contain information pertaining to
+   the reason for the transfer. [#message-limitations]_
 
 transfer_flags : int32
    Various bit-flags characterizing the transfer. Server
