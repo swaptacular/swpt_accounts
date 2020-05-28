@@ -81,7 +81,7 @@ mind:
   account* with a given debtor. This limitation greatly simplifies the
   protocol, at the cost of making rare use cases less convenient. (To
   have more than one account with the same debtor, the creditor will
-  have to use more that one ``creditor_id``.)
+  have to use more that one ``creditor_id``\s.)
 
 
 Incoming messages
