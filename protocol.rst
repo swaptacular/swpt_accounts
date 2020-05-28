@@ -1011,11 +1011,11 @@ MUST first verify whether a corresponding `AD record`_ already exists:
   received account heartbeat.
 
 .. [#remove-thr] When removing an `AD record`_ from the client's
-  database, the corresponding `TH record`_\s (which have the same
-  ``creditor_id`` and ``debtor_id``, and the same or earlier
-  ``creation_date``) MAY be removed too. In addition, TH records MAY
-  have their own ``last_heartbeat_ts`` field to help detect accounts
-  for which the TH record is not needed anymore.
+  database, the associated `TH record`_\s (that is, TH records which
+  have the same ``creditor_id`` and ``debtor_id``, and the same or
+  earlier ``creation_date``) MAY be removed too. In addition, TH
+  records MAY have their own ``last_heartbeat_ts`` field to help
+  detect accounts for which the TH record is not needed anymore.
 
 
 TH record
