@@ -997,7 +997,7 @@ MUST first verify whether a corresponding `AD record`_ already exists:
 
 .. [#matching-adr] The corresponding `AD record`_ MUST have the same
   values for ``creditor_id`` and ``debtor_id`` as the received
-  `AccountUpdate`_ message.
+  message.
 
 .. [#heartbeat-update] That is: the value of the ``last_heartbeat_ts``
   field SHOULD be changed only if the value of the ``ts`` field in the
