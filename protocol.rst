@@ -1079,5 +1079,4 @@ performed:
   records which have the same ``creditor_id`` and ``debtor_id``, and
   the same or earlier ``creation_date``) MAY be removed as well. In
   addition, TH records MAY also maintain a ``last_heartbeat_ts``
-  field, to help detect accounts for which the TH record is not needed
-  anymore.
+  field, to help detect "dead "accounts.
