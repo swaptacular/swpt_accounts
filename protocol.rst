@@ -330,7 +330,7 @@ in server's database:
 .. [#message-limitations] Server implementations MAY impose additional
   restrictions on the format and the content of this string, as long
   as: 1) those restrictions are precisely defined, and known in
-  advance; 2) an empty string remains a valid ``transfer_message``.
+  advance; 2) an empty string is a valid ``transfer_message``.
 
 .. [#commit] When ``committed_amount`` is zero, this would be a no-op.
   When the commit is successful, an `AccountUpdate`_ message, and
