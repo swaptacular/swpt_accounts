@@ -982,6 +982,7 @@ Received `AccountPurge`_ message
 
 When client implementations process an `AccountPurge`_ message, they
 MUST first verify whether a corresponding `AD record`_ already exists:
+[#matching-adr]_
 
 1. If a corresponding `AD record`_ already exists, the value of the
    ``creation_date`` field in the received `AccountPurge`_ message
@@ -1012,7 +1013,9 @@ MUST first verify whether a corresponding `AD record`_ already exists:
 .. [#remove-thr] When removing an `AD record`_ from the client's
   database, the corresponding `TH record`_\s (which have the same
   ``creditor_id`` and ``debtor_id``, and the same or earlier
-  ``creation_date``) MAY be removed too.
+  ``creation_date``) MAY be removed too. In addition, TH records MAY
+  have their own ``last_heartbeat_ts`` field to help detect accounts
+  for which the TH record is not needed anymore.
 
 
 TH record
