@@ -1086,11 +1086,11 @@ performed:
   `AccountTransfer`_ massages, and a ``last_transfer_number`` field
   with the value of ``0``.
 
-.. [#thr-adr-relation] lifespans of `TH record`_\s and `AD record`_\s
-  MAY be related, or exactly the same. In particular: 1) A dummy TH
-  record MAY be created when a AD record is being created, and vice
-  versa; 2) When an AD record is being removed from the client's
-  database, the associated TH records MAY be removed as well; 3) TH
-  records MAY also maintain a ``last_heartbeat_ts`` field, which
-  similarly gets advanced when an `AccountUpdate`_ message is
-  received.
+.. [#thr-adr-relation] The lifespan of `TH record`_\s and `AD
+  record`_\s MAY be related, or exactly the same. In particular: 1) A
+  dummy TH record MAY be created when a AD record is being created,
+  and vice versa; 2) When an AD record is being removed from the
+  client's database, the associated TH records MAY be removed as
+  well; 3) TH records MAY also maintain a ``last_heartbeat_ts`` field,
+  which similarly gets advanced when an `AccountUpdate`_ message is
+  received, to help detect "dead" accounts.
