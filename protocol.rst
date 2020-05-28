@@ -1003,7 +1003,10 @@ MUST first verify whether a corresponding `AD record`_ already exists:
 
 .. [#heartbeat-update] That is: the value of the ``last_heartbeat_ts``
   field MUST be changed only if the value of the ``ts`` field in the
-  received `AccountUpdate`_ message represents a later timestamp.
+  received `AccountUpdate`_ message represents a later
+  timestamp. Also, care MAY be taken to ensure that the new value of
+  ``last_heartbeat_ts`` is not far in the future, which could happen
+  if the server is not behaving correctly.
 
 
 TH record
