@@ -973,12 +973,11 @@ AD record
 Client implementations *that manage creditor accounts*, SHOULD
 maintain *account data records* (AD records) in their databases, to
 store accounts' current status data. The primary key for account data
-records should be the (``creditor_id``, ``debtor_id``,
-``creation_date``) tuple. [#adr-pk]_ As a minimum, `AD record`_\s MUST
-*also* be able to store the values of ``last_change_ts`` and
-``last_change_seqnum`` fields from the latest received
-`AccountUpdate`_ message, plus they SHOULD have a
-``last_heartbeat_ts`` field. [#latest-heartbeat]_
+records is the (``creditor_id``, ``debtor_id``, ``creation_date``)
+tuple. [#adr-pk]_ As a minimum, `AD record`_\s MUST *also* be able to
+store the values of ``last_change_ts`` and ``last_change_seqnum``
+fields from the latest received `AccountUpdate`_ message, plus they
+SHOULD have a ``last_heartbeat_ts`` field. [#latest-heartbeat]_
 
 
 Received `AccountUpdate`_ message
@@ -1045,12 +1044,12 @@ AL record
 Client implementations *that manage creditor accounts*, MAY maintain
 *account ledger records* (AL records) in their databases, to store
 accounts' transfer history data. [#alr-adr-relation]_ The primary key
-for account ledger records should be the (``creditor_id``,
-``debtor_id``, ``creation_date``) tuple. As a minimum, `AL record`_\s
-MUST *also* be able to store a set of processed `AccountTransfer`_
-messages, plus a ``last_transfer_number`` field, which contains the
-transfer number of the latest transfer that has been added to the
-given account's ledger. [#sequential-transfer]_ [#transfer-chain]_
+for account ledger records is the (``creditor_id``, ``debtor_id``,
+``creation_date``) tuple. As a minimum, `AL record`_\s MUST *also* be
+able to store a set of processed `AccountTransfer`_ messages, plus a
+``last_transfer_number`` field, which contains the transfer number of
+the latest transfer that has been added to the given account's
+ledger. [#sequential-transfer]_ [#transfer-chain]_
 
 
 Received `AccountTransfer`_ message
