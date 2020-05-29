@@ -847,7 +847,7 @@ database, to track the progress of the requested transfer. The primary
 key for running transfer records is the (``coordinator_type``,
 ``coordinator_id``, ``coordinator_request_id``) tuple. As a minimum,
 `RT record`_\s MUST also be able to store the values of ``debtor_id``,
-``creditor_id``, and ``transfer_id`` fields. RT records have 3
+``creditor_id``, and ``transfer_id`` fields. RT records MUST have 3
 possible statuses:
 
 initiated
@@ -1006,7 +1006,7 @@ verify whether a corresponding `AD record`_ already exists:
 If for a given account, `AccountUpdate`_ messages have not been
 received for a very long time (1 year for example), the account's `AD
 record`_ SHOULD be removed from the client's
-database. [#latest-heartbeat]_ [#alr-adr-relation]_
+database. [#latest-heartbeat]_
 
 
 Received `AccountPurge`_ message
@@ -1016,15 +1016,14 @@ When client implementations process an `AccountPurge`_ message, they
 MUST first verify whether an `AD record`_ exists, which has the same
 values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
 the received message. If such AD record exists, it SHOULD be removed
-from the client's database [#alr-adr-relation]_; otherwise, the
-message MUST be ignored.
+from the client's database; otherwise, the message MUST be ignored.
 
 
 .. [#adr-pk] Alternatively, the primary key for `AD record`_\s can be
   the (``creditor_id``, ``debtor_id``) tuple.
 
 .. [#matching-adr] The corresponding `AD record`_ would have the same
-  values, as in the received message, for all fields included in the
+  values, as in the received message, for the fields included in the
   record's primary key.
 
 .. [#heartbeat-update] That is: the value of the ``last_heartbeat_ts``
