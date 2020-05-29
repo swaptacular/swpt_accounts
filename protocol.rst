@@ -1047,10 +1047,10 @@ the message MUST be ignored.
 AL record
 ---------
 
-Client implementations *that manage creditor accounts*, SHOULD
-maintain *account ledger records* (AL records) in their databases, to
-store accounts' transfer history data. [#alr-adr-relation]_ The
-primary key for account ledger records SHOULD be the (``creditor_id``,
+Client implementations *that manage creditor accounts*, MAY maintain
+*account ledger records* (AL records) in their databases, to store
+accounts' transfer history data. [#alr-adr-relation]_ The primary key
+for account ledger records SHOULD be the (``creditor_id``,
 ``debtor_id``, ``creation_date``) tuple. As a minimum, `AL record`_\s
 MUST *also* be able to store a set of processed `AccountTransfer`_
 messages, plus a ``last_transfer_number`` field, which contains the
