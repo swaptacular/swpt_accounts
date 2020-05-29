@@ -13,7 +13,7 @@ helper micro-service to perform the following important maintenance
 operations:
 
 1. Accounts removal.
-2. Interest rate capitalization.
+2. Interest capitalization.
 3. Setting and updating interest rates.
 
 .. _swpt_debtors: https://github.com/epandurski/swpt_debtors
