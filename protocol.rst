@@ -126,6 +126,9 @@ config_flags : int32
      ``negligible_amount`` will be lost if the account is removed from
      server's database.
 
+   * It is very unlikely that the account will be "resurrected" by a
+     pending incoming transfer.
+
    If those condition are *not met*, accounts SHOULD NOT be
    removed. Some time after an account has been removed from the
    server's database, an `AccountPurge`_ message MUST be sent to
