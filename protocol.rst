@@ -961,8 +961,8 @@ records SHOULD be the (``creditor_id``, ``debtor_id``,
 ``creation_date``) tuple. As a minimum, `AD record`_\s MUST also be
 able to store the values of ``last_change_ts`` and
 ``last_change_seqnum`` fields from the latest received
-`AccountUpdate`_ message, plus a ``last_heartbeat_ts`` field, which
-contains the timestamp of the latest received account heartbeat.
+`AccountUpdate`_ message, plus a ``last_heartbeat_ts``
+field. [#latest-heartbeat]_
 
 
 Received `AccountUpdate`_ message
@@ -1015,9 +1015,8 @@ the message MUST be ignored.
   of ``last_heartbeat_ts`` is not far in the future, which can happen
   if the server is not behaving correctly.
 
-.. [#latest-heartbeat] Note that the `AD record`_\'s
-  ``last_heartbeat_ts`` field stores the timestamp of the latest
-  received account heartbeat.
+.. [#latest-heartbeat] The `AD record`_\'s ``last_heartbeat_ts`` field
+  stores the timestamp of the latest received account heartbeat.
 
 
 TH record
