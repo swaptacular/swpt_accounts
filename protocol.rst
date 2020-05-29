@@ -1021,9 +1021,11 @@ the message MUST be ignored.
 
 
 .. [#adr-pk] The primary key for `AD record`_\s MAY be the
-  (``creditor_id``, ``debtor_id``) tuple as well. In that case records
-  with later ``creation_date``\s would override records with earlier
-  ``creation_date``\s.
+  (``creditor_id``, ``debtor_id``) tuple as well. In that case,
+  records with later ``creation_date``\s would override records with
+  earlier ``creation_date``\s; and a received `AccountPurge`_ message
+  would affect the AD record if it has same or earlier
+  ``creation_date``.
 
 .. [#matching-adr] The corresponding `AD record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
