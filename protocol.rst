@@ -1020,9 +1020,9 @@ removed from the client's database [#alr-adr-relation]_; otherwise,
 the message MUST be ignored.
 
 
-.. [#adr-pk] The primary key MAY be the (``creditor_id``,
-  ``debtor_id``) tuple as well. In that case records with later
-  ``creation_date``\s would override records with earlier
+.. [#adr-pk] The primary key for `AD record`_\s MAY be the
+  (``creditor_id``, ``debtor_id``) tuple as well. In that case records
+  with later ``creation_date``\s would override records with earlier
   ``creation_date``\s.
 
 .. [#matching-adr] The corresponding `AD record`_ MUST have the same
