@@ -973,7 +973,7 @@ AD record
 Client implementations *that manage creditor accounts*, SHOULD
 maintain *account data records* (AD records) in their databases, to
 store accounts' current status data. The primary key for account data
-records SHOULD be the (``creditor_id``, ``debtor_id``,
+records should be the (``creditor_id``, ``debtor_id``,
 ``creation_date``) tuple. [#adr-pk]_ As a minimum, `AD record`_\s MUST
 *also* be able to store the values of ``last_change_ts`` and
 ``last_change_seqnum`` fields from the latest received
@@ -1020,8 +1020,8 @@ removed from the client's database [#alr-adr-relation]_; otherwise,
 the message MUST be ignored.
 
 
-.. [#adr-pk] Alternatively, the primary key for `AD record`_\s MAY be
-  the (``creditor_id``, ``debtor_id``) tuple. In that case,
+.. [#adr-pk] Alternatively, the primary key for `AD record`_\s could
+  be the (``creditor_id``, ``debtor_id``) tuple. In that case,
   ``creation_date``\s would not be compared when verifying whether a
   corresponding AD record already exists; records with later
   ``creation_date``\s would override records with earlier
@@ -1050,7 +1050,7 @@ AL record
 Client implementations *that manage creditor accounts*, MAY maintain
 *account ledger records* (AL records) in their databases, to store
 accounts' transfer history data. [#alr-adr-relation]_ The primary key
-for account ledger records SHOULD be the (``creditor_id``,
+for account ledger records should be the (``creditor_id``,
 ``debtor_id``, ``creation_date``) tuple. As a minimum, `AL record`_\s
 MUST *also* be able to store a set of processed `AccountTransfer`_
 messages, plus a ``last_transfer_number`` field, which contains the
