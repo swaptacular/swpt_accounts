@@ -957,12 +957,12 @@ AD record
 Client implementations *that manage creditor accounts*, SHOULD
 maintain *account data records* (AD records) in their databases, to
 store accounts' current status data. The primary key for account data
-records SHOULD be the (``creditor_id``, ``debtor_id``) tuple. As a
-minimum, `AD record`_\s MUST also be able to store the values of
-``creation_date``, ``last_change_ts``, and ``last_change_seqnum``
-fields from the latest received `AccountUpdate`_ message, plus a
-``last_heartbeat_ts`` field, which contains the timestamp of the
-latest received account heartbeat.
+records SHOULD be the (``creditor_id``, ``debtor_id``,
+``creation_date``) tuple. As a minimum, `AD record`_\s MUST also be
+able to store the values of ``last_change_ts`` and
+``last_change_seqnum`` fields from the latest received
+`AccountUpdate`_ message, plus a ``last_heartbeat_ts`` field, which
+contains the timestamp of the latest received account heartbeat.
 
 
 Received `AccountUpdate`_ message
@@ -998,23 +998,15 @@ Received `AccountPurge`_ message
 ````````````````````````````````
 
 When client implementations process an `AccountPurge`_ message, they
-MUST first verify whether a corresponding `AD record`_ already exists:
-[#matching-adr]_
-
-1. If a corresponding `AD record`_ already exists, the value of the
-   ``creation_date`` field in the received `AccountPurge`_ message
-   MUST be compared to the value stored in the AD record. If the value
-   received with the message is smaller (an earlier date), the message
-   MUST be ignored; otherwise the AD record SHOULD be removed from the
-   client's database. [#thr-adr-relation]_
-
-2. If a corresponding `AD record`_ does not exist, the message MUST be
-   ignored.
+MUST first verify whether a corresponding `AD record`_ exists:
+[#matching-adr]_ If a corresponding AD record exists, it SHOULD be
+removed from the client's database [#thr-adr-relation]_; otherwise,
+the message MUST be ignored.
 
 
 .. [#matching-adr] The corresponding `AD record`_ MUST have the same
-  values for ``creditor_id`` and ``debtor_id`` as the received
-  message.
+  values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
+  the received message.
 
 .. [#heartbeat-update] That is: the value of the ``last_heartbeat_ts``
   field SHOULD be changed only if the value of the ``ts`` field in the
@@ -1094,5 +1086,5 @@ performed:
   `AD record`_\s MAY be related, or exactly the same. In
   particular: 1) An empty TH record MAY be created each time a new AD
   record is being created, and vice versa; 2) When an AD record is
-  being removed from the client's database, the associated TH records
+  being removed from the client's database, the associated TH record
   MAY be removed as well.
