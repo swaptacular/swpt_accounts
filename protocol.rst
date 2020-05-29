@@ -1097,9 +1097,9 @@ may have been just created), the following steps MUST be performed:
   `AccountTransfer`_ massages, and a ``last_transfer_number`` field
   with the value of ``0``.
 
-.. [#alr-adr-relation] Note that the lifespan of `AL record`_\s and
-  `AD record`_\s MAY be related, or exactly the same. In
-  particular: 1) An empty AL record MAY be created each time a new AD
-  record is being created, and vice versa; 2) When an AD record is
-  being removed from the client's database, the associated AL record
-  MAY be removed as well.
+.. [#alr-adr-relation] Note that lifespans of `AL record`_\s and `AD
+  record`_\s could be related, or exactly the same. In particular: 1)
+  An empty AL record could be created each time a new AD record is
+  being created, and vice versa; 2) When an AD record is being removed
+  from the client's database, the associated AL record could be
+  removed as well.
