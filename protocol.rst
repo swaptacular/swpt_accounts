@@ -1027,7 +1027,7 @@ the message MUST be ignored.
   received, it would have effect if the AD record's ``creation_date``
   is the same or earlier.
 
-.. [#matching-adr] The corresponding `AD record`_ would have the same
+.. [#matching-adr] The corresponding `AD record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
   the received message.
 
