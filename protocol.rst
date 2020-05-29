@@ -1016,9 +1016,9 @@ Received `AccountPurge`_ message
 When client implementations process an `AccountPurge`_ message, they
 MUST first verify whether an `AD record`_ exists, which has the same
 values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
-the received message.  [#matching-adr]_ If such AD record exists, it
-SHOULD be removed from the client's database [#alr-adr-relation]_;
-otherwise, the message MUST be ignored.
+the received message. If such AD record exists, it SHOULD be removed
+from the client's database [#alr-adr-relation]_; otherwise, the
+message MUST be ignored.
 
 
 .. [#adr-pk] Alternatively, the primary key for `AD record`_\s could
