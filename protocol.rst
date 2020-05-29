@@ -830,9 +830,9 @@ MUST create a *running transfer record* (RT record) in the client's
 database, to track the progress of the requested transfer. The primary
 key for running transfer records SHOULD be the (``coordinator_type``,
 ``coordinator_id``, ``coordinator_request_id``) tuple. As a minimum,
-`RT record`_\s MUST also be able to store the values of ``debtor_id``,
-``creditor_id``, and ``transfer_id`` fields. RT records have 3
-possible statuses:
+`RT record`_\s MUST *also* be able to store the values of
+``debtor_id``, ``creditor_id``, and ``transfer_id`` fields. RT records
+have 3 possible statuses:
 
 initiated
    Indicates that a `PrepareTransfer`_ request has been sent, and no
@@ -958,7 +958,7 @@ Client implementations *that manage creditor accounts*, SHOULD
 maintain *account data records* (AD records) in their databases, to
 store accounts' current status data. The primary key for account data
 records SHOULD be the (``creditor_id``, ``debtor_id``,
-``creation_date``) tuple. As a minimum, `AD record`_\s MUST also be
+``creation_date``) tuple. As a minimum, `AD record`_\s MUST *also* be
 able to store the values of ``last_change_ts`` and
 ``last_change_seqnum`` fields from the latest received
 `AccountUpdate`_ message, plus a ``last_heartbeat_ts``
@@ -1027,10 +1027,10 @@ maintain *transfer history records* (TH records) in their databases,
 to store accounts' transfer history data. [#thr-adr-relation]_ The
 primary key for transfers history records SHOULD be the
 (``creditor_id``, ``debtor_id``, ``creation_date``) tuple. As a
-minimum, `TH record`_\s MUST also be able to store a set of processed
-`AccountTransfer`_ messages, plus a ``last_transfer_number`` field,
-which contains the transfer number of the latest transfer that has
-been added to the given account's transfer
+minimum, `TH record`_\s MUST *also* be able to store a set of
+processed `AccountTransfer`_ messages, plus a ``last_transfer_number``
+field, which contains the transfer number of the latest transfer that
+has been added to the given account's transfer
 history. [#sequential-transfer]_ [#transfer-chain]_
 
 
