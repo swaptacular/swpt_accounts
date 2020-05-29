@@ -111,21 +111,26 @@ config_flags : int32
    reserved. Bit ``0`` has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
    are met, an account SHOULD be removed (or at least marked as
-   deleted) from the server's database: **1)** the account is
-   "scheduled for deletion"; **2)** the account has no prepared
-   transfers that await finalization; **3)** enough time has passed
-   since account's creation; [#creation-date]_ **4)** account's
-   configuration have not been updated for some time; [#config-delay]_
-   **5)** it is very unlikely that amount bigger that
-   ``negligible_amount`` will be lost if the account is removed from
-   server's database. If those condition are *not met*, accounts
-   SHOULD NOT be removed. Some time after an account has been removed
-   from the server's database, an `AccountPurge`_ message MUST be sent
-   to inform about that. [#purge-delay]_
-   
-   * fdfd
+   deleted) from the server's database:
 
-   * rer
+   1. The account is "scheduled for deletion".
+
+   2. The account has no prepared transfers that await finalization.
+
+   3. Enough time has passed since account's
+      creation. [#creation-date]_
+
+   4. Account's configuration have not been updated for some time.
+      [#config-delay]_
+
+   5. it is very unlikely that amount bigger that
+      ``negligible_amount`` will be lost if the account is removed
+      from server's database.
+
+   If those condition are *not met*, accounts SHOULD NOT be
+   removed. Some time after an account has been removed from the
+   server's database, an `AccountPurge`_ message MUST be sent to
+   inform about that. [#purge-delay]_
 
 config : string
    Additional account configuration settings. Different server
