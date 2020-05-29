@@ -1021,11 +1021,11 @@ SHOULD be removed from the client's database [#alr-adr-relation]_;
 otherwise, the message MUST be ignored.
 
 
-.. [#adr-pk] Alternatively, the primary key for `AD record`_\s may be
-  the (``creditor_id``, ``debtor_id``) tuple.
+.. [#adr-pk] Alternatively, the primary key for `AD record`_\s could
+  be the (``creditor_id``, ``debtor_id``) tuple.
 
-.. [#matching-adr] For the fields included in `AD record`_\s' primary
-  key, the corresponding record would have the same values, as in the
+.. [#matching-adr] The corresponding `AD record`_ would have the same
+  values for the fields included in AD records' primary key, as in the
   received message.
 
 .. [#heartbeat-update] That is: the value of the ``last_heartbeat_ts``
