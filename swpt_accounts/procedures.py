@@ -682,7 +682,7 @@ def _process_transfer_request(
     # when the debtor's account does not exist. In this case, it will
     # be created when the transfer is committed.
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
-        return reject('RECIPIENT_NOT_ACCESSIBLE', 0)
+        return reject('RECIPIENT_IS_UNREACHABLE', 0)
 
     # NOTE: The available amount should be checked last, because if
     # the transfer request is rejected due to insufficient available
