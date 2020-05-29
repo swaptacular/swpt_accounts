@@ -974,8 +974,8 @@ Client implementations *that manage creditor accounts*, SHOULD
 maintain *account data records* (AD records) in their databases, to
 store accounts' current status data. The primary key for account data
 records SHOULD be the (``creditor_id``, ``debtor_id``,
-``creation_date``) tuple. As a minimum, `AD record`_\s MUST *also* be
-able to store the values of ``last_change_ts`` and
+``creation_date``) tuple. [#adr-pk]_ As a minimum, `AD record`_\s MUST
+*also* be able to store the values of ``last_change_ts`` and
 ``last_change_seqnum`` fields from the latest received
 `AccountUpdate`_ message, plus they SHOULD have a
 ``last_heartbeat_ts`` field. [#latest-heartbeat]_
@@ -1019,6 +1019,11 @@ MUST first verify whether a corresponding `AD record`_ exists.
 removed from the client's database [#alr-adr-relation]_; otherwise,
 the message MUST be ignored.
 
+
+.. [#adr-pk] The primary key MAY be the (``creditor_id``,
+  ``debtor_id``) tuple as well. In that case records with later
+  ``creation_date``\s would override records with earlier
+  ``creation_date``\s.
 
 .. [#matching-adr] The corresponding `AD record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
