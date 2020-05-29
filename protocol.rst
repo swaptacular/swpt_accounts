@@ -1025,8 +1025,8 @@ otherwise, the message MUST be ignored.
   be the (``creditor_id``, ``debtor_id``) tuple.
 
 .. [#matching-adr] The corresponding `AD record`_ would have the same
-  values for the fields included in AD records' primary key, as in the
-  received message.
+  values, as in the received message, for all fields included in the
+  record's primary key.
 
 .. [#heartbeat-update] That is: the value of the ``last_heartbeat_ts``
   field SHOULD be changed only if the value of the ``ts`` field in the
