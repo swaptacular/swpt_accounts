@@ -1094,7 +1094,7 @@ may have been just created), the following steps MUST be performed:
   in each message refers to the value of the ``transfer_number`` field
   in the previous message.
 
-.. [#matching-alr] The corresponding `AL record`_ MUST have the same
+.. [#matching-alr] The corresponding `AL record`_ would have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
   the received `AccountTransfer`_ message.
 
