@@ -162,12 +162,19 @@ they MUST first verify whether the specified account already exists:
 2. If the specified account does not exist, the message's timestamp
    MUST be checked. If it is too far in the past, the message MUST be
    ignored. Otherwise, an attempt MUST be made to create a new account
-   with the requested configuration settings. If the new account has
-   been successfully created, an `AccountUpdate`_ message MUST be
-   sent; otherwise a `RejectedConfig`_ message MUST be sent.
+   with the requested configuration settings. [#creation-date]_ If the
+   new account has been successfully created, an `AccountUpdate`_
+   message MUST be sent; otherwise a `RejectedConfig`_ message MUST be
+   sent.
 
 .. [#forbid-transfers] Server implementations SHOULD NOT accept
   incoming transfers for "scheduled for deletion" accounts.
+
+.. [#creation-date] Note that an account can be removed from the
+  server's database, and then a new account with the same
+  ``debtor_id`` and ``creditor_id`` can be created. Care MUST be taken
+  so that in this case the newly created account always has a later
+  ``creation_date``, compared to the preceding account.
 
 .. [#config-delay] How long this "some time" is, depends on how far in
   the past a `ConfigureAccount`_ message has to be, in order to be
@@ -676,12 +683,6 @@ allowing clients to detect "dead" account records in their databases.
   a short period of time, the server may emit only one
   `AccountUpdate`_ message, announcing only the final state of the
   account.
-
-.. [#creation-date] Note that an account can be removed from the
-  server's database, and then a new account with the same
-  ``debtor_id`` and ``creditor_id`` can be created. Care MUST be taken
-  so that in this case the newly created account always has a later
-  ``creation_date``, compared to the preceding account.
 
 .. [#compare-change] ``creation_date``, ``last_change_ts``, and
   ``last_change_seqnum`` can be used to reliably determine the correct
