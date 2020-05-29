@@ -110,8 +110,7 @@ config_flags : int32
    may use these flags for different purposes. The lowest 16 bits are
    reserved. Bit ``0`` has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
-   are met, an account SHOULD be removed (or at least marked as
-   deleted) from the server's database:
+   are met, an account SHOULD be removed from the server's database:
 
    * The account is "scheduled for deletion".
 
@@ -176,12 +175,10 @@ they MUST first verify whether the specified account already exists:
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
 
-.. [#purge-delay] The delay MUST be at least as long as indicated by
-  the value of the ``ttl`` field which is sent with `AccountUpdate`_
-  messages. The goal is to ensure that after clients have received the
-  `AccountPurge`_ message, if they continue to receive old
-  `AccountUpdate`_ messages for the purged account, those messages
-  will be ignored.
+.. [#purge-delay] The delay MUST be long enough to ensure that after
+  clients have received the `AccountPurge`_ message, if they continue
+  to receive old `AccountUpdate`_ messages for the purged account,
+  those messages will be ignored (due to expired ``ttl``).
 
 .. [#compare-config] To do this, server implementations MUST compare
   the values of ``ts`` and ``seqnum`` fields in the received message,

@@ -668,7 +668,7 @@ def _process_transfer_request(
     db.session.delete(tr)
 
     if sender_account is None:
-        return reject('SENDER_NOT_AVAILABLE', 0)
+        return reject('INSUFFICIENT_AVAILABLE_AMOUNT', 0)
 
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
