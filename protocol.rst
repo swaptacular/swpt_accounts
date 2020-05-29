@@ -1014,24 +1014,19 @@ Received `AccountPurge`_ message
 ````````````````````````````````
 
 When client implementations process an `AccountPurge`_ message, they
-MUST first verify whether a corresponding `AD record`_ exists.
-[#matching-adr]_ If a corresponding AD record exists, it SHOULD be
-removed from the client's database [#alr-adr-relation]_; otherwise,
-the message MUST be ignored.
+MUST first verify whether an `AD record`_ exists, which has the same
+values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
+the received message.  [#matching-adr]_ If such AD record exists, it
+SHOULD be removed from the client's database [#alr-adr-relation]_;
+otherwise, the message MUST be ignored.
 
 
-.. [#adr-pk] Alternatively, the primary key for `AD record`_\s could
-  be the (``creditor_id``, ``debtor_id``) tuple. In that case,
-  ``creation_date``\s would not be compared when verifying whether a
-  corresponding AD record already exists; records with later
-  ``creation_date``\s would override records with earlier
-  ``creation_date``\s; and when an `AccountPurge`_ message is
-  received, it would have effect if the AD record's ``creation_date``
-  is the same or earlier.
+.. [#adr-pk] Alternatively, the primary key for `AD record`_\s may be
+  the (``creditor_id``, ``debtor_id``) tuple.
 
-.. [#matching-adr] The corresponding `AD record`_ would have the same
-  values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
-  the received message.
+.. [#matching-adr] For the fields included in `AD record`_\s' primary
+  key, the corresponding record would have the same values, as in the
+  received message.
 
 .. [#heartbeat-update] That is: the value of the ``last_heartbeat_ts``
   field SHOULD be changed only if the value of the ``ts`` field in the
