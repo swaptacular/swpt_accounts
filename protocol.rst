@@ -180,8 +180,8 @@ they MUST first verify whether the specified account already exists:
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
-  ``debtor_id`` and ``creditor_id`` can be created. Care MUST be
-  taken, so that in those cases the newly created account always has a
+  ``debtor_id`` and ``creditor_id`` can be created. In those cases
+  care MUST be taken, so that the newly created account always has a
   later ``creation_date``, compared to the preceding account. The most
   straightforward way to achieve this is not to remove accounts on the
   same day on which they have been created.
