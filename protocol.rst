@@ -113,19 +113,18 @@ config_flags : int32
    are met, an account SHOULD be removed (or at least marked as
    deleted) from the server's database:
 
-   1. The account is "scheduled for deletion".
+   * The account is "scheduled for deletion".
 
-   2. The account has no prepared transfers that await finalization.
+   * The account has no prepared transfers that await finalization.
 
-   3. Enough time has passed since account's
-      creation. [#creation-date]_
+   * Enough time has passed since account's
+     creation. [#creation-date]_
 
-   4. Account's configuration have not been updated for some time.
-      [#config-delay]_
+   * Account's configuration have not been updated for some time.
+     [#config-delay]_
 
-   5. it is very unlikely that amount bigger that
-      ``negligible_amount`` will be lost if the account is removed
-      from server's database.
+   * It is very unlikely that amount bigger that ``negligible_amount``
+     will be lost if the account is removed from server's database.
 
    If those condition are *not met*, accounts SHOULD NOT be
    removed. Some time after an account has been removed from the
