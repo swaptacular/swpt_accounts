@@ -975,7 +975,7 @@ verify whether a corresponding `AD record`_ already exists:
 [#matching-adr]_
 
 1. If a corresponding `AD record`_ already exists, the value of its
-   ``last_heartbeat_ts`` field MUST be advanced to the value of the
+   ``last_heartbeat_ts`` field SHOULD be advanced to the value of the
    ``ts`` field in the received message. [#heartbeat-update]_ Then it
    MUST be verified whether the same or a later `AccountUpdate`_
    message has been received already. [#compare-change]_
@@ -998,7 +998,7 @@ Received `AccountPurge`_ message
 ````````````````````````````````
 
 When client implementations process an `AccountPurge`_ message, they
-MUST first verify whether a corresponding `AD record`_ exists:
+MUST first verify whether a corresponding `AD record`_ exists.
 [#matching-adr]_ If a corresponding AD record exists, it SHOULD be
 removed from the client's database [#thr-adr-relation]_; otherwise,
 the message MUST be ignored.
