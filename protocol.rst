@@ -999,7 +999,7 @@ verify whether a corresponding `AD record`_ already exists:
 If for a given account, `AccountUpdate`_ messages have not been
 received for a very long time (1 year for example), the account's `AD
 record`_ SHOULD be removed from the client's
-database. [#latest-heartbeat]_ [#thr-adr-relation]_
+database. [#latest-heartbeat]_ [#alr-adr-relation]_
 
 
 Received `AccountPurge`_ message
@@ -1008,7 +1008,7 @@ Received `AccountPurge`_ message
 When client implementations process an `AccountPurge`_ message, they
 MUST first verify whether a corresponding `AD record`_ exists.
 [#matching-adr]_ If a corresponding AD record exists, it SHOULD be
-removed from the client's database [#thr-adr-relation]_; otherwise,
+removed from the client's database [#alr-adr-relation]_; otherwise,
 the message MUST be ignored.
 
 
@@ -1027,38 +1027,37 @@ the message MUST be ignored.
   stores the timestamp of the latest received account heartbeat.
 
 
-TH record
+AL record
 ---------
 
 Client implementations *that manage creditor accounts*, SHOULD
-maintain *transfer history records* (TH records) in their databases,
-to store accounts' transfer history data. [#thr-adr-relation]_ The
-primary key for transfers history records SHOULD be the
-(``creditor_id``, ``debtor_id``, ``creation_date``) tuple. As a
-minimum, `TH record`_\s MUST *also* be able to store a set of
-processed `AccountTransfer`_ messages, plus a ``last_transfer_number``
-field, which contains the transfer number of the latest transfer that
-has been added to the given account's transfer
-history. [#sequential-transfer]_ [#transfer-chain]_
+maintain *account ledger records* (AL records) in their databases, to
+store accounts' transfer history data. [#alr-adr-relation]_ The
+primary key for account ledger records SHOULD be the (``creditor_id``,
+``debtor_id``, ``creation_date``) tuple. As a minimum, `AL record`_\s
+MUST *also* be able to store a set of processed `AccountTransfer`_
+messages, plus a ``last_transfer_number`` field, which contains the
+transfer number of the latest transfer that has been added to the
+given account's ledger. [#sequential-transfer]_ [#transfer-chain]_
 
 
 Received `AccountTransfer`_ message
 ```````````````````````````````````
 
 When client implementations process an `AccountTransfer`_ message,
-they MUST first verify whether a corresponding `TH record`_ already
-exists. [#matching-thr]_ If it does not exist, a new TH record SHOULD
-be created. [#new-thr]_ Then, if there is a corresponding TH record
+they MUST first verify whether a corresponding `AL record`_ already
+exists. [#matching-alr]_ If it does not exist, a new AL record SHOULD
+be created. [#new-alr]_ Then, if there is a corresponding AL record
 (it may have been just created), the following steps MUST be
 performed:
 
 1. The received message MUST be added to the set of processed
-   `AccountTransfer`_ messages, stored in the corresponding `TH
+   `AccountTransfer`_ messages, stored in the corresponding `AL
    record`_.
 
 2. If the value of the ``previous_transfer_number`` field in the
    received message is the same as the value of the
-   ``last_transfer_number`` field in the corresponding `TH record`_,
+   ``last_transfer_number`` field in the corresponding `AL record`_,
    the ``last_transfer_number``\'s value MUST be updated to contain
    the transfer number of the *latest sequential transfer* in the set
    of processed `AccountTransfer`_ messages. [#sequential-transfer]_
@@ -1069,29 +1068,29 @@ performed:
   processed out-of-order. For example, it is possible *transfer #3* to
   be processed right after *transfer #1*, and only then *transfer #2*
   to be received. In this case, *transfer #3* MUST NOT be added to the
-  account's transfer history before *transfer #2* has been processed
-  as well. Thus, in this example, the value of
-  ``last_transfer_number`` will be updated from ``1`` to ``3``, but
-  only after *transfer #2* has been processed successfully.
+  account's ledger before *transfer #2* has been processed as
+  well. Thus, in this example, the value of ``last_transfer_number``
+  will be updated from ``1`` to ``3``, but only after *transfer #2*
+  has been processed successfully.
 
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
   in each message refers to the value of the ``transfer_number`` field
   in the previous message.
 
-.. [#matching-thr] The corresponding `TH record`_ MUST have the same
+.. [#matching-alr] The corresponding `AL record`_ MUST have the same
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
   the received `AccountTransfer`_ message.
 
-.. [#new-thr] The newly created `TH record`_ MUST have the same values
+.. [#new-alr] The newly created `AL record`_ MUST have the same values
   for ``creditor_id``, ``debtor_id``, and ``creation_date`` as the
   received `AccountTransfer`_ message, an empty set of stored
   `AccountTransfer`_ massages, and a ``last_transfer_number`` field
   with the value of ``0``.
 
-.. [#thr-adr-relation] Note that the lifespan of `TH record`_\s and
+.. [#alr-adr-relation] Note that the lifespan of `AL record`_\s and
   `AD record`_\s MAY be related, or exactly the same. In
-  particular: 1) An empty TH record MAY be created each time a new AD
+  particular: 1) An empty AL record MAY be created each time a new AD
   record is being created, and vice versa; 2) When an AD record is
-  being removed from the client's database, the associated TH record
+  being removed from the client's database, the associated AL record
   MAY be removed as well.
