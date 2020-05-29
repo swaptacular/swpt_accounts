@@ -174,7 +174,10 @@ they MUST first verify whether the specified account already exists:
   server's database, and then a new account with the same
   ``debtor_id`` and ``creditor_id`` can be created. Care MUST be taken
   so that in this case the newly created account always has a later
-  ``creation_date``, compared to the preceding account.
+  ``creation_date``, compared to the preceding account. The most
+  straightforward way to achieve this is to not remove accounts from
+  the server's database in the same day in which they have been
+  created.
 
 .. [#config-delay] How long this "some time" is, depends on how far in
   the past a `ConfigureAccount`_ message has to be, in order to be
