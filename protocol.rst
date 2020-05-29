@@ -122,9 +122,6 @@ config_flags : int32
    * Account's configuration have not been updated for some time.
      [#config-delay]_
 
-   * It is very unlikely that a pending incoming transfer will be lost
-     if the account is removed from server's database.
-
    * It is very unlikely that an amount bigger than
      ``negligible_amount`` will be lost if the account is removed from
      server's database.
