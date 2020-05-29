@@ -948,7 +948,7 @@ otherwise the message MUST be ignored.
 
 .. [#staled-records] If the corresponding `FinalizedTransfer`_ message
   has not been received for a very long time (1 year for example), the
-  `RT record`_ for the committed transfer MAY be deleted,
+  `RT record`_ for the committed transfer SHOULD be deleted,
   nevertheless.
 
 .. [#dismissed-records] Note that `FinalizedTransfer`_ messages are
