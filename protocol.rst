@@ -870,7 +870,7 @@ finalized
    transfer. `RT record`_\s for *dismissed transfers* MAY be deleted
    whenever considered appropriate. RT records for *committed
    tranfers*, however, MUST NOT be deleted right away. Instead, they
-   MUST stay in the database until a `FinalizedTransfer`_ message is
+   SHOULD stay in the database until a `FinalizedTransfer`_ message is
    received for them. [#cr-retention]_ [#staled-records]_
    [#dismissed-records]_
 
