@@ -961,7 +961,7 @@ records SHOULD be the (``creditor_id``, ``debtor_id``,
 ``creation_date``) tuple. As a minimum, `AD record`_\s MUST *also* be
 able to store the values of ``last_change_ts`` and
 ``last_change_seqnum`` fields from the latest received
-`AccountUpdate`_ message, plus a ``last_heartbeat_ts``
+`AccountUpdate`_ message, plus it SHOULD have a ``last_heartbeat_ts``
 field. [#latest-heartbeat]_
 
 
