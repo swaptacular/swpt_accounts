@@ -122,6 +122,10 @@ config_flags : int32
    SHOULD NOT be removed. Some time after an account has been removed
    from the server's database, an `AccountPurge`_ message MUST be sent
    to inform about that. [#purge-delay]_
+   
+   * fdfd
+
+   * rer
 
 config : string
    Additional account configuration settings. Different server
