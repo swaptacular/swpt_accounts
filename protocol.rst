@@ -1006,7 +1006,7 @@ verify whether a corresponding `AD record`_ already exists:
 If for a given account, `AccountUpdate`_ messages have not been
 received for a very long time (1 year for example), the account's `AD
 record`_ SHOULD be removed from the client's
-database. [#latest-heartbeat]_
+database. [#latest-heartbeat]_ [#alr-removal]_
 
 
 Received `AccountPurge`_ message
@@ -1016,7 +1016,8 @@ When client implementations process an `AccountPurge`_ message, they
 MUST first verify whether an `AD record`_ exists, which has the same
 values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
 the received message. If such AD record exists, it SHOULD be removed
-from the client's database; otherwise, the message MUST be ignored.
+from the client's database; [#alr-removal]_ otherwise, the message
+MUST be ignored.
 
 
 .. [#adr-pk] Alternatively, the primary key for `AD record`_\s can be
@@ -1042,10 +1043,10 @@ AL record
 
 Client implementations *that manage creditor accounts*, MAY maintain
 *account ledger records* (AL records) in their databases, to store
-accounts' transfer history data. [#alr-adr-relation]_ The primary key
-for account ledger records is the (``creditor_id``, ``debtor_id``,
-``creation_date``) tuple. As a minimum, `AL record`_\s MUST also be
-able to store a set of processed `AccountTransfer`_ messages, plus a
+accounts' transfer history data. The primary key for account ledger
+records is the (``creditor_id``, ``debtor_id``, ``creation_date``)
+tuple. As a minimum, `AL record`_\s MUST also be able to store a set
+of processed `AccountTransfer`_ messages, plus a
 ``last_transfer_number`` field, which contains the transfer number of
 the latest transfer that has been added to the given account's
 ledger. [#sequential-transfer]_ [#transfer-chain]_
@@ -1097,9 +1098,6 @@ may have been just created), the following steps MUST be performed:
   `AccountTransfer`_ massages, and a ``last_transfer_number`` field
   with the value of ``0``.
 
-.. [#alr-adr-relation] Note that lifespans of `AL record`_\s and `AD
-  record`_\s could be related, or exactly the same. In particular: 1)
-  An empty AL record could be created each time a new AD record is
-  being created, and vice versa; 2) When an AD record is being removed
-  from the client's database, the associated AL record could be
-  removed as well.
+.. [#alr-removal] Note that client when an `AD record`_ is being
+  removed from the client's database, client implementations may
+  choose to remove the associated `AL record`_\s as well.
