@@ -1073,7 +1073,7 @@ may have been just created), the following steps MUST be performed:
    of processed `AccountTransfer`_ messages. [#sequential-transfer]_
    [#transfer-chain]_
 
-Client implementations ought to have a way to remove created `AL
+**Note:** Client implementations must have a way to remove created `AL
 record`_\s that are not needed anymore.
 
 
