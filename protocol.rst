@@ -859,9 +859,9 @@ initiated
 prepared
    Indicates that a `PrepareTransfer`_ request has been sent, and a
    `PreparedTransfer`_ response has been received. `RT record`_\s with
-   this status SHOULD NOT be deleted. Instead, they need to be
-   finalized first (committed or dismissed), by sending a
-   `FinalizeTransfer`_ message.
+   this status MUST NOT be deleted. Instead, they MUST to be finalized
+   first (committed or dismissed), by sending a `FinalizeTransfer`_
+   message. [#db-crash]_
 
 finalized
    Indicates that a `PrepareTransfer`_ request has been sent, a
@@ -945,6 +945,13 @@ otherwise the message MUST be ignored.
   dismissed the second time, and the fate of the transfer would be
   decided by the race between the two different finalizing
   messages. In most cases, this would be a serious problem.
+
+.. [#db-crash] If a "prepared" `RT record`_ is lost due to a database
+   crash, after some time (possibly a long time) a `PreparedTransfer`_
+   message will be received again for the transfer, and the transfer
+   will be dismissed by the client. This must not be allowed to happen
+   regularly, because it would cause the server to keep the prepared
+   transfers locks for mush longer than necessary.
 
 .. [#staled-records] That is: if the corresponding
   `FinalizedTransfer`_ message has not been received for a very long
