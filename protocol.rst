@@ -950,7 +950,7 @@ otherwise the message MUST be ignored.
    message will be received again for the transfer, and the transfer
    will be dismissed by the client. This must not be allowed to happen
    regularly, because it would cause the server to keep the prepared
-   transfers locks for mush longer than necessary.
+   transfer locks for mush longer than necessary.
 
 .. [#staled-records] That is: if the corresponding
   `FinalizedTransfer`_ message has not been received for a very long
@@ -1049,13 +1049,15 @@ AL record
 
 Client implementations *that manage creditor accounts*, MAY maintain
 *account ledger records* (AL records) in their databases, to store
-accounts' transfer history data. The primary key for account ledger
-records is the (``creditor_id``, ``debtor_id``, ``creation_date``)
-tuple. As a minimum, `AL record`_\s MUST also be able to store a set
-of processed `AccountTransfer`_ messages, plus a
-``last_transfer_number`` field, which contains the transfer number of
-the latest transfer that has been added to the given account's
-ledger. [#sequential-transfer]_ [#transfer-chain]_
+accounts' transfer history data. The function of `AL record`_\s is to
+reconstruct the original order in which the processed
+`AccountTransfer`_ messages were sent [#sequential-transfer]_. The
+primary key for account ledger records is the (``creditor_id``,
+``debtor_id``, ``creation_date``) tuple. As a minimum, AL records MUST
+also be able to store a set of processed `AccountTransfer`_ messages,
+plus a ``last_transfer_number`` field, which contains the transfer
+number of the latest transfer that has been added to the given
+account's ledger.  [#transfer-chain]_
 
 
 Received `AccountTransfer`_ message
