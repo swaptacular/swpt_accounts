@@ -1086,7 +1086,12 @@ created `AL record`_\s that are not needed anymore.
   will be updated from ``1`` to ``3``, but only after *transfer #2*
   has been processed successfully.
 
-  TODO
+  An important case which client implementations SHOULD be able to
+  deal with is when, in the previous example, *transfer #2* is never
+  received (or at least not received for a long time). In this case,
+  the `AL record`_ should to be "patched" with a made-up transfer, so
+  that the record remains consistent, and can continue to receive
+  transfers.
 
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
