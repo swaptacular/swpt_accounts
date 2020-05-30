@@ -859,7 +859,7 @@ initiated
 prepared
    Indicates that a `PrepareTransfer`_ request has been sent, and a
    `PreparedTransfer`_ response has been received. `RT record`_\s with
-   this status MUST NOT be deleted. Instead, they MUST to be finalized
+   this status MUST NOT be deleted. Instead, they need to be finalized
    first (committed or dismissed), by sending a `FinalizeTransfer`_
    message. [#db-crash]_
 
@@ -916,12 +916,11 @@ finalized
    they differ, the newly prepared transfer MUST be immediately
    dismissed. [#dismiss-transfer]_
 
-**Important note:** At some point a `FinalizeTransfer`_ message need
-to to be sent for each "prepared" `RT record`_, and the record's
-status set to "finalized". Often this can be done immediately. In this
-case, when the `PreparedTransfer`_ message is received, the matching
-RT record will change its status from "initiated", directly to
-"finalized".
+**Important note:** At some point a `FinalizeTransfer`_ message MUST
+be sent for each "prepared" `RT record`_, and the record's status set
+to "finalized". Often this can be done immediately. In this case, when
+the `PreparedTransfer`_ message is received, the matching RT record
+will change its status from "initiated", directly to "finalized".
 
 
 Received `FinalizedTransfer`_ message
