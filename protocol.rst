@@ -358,7 +358,7 @@ in server's database:
   When the commit is successful, an `AccountUpdate`_ message, and
   `AccountTransfer`_ messages will be triggered eventually as well.
 
-.. [#unlock-amount] Note that ``committed_amount`` can be smaller that
+.. [#unlock-amount] Note that ``committed_amount`` can be smaller than
   ``locked_amount``.
 
 
@@ -918,7 +918,7 @@ finalized
 
 **Important note:** At some point a `FinalizeTransfer`_ message MUST
 be sent for each "prepared" `RT record`_, and the record's status MUST
-be set to "finalized". Often this can be done immediately. In that
+be set to "finalized". Often this can be done immediately. In this
 case, when the `PreparedTransfer`_ message is received, the matching
 RT record will change its status from "initiated", directly to
 "finalized".
@@ -1019,9 +1019,9 @@ the received message. If such AD record exists, it SHOULD be removed
 from the client's database; otherwise, the message MUST be ignored.
 
 
-.. [#adr-pk] Alternatively, the primary key for `AD record`_\s can be
-  the (``creditor_id``, ``debtor_id``) tuple. In that case, later
-  ``creation_date``\s will override earlier ``creation_date``\s.
+.. [#adr-pk] Another alternative is the primary key for `AD record`_\s
+  to be the (``creditor_id``, ``debtor_id``) tuple. In this case,
+  later ``creation_date``\s will override earlier ``creation_date``\s.
 
 .. [#matching-adr] The corresponding `AD record`_ would have the same
   values, as in the received message, for the fields included in the
