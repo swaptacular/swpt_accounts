@@ -1095,8 +1095,8 @@ created `AL record`_\s that are not needed anymore.
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
   the received `AccountTransfer`_ message.
 
-.. [#new-alr] The newly created `AL record`_ MUST have the same values
-  for ``creditor_id``, ``debtor_id``, and ``creation_date`` as the
-  received `AccountTransfer`_ message, an empty set of stored
+.. [#new-alr] The newly created `AL record`_ would have the same
+  values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
+  the received `AccountTransfer`_ message, an empty set of stored
   `AccountTransfer`_ massages, and a ``last_transfer_number`` field
   with the value of ``0``.
