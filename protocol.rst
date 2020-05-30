@@ -859,9 +859,9 @@ initiated
 prepared
    Indicates that a `PrepareTransfer`_ request has been sent, and a
    `PreparedTransfer`_ response has been received. `RT record`_\s with
-   this status MUST NOT be deleted. Instead, they MUST be finalized
-   first (committed or dismissed), by sending a `FinalizeTransfer`_
-   message.
+   this status SHOULD NOT be deleted. Instead, they SHOULD be
+   finalized first (committed or dismissed), by sending a
+   `FinalizeTransfer`_ message.
 
 finalized
    Indicates that a `PrepareTransfer`_ request has been sent, a
@@ -870,9 +870,9 @@ finalized
    transfer. `RT record`_\s for *dismissed transfers* MAY be deleted
    whenever considered appropriate. RT records for *committed
    tranfers*, however, MUST NOT be deleted right away. Instead, they
-   SHOULD stay in the database until a `FinalizedTransfer`_ message is
-   received for them. [#cr-retention]_ [#staled-records]_
-   [#dismissed-records]_
+   MUST stay in the database until a `FinalizedTransfer`_ message is
+   received for them, or a very long time has passed. [#cr-retention]_
+   [#staled-records]_ [#dismissed-records]_
 
 
 Received `RejectedTransfer`_ message
@@ -916,12 +916,11 @@ finalized
    they differ, the newly prepared transfer MUST be immediately
    dismissed. [#dismiss-transfer]_
 
-**Important note:** At some point a `FinalizeTransfer`_ message MUST
-be sent for each "prepared" `RT record`_, and the record's status MUST
-be set to "finalized". Often this can be done immediately. In this
-case, when the `PreparedTransfer`_ message is received, the matching
-RT record will change its status from "initiated", directly to
-"finalized".
+**Important note:** At some point a `FinalizeTransfer`_ message should
+be sent for each "prepared" `RT record`_, and the record's status set
+to "finalized". Often this can be done immediately. In this case, when
+the `PreparedTransfer`_ message is received, the matching RT record
+will change its status from "initiated", directly to "finalized".
 
 
 Received `FinalizedTransfer`_ message
@@ -946,10 +945,10 @@ otherwise the message MUST be ignored.
   decided by the race between the two different finalizing
   messages. In most cases, this would be a serious problem.
 
-.. [#staled-records] If the corresponding `FinalizedTransfer`_ message
-  has not been received for a very long time (1 year for example), the
-  `RT record`_ for the committed transfer SHOULD be deleted,
-  nevertheless.
+.. [#staled-records] That is: if the corresponding
+  `FinalizedTransfer`_ message has not been received for a very long
+  time (1 year for example), the `RT record`_ for the committed
+  transfer SHOULD be deleted, nevertheless.
 
 .. [#dismissed-records] Note that `FinalizedTransfer`_ messages are
   emitted for dismissed transfers as well. Therefore, the most
