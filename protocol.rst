@@ -1086,6 +1086,8 @@ created `AL record`_\s that are not needed anymore.
   will be updated from ``1`` to ``3``, but only after *transfer #2*
   has been processed successfully.
 
+  TODO
+
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
   in each message refers to the value of the ``transfer_number`` field
