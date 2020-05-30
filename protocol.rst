@@ -1037,6 +1037,10 @@ MUST be ignored.
 .. [#latest-heartbeat] The `AD record`_\'s ``last_heartbeat_ts`` field
   stores the timestamp of the latest received account heartbeat.
 
+.. [#alr-removal] Note that client when an `AD record`_ is being
+  removed from the client's database, client implementations may
+  choose to remove the associated `AL record`_\s as well.
+
 
 AL record
 ---------
@@ -1097,7 +1101,3 @@ may have been just created), the following steps MUST be performed:
   received `AccountTransfer`_ message, an empty set of stored
   `AccountTransfer`_ massages, and a ``last_transfer_number`` field
   with the value of ``0``.
-
-.. [#alr-removal] Note that client when an `AD record`_ is being
-  removed from the client's database, client implementations may
-  choose to remove the associated `AL record`_\s as well.
