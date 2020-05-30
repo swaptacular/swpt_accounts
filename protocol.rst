@@ -1006,7 +1006,7 @@ verify whether a corresponding `AD record`_ already exists:
 If for a given account, `AccountUpdate`_ messages have not been
 received for a very long time (1 year for example), the account's `AD
 record`_ SHOULD be removed from the client's
-database. [#latest-heartbeat]_ [#alr-removal]_
+database. [#latest-heartbeat]_
 
 
 Received `AccountPurge`_ message
@@ -1016,12 +1016,12 @@ When client implementations process an `AccountPurge`_ message, they
 MUST first verify whether an `AD record`_ exists, which has the same
 values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
 the received message. If such AD record exists, it SHOULD be removed
-from the client's database; [#alr-removal]_ otherwise, the message
-MUST be ignored.
+from the client's database; otherwise, the message MUST be ignored.
 
 
 .. [#adr-pk] Alternatively, the primary key for `AD record`_\s can be
-  the (``creditor_id``, ``debtor_id``) tuple.
+  the (``creditor_id``, ``debtor_id``) tuple. In that case, later
+  ``creation_date``\s will override earlier ``creation_date``\s.
 
 .. [#matching-adr] The corresponding `AD record`_ would have the same
   values, as in the received message, for the fields included in the
@@ -1036,10 +1036,6 @@ MUST be ignored.
 
 .. [#latest-heartbeat] The `AD record`_\'s ``last_heartbeat_ts`` field
   stores the timestamp of the latest received account heartbeat.
-
-.. [#alr-removal] Note that when an `AD record`_ is being removed from
-  the client's database, client implementations may choose to remove
-  the associated `AL record`_\s as well.
 
 
 AL record
