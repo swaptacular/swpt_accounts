@@ -1073,6 +1073,9 @@ may have been just created), the following steps MUST be performed:
    of processed `AccountTransfer`_ messages. [#sequential-transfer]_
    [#transfer-chain]_
 
+Client implementations ought to have a way to remove created `AL
+record`_\s that are not needed anymore.
+
 
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
   processed out-of-order. For example, it is possible *transfer #3* to
