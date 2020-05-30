@@ -1047,17 +1047,16 @@ from the client's database; otherwise, the message MUST be ignored.
 AL record
 ---------
 
-Client implementations *that manage creditor accounts*, MAY maintain
-*account ledger records* (AL records) in their databases, to store
-accounts' transfer history data. The function of `AL record`_\s is to
-reconstruct the original order in which the processed
-`AccountTransfer`_ messages were sent [#sequential-transfer]_. The
-primary key for account ledger records is the (``creditor_id``,
-``debtor_id``, ``creation_date``) tuple. As a minimum, AL records MUST
-also be able to store a set of processed `AccountTransfer`_ messages,
-plus a ``last_transfer_number`` field, which contains the transfer
-number of the latest transfer that has been added to the given
-account's ledger.  [#transfer-chain]_
+Client implementations MAY maintain *account ledger records* (AL
+records) in their databases, to store accounts' transfer history
+data. The main function of `AL record`_\s is to reconstruct the
+original order in which the processed `AccountTransfer`_ messages were
+sent. [#sequential-transfer]_ The primary key for account ledger
+records is the (``creditor_id``, ``debtor_id``, ``creation_date``)
+tuple. As a minimum, AL records MUST also be able to store a set of
+processed `AccountTransfer`_ messages, plus a ``last_transfer_number``
+field, which contains the transfer number of the latest transfer that
+has been added to the given account's ledger.  [#transfer-chain]_
 
 
 Received `AccountTransfer`_ message
