@@ -491,6 +491,9 @@ ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
 
+prepared_at : date-time
+   The moment at which the transfer was prepared.
+
 If a prepared transfer has not been finalized (committed or dismissed)
 for a long while (1 week for example), the server MUST send another
 `PreparedTransfer`_ message, identical to the previous one (except for

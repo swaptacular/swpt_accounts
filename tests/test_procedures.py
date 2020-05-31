@@ -697,6 +697,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pts_obj['coordinator_request_id'] == 2
     assert pts_obj['locked_amount'] == pts.locked_amount
     assert pts_obj['recipient'] == '1234'
+    assert pts_obj['prepared_at'] == pts_obj['ts']
     assert isinstance(pts_obj['ts'], str)
 
     # Discard the transfer.
