@@ -558,7 +558,7 @@ ts : date-time
 prepared_at : date-time
    The moment at which the transfer was prepared.
 
-.. [#failed-commit] In this case ``committed_amount`` MUST be zero.
+.. [#failed-commit] In that case, ``committed_amount`` MUST be zero.
 
 
 AccountUpdate
