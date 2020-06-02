@@ -15,7 +15,7 @@ Swaptacular Messaging Protocol
 Overview
 ========
 
-This protocol is centered around two types of objects: *debtors* and
+This protocol is centered around two types of actors: *debtors* and
 *creditors*. A debtor is a person or an organization that manages a
 digital currency. A creditor is a person or an organization that owns
 tokens in one or more debtors' digital currencies. The relationship is
