@@ -506,7 +506,7 @@ lost message, or a complete database loss on the client's side.
 FinalizedTransfer
 -----------------
 
-Emitted when a transfer has been finalized.
+Emitted when a transfer has been finalized (committed or dismissed).
 
 debtor_id : int64
    The ID of the debtor.
