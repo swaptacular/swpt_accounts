@@ -206,9 +206,12 @@ class PreparedTransfer(db.Model):
             return 'INSUFFICIENT_AVAILABLE_AMOUNT'
 
         # A transfer should not be allowed if a very long time has
-        # passed since the transfer was prepared. This is necessary in
-        # order to prevent deleted accounts to be "resurrected" by
-        # incoming transfers that were prepared ages ago.
+        # passed since the transfer was prepared. This is necessary so
+        # as to prevent deleted accounts from being "resurrected" by
+        # incoming transfers that were prepared ages ago. Note that in
+        # order to avoid timing out prepared transfers due to signal
+        # bus delays, we ensure that prepared transfers' maximum delay
+        # is not shorter than the allowed delay in the signal bus.
         time_since_prepared = current_ts - self.prepared_at_ts
         prepared_transfer_max_delay = max(
             timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS']),
