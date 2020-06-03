@@ -28,18 +28,22 @@ class AccountScanner(TableScanner):
 
     def __init__(self):
         super().__init__()
-        self.few_days_interval = timedelta(days=3)
-        self.signalbus_max_delay = timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'])
-        self.prepared_transfer_max_delay = timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
-        self.account_purge_delay = 2 * self.signalbus_max_delay + self.prepared_transfer_max_delay
+        signalbus_max_delay = timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'])
+        account_heartbeat_interval = timedelta(days=current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS'])
+        prepared_transfer_max_delay = timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
 
         # To prevent clogging the signal bus with heartbeat signals,
-        # we make sure that the heartbeat interval is not shorter that
-        # the maximum possible delay in the signal bus.
-        self.account_heartbeat_interval = max(
-            timedelta(days=current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS']),
-            self.signalbus_max_delay,
-        )
+        # we ensure that the account heartbeat interval is not shorter
+        # than the allowed delay in the signal bus.
+        self.account_heartbeat_interval = max(account_heartbeat_interval, signalbus_max_delay)
+
+        # To avoid timing out prepared transfers due to signal bus
+        # delays, we ensure that prepared transfers' allowed delay is
+        # not shorter than the allowed delay in the signal bus.
+        self.prepared_transfer_max_delay = max(prepared_transfer_max_delay, signalbus_max_delay)
+
+        self.account_purge_delay = 2 * signalbus_max_delay + self.prepared_transfer_max_delay
+        self.few_days_interval = timedelta(days=3)
 
     @atomic
     def process_rows(self, rows):

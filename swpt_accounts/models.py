@@ -210,7 +210,10 @@ class PreparedTransfer(db.Model):
         # order to prevent deleted accounts to be "resurrected" by
         # incoming transfers that were prepared ages ago.
         time_since_prepared = current_ts - self.prepared_at_ts
-        prepared_transfer_max_delay = timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
+        prepared_transfer_max_delay = max(
+            timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS']),
+            timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS']),
+        )
         if time_since_prepared > prepared_transfer_max_delay:
             return 'TRANSFER_TIMEOUT'
 

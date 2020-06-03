@@ -59,7 +59,7 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['last_transfer_number'] == 0
     assert acs_obj['last_transfer_committed_at'] == a.last_transfer_committed_at_ts.isoformat()
     assert isinstance(acs_obj['ts'], str)
-    assert acs_obj['ttl'] == 14 * 24 * 60 * 60
+    assert acs_obj['ttl'] == 7 * 24 * 60 * 60
 
     a = p.configure_account(D_ID, C_ID, current_ts, 0)
     assert len(AccountUpdateSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 1
