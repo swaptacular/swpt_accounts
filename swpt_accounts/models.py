@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from flask import current_app
 from sqlalchemy.dialects import postgresql as pg
@@ -203,26 +203,38 @@ class PreparedTransfer(db.Model):
 
     def get_status_code(self, committed_amount: int, current_ts: datetime) -> str:
         if not (0 <= committed_amount <= self.sender_locked_amount):  # pragma: no cover
-            return 'INCORRECT_COMMITTED_AMOUNT'
+            return 'INSUFFICIENT_AVAILABLE_AMOUNT'
 
-        # A regular transfer should not be allowed if it took too long
-        # to be committed, and the amount secured for the transfer
-        # *might* have been consumed by accumulated negative
-        # interest. This is necessary in order to prevent a trick that
-        # creditors may use to evade incurring negative interests on
-        # their accounts. The trick is to prepare a transfer from one
-        # account to another for the whole available amount, wait for
-        # some long time, then commit the prepared transfer and
-        # abandon the account (which at that point would be
-        # significantly in red).
-        if self.sender_creditor_id != ROOT_CREDITOR_ID and self.recipient_creditor_id != ROOT_CREDITOR_ID:
-            passed_seconds = max(0.0, (current_ts - self.prepared_at_ts).total_seconds())
-            if passed_seconds > current_app.config['APP_TRANSFER_MAX_DELAY_SECONDS']:
+        # A transfer should not be allowed if a very long time has
+        # passed since the transfer was prepared. This is necessary in
+        # order to prevent deleted accounts to be "resurrected" by
+        # incoming transfers that were prepared ages ago.
+        time_since_prepared = current_ts - self.prepared_at_ts
+        prepared_transfer_max_delay = timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
+        if time_since_prepared > prepared_transfer_max_delay:
+            return 'TRANSFER_TIMEOUT'
+
+        # A regular transfer should not be allowed if the amount
+        # secured for the transfer *might* have been consumed by
+        # accumulated negative interest. This precaution is necessary
+        # in order to prevent a trick that creditors may use to evade
+        # incurring negative interests on their accounts. The trick is
+        # to prepare a transfer from one account to another for the
+        # whole available amount, wait for some long time, then commit
+        # the prepared transfer and abandon the account (which at that
+        # point would be significantly in red).
+        is_regular_transfer = ROOT_CREDITOR_ID not in [self.sender_creditor_id, self.recipient_creditor_id]
+        if is_regular_transfer:
+            passed_seconds = max(0.0, time_since_prepared.total_seconds())
+            gratis_seconds = current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS']
+            assert gratis_seconds >= 0
+            if passed_seconds > gratis_seconds:
                 k = math.log(1.0 + INTEREST_RATE_FLOOR / 100.0) / SECONDS_IN_YEAR
-                permitted_amount = self.sender_locked_amount * math.exp(k * passed_seconds)
+                delay_seconds = passed_seconds - gratis_seconds
+                permitted_amount = self.sender_locked_amount * math.exp(k * delay_seconds)
                 if committed_amount > permitted_amount:
                     assert committed_amount > 0
-                    return 'TERMINATED_DUE_TO_TIMEOUT'
+                    return 'INSUFFICIENT_AVAILABLE_AMOUNT'
 
         return 'OK'
 

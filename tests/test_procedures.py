@@ -782,6 +782,32 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert cts2.amount == 40
 
 
+def test_prepared_transfer_commit_timeout(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 100})
+    p.prepare_transfer(
+        coordinator_type='direct',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient='1234',
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
+    pt.prepared_at_ts = pt.prepared_at_ts - timedelta(days=100)
+    db_session.commit()
+    p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 40)
+    fts = FinalizedTransferSignal.query.one()
+    assert fts.status_code == 'TRANSFER_TIMEOUT'
+    assert fts.committed_amount == 0
+
+
 def test_commit_to_debtor_account(db_session, current_ts):
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     p.configure_account(D_ID, C_ID, current_ts, 0)
