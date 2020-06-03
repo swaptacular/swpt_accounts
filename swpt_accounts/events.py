@@ -90,8 +90,9 @@ class RejectedTransferSignal(Signal):
         return f'on_rejected_{self.coordinator_type}_transfer_signal'
 
 
-# TODO: Consider adding `lock_gratis_period` and `lock_interest_rate`
-#       fields, to make things more predictable for the coordinator.
+# TODO: Consider adding `lock_gratis` and `lock_demurrage_rate`,
+#       `commit_deadline` fields, to make things more predictable for
+#       the coordinator.
 class PreparedTransferSignal(Signal):
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
