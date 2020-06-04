@@ -516,8 +516,8 @@ not be hanging in the server's database forever, even in the case of a
 lost message, or a complete database loss on the client's side.
 
 .. [#demurrage] Note that when the interest rate on a given account is
-  negative, the secured amount will be gradually consumed by the
-  accumulated interest. Therefore, at the moment of the prepared
+  negative, the secured (locked) amount will be gradually consumed by
+  the accumulated interest. Therefore, at the moment of the prepared
   transfer's commit, it could happen that the committed amount exceeds
   the remaining amount. In such cases, the prepared transfer SHOULD
   NOT be allowed to commit successfully. This is a necessary
@@ -531,9 +531,9 @@ lost message, or a complete database loss on the client's side.
   Also, note that when a `PrepareTransfer`_ request is being processed
   by the server, it can not be predicted what amount will be available
   on the sender's account at the time of the transfer's commit. For
-  this reason, when server implementations sent a `PreparedTransfer`_
+  this reason, when server implementations send a `PreparedTransfer`_
   message, the values of ``demurrage_rate`` and ``gratis_period``
-  fields MUST be set so as to make the client (the coordinator) ready
+  fields MUST be set so as to "prepare" the client (the coordinator)
   for the worst possible scenario.
 
 .. [#demurrage-rate] The value of ``demurrage_rate`` SHOULD reflect
