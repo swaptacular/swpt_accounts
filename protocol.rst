@@ -489,7 +489,10 @@ demurrage_rate : float
    between 0 and 100.
 
 gratis_period : int32
-   TODO [#demurrage]_
+   An initial period (in seconds) during which the secured (prepared)
+   amount does not diminish. [#demurrage]_ That is: ``gratis_period``
+   seconds after the ``prepared_at`` moment, the secured amount will
+   begin to diminish at the stated demurrage rate.
 
 deadline : date-time
    TODO
