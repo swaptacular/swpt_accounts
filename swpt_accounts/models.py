@@ -213,15 +213,6 @@ class PreparedTransfer(db.Model):
         if not (0 <= committed_amount <= self.sender_locked_amount):  # pragma: no cover
             return 'INSUFFICIENT_LOCKED_AMOUNT'
 
-        # NOTE: A *regular* transfer should not be allowed if the
-        # amount secured for the transfer *might* have been consumed
-        # by accumulated negative interest. This precaution is
-        # necessary in order to prevent a trick that creditors may use
-        # to evade incurring negative interests on their accounts. The
-        # trick is to prepare a transfer from one account to another
-        # for the whole available amount, wait for some long time,
-        # then commit the prepared transfer and abandon the account
-        # (which at that point would be significantly in red).
         is_regular_transfer = ROOT_CREDITOR_ID not in [self.sender_creditor_id, self.recipient_creditor_id]
         if is_regular_transfer:
             demurrage_seconds = (current_ts - self.prepared_at_ts).total_seconds() - self.gratis_period

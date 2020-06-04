@@ -496,7 +496,9 @@ gratis_period : int32
    non-negative number. [#demurrage]_
 
 deadline : date-time
-   TODO
+   The prepared transfer can not be committed successfully after this
+   moment. If the client ties to commit the transfer after this
+   deadline, the commit SHOULD NOT be successful.
 
 ts : date-time
    The moment at which this message was sent (the message's
