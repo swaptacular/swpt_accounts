@@ -529,9 +529,9 @@ lost message, or a complete database loss on the client's side.
   ``demurrage_rate`` and ``gratis_period`` fields is to communicate
   what the most pessimistic scenario is. In this regard, keep in mind
   that the interest rate can change significantly between transfer's
-  preparation and transfer's commit. Therefore, ``demurrage_rate``
-  should reflect the most negative interest rate on the account, that
-  is possible to occur.
+  preparation and transfer's commit. Therefore, the value
+  ``demurrage_rate`` should reflect the most negative interest rate
+  that is possible to occur on the account.
 
 
 FinalizedTransfer
