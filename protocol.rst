@@ -489,7 +489,7 @@ demurrage_rate : float
    between 0 and 100.
 
 gratis_period : int32
-   TODO
+   TODO [#demurrage]_
 
 deadline : date-time
    TODO
@@ -518,14 +518,20 @@ lost message, or a complete database loss on the client's side.
   evade incurring negative interest on their accounts. The trick is to
   prepare a transfer from one account to another account for the whole
   available amount, wait for some long time, then commit the prepared
-  transfer and abandon the account (which at that point would be
+  transfer and abandon the first account (which at that point would be
   significantly in red).
 
-  Also, note that at the moment in which the transfer is being
-  prepared, it can not be predicted what amount will be available on
-  sender's account when the prepared transfer gets
-  committed. Therefore, server implementations SHOUOD make the clients
-  (coordinators) ready for the most pessimistic possible scenario.
+  Note that at the moment in which a `PrepareTransfer`_ request is
+  being processed, it can not be predicted what amount will be
+  available on sender's account when the prepared transfer gets
+  committed. Therefore, server implementations MUST make the clients
+  (coordinators) ready for the most pessimistic scenario. The role of
+  ``demurrage_rate`` and ``gratis_period`` fields is to communicate
+  what the most pessimistic scenario is. In this regard, keep in mind
+  that the interest rate can change significantly between transfer's
+  preparation and commit. Therefore, ``demurrage_rate`` should
+  represent the most negative interest rate for the account, that is
+  possible to occur.
 
 
 FinalizedTransfer
