@@ -201,34 +201,39 @@ class PreparedTransfer(db.Model):
         }
     )
 
-    def get_status_code(self, committed_amount: int, current_ts: datetime) -> str:
-        if not (0 <= committed_amount <= self.sender_locked_amount):  # pragma: no cover
-            return 'INSUFFICIENT_AVAILABLE_AMOUNT'
-
-        # A transfer should not be allowed if a very long time has
-        # passed since the transfer was prepared. This is necessary so
-        # as to prevent deleted accounts from being "resurrected" by
-        # incoming transfers that were prepared ages ago. Note that in
-        # order to avoid timing out prepared transfers due to signal
-        # bus delays, we ensure that prepared transfers' maximum delay
-        # is not shorter than the allowed delay in the signal bus.
-        time_since_prepared = current_ts - self.prepared_at_ts
-        prepared_transfer_max_delay = max(
+    def get_max_delay(self):
+        # NOTE: To avoid timing out prepared transfers due to signal
+        # bus delays, here we ensure that prepared transfers' maximum
+        # delay is not smaller than the allowed signal bus delay.
+        return max(
             timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS']),
             timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS']),
         )
-        if time_since_prepared > prepared_transfer_max_delay:
+
+    def get_status_code(self, committed_amount: int, current_ts: datetime) -> str:
+        time_since_prepared = current_ts - self.prepared_at_ts
+
+        # NOTE: The transfer should not be allowed if a very long time
+        # has passed since it was prepared. This is necessary so as to
+        # prevent deleted accounts from being "resurrected" by
+        # incoming transfers that were prepared ages ago.
+        if time_since_prepared > self.get_max_delay():
             return 'TRANSFER_TIMEOUT'
 
-        # A regular transfer should not be allowed if the amount
-        # secured for the transfer *might* have been consumed by
-        # accumulated negative interest. This precaution is necessary
-        # in order to prevent a trick that creditors may use to evade
-        # incurring negative interests on their accounts. The trick is
-        # to prepare a transfer from one account to another for the
-        # whole available amount, wait for some long time, then commit
-        # the prepared transfer and abandon the account (which at that
-        # point would be significantly in red).
+        # NOTE: The transfer should not be allowed if the committed
+        # amount is bigger than the amount secured for the transfer.
+        if not (0 <= committed_amount <= self.sender_locked_amount):  # pragma: no cover
+            return 'INSUFFICIENT_LOCKED_AMOUNT'
+
+        # NOTE: A *regular* transfer should not be allowed if the
+        # amount secured for the transfer *might* have been consumed
+        # by accumulated negative interest. This precaution is
+        # necessary in order to prevent a trick that creditors may use
+        # to evade incurring negative interests on their accounts. The
+        # trick is to prepare a transfer from one account to another
+        # for the whole available amount, wait for some long time,
+        # then commit the prepared transfer and abandon the account
+        # (which at that point would be significantly in red).
         is_regular_transfer = ROOT_CREDITOR_ID not in [self.sender_creditor_id, self.recipient_creditor_id]
         if is_regular_transfer:
             passed_seconds = max(0.0, time_since_prepared.total_seconds())
@@ -240,7 +245,7 @@ class PreparedTransfer(db.Model):
                 permitted_amount = self.sender_locked_amount * math.exp(k * delay_seconds)
                 if committed_amount > permitted_amount:
                     assert committed_amount > 0
-                    return 'INSUFFICIENT_AVAILABLE_AMOUNT'
+                    return 'INSUFFICIENT_LOCKED_AMOUNT'
 
         return 'OK'
 
