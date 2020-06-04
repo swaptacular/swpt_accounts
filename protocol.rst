@@ -483,6 +483,14 @@ recipient : string
    The value of the ``recipient`` field in the corresponding
    `PrepareTransfer`_ message.
 
+prepared_at : date-time
+   The moment at which the transfer was prepared.
+
+deadline : date-time
+   The prepared transfer can be committed successfully only before
+   this moment. If the client ties to commit the transfer after this
+   moment, the commit SHOULD NOT be successful.
+
 demurrage_rate : float
    The annual rate (in percents) at which the secured amount
    diminishes with time. This MUST be a number between 0
@@ -495,17 +503,9 @@ gratis_period : int32
    at the stated ``demurrage_rate``. This MUST always be a
    non-negative number. [#demurrage]_
 
-deadline : date-time
-   The prepared transfer can not be committed successfully after this
-   moment. If the client ties to commit the transfer after this
-   deadline, the commit SHOULD NOT be successful.
-
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
-
-prepared_at : date-time
-   The moment at which the transfer was prepared.
 
 If a prepared transfer has not been finalized (committed or dismissed)
 for a long while (1 week for example), the server MUST send another
@@ -588,12 +588,12 @@ status_code : string
    failure. [#failed-commit]_ In all other cases, this value MUST be
    ``"OK"``.
 
+prepared_at : date-time
+   The moment at which the transfer was prepared.
+
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
-
-prepared_at : date-time
-   The moment at which the transfer was prepared.
 
 .. [#failed-commit] In that case, ``committed_amount`` MUST be zero.
 
