@@ -219,7 +219,7 @@ class PreparedTransfer(db.Model):
             if demurrage_seconds > 0:
                 k = math.log(1.0 - self.demurrage_rate / 100.0) / SECONDS_IN_YEAR
                 unconsumed_locked_amount = self.sender_locked_amount * math.exp(k * demurrage_seconds)
-                if committed_amount > unconsumed_locked_amount:
+                if float(committed_amount) > unconsumed_locked_amount:
                     assert committed_amount > 0
                     return 'INSUFFICIENT_LOCKED_AMOUNT'
 
