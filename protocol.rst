@@ -332,7 +332,7 @@ in server's database:
    MUST:
 
    * Try to transfer the ``committed_amount`` from sender's account to
-     recipient's account. [#commit]_
+     recipient's account. [#commit]_ [#demurrage]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#unlock-amount]_
