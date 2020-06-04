@@ -513,9 +513,9 @@ lost message, or a complete database loss on the client's side.
   rate, the amount secured for the transfer is being gradually
   consumed by the accumulated negative interest. Therefore, a prepared
   transfer SHOULD NOT be allowed to commit if the committed amount
-  significantly exceeds the remaining amount. This precaution is
-  necessary in order to prevent a trick that creditors may use to
-  evade incurring negative interest on their accounts. The trick is to
+  clearly exceeds the remaining amount. This precaution is necessary
+  in order to prevent a trick that creditors may use to evade
+  incurring negative interest on their accounts. The trick is to
   prepare a transfer from one account to another account for the whole
   available amount, wait for some long time, then commit the prepared
   transfer and abandon the first account (which at that point would be
