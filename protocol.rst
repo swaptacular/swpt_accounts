@@ -524,7 +524,7 @@ lost message, or a complete database loss on the client's side.
   precaution in order to prevent a trick that opportunistic creditors
   may use to evade incurring negative interest on their accounts. The
   trick is to prepare a transfer from one account to another account
-  for the whole available amount; wait for some long time; then commit
+  for the whole available amount, wait for some long time, then commit
   the prepared transfer and abandon the first account (which at that
   point would be significantly in red).
 
@@ -533,8 +533,8 @@ lost message, or a complete database loss on the client's side.
   on the sender's account at the time of the transfer's commit. For
   this reason, when server implementations send a `PreparedTransfer`_
   message, the values of ``demurrage_rate`` and ``gratis_period``
-  fields MUST be set so as to "prepare" the client (the coordinator)
-  for the worst possible scenario.
+  fields MUST be set so as to inform the client (the coordinator) for
+  the worst possible scenario.
 
 .. [#demurrage-rate] The value of ``demurrage_rate`` SHOULD reflect
   the most negative interest rate that is possible to occur on the
