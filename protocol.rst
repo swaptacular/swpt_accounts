@@ -519,14 +519,14 @@ lost message, or a complete database loss on the client's side.
   negative, the secured (locked) amount will be gradually consumed by
   the accumulated interest. Therefore, at the moment of the prepared
   transfer's commit, it could happen that the committed amount exceeds
-  the remaining amount. In such cases, the prepared transfer SHOULD
-  NOT be allowed to commit successfully. This is a necessary
-  precaution in order to prevent a trick that opportunistic creditors
-  may use to evade incurring negative interest on their accounts. The
-  trick is to prepare a transfer from one account to another account
-  for the whole available amount, wait for some long time, then commit
-  the prepared transfer and abandon the first account (which at that
-  point would be significantly in red).
+  the remaining amount. In such cases, the commit of the prepared
+  transfer SHOULD NOT be successful. This is a necessary precaution in
+  order to prevent a trick that opportunistic creditors may use to
+  evade incurring negative interest on their accounts. The trick is to
+  prepare a transfer from one account to another account for the whole
+  available amount, wait for some long time, then commit the prepared
+  transfer and abandon the first account (which at that point would be
+  significantly in red).
 
   Also, note that when a `PrepareTransfer`_ request is being processed
   by the server, it can not be predicted what amount will be available
