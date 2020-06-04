@@ -536,11 +536,11 @@ lost message, or a complete database loss on the client's side.
   fields MUST be set so as to inform the client (the coordinator) for
   the worst possible scenario.
 
-.. [#demurrage-rate] The value of ``demurrage_rate`` SHOULD reflect
-  the most negative interest rate that is possible to occur on the
-  sender' account. (Note that the interest rate on the sender's
-  account can change significantly between the transfer's preparation
-  and the transfer's commit.)
+.. [#demurrage-rate] The value of ``demurrage_rate`` reflects the most
+  negative interest rate that is possible to occur on the sender'
+  account. (Note that the interest rate on the sender's account can
+  change significantly between the transfer's preparation and the
+  transfer's commit.)
 
 .. [#gratis-period] The value of ``gratis_period`` SHOULD be chosen so
   as to allow clients to easily zero out their accounts, even when the
