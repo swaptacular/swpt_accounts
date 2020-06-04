@@ -516,15 +516,15 @@ not be hanging in the server's database forever, even in the case of a
 lost message, or a complete database loss on the client's side.
 
 .. [#demurrage] Note that for accounts that have a negative interest
-  rate, the amount secured for the transfer will be gradually consumed
-  by the negative interest. Therefore, a prepared transfer SHOULD NOT
-  be allowed to commit, if the committed amount exceeds the remaining
-  amount. This precaution is necessary in order to prevent a trick
-  that creditors may use to evade incurring negative interest on their
-  accounts. The trick is to prepare a transfer from one account to
-  another account for the whole available amount, wait for some long
-  time, then commit the prepared transfer and abandon the first
-  account (which at that point would be significantly in red).
+  rate, the secured amount will be gradually consumed by the negative
+  interest. Therefore, a prepared transfer SHOULD NOT be allowed to
+  commit, if the committed amount exceeds the remaining amount. This
+  precaution is necessary in order to prevent a trick that creditors
+  may use to evade incurring negative interest on their accounts. The
+  trick is to prepare a transfer from one account to another account
+  for the whole available amount, wait for some long time, then commit
+  the prepared transfer and abandon the first account (which at that
+  point would be significantly in red).
 
   Also, note that when a `PrepareTransfer`_ request is being
   processed, it can not be predicted what amount will be available on
