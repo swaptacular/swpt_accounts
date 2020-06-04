@@ -484,15 +484,15 @@ recipient : string
    `PrepareTransfer`_ message.
 
 demurrage_rate : float
-   The annual rate (in percents) at which the secured (prepared)
-   amount diminishes with time. [#demurrage]_ This MUST be a number
-   between 0 and 100.
+   The annual rate (in percents) at which the secured amount
+   diminishes with time. This MUST be a number between 0
+   and 100. [#demurrage]_
 
 gratis_period : int32
-   An initial period (in seconds) during which the secured (prepared)
-   amount does not diminish. [#demurrage]_ That is: ``gratis_period``
-   seconds after the ``prepared_at`` moment, the secured amount will
-   begin to diminish at the stated demurrage rate.
+   An initial period (in seconds) during which the secured amount does
+   not diminish. That is: ``gratis_period`` seconds after the
+   ``prepared_at`` moment, the secured amount will begin to diminish
+   at the stated demurrage rate. [#demurrage]_
 
 deadline : date-time
    TODO
