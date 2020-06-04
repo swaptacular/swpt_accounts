@@ -521,17 +521,17 @@ lost message, or a complete database loss on the client's side.
   transfer and abandon the first account (which at that point would be
   significantly in red).
 
-  Note that at the moment in which a `PrepareTransfer`_ request is
-  being processed, it can not be predicted what amount will be
-  available on sender's account when the prepared transfer gets
+  Also, note that when a `PrepareTransfer`_ request is being
+  processed, it can not be predicted what amount will be available on
+  sender's account when the prepared transfer gets
   committed. Therefore, server implementations MUST make the clients
   (coordinators) ready for the most pessimistic scenario. The role of
   ``demurrage_rate`` and ``gratis_period`` fields is to communicate
   what the most pessimistic scenario is. In this regard, keep in mind
   that the interest rate can change significantly between transfer's
-  preparation and commit. Therefore, ``demurrage_rate`` should
-  represent the most negative interest rate for the account, that is
-  possible to occur.
+  preparation and transfer's commit. Therefore, ``demurrage_rate``
+  should reflect the most negative interest rate on the account, that
+  is possible to occur.
 
 
 FinalizedTransfer
