@@ -284,10 +284,6 @@ When server implementations process a `PrepareTransfer`_ message they:
   prepared transfer is finalized, the amount is not available for
   other transfers.
 
-* MUST NOT impose unnecessary limitations on the time in which the
-  prepared transfer can/should be committed. All imposed limitations
-  MUST be precisely defined, and known in advance.
-
 
 .. [#coordinator-type] Random examples: ``"direct"`` might be used for
   payments initiated directly by the owner of the sender's account,
@@ -487,6 +483,17 @@ recipient : string
    The value of the ``recipient`` field in the corresponding
    `PrepareTransfer`_ message.
 
+demurrage_rate : float
+   The annual rate (in percents) at which the secured (prepared)
+   amount diminishes with time. [#demurrage]_ This MUST be a number
+   between 0 and 100.
+
+gratis_period : int32
+   TODO
+
+deadline : date-time
+   TODO
+
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
@@ -501,6 +508,24 @@ the **ts** field), to remind that a transfer has been prepared and is
 waiting for a resolution. This guarantees that prepared transfers will
 not be hanging in the server's database forever, even in the case of a
 lost message, or a complete database loss on the client's side.
+
+.. [#demurrage] Note that for accounts that have a negative interest
+  rate, the amount secured for the transfer is being gradually
+  consumed by the accumulated negative interest. Therefore, a prepared
+  transfer SHOULD NOT be allowed to commit if the committed amount
+  significantly exceeds the remaining amount. This precaution is
+  necessary in order to prevent a trick that creditors may use to
+  evade incurring negative interest on their accounts. The trick is to
+  prepare a transfer from one account to another account for the whole
+  available amount, wait for some long time, then commit the prepared
+  transfer and abandon the account (which at that point would be
+  significantly in red).
+
+  Also, note that at the moment in which the transfer is being
+  prepared, it can not be predicted what amount will be available on
+  sender's account when the prepared transfer gets
+  committed. Therefore, server implementations SHOUOD make the clients
+  (coordinators) ready for the most pessimistic possible scenario.
 
 
 FinalizedTransfer

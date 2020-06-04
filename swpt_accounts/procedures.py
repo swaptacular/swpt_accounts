@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Set
 from decimal import Decimal
 from flask import current_app
@@ -641,6 +641,9 @@ def _process_transfer_request(
         sender_account.locked_amount = min(sender_account.locked_amount + amount, MAX_INT64)
         sender_account.pending_transfers_count += 1
         sender_account.last_transfer_id += 1
+        gratis_period = int(current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS'])
+        demurrage_rate = -INTEREST_RATE_FLOOR
+        deadline = _calc_prepared_transfer_deadline(current_ts)
         db.session.add(PreparedTransfer(
             debtor_id=tr.debtor_id,
             sender_creditor_id=tr.sender_creditor_id,
@@ -650,6 +653,9 @@ def _process_transfer_request(
             coordinator_request_id=tr.coordinator_request_id,
             sender_locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
+            gratis_period=gratis_period,
+            demurrage_rate=demurrage_rate,
+            deadline=deadline,
             prepared_at_ts=current_ts,
         ))
         return PreparedTransferSignal(
@@ -662,6 +668,9 @@ def _process_transfer_request(
             locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
             prepared_at_ts=current_ts,
+            gratis_period=gratis_period,
+            demurrage_rate=demurrage_rate,
+            deadline=deadline,
             inserted_at_ts=current_ts,
         )
 
@@ -724,3 +733,13 @@ def _get_reachable_recipient_account_pks(transfer_requests: List[TransferRequest
         filter(Account.status_flags.op('&')(Account.STATUS_UNREACHABLE_FLAG) == 0).\
         all()
     return set(account_pks)
+
+
+def _calc_prepared_transfer_deadline(current_ts: datetime) -> timedelta:
+    # NOTE: To avoid timing out prepared transfers due to signal
+    # bus delays, here we ensure that prepared transfers' maximum
+    # delay is not smaller than the allowed signal bus delay.
+    return current_ts + max(
+        timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS']),
+        timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS']),
+    )

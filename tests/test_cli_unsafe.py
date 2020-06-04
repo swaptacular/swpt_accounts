@@ -140,6 +140,9 @@ def test_scan_prepared_transfers(app_unsafe_session):
         sender_locked_amount=400,
         recipient_creditor_id=1234,
         prepared_at_ts=current_ts,
+        deadline=current_ts + timedelta(days=30),
+        gratis_period=0,
+        demurrage_rate=0.0,
     ))
     db.session.add(PreparedTransfer(
         debtor_id=D_ID,
@@ -151,6 +154,9 @@ def test_scan_prepared_transfers(app_unsafe_session):
         sender_locked_amount=100,
         recipient_creditor_id=1234,
         prepared_at_ts=past_ts,
+        deadline=current_ts + timedelta(days=30),
+        gratis_period=0,
+        demurrage_rate=0.0,
     ))
     db.session.commit()
     db.engine.execute('ANALYZE account')

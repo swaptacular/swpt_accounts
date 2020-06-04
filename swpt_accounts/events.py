@@ -90,9 +90,6 @@ class RejectedTransferSignal(Signal):
         return f'on_rejected_{self.coordinator_type}_transfer_signal'
 
 
-# TODO: Consider adding `lock_gratis` and `lock_demurrage_rate`,
-#       `commit_deadline` fields, to make things more predictable for
-#       the coordinator.
 class PreparedTransferSignal(Signal):
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
@@ -105,6 +102,9 @@ class PreparedTransferSignal(Signal):
         recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         prepared_at_ts = fields.DateTime(data_key='prepared_at')
         inserted_at_ts = fields.DateTime(data_key='ts')
+        gratis_period = fields.Integer()
+        demurrage_rate = fields.Float()
+        deadline = fields.DateTime()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -116,6 +116,9 @@ class PreparedTransferSignal(Signal):
     locked_amount = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    gratis_period = db.Column(db.Integer, nullable=False)
+    demurrage_rate = db.Column(db.FLOAT, nullable=False)
+    deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     @property
     def event_name(self):  # pragma: no cover

@@ -175,6 +175,9 @@ class PreparedTransfer(db.Model):
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    gratis_period = db.Column(db.Integer, nullable=False)
+    demurrage_rate = db.Column(db.FLOAT, nullable=False)
+    deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     sender_locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
@@ -194,6 +197,8 @@ class PreparedTransfer(db.Model):
         ),
         db.CheckConstraint(transfer_id > 0),
         db.CheckConstraint(sender_locked_amount > 0),
+        db.CheckConstraint(gratis_period >= 0),
+        db.CheckConstraint((demurrage_rate >= 0.0) & (demurrage_rate < 100.0)),
         {
             'comment': 'A prepared transfer represent a guarantee that a particular transfer of '
                        'funds will be successful if ordered (committed). A record will remain in '
@@ -201,27 +206,10 @@ class PreparedTransfer(db.Model):
         }
     )
 
-    def get_max_delay(self) -> timedelta:
-        # NOTE: To avoid timing out prepared transfers due to signal
-        # bus delays, here we ensure that prepared transfers' maximum
-        # delay is not smaller than the allowed signal bus delay.
-        return max(
-            timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS']),
-            timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS']),
-        )
-
     def get_status_code(self, committed_amount: int, current_ts: datetime) -> str:
-        time_since_prepared = current_ts - self.prepared_at_ts
-
-        # NOTE: The transfer should not be allowed if a very long time
-        # has passed since it was prepared. This is necessary so as to
-        # prevent deleted accounts from being "resurrected" by
-        # incoming transfers that were prepared ages ago.
-        if time_since_prepared > self.get_max_delay():
+        if current_ts > self.deadline:
             return 'TRANSFER_TIMEOUT'
 
-        # NOTE: The transfer should not be allowed if the committed
-        # amount is bigger than the amount secured for the transfer.
         if not (0 <= committed_amount <= self.sender_locked_amount):  # pragma: no cover
             return 'INSUFFICIENT_LOCKED_AMOUNT'
 
@@ -236,14 +224,11 @@ class PreparedTransfer(db.Model):
         # (which at that point would be significantly in red).
         is_regular_transfer = ROOT_CREDITOR_ID not in [self.sender_creditor_id, self.recipient_creditor_id]
         if is_regular_transfer:
-            passed_seconds = max(0.0, time_since_prepared.total_seconds())
-            gratis_seconds = current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS']
-            assert gratis_seconds >= 0
-            if passed_seconds > gratis_seconds:
-                k = math.log(1.0 + INTEREST_RATE_FLOOR / 100.0) / SECONDS_IN_YEAR
-                delay_seconds = passed_seconds - gratis_seconds
-                permitted_amount = self.sender_locked_amount * math.exp(k * delay_seconds)
-                if committed_amount > permitted_amount:
+            demurrage_seconds = (current_ts - self.prepared_at_ts).total_seconds() - self.gratis_period
+            if demurrage_seconds > 0:
+                k = math.log(1.0 - self.demurrage_rate / 100.0) / SECONDS_IN_YEAR
+                unconsumed_locked_amount = self.sender_locked_amount * math.exp(k * demurrage_seconds)
+                if committed_amount > unconsumed_locked_amount:
                     assert committed_amount > 0
                     return 'INSUFFICIENT_LOCKED_AMOUNT'
 

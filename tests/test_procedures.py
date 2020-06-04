@@ -698,6 +698,9 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pts_obj['locked_amount'] == pts.locked_amount
     assert pts_obj['recipient'] == '1234'
     assert pts_obj['prepared_at'] == pts_obj['ts']
+    assert pts_obj['deadline'] == pts.deadline.isoformat()
+    assert pts_obj['gratis_period'] == 600
+    assert pts_obj['demurrage_rate'] == 50.0
     assert isinstance(pts_obj['ts'], str)
 
     # Discard the transfer.
@@ -801,6 +804,7 @@ def test_prepared_transfer_commit_timeout(db_session, current_ts):
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     pt.prepared_at_ts = pt.prepared_at_ts - timedelta(days=100)
+    pt.deadline = pt.prepared_at_ts + timedelta(days=30)
     db_session.commit()
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 40)
     fts = FinalizedTransferSignal.query.one()
