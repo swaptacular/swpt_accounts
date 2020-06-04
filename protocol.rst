@@ -489,14 +489,14 @@ prepared_at : date-time
 demurrage_rate : float
    The annual rate (in percents) at which the secured amount
    diminishes with time. This MUST be a number between 0
-   and 100. [#demurrage]_
+   and 100. [#demurrage]_ [#demurrage-rate]_
 
 gratis_period : int32
    An initial period (in seconds) during which the secured amount does
    not diminish. That is: exactly ``gratis_period`` seconds after the
    ``prepared_at`` moment, the secured amount will begin to diminish
    at the stated ``demurrage_rate``. This MUST always be a
-   non-negative number. [#demurrage]_
+   non-negative number. [#demurrage]_ [#gratis-period]_
 
 deadline : date-time
    The prepared transfer can be committed successfully only before
@@ -520,28 +520,31 @@ lost message, or a complete database loss on the client's side.
   accumulated interest. Therefore, at the moment of the prepared
   transfer's commit, it could happen that the committed amount exceeds
   the remaining amount. In such cases, the prepared transfer SHOULD
-  NOT be allowed to commit. This precaution is necessary in order to
-  prevent a trick that opportunistic creditors may use to evade
-  incurring negative interest on their accounts. The trick is to
-  prepare a transfer from one account to another account for the whole
-  available amount, wait for some long time, then commit the prepared
-  transfer and abandon the first account (which at that point would be
-  significantly in red).
+  NOT be allowed to commit successfully. This is a necessary
+  precaution in order to prevent a trick that opportunistic creditors
+  may use to evade incurring negative interest on their accounts. The
+  trick is to prepare a transfer from one account to another account
+  for the whole available amount, wait for some long time, then commit
+  the prepared transfer and abandon the first account (which at that
+  point would be significantly in red).
 
-  Also, when a `PrepareTransfer`_ request is being processed, it can
-  not be predicted what amount will be available on sender's account
-  when the prepared transfer gets committed. Therefore, when server
-  implementations sent a `PreparedTransfer`_ message, the values of
-  ``demurrage_rate`` and ``gratis_period`` fields MUST be set
-  correctly, to inform the client (the coordinator) what the most
-  pessimistic scenario is. In this regard, keep in mind that the
-  interest rate on the sender's account can change significantly
-  between transfer's preparation and transfer's commit. Therefore, the
-  value of ``demurrage_rate`` should reflect the most negative
-  interest rate that is possible to occur.  The value of
-  ``gratis_period`` SHOULD be chosen so as to allow clients to easily
-  zero out their accounts, even when the interest rate on them is
-  negative.
+  Also, note that when a `PrepareTransfer`_ request is being processed
+  by the server, it can not be predicted what amount will be available
+  on the sender's account at the time of the transfer's commit. For
+  this reason, when server implementations sent a `PreparedTransfer`_
+  message, the values of ``demurrage_rate`` and ``gratis_period``
+  fields MUST be set so as to make the client (the coordinator) ready
+  for the worst possible scenario.
+
+.. [#demurrage-rate] The value of ``demurrage_rate`` SHOULD reflect
+  the most negative interest rate that is possible to occur on the
+  sender' account. (Note that the interest rate on the sender's
+  account can change significantly between the transfer's preparation
+  and the transfer's commit.)
+
+.. [#gratis-period] The value of ``gratis_period`` SHOULD be chosen so
+  as to allow clients to easily zero out their accounts, even when the
+  interest rate on them is negative.
 
 
 FinalizedTransfer
