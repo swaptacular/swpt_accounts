@@ -492,8 +492,8 @@ gratis_period : int32
    An initial period (in seconds) during which the secured amount does
    not diminish. That is: exactly ``gratis_period`` seconds after the
    ``prepared_at`` moment, the secured amount will begin to diminish
-   at the stated demurrage rate. This MUST always be a non-negative
-   number. [#demurrage]_
+   at the stated ``demurrage_rate``. This MUST always be a
+   non-negative number. [#demurrage]_
 
 deadline : date-time
    TODO
