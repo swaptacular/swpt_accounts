@@ -201,7 +201,7 @@ class PreparedTransfer(db.Model):
         }
     )
 
-    def get_max_delay(self):
+    def get_max_delay(self) -> timedelta:
         # NOTE: To avoid timing out prepared transfers due to signal
         # bus delays, here we ensure that prepared transfers' maximum
         # delay is not smaller than the allowed signal bus delay.
