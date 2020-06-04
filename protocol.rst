@@ -282,7 +282,7 @@ When server implementations process a `PrepareTransfer`_ message they:
   probability for the success of the eventual commit is very
   high. Notably, the secured amount MUST be locked, so that until the
   prepared transfer is finalized, the amount is not available for
-  other transfers.
+  other transfers. [#demurrage]_
 
 
 .. [#coordinator-type] Random examples: ``"direct"`` might be used for
