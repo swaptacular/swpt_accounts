@@ -516,7 +516,7 @@ not be hanging in the server's database forever, even in the case of a
 lost message, or a complete database loss on the client's side.
 
 .. [#demurrage] Note that for accounts that have a negative interest
-  rate, the amount secured for the transfer will b gradually consumed
+  rate, the amount secured for the transfer will be gradually consumed
   by the accumulated negative interest. Therefore, a prepared transfer
   SHOULD NOT be allowed to commit, if the committed amount exceeds the
   remaining amount. This precaution is necessary in order to prevent a
