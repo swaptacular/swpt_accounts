@@ -549,6 +549,18 @@ lost message, or a complete database loss on the client's side.
   fields are set so as to inform the client (the coordinator) about
   *the worst possible case*.
 
+  Here is an example from the viewpoint of a client (a coordinator):
+  The coordinator prepares a transfer, which he knows, for specific
+  business reasons, will take up to 1 month to get finalized. Then a
+  `PreparedTransfer`_ message for this transfer is received, with a
+  ``locked_amount`` of 10000, and a ``demurrage_rate`` of -79.5
+  percent. The client figures out that if he keeps the prepared
+  transfer around, and does not finalize it, for each passed month, up
+  to 2% of the locked amount will be eaten up (0.98 to the power of 12
+  equals 0.795). Therefore, the client knows that, in order to be
+  certain that the prepared transfer will be committed successfully
+  after one month, the committed amount should not exceed 9800.
+
 .. [#demurrage-rate] The value of the ``demurrage_rate`` field in
   `PreparedTransfer`_ messages SHOULD be equal to the most negative
   interest rate that is theoretically possible to occur on the sender'
