@@ -357,8 +357,8 @@ in server's database:
   no-op.
 
 .. [#avl-amount] The *available amount* is the amount that the debtor
-  owes to the creditor, including the interest, minis the total sum
-  secured (locked) for prepared transfers.
+  owes to the creditor (including the accumulated interest) minis the
+  total sum secured (locked) for prepared transfers.
 
 .. [#unlock-amount] Note that ``committed_amount`` can be smaller than
   ``locked_amount``.
