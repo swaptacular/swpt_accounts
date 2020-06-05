@@ -333,8 +333,9 @@ in server's database:
 
    * Try to transfer the ``committed_amount`` from the sender's
      account to the recipient's account. [#zero-commit]_ It SHOULD be
-     ensured that after this transfer, the amount remaining on the
-     sender's account is not excessively negative. [#demurrage]_
+     ensured that after this transfer, the available amount on the
+     sender's account is not excessively negative. [#avl-amount]_
+     [#demurrage]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#unlock-amount]_
@@ -355,12 +356,16 @@ in server's database:
 .. [#zero-commit] When ``committed_amount`` is zero, this would be a
   no-op.
 
-.. [#successful-commit] If the commit has been successful,
-  `AccountUpdate`_ and `AccountTransfer`_ messages will be sent
-  eventually as well.
+.. [#avl-amount] The available amount is the amount that the debtor
+  owes to the creditor (including the interest), minis the total sum
+  secured (locked) for prepared transfers.
 
 .. [#unlock-amount] Note that ``committed_amount`` can be smaller than
   ``locked_amount``.
+
+.. [#successful-commit] If the commit has been successful,
+  `AccountUpdate`_ and `AccountTransfer`_ messages will be sent
+  eventually as well.
 
 
 Outgoing messages
@@ -525,7 +530,7 @@ lost message, or a complete database loss on the client's side.
   the accumulated interest. Therefore, at the moment of the prepared
   transfer's commit, it could happen that the committed amount exceeds
   the remaining amount. In such cases, the commit of the prepared
-  transfer will not be successful. This is a necessary precaution in
+  transfer should not be successful. This is a necessary precaution in
   order to prevent a trick that opportunistic creditors may use to
   evade incurring negative interest on their accounts. The trick is to
   prepare a transfer from one account to another account for the whole
