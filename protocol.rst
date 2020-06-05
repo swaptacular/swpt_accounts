@@ -537,9 +537,10 @@ lost message, or a complete database loss on the client's side.
   a `PrepareTransfer`_ request is being processed by the server, it
   can not be predicted what amount will be available on the sender's
   account at the time of the transfer's commit. For this reason, when
-  the `PreparedTransfer`_ message is sent by the server, the values of
-  ``demurrage_rate`` and ``gratis_period`` fields will be set so as to
-  inform the client (the coordinator) about *the worst possible case*.
+  a `PreparedTransfer`_ message is sent, the server SHOULD set the
+  values of ``demurrage_rate`` and ``gratis_period`` fields correctly,
+  so as to inform the client (the coordinator) about *the worst
+  possible case*.
 
   Here is an example how this may work, from the viewpoint of a
   coordinator who is trying to commit a *conditional transfer*: The
