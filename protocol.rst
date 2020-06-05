@@ -555,10 +555,11 @@ lost message, or a complete database loss on the client's side.
   significantly between the transfer's preparation and the transfer's
   commit.
 
-.. [#gratis-period] The value of ``gratis_period`` SHOULD be chosen so
-  as to allow clients to easily zero out their accounts, even when the
-  interest rate on them is negative. Note that in such cases, senders'
-  accounts would be allowed to go slightly negative.
+.. [#gratis-period] When the interest rate on creditors' accounts can
+  be negative, the value of ``gratis_period`` SHOULD be chosen so as
+  to allow the whole available amount on senders' accounts to be
+  transferred at once. Note that in those cases, senders' accounts
+  would be allowed to go slightly negative.
 
 
 FinalizedTransfer
