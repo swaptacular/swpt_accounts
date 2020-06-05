@@ -497,15 +497,15 @@ prepared_at : date-time
    The moment at which the transfer was prepared.
 
 demurrage_rate : float
-   The annual rate (in percents) at which the secured amount
-   diminishes with time. This MUST be a number between ``-100`` and
-   ``0``. [#demurrage]_ [#demurrage-rate]_
+   The annual rate (in percents) at which the secured amount will
+   diminish with time, in the worst possible case. This MUST be a
+   number between ``-100`` and ``0``. [#demurrage]_ [#demurrage-rate]_
 
 gratis_period : int32
    An initial period (in seconds) during which the secured amount does
    not diminish. That is: exactly ``gratis_period`` seconds after the
-   ``prepared_at`` moment, the secured amount will begin to diminish
-   at the stated ``demurrage_rate``. This MUST be a non-negative
+   ``prepared_at`` moment, the secured amount may begin to diminish at
+   the stated ``demurrage_rate``. This MUST be a non-negative
    number. [#demurrage]_ [#gratis-period]_
 
 deadline : date-time
