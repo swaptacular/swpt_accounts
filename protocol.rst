@@ -337,7 +337,7 @@ in server's database:
      account to the recipient's account. [#zero-commit]_ This transfer
      SHOULD NOT be allowed if, after the transfer, the *available
      amount* [#avl-amount]_ on the sender's account would become
-     excessively negative. [#demurrage]_
+     excessively negative. [#demurrage]_ [#gratis-period]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#unlock-amount]_
@@ -549,20 +549,21 @@ lost message, or a complete database loss on the client's side.
   fields are set so as to inform the client (the coordinator) about
   *the worst possible case*.
 
-.. [#demurrage-rate] The value of ``demurrage_rate`` SHOULD be equal
-  to the most negative interest rate that is theoretically possible to
-  occur on the sender' account, between the transfer's preparation and
-  the transfer's commit. Note that the current interest rate on the
-  sender's account is not that important, because it can change
-  significantly between the transfer's preparation and the transfer's
-  commit.
+.. [#demurrage-rate] The value of the ``demurrage_rate`` field in the
+  `PreparedTransfer`_ messages SHOULD be equal to the most negative
+  interest rate that is theoretically possible to occur on the sender'
+  account, between the transfer's preparation and the transfer's
+  commit. Note that the current interest rate on the sender's account
+  is not that important, because it can change significantly between
+  the transfer's preparation and the transfer's commit.
 
-.. [#gratis-period] When the interest rate on creditors' accounts can
-  be negative, the value of ``gratis_period`` SHOULD be chosen so as
-  to allow the whole available amount on a given account to be
-  transferred at once (that is, given that the network latency is not
-  exceptionally high). Note that in this scenario, senders' accounts
-  would be allowed to go slightly negative.
+.. [#gratis-period] When the interest rate on creditors' accounts
+  could be negative, the value of the ``gratis_period`` field in the
+  `PreparedTransfer`_ messages SHOULD be chosen so as to allow the
+  whole available amount on a given account to be transferred at once
+  (that is, given that the network latency is not exceptionally
+  high). Note that in this scenario, senders' accounts would be
+  allowed to go slightly negative.
 
 
 FinalizedTransfer
