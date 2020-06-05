@@ -549,19 +549,20 @@ lost message, or a complete database loss on the client's side.
   fields are set so as to inform the client (the coordinator) about
   *the worst possible case*.
 
-  Here is an example how this works, from the viewpoint of a
+  Here is an example how this may work, from the viewpoint of a
   coordinator who is trying to commit a *conditional transfer*: The
-  coordinator sends a `PrepareTransfer`_ message for the transfer,
-  which he knows, because of the still unrealized condition, will take
-  up to 1 month to get finalized. Then a `PreparedTransfer`_ message
-  for this transfer is received, with a ``locked_amount`` of 1000,
-  and a ``demurrage_rate`` of -79.5 percent. The coordinator figures
-  out that if he keeps the prepared transfer around, and does not
-  finalize it, for each passed month, up to 2% of the locked amount
-  will be eaten up (0.98 to the power of 12 equals 0.795). Therefore,
-  the coordinator can calculate that in order to be certain that,
-  after one month, he will be able to commit this prepared transfer
-  successfully, the committed amount should not exceed 980.
+  coordinator sends a `PrepareTransfer`_ message for the conditional
+  transfer, which he knows, because of the still unrealized condition,
+  will take up to 1 month to get finalized. Then a `PreparedTransfer`_
+  message for this transfer is received, with a ``locked_amount`` of
+  1000, and a ``demurrage_rate`` of -79.5 percent. The coordinator
+  figures out that if he keeps the prepared transfer around, and does
+  not finalize it; for each passed month, up to 2% of the locked
+  amount will be eaten up (0.98 to the power of 12 equals
+  0.795). Therefore, the coordinator can calculate that in order to be
+  certain that, after one month, he will be able to commit this
+  prepared transfer successfully, the committed amount can not
+  exceed 980.
 
 .. [#demurrage-rate] The value of the ``demurrage_rate`` field in
   `PreparedTransfer`_ messages SHOULD be equal to the most negative
