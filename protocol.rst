@@ -533,21 +533,13 @@ lost message, or a complete database loss on the client's side.
   the accumulated interest. Therefore, at the moment of the prepared
   transfer's commit, it could happen that the committed amount exceeds
   the remaining amount by a considerable margin. In such cases, the
-  commit will be unsuccessful. [#creditor-trick]_ This is a necessary
-  precaution in order to prevent a trick that opportunistic creditors
-  may use to evade incurring negative interest on their accounts. The
-  trick is to prepare a transfer from one account to another account
-  for the whole available amount, wait for some long time, then commit
-  the prepared transfer and abandon the first account (which at that
-  point would be significantly in red).
-
-  Also, note that when a `PrepareTransfer`_ request is being processed
-  by the server, it can not be predicted what amount will be available
-  on the sender's account at the time of the transfer's commit. For
-  this reason, when a `PreparedTransfer`_ message is sent by the
-  server, the values of ``demurrage_rate`` and ``gratis_period``
-  fields will be set so as to inform the client (the coordinator)
-  about *the worst possible case*.
+  commit will be unsuccessful. [#creditor-trick]_ Also, note that when
+  a `PrepareTransfer`_ request is being processed by the server, it
+  can not be predicted what amount will be available on the sender's
+  account at the time of the transfer's commit. For this reason, when
+  the `PreparedTransfer`_ message is sent by the server, the values of
+  ``demurrage_rate`` and ``gratis_period`` fields will be set so as to
+  inform the client (the coordinator) about *the worst possible case*.
 
   Here is an example how this may work, from the viewpoint of a
   coordinator who is trying to commit a *conditional transfer*: The
@@ -564,7 +556,13 @@ lost message, or a complete database loss on the client's side.
   prepared transfer successfully, the committed amount can not
   exceed 980.
 
-.. [#creditor-trick] TODO
+.. [#creditor-trick] This is a necessary precaution in order to
+  prevent a trick that opportunistic creditors may use to evade
+  incurring negative interest on their accounts. The trick is to
+  prepare a transfer from one account to another account for the whole
+  available amount, wait for some long time, then commit the prepared
+  transfer and abandon the first account (which at that point would be
+  significantly in red).
 
 .. [#demurrage-rate] The value of the ``demurrage_rate`` field in
   `PreparedTransfer`_ messages SHOULD be equal to the most negative
