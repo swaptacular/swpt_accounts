@@ -337,7 +337,7 @@ in server's database:
      account to the recipient's account. [#zero-commit]_ The transfer
      SHOULD NOT be allowed if, after the transfer, the *available
      amount* [#avl-amount]_ on the sender's account would become too
-     negative. [#demurrage]_ [#gratis-period]_
+     negative. [#demurrage]_ [#creditor-trick]_ [#gratis-period]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#unlock-amount]_
