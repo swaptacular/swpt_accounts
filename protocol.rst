@@ -355,9 +355,9 @@ in server's database:
 .. [#zero-commit] When ``committed_amount`` is zero, this would be a
   no-op.
 
-.. [#successful-commit] If the commit is successful, `AccountUpdate`_
-  and `AccountTransfer`_ messages will be triggered eventually as
-  well.
+.. [#successful-commit] If the commit has been successful,
+  `AccountUpdate`_ and `AccountTransfer`_ messages will be sent
+  eventually as well.
 
 .. [#unlock-amount] Note that ``committed_amount`` can be smaller than
   ``locked_amount``.
