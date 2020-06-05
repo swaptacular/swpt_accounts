@@ -506,8 +506,8 @@ gratis_period : int32
    not diminish, even in the worst possible case. That is: exactly
    ``gratis_period`` seconds after the ``prepared_at`` moment, the
    secured amount may begin to diminish at the stated
-   ``demurrage_rate``. This MUST be a non-negative
-   number. [#demurrage]_ [#gratis-period]_
+   ``demurrage_rate``, but not before that. This MUST be a
+   non-negative number. [#demurrage]_ [#gratis-period]_
 
 deadline : date-time
    The prepared transfer can be committed successfully only before
