@@ -495,8 +495,8 @@ gratis_period : int32
    An initial period (in seconds) during which the secured amount does
    not diminish. That is: exactly ``gratis_period`` seconds after the
    ``prepared_at`` moment, the secured amount will begin to diminish
-   at the stated ``demurrage_rate``. This MUST always be a
-   non-negative number. [#demurrage]_ [#gratis-period]_
+   at the stated ``demurrage_rate``. This MUST be a non-negative
+   number. [#demurrage]_ [#gratis-period]_
 
 deadline : date-time
    The prepared transfer can be committed successfully only before
@@ -533,15 +533,16 @@ lost message, or a complete database loss on the client's side.
   on the sender's account at the time of the transfer's commit. For
   this reason, when server implementations send a `PreparedTransfer`_
   message, the values of ``demurrage_rate`` and ``gratis_period``
-  fields SHOULD be set so as to inform the client (the coordinator)
+  fields need to be set so as to inform the client (the coordinator)
   about the worst possible scenario.
 
 .. [#demurrage-rate] The value of ``demurrage_rate`` SHOULD be equal
   to the most negative interest rate that is reasonably likely to
-  occur on the sender' account. (Note that the current interest rate
-  on the sender's account is not that important, because it can change
+  occur on the sender' account, between the transfer's preparation and
+  the transfer's commit. Note that the current interest rate on the
+  sender's account is not that important, because it can change
   significantly between the transfer's preparation and the transfer's
-  commit.)
+  commit.
 
 .. [#gratis-period] The value of ``gratis_period`` SHOULD be chosen so
   as to allow clients to easily zero out their accounts, even when the
