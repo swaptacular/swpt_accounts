@@ -332,9 +332,9 @@ in server's database:
    MUST:
 
    * Try to transfer the ``committed_amount`` from sender's account to
-     recipient's account. [#commit]_ It SHOULD ensured that after the
-     transfer, the amount remaining on the sender's account is not
-     unreasonably negative. [#demurrage]_
+     recipient's account. [#zero-commit]_ It SHOULD ensured that after
+     the transfer, the amount remaining on the sender's account will
+     not be excessively negative. [#demurrage]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#unlock-amount]_
@@ -342,7 +342,7 @@ in server's database:
    * Remove the prepared transfer from server's database.
 
    * Send a `FinalizedTransfer`_ message with the appropriate
-     ``status_code``.
+     ``status_code``. [#successful-commit]_
 
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
@@ -352,9 +352,12 @@ in server's database:
   as: 1) those restrictions are precisely defined, and known in
   advance; 2) an empty string is a valid ``transfer_message``.
 
-.. [#commit] When ``committed_amount`` is zero, this would be a no-op.
-  When the commit is successful, an `AccountUpdate`_ message, and
-  `AccountTransfer`_ messages will be triggered eventually as well.
+.. [#zero-commit] When ``committed_amount`` is zero, this would be a
+  no-op.
+
+.. [#successful-commit] If the commit is successful, `AccountUpdate`_
+  and `AccountTransfer`_ messages will be triggered eventually as
+  well.
 
 .. [#unlock-amount] Note that ``committed_amount`` can be smaller than
   ``locked_amount``.
