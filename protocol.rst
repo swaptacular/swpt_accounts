@@ -502,10 +502,11 @@ demurrage_rate : float
    number between ``-100`` and ``0``. [#demurrage]_ [#demurrage-rate]_
 
 gratis_period : int32
-   An initial period (in seconds) during which the secured amount does
-   not diminish. That is: exactly ``gratis_period`` seconds after the
-   ``prepared_at`` moment, the secured amount may begin to diminish at
-   the stated ``demurrage_rate``. This MUST be a non-negative
+   An initial period (in seconds) during which the secured amount will
+   not diminish, even in the worst possible case. That is: exactly
+   ``gratis_period`` seconds after the ``prepared_at`` moment, the
+   secured amount may begin to diminish at the stated
+   ``demurrage_rate``. This MUST be a non-negative
    number. [#demurrage]_ [#gratis-period]_
 
 deadline : date-time
