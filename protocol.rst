@@ -282,7 +282,7 @@ When server implementations process a `PrepareTransfer`_ message they:
   probability for the success of the eventual commit is very
   high. Notably, the secured amount MUST be locked, so that until the
   prepared transfer is finalized, the amount is not available for
-  other transfers. [#demurrage]_
+  other transfers.
 
 
 .. [#coordinator-type] Random examples: ``"direct"`` might be used for
@@ -357,7 +357,7 @@ in server's database:
   no-op.
 
 .. [#avl-amount] The *available amount* is the amount that the debtor
-  owes to the creditor (including the accumulated interest) minis the
+  owes to the creditor (including the accumulated interest), minis the
   total sum secured (locked) for prepared transfers.
 
 .. [#unlock-amount] Note that ``committed_amount`` can be smaller than
@@ -530,7 +530,7 @@ lost message, or a complete database loss on the client's side.
   the accumulated interest. Therefore, at the moment of the prepared
   transfer's commit, it could happen that the committed amount exceeds
   the remaining amount. In such cases, the commit of the prepared
-  transfer should not be successful. This is a necessary precaution in
+  transfer will not be successful. This is a necessary precaution in
   order to prevent a trick that opportunistic creditors may use to
   evade incurring negative interest on their accounts. The trick is to
   prepare a transfer from one account to another account for the whole
