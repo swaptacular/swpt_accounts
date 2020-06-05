@@ -332,10 +332,10 @@ in server's database:
    MUST:
 
    * Try to transfer the ``committed_amount`` from the sender's
-     account to the recipient's account. [#zero-commit]_ It SHOULD be
-     ensured that after this transfer, the *available amount*
-     [#avl-amount]_ on the sender's account is not excessively
-     negative. [#demurrage]_
+     account to the recipient's account. [#zero-commit]_ This transfer
+     SHOULD NOT be allowed if, after the transfer, the *available
+     amount* [#avl-amount]_ on the sender's account would become
+     excessively negative. [#demurrage]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#unlock-amount]_
