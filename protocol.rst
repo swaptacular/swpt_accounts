@@ -562,8 +562,8 @@ lost message, or a complete database loss on the client's side.
   `PreparedTransfer`_ messages SHOULD be chosen so as to allow the
   whole available amount on a given account to be transferred at once
   (that is, given that the network latency is not exceptionally
-  high). Note that in this scenario, senders' accounts would be
-  allowed to go slightly negative.
+  high). Note that in this scenario, senders' accounts *would be
+  allowed to go slightly negative*.
 
 
 FinalizedTransfer
