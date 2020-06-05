@@ -334,7 +334,7 @@ in server's database:
    MUST:
 
    * Try to transfer the ``committed_amount`` from the sender's
-     account to the recipient's account. [#zero-commit]_ This transfer
+     account to the recipient's account. [#zero-commit]_ The transfer
      SHOULD NOT be allowed if, after the transfer, the *available
      amount* [#avl-amount]_ on the sender's account would become too
      negative. [#demurrage]_ [#gratis-period]_
