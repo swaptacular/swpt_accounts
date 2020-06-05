@@ -543,8 +543,8 @@ lost message, or a complete database loss on the client's side.
   on the sender's account at the time of the transfer's commit. For
   this reason, when server implementations send a `PreparedTransfer`_
   message, the values of ``demurrage_rate`` and ``gratis_period``
-  fields need to be set so as to inform the client (the coordinator)
-  about the worst possible scenario.
+  fields are set so as to inform the client (the coordinator) about
+  the worst possible scenario.
 
 .. [#demurrage-rate] The value of ``demurrage_rate`` SHOULD be equal
   to the most negative interest rate that is reasonably likely to
