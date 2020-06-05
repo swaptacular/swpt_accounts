@@ -77,6 +77,8 @@ mind:
    proxy/adapter that allows clients that "talk" this protocol to
    create bank accounts and make bank transfers.
 
+4. The protocol supports positive and *negative* interest rates.
+
 .. [#one-account-limit] A given creditor can have *at most one
   account* with a given debtor. This limitation greatly simplifies the
   protocol, at the cost of making rare use cases less convenient. (To
