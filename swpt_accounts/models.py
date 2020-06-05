@@ -198,7 +198,7 @@ class PreparedTransfer(db.Model):
         db.CheckConstraint(transfer_id > 0),
         db.CheckConstraint(sender_locked_amount > 0),
         db.CheckConstraint(gratis_period >= 0),
-        db.CheckConstraint((demurrage_rate >= 0.0) & (demurrage_rate < 100.0)),
+        db.CheckConstraint((demurrage_rate > -100.0) & (demurrage_rate <= 0.0)),
         {
             'comment': 'A prepared transfer represent a guarantee that a particular transfer of '
                        'funds will be successful if ordered (committed). A record will remain in '
@@ -217,7 +217,7 @@ class PreparedTransfer(db.Model):
         if is_regular_transfer:
             demurrage_seconds = (current_ts - self.prepared_at_ts).total_seconds() - self.gratis_period
             if demurrage_seconds > 0:
-                k = math.log(1.0 - self.demurrage_rate / 100.0) / SECONDS_IN_YEAR
+                k = math.log(1.0 + self.demurrage_rate / 100.0) / SECONDS_IN_YEAR
                 unconsumed_locked_amount = self.sender_locked_amount * math.exp(k * demurrage_seconds)
                 if float(committed_amount) > unconsumed_locked_amount:
                     assert committed_amount > 0

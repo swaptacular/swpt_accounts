@@ -700,7 +700,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pts_obj['prepared_at'] == pts_obj['ts']
     assert pts_obj['deadline'] == pts.deadline.isoformat()
     assert pts_obj['gratis_period'] == 600
-    assert pts_obj['demurrage_rate'] == 50.0
+    assert pts_obj['demurrage_rate'] == -50.0
     assert isinstance(pts_obj['ts'], str)
 
     # Discard the transfer.

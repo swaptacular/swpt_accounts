@@ -642,7 +642,7 @@ def _process_transfer_request(
         sender_account.pending_transfers_count += 1
         sender_account.last_transfer_id += 1
         gratis_period = int(current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS'])
-        demurrage_rate = -INTEREST_RATE_FLOOR
+        demurrage_rate = INTEREST_RATE_FLOOR
         deadline = _calc_prepared_transfer_deadline(current_ts)
         db.session.add(PreparedTransfer(
             debtor_id=tr.debtor_id,

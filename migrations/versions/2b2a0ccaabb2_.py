@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5acff9539517
+Revision ID: 2b2a0ccaabb2
 Revises: 
-Create Date: 2020-06-04 13:30:42.193814
+Create Date: 2020-06-05 10:01:57.896232
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '5acff9539517'
+revision = '2b2a0ccaabb2'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -205,7 +205,7 @@ def upgrade():
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The moment at which the last `PreparedTransferSignal` was sent to remind that the prepared transfer must be finalized. A `NULL` means that no reminders have been sent yet. This column helps to prevent sending reminders too often.'),
-    sa.CheckConstraint('demurrage_rate >= 0.0 AND demurrage_rate < 100.0'),
+    sa.CheckConstraint('demurrage_rate > -100.0 AND demurrage_rate <= 0.0'),
     sa.CheckConstraint('gratis_period >= 0'),
     sa.CheckConstraint('sender_locked_amount > 0'),
     sa.CheckConstraint('transfer_id > 0'),
