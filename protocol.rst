@@ -549,15 +549,15 @@ lost message, or a complete database loss on the client's side.
   will take up to 1 month to get finalized. Then, a
   `PreparedTransfer`_ message for this transfer is received, with a
   ``locked_amount`` of 1000, and a ``demurrage_rate`` of -79.5
-  percent. The coordinator figures out that if he keeps the prepared
-  transfer around, and does not finalize it; for each passed month, up
+  percent. The coordinator figures out that if he keeps this prepared
+  transfer around, and does not finalize it, for each passed month, up
   to 2% of the locked amount will be eaten up (0.98 to the power of 12
   equals 0.795). Therefore, the coordinator can calculate that in
   order to be certain that, after one month, he will be able to commit
   this prepared transfer successfully, the committed amount should not
-  exceed 980. (That is: The ``committed_amount`` field in the
-  `FinalizeTransfer`_ message that the coordinator sends to commit the
-  transfer, should not exceed 980.)
+  exceed 980. (That is: The value of the ``committed_amount`` field in
+  the `FinalizeTransfer`_ message that the coordinator sends to commit
+  the transfer, should not exceed ``980``.)
 
 .. [#creditor-trick] This is a necessary precaution in order to
   prevent a trick that opportunistic creditors may use to evade
