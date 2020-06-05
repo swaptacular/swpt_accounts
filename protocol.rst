@@ -549,7 +549,7 @@ lost message, or a complete database loss on the client's side.
   fields are set so as to inform the client (the coordinator) about
   *the worst possible case*.
 
-.. [#demurrage-rate] The value of the ``demurrage_rate`` field in the
+.. [#demurrage-rate] The value of the ``demurrage_rate`` field in
   `PreparedTransfer`_ messages SHOULD be equal to the most negative
   interest rate that is theoretically possible to occur on the sender'
   account, between the transfer's preparation and the transfer's
@@ -558,7 +558,7 @@ lost message, or a complete database loss on the client's side.
   the transfer's preparation and the transfer's commit.
 
 .. [#gratis-period] When the interest rate on creditors' accounts
-  could be negative, the value of the ``gratis_period`` field in the
+  could be negative, the value of the ``gratis_period`` field in
   `PreparedTransfer`_ messages SHOULD be chosen so as to allow the
   whole available amount on a given account to be transferred at once
   (that is, given that the network latency is not exceptionally
