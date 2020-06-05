@@ -20,10 +20,9 @@ This protocol is centered around two types of actors: *debtors* and
 digital currency. A creditor is a person or an organization that owns
 tokens in one or more debtors' digital currencies. The relationship is
 asymmetrical: Currency tokens express the fact that the debtor owes
-something to the creditor. Although a creditor owing something to a
-debtor can be expressed with a negative account balance, the
-relationship is not supposed to work in the reverse direction. The
-protocol supports the following operations:
+something to the creditor. Although a creditor can have a negative
+account balance, the relationship is not supposed to work in the
+reverse direction. The protocol supports the following operations:
 
 1. Creditors can open accounts with debtors. [#one-account-limit]_
 
