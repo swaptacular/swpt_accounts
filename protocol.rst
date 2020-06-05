@@ -331,10 +331,10 @@ in server's database:
 1. If the specified prepared transfer exists, server implementations
    MUST:
 
-   * Try to transfer the ``committed_amount`` from sender's account to
-     recipient's account. [#zero-commit]_ It SHOULD ensured that after
-     the transfer, the amount remaining on the sender's account will
-     not be excessively negative. [#demurrage]_
+   * Try to transfer the ``committed_amount`` from the sender's
+     account to the recipient's account. [#zero-commit]_ It SHOULD be
+     ensured that after this transfer, the amount remaining on the
+     sender's account is not excessively negative. [#demurrage]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#unlock-amount]_
