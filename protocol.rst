@@ -548,7 +548,7 @@ lost message, or a complete database loss on the client's side.
   *the worst possible case*.
 
 .. [#demurrage-rate] The value of ``demurrage_rate`` SHOULD be equal
-  to the most negative interest rate that is reasonably likely to
+  to the most negative interest rate that is theoretically possible to
   occur on the sender' account, between the transfer's preparation and
   the transfer's commit. Note that the current interest rate on the
   sender's account is not that important, because it can change
@@ -557,7 +557,8 @@ lost message, or a complete database loss on the client's side.
 
 .. [#gratis-period] The value of ``gratis_period`` SHOULD be chosen so
   as to allow clients to easily zero out their accounts, even when the
-  interest rate on them is negative.
+  interest rate on them is negative. Note that in such cases, senders'
+  accounts would be allowed to go slightly negative.
 
 
 FinalizedTransfer
