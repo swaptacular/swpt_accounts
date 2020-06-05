@@ -356,7 +356,7 @@ in server's database:
 .. [#zero-commit] When ``committed_amount`` is zero, this would be a
   no-op.
 
-.. [#avl-amount] The available amount is the amount that the debtor
+.. [#avl-amount] The *available amount* is the amount that the debtor
   owes to the creditor (including the interest), minis the total sum
   secured (locked) for prepared transfers.
 
@@ -442,7 +442,7 @@ available_amount : int64
    insufficient available amount, but there is a good chance for a new
    transfer request for a smaller amount to be successful, this field
    SHOULD contain the amount currently available on sender's account;
-   otherwise this MUST be ``0``.
+   otherwise this MUST be ``0``. [#avl-amount]_
 
 recipient : string
    The value of the ``recipient`` field in the corresponding
