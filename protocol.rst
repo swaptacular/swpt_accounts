@@ -520,7 +520,7 @@ lost message, or a complete database loss on the client's side.
   the accumulated interest. Therefore, at the moment of the prepared
   transfer's commit, it could happen that the committed amount exceeds
   the remaining amount. In such cases, the commit of the prepared
-  transfer SHOULD NOT be successful. This is a necessary precaution in
+  transfer will not be successful. This is a necessary precaution in
   order to prevent a trick that opportunistic creditors may use to
   evade incurring negative interest on their accounts. The trick is to
   prepare a transfer from one account to another account for the whole
