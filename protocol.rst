@@ -559,9 +559,9 @@ lost message, or a complete database loss on the client's side.
 
 .. [#gratis-period] When the interest rate on creditors' accounts can
   be negative, the value of ``gratis_period`` SHOULD be chosen so as
-  to allow the whole available amount on senders' accounts to be
-  transferred at once, given that the network latency is not
-  exceptionally high. Note that in those cases, senders' accounts
+  to allow the whole available amount on a given account to be
+  transferred at once (that is, given that the network latency is not
+  exceptionally high). Note that in this scenario, senders' accounts
   would be allowed to go slightly negative.
 
 
