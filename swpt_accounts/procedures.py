@@ -137,6 +137,9 @@ def finalize_transfer(
         debtor_id: int,
         creditor_id: int,
         transfer_id: int,
+        coordinator_type: str,
+        coordinator_id: int,
+        coordinator_request_id: int,
         committed_amount: int,
         transfer_message: str = '',
         ts: datetime = None) -> None:
@@ -148,7 +151,13 @@ def finalize_transfer(
 
     current_ts = datetime.now(tz=timezone.utc)
     pt = PreparedTransfer.lock_instance((debtor_id, creditor_id, transfer_id))
-    if pt:
+    pt_with_matching_coordinator = (
+        pt is not None
+        and pt.coordinator_type == coordinator_type
+        and pt.coordinator_id == coordinator_id
+        and pt.coordinator_request_id == coordinator_request_id
+    )
+    if pt_with_matching_coordinator:
         status_code = pt.get_status_code(committed_amount, current_ts)
         if status_code != 'OK':
             committed_amount = 0

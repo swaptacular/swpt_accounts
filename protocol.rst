@@ -265,26 +265,28 @@ ts : date-time
 
 When server implementations process a `PrepareTransfer`_ message they:
 
+* MUST NOT allow a transfer in which the sender and the recipient is
+  the same account.
+
+* SHOULD NOT allow a transfer without verifying that the recipient's
+  account exists, and does accept incoming transfers.
+
 * SHOULD try to secure as big amount as possible, within the requested
   limits (between ``min_amount`` and ``max_amount``).
 
-* SHOULD NOT prepare a transfer without verifying that the recipient's
-  account exists, and does accept incoming transfers.
-
-* MUST NOT allow transfers in which the sender and the recipient is
-  the same account.
-
-* MUST send a `PreparedTransfer`_ message if the requested transfer
-  has been successfully prepared.
-
-* MUST send a `RejectedTransfer`_ message if the requested transfer
-  can not be prepared.
-
-* MUST guarantee that when a transfer has been prepared, the
+* MUST guarantee that if a transfer is successfully prepared, the
   probability for the success of the eventual commit is very
   high. Notably, the secured amount MUST be locked, so that until the
   prepared transfer is finalized, the amount is not available for
   other transfers.
+
+* If the requested transfer has been successfully prepared, MUST send
+  a `PreparedTransfer`_ message, and create a new prepared transfer
+  record in the server's database, which stores the values of all data
+  fields sent with the `PreparedTransfer`_ message.
+
+* If the requested transfer can not be prepared, MUST send a
+  `RejectedTransfer`_ message.
 
 
 .. [#coordinator-type] Random examples: ``"direct"`` might be used for
@@ -309,6 +311,21 @@ transfer_id : int64
    with ``debtor_id`` and ``creditor_id``, uniquely identifies the
    prepared transfer that has to be finalized.
 
+coordinator_type : string
+   MUST contain the value of the ``coordinator_type`` field in the
+   `PrepareTransfer`_ message that has been sent to prepare the
+   transfer.
+
+coordinator_id : int64
+   MUST contain the value of the ``coordinator_id`` field in the
+   `PrepareTransfer`_ message that has been sent to prepare the
+   transfer.
+
+coordinator_request_id : int64
+   MUST contain the value of the ``coordinator_request_id`` field in
+   the `PrepareTransfer`_ message that has been sent to prepare the
+   transfer.
+
 committed_amount : int64
    The amount that has to be transferred. This MUST be a non-negative
    number, which MUST NOT exceed the value of the ``locked_amount``
@@ -327,8 +344,8 @@ ts : date-time
    timestamp).
 
 When server implementations process a `FinalizeTransfer`_ message,
-they MUST first verify whether the specified prepared transfer exists
-in server's database:
+they MUST first verify whether a matching prepared transfer exists in
+server's database: [#transfer-match]_
 
 1. If the specified prepared transfer exists, server implementations
    MUST:
@@ -354,6 +371,12 @@ in server's database:
   restrictions on the format and the content of this string, as long
   as: 1) those restrictions are precisely defined, and known in
   advance; 2) an empty string is a valid ``transfer_message``.
+
+.. [#transfer-match] The matching prepared transfer MUST have the same
+  ``debtor_id``, ``creditor_id``, ``transfer_id``,
+  ``coordinator_type``, ``coordinator_id``, and
+  ``coordinator_request_id`` values as the received
+  `FinalizeTransfer`_ message.
 
 .. [#zero-commit] When ``committed_amount`` is zero, this would be a
   no-op.
