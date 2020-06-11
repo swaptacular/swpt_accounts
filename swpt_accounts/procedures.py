@@ -392,7 +392,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     coordinator_type=change.coordinator_type,
                     other_creditor_id=change.other_creditor_id,
                     committed_at_ts=change.inserted_at_ts,
-                    amount=change.principal_delta,
+                    acquired_amount=change.principal_delta,
                     transfer_message=change.transfer_message,
                     principal=_contain_principal_overflow(account.principal + principal_delta),
                 )
@@ -551,11 +551,11 @@ def _insert_account_transfer_signal(
         coordinator_type: str,
         other_creditor_id: int,
         committed_at_ts: datetime,
-        amount: int,
+        acquired_amount: int,
         transfer_message: str,
         principal: int) -> None:
 
-    assert amount != 0
+    assert acquired_amount != 0
     previous_transfer_number = account.last_transfer_number
     account.last_transfer_number += 1
     account.last_transfer_committed_at = committed_at_ts
@@ -566,7 +566,7 @@ def _insert_account_transfer_signal(
     if account.creditor_id != ROOT_CREDITOR_ID:
         transfer_flags = 0
 
-        if abs(amount) <= account.negligible_amount:
+        if abs(acquired_amount) <= account.negligible_amount:
             transfer_flags |= AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
 
         db.session.add(AccountTransferSignal(
@@ -576,7 +576,7 @@ def _insert_account_transfer_signal(
             coordinator_type=coordinator_type,
             other_creditor_id=other_creditor_id,
             committed_at_ts=committed_at_ts,
-            amount=amount,
+            acquired_amount=acquired_amount,
             transfer_message=transfer_message,
             transfer_flags=transfer_flags,
             creation_date=account.creation_date,
@@ -628,7 +628,7 @@ def _make_debtor_payment(
             coordinator_type=coordinator_type,
             other_creditor_id=ROOT_CREDITOR_ID,
             committed_at_ts=current_ts,
-            amount=amount,
+            acquired_amount=amount,
             transfer_message=transfer_message,
             principal=_contain_principal_overflow(account.principal + amount),
         )

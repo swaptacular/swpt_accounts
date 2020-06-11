@@ -896,7 +896,7 @@ recipient : string
    recipient's account. [#account-identity]_ An empty string signifies
    that the recipient is unknown.
 
-amount : int64
+acquired_amount : int64
    The increase in the affected account's principal (caused by the
    transfer). This MUST NOT be zero. If it is a positive number (an
    addition to the principal), the affected account would be the
