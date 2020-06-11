@@ -1,5 +1,6 @@
 import pytest
 from datetime import datetime, timezone, timedelta
+from swpt_lib.utils import i64_to_u64
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
@@ -58,6 +59,7 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['last_outgoing_transfer_date'] == a.last_outgoing_transfer_date.isoformat()
     assert acs_obj['last_transfer_number'] == 0
     assert acs_obj['last_transfer_committed_at'] == a.last_transfer_committed_at_ts.isoformat()
+    assert acs_obj['debtor_url'] == 'https://example.com/debtors/{}/'.format(i64_to_u64(D_ID))
     assert isinstance(acs_obj['ts'], str)
     assert acs_obj['ttl'] == 7 * 24 * 60 * 60
 

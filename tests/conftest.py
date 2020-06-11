@@ -7,6 +7,13 @@ from swpt_accounts.extensions import db
 
 DB_SESSION = 'swpt_accounts.extensions.db.session'
 
+server_name = 'example.com'
+config_dict = {
+    'TESTING': True,
+    'SWPT_URL_SCHEME': 'https',
+    'SWPT_SERVER_NAME': server_name,
+}
+
 
 def _restart_savepoint(session, transaction):
     if transaction.nested and not transaction._parent.nested:
@@ -16,9 +23,7 @@ def _restart_savepoint(session, transaction):
 
 @pytest.fixture(scope='module')
 def app_unsafe_session():
-    app = create_app({
-        'TESTING': True,
-    })
+    app = create_app(config_dict)
     with app.app_context():
         flask_migrate.upgrade()
         yield app
@@ -28,9 +33,7 @@ def app_unsafe_session():
 def app():
     """Create a Flask application object."""
 
-    app = create_app({
-        'TESTING': True,
-    })
+    app = create_app(config_dict)
     with app.app_context():
         flask_migrate.upgrade()
         forbidden = mock.Mock()

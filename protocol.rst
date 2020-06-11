@@ -753,6 +753,11 @@ account_identity : string
    the account have got an identity, the identity SHOULD NOT be
    changed until the account is removed from the server's database.
 
+debtor_url : string
+   An URL for obtaining information about the account's debtor. This
+   provides a reliable way for creditors to get up-to-date information
+   about the debtor.
+
 last_outgoing_transfer_date : date
    The date of the latest transfer (not counting interest payments),
    for which the owner of the account was the sender. If there have
