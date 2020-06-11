@@ -903,9 +903,6 @@ acquired_amount : int64
    recipient. If it is a negative number (a subtraction from the
    principal), the affected account would be the sender.
 
-committed_at : date-time
-   The moment at which the transfer was committed.
-
 transfer_message : string
    If the transfer has been committed by a `FinalizeTransfer`_
    message, this field MUST contain the value of the
@@ -919,6 +916,9 @@ transfer_flags : int32
    lowest 16 bits are reserved. Bit ``0`` has the meaning "negligible
    transfer", indicating that the transferred amount does not exceed
    the configured ``negligible_amount``. [#negligible-transfer]_
+
+committed_at : date-time
+   The moment at which the transfer was committed.
 
 principal : int64
    The amount that the debtor owes to the creditor, without the
