@@ -645,6 +645,30 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
     assert rts.rejection_code == 'TOO_MANY_TRANSFERS'
 
 
+def test_prepare_transfer_invalid_recipient(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 100, Account.pending_transfers_count: MAX_INT32})
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient='invalid',
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    rts = RejectedTransferSignal.query.one()
+    assert rts.debtor_id == D_ID
+    assert rts.coordinator_type == 'test'
+    assert rts.coordinator_id == 1
+    assert rts.coordinator_request_id == 2
+    assert rts.rejection_code == 'RECIPIENT_IS_UNREACHABLE'
+
+
 def test_prepare_transfer_success(db_session, current_ts):
     assert 1234 != C_ID
     p.configure_account(D_ID, C_ID, current_ts, 0)

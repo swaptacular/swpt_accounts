@@ -4,7 +4,7 @@ from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Se
 from decimal import Decimal
 from flask import current_app
 from sqlalchemy.sql.expression import tuple_
-from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64
+from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64, i64_to_u64
 from .extensions import db
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
@@ -19,6 +19,7 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
+RC_RECIPIENT_IS_UNREACHABLE = 'RECIPIENT_IS_UNREACHABLE'
 
 
 @atomic
@@ -119,17 +120,31 @@ def prepare_transfer(
         # account is allowed to issue money.
         minimum_account_balance = max(0, minimum_account_balance)
 
-    db.session.add(TransferRequest(
-        debtor_id=debtor_id,
-        coordinator_type=coordinator_type,
-        coordinator_id=coordinator_id,
-        coordinator_request_id=coordinator_request_id,
-        min_amount=min_amount,
-        max_amount=max_amount,
-        sender_creditor_id=creditor_id,
-        recipient_creditor_id=u64_to_i64(int(recipient)),
-        minimum_account_balance=minimum_account_balance,
-    ))
+    try:
+        recipient_creditor_id = u64_to_i64(int(recipient))
+    except ValueError:
+        db.session.add(RejectedTransferSignal(
+            debtor_id=debtor_id,
+            coordinator_type=coordinator_type,
+            coordinator_id=coordinator_id,
+            coordinator_request_id=coordinator_request_id,
+            rejection_code=RC_RECIPIENT_IS_UNREACHABLE,
+            available_amount=0,
+            sender_creditor_id=creditor_id,
+            recipient=recipient,
+        ))
+    else:
+        db.session.add(TransferRequest(
+            debtor_id=debtor_id,
+            coordinator_type=coordinator_type,
+            coordinator_id=coordinator_id,
+            coordinator_request_id=coordinator_request_id,
+            min_amount=min_amount,
+            max_amount=max_amount,
+            sender_creditor_id=creditor_id,
+            recipient_creditor_id=recipient_creditor_id,
+            minimum_account_balance=minimum_account_balance,
+        ))
 
 
 @atomic
@@ -642,7 +657,7 @@ def _process_transfer_request(
             rejection_code=rejection_code,
             available_amount=available_amount,
             sender_creditor_id=tr.sender_creditor_id,
-            recipient_creditor_id=tr.recipient_creditor_id,
+            recipient=str(i64_to_u64(tr.recipient_creditor_id))
         )
 
     def prepare(amount: int) -> PreparedTransferSignal:
@@ -700,7 +715,7 @@ def _process_transfer_request(
     # when the debtor's account does not exist. In this case, it will
     # be created when the transfer is committed.
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
-        return reject('RECIPIENT_IS_UNREACHABLE', 0)
+        return reject(RC_RECIPIENT_IS_UNREACHABLE, 0)
 
     # NOTE: The available amount should be checked last, because if
     # the transfer request is rejected due to insufficient available
