@@ -152,10 +152,10 @@ def amount(request):
 
 
 def test_make_debtor_payment(db_session, current_ts, amount):
-    TRANSFER_MESSAGE = '{"transer_data": 123}'
+    TRANSFER_NOTE = '{"transer_data": 123}'
     p.configure_account(D_ID, C_ID, current_ts, 0,
                         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=abs(amount))
-    p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_MESSAGE)
+    p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_NOTE)
 
     root_change = PendingAccountChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
@@ -174,7 +174,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1.creditor_id == C_ID
     assert cts1.other_creditor_id == p.ROOT_CREDITOR_ID
     assert cts1.acquired_amount == amount
-    assert cts1.transfer_message == TRANSFER_MESSAGE
+    assert cts1.transfer_note == TRANSFER_NOTE
     assert cts1.transfer_number == transfer_number1
     assert cts1.principal == amount
     assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
@@ -190,12 +190,12 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1_obj['sender'] != cts1_obj['recipient']
     assert cts1_obj['acquired_amount'] == amount
     assert cts1_obj['committed_at'] == cts1.committed_at_ts.isoformat()
-    assert cts1_obj['transfer_message'] == TRANSFER_MESSAGE
+    assert cts1_obj['transfer_note'] == TRANSFER_NOTE
     assert cts1_obj['transfer_flags'] & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
     assert isinstance(cts1_obj['ts'], str)
     assert cts1_obj['previous_transfer_number'] == 0
 
-    p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_MESSAGE)
+    p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_NOTE)
     p.process_pending_account_changes(D_ID, C_ID)
     cts = AccountTransferSignal.query.filter_by(
         debtor_id=D_ID, creditor_id=C_ID, transfer_number=transfer_number1 + 1).one()

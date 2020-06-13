@@ -29,7 +29,7 @@ def test_finalize_transfer(db_session):
         coordinator_id=1,
         coordinator_request_id=2,
         committed_amount=100,
-        transfer_message='',
+        transfer_note='',
         ts=datetime.now(tz=timezone.utc).isoformat(),
     )
 

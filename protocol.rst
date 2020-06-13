@@ -333,11 +333,11 @@ committed_amount : int64
    message. [#unlock-amount]_ [#demurrage]_ A ``0`` signifies that the
    transfer MUST be dismissed.
 
-transfer_message : string
+transfer_note : string
    A string that the coordinator (the client that finalizes the
    prepared transfer) wants the recipient and the sender to see.  If
    the transfer is being dismissed, this MUST be an empty
-   string. [#message-limitations]_
+   string. [#note-limitations]_
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -367,10 +367,10 @@ server's database: [#transfer-match]_
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
 
-.. [#message-limitations] Server implementations MAY impose additional
+.. [#note-limitations] Server implementations MAY impose additional
   restrictions on the format and the content of this string, as long
   as: 1) those restrictions are precisely defined, and known in
-  advance; 2) an empty string is a valid ``transfer_message``.
+  advance; 2) an empty string is a valid ``transfer_note``.
 
 .. [#transfer-match] The matching prepared transfer MUST have the same
   ``debtor_id``, ``creditor_id``, ``transfer_id``,
@@ -903,12 +903,12 @@ acquired_amount : int64
    recipient. If it is a negative number (a subtraction from the
    principal), the affected account would be the sender.
 
-transfer_message : string
+transfer_note : string
    If the transfer has been committed by a `FinalizeTransfer`_
-   message, this field MUST contain the value of the
-   ``transfer_message`` field from the message that committed the
-   transfer. Otherwise, it SHOULD contain information pertaining to
-   the reason for the transfer.
+   message, this field MUST contain the value of the ``transfer_note``
+   field from the message that committed the transfer. Otherwise, it
+   SHOULD contain information pertaining to the reason for the
+   transfer.
 
 transfer_flags : int32
    Various bit-flags characterizing the transfer. Server

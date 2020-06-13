@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: f6beaec66cdc
+Revision ID: 6f59873dd645
 Revises: 
-Create Date: 2020-06-11 19:28:57.231570
+Create Date: 2020-06-13 12:39:53.631258
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f6beaec66cdc'
+revision = '6f59873dd645'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -73,7 +73,7 @@ def upgrade():
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('transfer_message', sa.TEXT(), nullable=False),
+    sa.Column('transfer_note', sa.TEXT(), nullable=False),
     sa.Column('transfer_flags', sa.Integer(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
@@ -124,10 +124,10 @@ def upgrade():
     sa.Column('interest_delta', sa.BigInteger(), nullable=False, comment='The change in `account.interest`.'),
     sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.locked_amount`, and `account.pending_transfers_count` must be decremented.'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('transfer_message', sa.TEXT(), nullable=True, comment='Notes from the sender. Can be any string that the sender wants the recipient to see. If the account change represents a committed transfer, the notes will be included in the generated `on_account_transfer_signal` event, otherwise the notes are ignored. Can be NULL only if `principal_delta` is zero.'),
+    sa.Column('transfer_note', sa.TEXT(), nullable=True, comment='A note from the sender. Can be any string that the sender wants the recipient to see. If the account change represents a committed transfer, the note will be included in the generated `on_account_transfer_signal` event, otherwise the note is ignored. Can be NULL only if `principal_delta` is zero.'),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='If the account change represents a committed transfer, this is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, the value is irrelevant.'),
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.CheckConstraint('principal_delta = 0 OR transfer_message IS NOT NULL'),
+    sa.CheckConstraint('principal_delta = 0 OR transfer_note IS NOT NULL'),
     sa.CheckConstraint('unlocked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
     comment='Represents a pending change to a given account. Pending updates to `account.principal`, `account.interest`, and `account.locked_amount` are queued to this table, before being processed, because this allows multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'

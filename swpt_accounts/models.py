@@ -246,12 +246,12 @@ class PendingAccountChange(db.Model):
                 '`account.pending_transfers_count` must be decremented.',
     )
     coordinator_type = db.Column(db.String(30), nullable=False)
-    transfer_message = db.Column(
+    transfer_note = db.Column(
         pg.TEXT,
-        comment='Notes from the sender. Can be any string that the sender wants the '
+        comment='A note from the sender. Can be any string that the sender wants the '
                 'recipient to see. If the account change represents a committed transfer, '
-                'the notes will be included in the generated `on_account_transfer_signal` '
-                'event, otherwise the notes are ignored. Can be NULL only if '
+                'the note will be included in the generated `on_account_transfer_signal` '
+                'event, otherwise the note is ignored. Can be NULL only if '
                 '`principal_delta` is zero.',
     )
     other_creditor_id = db.Column(
@@ -265,7 +265,7 @@ class PendingAccountChange(db.Model):
     inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     __table_args__ = (
-        db.CheckConstraint(or_(principal_delta == 0, transfer_message != null())),
+        db.CheckConstraint(or_(principal_delta == 0, transfer_note != null())),
         db.CheckConstraint(unlocked_amount >= 0),
         {
             'comment': 'Represents a pending change to a given account. Pending updates to '

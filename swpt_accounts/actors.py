@@ -64,7 +64,7 @@ def finalize_transfer(
         coordinator_id: int,
         coordinator_request_id: int,
         committed_amount: int,
-        transfer_message: str,
+        transfer_note: str,
         ts: str) -> None:
 
     """Finalize a prepared transfer."""
@@ -77,7 +77,7 @@ def finalize_transfer(
         coordinator_id,
         coordinator_request_id,
         committed_amount,
-        transfer_message,
+        transfer_note,
         iso8601.parse_date(ts),
     )
 
