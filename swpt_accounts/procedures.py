@@ -19,7 +19,11 @@ T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
 ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
+RC_INVALID_CONFIGURATION = 'INVALID_CONFIGURATION'
 RC_RECIPIENT_IS_UNREACHABLE = 'RECIPIENT_IS_UNREACHABLE'
+RC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
+RC_RECIPIENT_SAME_AS_SENDER = 'RC_RECIPIENT_IS_UNREACHABLE'
+RC_TOO_MANY_TRANSFERS = 'TOO_MANY_TRANSFERS'
 
 
 @atomic
@@ -71,7 +75,7 @@ def configure_account(
                 config_flags=config_flags,
                 negligible_amount=negligible_amount,
                 config=config,
-                rejection_code='INVALID_CONFIGURATION',
+                rejection_code=RC_INVALID_CONFIGURATION,
             ))
 
     account = _get_account_instance(debtor_id, creditor_id, lock=True)
@@ -696,15 +700,15 @@ def _process_transfer_request(
     db.session.delete(tr)
 
     if sender_account is None:
-        return reject('INSUFFICIENT_AVAILABLE_AMOUNT', 0)
+        return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, 0)
 
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
     if sender_account.pending_transfers_count >= MAX_INT32:
-        return reject('TOO_MANY_TRANSFERS', 0)
+        return reject(RC_TOO_MANY_TRANSFERS, 0)
 
     if tr.sender_creditor_id == tr.recipient_creditor_id:
-        return reject('RECIPIENT_SAME_AS_SENDER', 0)
+        return reject(RC_RECIPIENT_SAME_AS_SENDER, 0)
 
     # NOTE: Transfers to the debtor's account must be allowed even
     # when the debtor's account does not exist. In this case, it will
@@ -720,7 +724,7 @@ def _process_transfer_request(
     available_amount = _get_available_amount(sender_account, current_ts)
     expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
     if expendable_amount < tr.min_amount:
-        return reject('INSUFFICIENT_AVAILABLE_AMOUNT', max(0, available_amount))
+        return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, max(0, available_amount))
 
     return prepare(expendable_amount)
 

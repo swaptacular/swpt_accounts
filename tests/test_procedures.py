@@ -88,7 +88,7 @@ def test_invalid_config(db_session, current_ts):
     rcs = RejectedConfigSignal.query.one()
     assert rcs.debtor_id == D_ID
     assert rcs.creditor_id == C_ID
-    assert rcs.rejection_code == 'INVALID_CONFIGURATION'
+    assert rcs.rejection_code == p.RC_INVALID_CONFIGURATION
     assert rcs.config_ts == current_ts
     assert rcs.config_seqnum == 123
     assert rcs.config_flags == 0x1fff
@@ -102,7 +102,7 @@ def test_invalid_config(db_session, current_ts):
     assert rcs_obj['config_flags'] == rcs.config_flags
     assert rcs_obj['negligible_amount'] == rcs.negligible_amount
     assert rcs_obj['config'] == 'xxx'
-    assert rcs_obj['rejection_code'] == 'INVALID_CONFIGURATION'
+    assert rcs_obj['rejection_code'] == p.RC_INVALID_CONFIGURATION
     assert isinstance(rcs_obj['ts'], str)
 
     p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123)
@@ -440,7 +440,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == 'RECIPIENT_IS_UNREACHABLE'
+    assert rts.rejection_code == p.RC_RECIPIENT_IS_UNREACHABLE
 
     # Verify that re-creating the account clears CONFIG_SCHEDULED_FOR_DELETION_FLAG:
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
@@ -595,7 +595,7 @@ def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == 'RECIPIENT_IS_UNREACHABLE'
+    assert rts.rejection_code == p.RC_RECIPIENT_IS_UNREACHABLE
 
 
 def test_prepare_transfer_to_self(db_session, current_ts):
@@ -619,7 +619,7 @@ def test_prepare_transfer_to_self(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == 'RECIPIENT_SAME_AS_SENDER'
+    assert rts.rejection_code == p.RC_RECIPIENT_SAME_AS_SENDER
 
 
 def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
@@ -644,7 +644,7 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == 'TOO_MANY_TRANSFERS'
+    assert rts.rejection_code == p.RC_TOO_MANY_TRANSFERS
 
 
 def test_prepare_transfer_invalid_recipient(db_session, current_ts):
@@ -668,7 +668,7 @@ def test_prepare_transfer_invalid_recipient(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == 'RECIPIENT_IS_UNREACHABLE'
+    assert rts.rejection_code == p.RC_RECIPIENT_IS_UNREACHABLE
 
 
 def test_prepare_transfer_success(db_session, current_ts):
