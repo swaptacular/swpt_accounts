@@ -40,56 +40,51 @@ def configure_account(
 
     current_ts = datetime.now(tz=timezone.utc)
 
-    def is_valid_config():
-        return negligible_amount >= 0.0 and config == ''
-
-    def is_timestamp_too_far_in_the_past():
-        signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-        return (current_ts - ts).total_seconds() > signalbus_max_delay_seconds
-
-    def reject(rejection_code):
-        db.session.add(RejectedConfigSignal(
-            debtor_id=debtor_id,
-            creditor_id=creditor_id,
-            config_ts=ts,
-            config_seqnum=seqnum,
-            config_flags=config_flags,
-            negligible_amount=negligible_amount,
-            config=config,
-            rejection_code=rejection_code,
-        ))
-
-    def configure(account):
-        if account is None:
-            account = _create_account(debtor_id, creditor_id, current_ts)
-
+    def set_account_status_flags(account):
         if account.status_flags & Account.STATUS_DELETED_FLAG:
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
             account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-
         if config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG:
             account.status_flags |= Account.STATUS_UNREACHABLE_FLAG
         else:
             account.status_flags &= ~Account.STATUS_UNREACHABLE_FLAG
 
-        account.config_flags = config_flags
-        account.negligible_amount = negligible_amount
-        account.last_config_ts = ts
-        account.last_config_seqnum = seqnum
-        _apply_account_change(account, 0, 0, current_ts)
+    def is_valid_config():
+        return negligible_amount >= 0.0 and config == ''
+
+    def configure(account):
+        if is_valid_config():
+            if account is None:
+                account = _create_account(debtor_id, creditor_id, current_ts)
+            set_account_status_flags(account)
+            account.config_flags = config_flags
+            account.negligible_amount = negligible_amount
+            account.last_config_ts = ts
+            account.last_config_seqnum = seqnum
+            _apply_account_change(account, 0, 0, current_ts)
+        else:
+            db.session.add(RejectedConfigSignal(
+                debtor_id=debtor_id,
+                creditor_id=creditor_id,
+                config_ts=ts,
+                config_seqnum=seqnum,
+                config_flags=config_flags,
+                negligible_amount=negligible_amount,
+                config=config,
+                rejection_code='INVALID_CONFIGURATION',
+            ))
 
     account = _get_account_instance(debtor_id, creditor_id, lock=True)
     if account:
         this_event = (ts, Seqnum(seqnum))
         last_event = (account.last_config_ts, Seqnum(account.last_config_seqnum))
-        if this_event <= last_event:
-            return
-    elif is_timestamp_too_far_in_the_past():
-        return
-
-    if not is_valid_config():
-        return reject('INVALID_CONFIGURATION')
-    configure(account)
+        if this_event > last_event:
+            configure(account)
+    else:
+        signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
+        signal_age_seconds = (current_ts - ts).total_seconds()
+        if signal_age_seconds <= signalbus_max_delay_seconds:
+            configure(account)
 
 
 @atomic
@@ -166,13 +161,13 @@ def finalize_transfer(
 
     current_ts = datetime.now(tz=timezone.utc)
     pt = PreparedTransfer.lock_instance((debtor_id, creditor_id, transfer_id))
-    pt_with_matching_coordinator = (
+    pt_with_matching_coordinator_request = (
         pt is not None
         and pt.coordinator_type == coordinator_type
         and pt.coordinator_id == coordinator_id
         and pt.coordinator_request_id == coordinator_request_id
     )
-    if pt_with_matching_coordinator:
+    if pt_with_matching_coordinator_request:
         status_code = pt.get_status_code(committed_amount, current_ts)
         if status_code != 'OK':
             committed_amount = 0
