@@ -40,7 +40,7 @@ def configure_account(
 
     current_ts = datetime.now(tz=timezone.utc)
 
-    def set_account_status_flags(account):
+    def update_account_status_flags(account):
         if account.status_flags & Account.STATUS_DELETED_FLAG:
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
             account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
@@ -56,7 +56,7 @@ def configure_account(
         if is_valid_config():
             if account is None:
                 account = _create_account(debtor_id, creditor_id, current_ts)
-            set_account_status_flags(account)
+            update_account_status_flags(account)
             account.config_flags = config_flags
             account.negligible_amount = negligible_amount
             account.last_config_ts = ts
