@@ -255,9 +255,10 @@ recipient : string
    recipient's account. [#account-identity]_
    
 minimum_account_balance : int64
-   Determines the minimum amount that SHOULD remain available on
-   sender's account after the requested amount has been secured. This
-   can be a negative number.
+   Determines the amount that the coordinator wishes to remain
+   available on the sender's account, after the requested amount has
+   been secured. Note that this can be a negative number. Server
+   implementations are free to fulfill or ignore this wish.
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -281,9 +282,9 @@ When server implementations process a `PrepareTransfer`_ message they:
   other transfers.
 
 * If the requested transfer has been successfully prepared, MUST send
-  a `PreparedTransfer`_ message, and create a new prepared transfer
-  record in the server's database, which stores the values of all data
-  fields sent with the `PreparedTransfer`_ message.
+  a `PreparedTransfer`_ message, and MUST create a new prepared
+  transfer record in the server's database, which stores all the data
+  sent with the `PreparedTransfer`_ message.
 
 * If the requested transfer can not be prepared, MUST send a
   `RejectedTransfer`_ message.
