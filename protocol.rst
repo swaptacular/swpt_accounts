@@ -340,6 +340,14 @@ transfer_note : string
    the transfer is being dismissed, this MUST be an empty
    string. [#note-limitations]_
 
+finalization_flags : int32
+   Various bit-flags that may affect the behavior of the server when
+   it finalizes (commits or dismisses) the transfer. Different server
+   implementations may use these flags for different purposes. For
+   example, they can be used to specify the format used for the
+   ``transfer_note`` field, or to indicate that some information about
+   the transfer must be stored on the server.
+
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).

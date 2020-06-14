@@ -155,12 +155,14 @@ def finalize_transfer(
         coordinator_id: int,
         coordinator_request_id: int,
         committed_amount: int,
+        finalization_flags: int = 0,
         transfer_note: str = '',
         ts: datetime = None) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= transfer_id <= MAX_INT64
+    assert MIN_INT32 <= finalization_flags <= MAX_INT32
     assert committed_amount >= 0
 
     current_ts = datetime.now(tz=timezone.utc)
