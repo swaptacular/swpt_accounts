@@ -56,7 +56,7 @@ def configure_account(
     def is_valid_config():
         return negligible_amount >= 0.0 and config == ''
 
-    def configure(account):
+    def try_to_configure(account):
         if is_valid_config():
             if account is None:
                 account = _create_account(debtor_id, creditor_id, current_ts)
@@ -83,12 +83,12 @@ def configure_account(
         this_event = (ts, Seqnum(seqnum))
         last_event = (account.last_config_ts, Seqnum(account.last_config_seqnum))
         if this_event > last_event:
-            configure(account)
+            try_to_configure(account)
     else:
         signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
         signal_age_seconds = (current_ts - ts).total_seconds()
         if signal_age_seconds <= signalbus_max_delay_seconds:
-            configure(account)
+            try_to_configure(account)
 
 
 @atomic
