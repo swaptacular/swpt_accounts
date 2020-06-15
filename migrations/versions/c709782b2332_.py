@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 7c7161147d21
+Revision ID: c709782b2332
 Revises: 
-Create Date: 2020-06-15 20:34:13.376892
+Create Date: 2020-06-15 22:45:19.589233
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '7c7161147d21'
+revision = 'c709782b2332'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -188,7 +188,7 @@ def upgrade():
     sa.Column('minimum_account_balance', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('min_amount <= max_amount'),
-    sa.CheckConstraint('min_amount > 0'),
+    sa.CheckConstraint('min_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_request_id'),
     comment='Represents a request to secure (prepare) some amount for transfer, if it is available on a given account. If the request is fulfilled, a new row will be inserted in the `prepared_transfer` table. Requests are queued to the `transfer_request` table, before being processed, because this allows many requests from one sender to be processed at once, reducing the lock contention on `account` table rows.'
     )

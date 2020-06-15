@@ -107,7 +107,7 @@ def prepare_transfer(
     assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
-    assert 0 < min_amount <= max_amount <= MAX_INT64
+    assert 0 <= min_amount <= max_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert ts > BEGINNING_OF_TIME
@@ -727,7 +727,7 @@ def _process_transfer_request(
     # some of the other possible reasons.
     available_amount = _get_available_amount(sender_account, current_ts)
     expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
-    if expendable_amount < tr.min_amount:
+    if expendable_amount <= 0 or expendable_amount < tr.min_amount:
         return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, available_amount, sender_account.locked_amount)
 
     return prepare(expendable_amount)

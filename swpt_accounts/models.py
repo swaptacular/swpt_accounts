@@ -150,7 +150,7 @@ class TransferRequest(db.Model):
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
 
     __table_args__ = (
-        db.CheckConstraint(min_amount > 0),
+        db.CheckConstraint(min_amount >= 0),
         db.CheckConstraint(min_amount <= max_amount),
         {
             'comment': 'Represents a request to secure (prepare) some amount for transfer, if '
