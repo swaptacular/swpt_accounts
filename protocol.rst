@@ -272,8 +272,8 @@ When server implementations process a `PrepareTransfer`_ message they:
 * SHOULD NOT allow a transfer without verifying that the recipient's
   account exists, and does accept incoming transfers.
 
-* MUST try to secure as big amount as possible, within the requested
-  limits (a positive number between ``min_amount`` and
+* MUST try to secure *as big amount as possible*, within the requested
+  limits (that is: a positive number between ``min_amount`` and
   ``max_amount``).
 
 * MUST guarantee that if a transfer is successfully prepared, the
