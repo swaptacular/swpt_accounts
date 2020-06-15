@@ -303,8 +303,9 @@ When server implementations process a `PrepareTransfer`_ message they:
   account does exist, the transfer MUST be rejected with
   ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` rejection code. In this
   exceptional case, the value of the ``recipient`` field does not
-  matter. In particular, the sender's own account MUST be allowed to
-  be a ``recipient``.
+  matter. In particular, when the sender's own account is the
+  ``recipient``, the transfer MUST be rejected with
+  ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` code nevertheless .
 
   This contrived behavior can be useful when the client does not need
   to prepare a transfer, but instead, wants to get the values of the
