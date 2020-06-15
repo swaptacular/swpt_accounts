@@ -302,9 +302,9 @@ When server implementations process a `PrepareTransfer`_ message they:
   other impediments to the transfer, the transfer should be rejected
   with ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` rejection code. This
   behavior is useful when the client does not want to prepare a
-  transfer, but needs to get the ``available_amount`` and
-  ``total_locked_amount`` fields from the `RejectedTransfer`_ received
-  response.
+  transfer, but wants to get the values of ``available_amount`` and
+  ``total_locked_amount`` fields from the received `RejectedTransfer`_
+  message.
 
 
 FinalizeTransfer
