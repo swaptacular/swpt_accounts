@@ -18,6 +18,9 @@ __all__ = [
     'AccountMaintenanceSignal',
 ]
 
+INTEREST_RATE_FLOOR = -50.0
+INTEREST_RATE_CEIL = 100.0
+
 
 def get_now_utc():
     return datetime.now(tz=timezone.utc)
@@ -210,6 +213,7 @@ class AccountUpdateSignal(Signal):
         principal = fields.Integer()
         interest = fields.Float()
         interest_rate = fields.Float()
+        min_interest_rate = fields.Constant(INTEREST_RATE_FLOOR)
         last_transfer_number = fields.Integer()
         last_transfer_committed_at_ts = fields.DateTime(data_key='last_transfer_committed_at')
         last_outgoing_transfer_date = fields.Date()

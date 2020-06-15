@@ -1,11 +1,11 @@
 import math
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from decimal import Decimal
-from flask import current_app
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import null, or_
 from swpt_lib.utils import date_to_int24
 from .extensions import db
+from .events import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 from .events import *  # noqa
 
 MIN_INT16 = -1 << 15
@@ -17,9 +17,6 @@ MAX_INT64 = (1 << 63) - 1
 SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
-
-INTEREST_RATE_FLOOR = -50.0
-INTEREST_RATE_CEIL = 100.0
 PRISTINE_ACCOUNT_STATUS_FLAGS = 0
 
 # Reserved coordinator types:

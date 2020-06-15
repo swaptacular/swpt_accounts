@@ -719,6 +719,11 @@ interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
    account. This can be a negative number.
 
+min_interest_rate : float
+   A guaranteed long-term lower limit on the interest rate. The annual
+   interest rate (in percents) MUST not fall under this value for at
+   least one year. This can be a negative number.
+
 status_flags : int32
    Account status bit-flags. Different server implementations may use
    these flags for different purposes. The lowest 16 bits are
