@@ -475,8 +475,11 @@ creditor_id : int64
 rejection_code : string
    The reason for the rejection of the transfer. MUST be between 0 and
    30 symbols, ASCII only. If the transfer was rejected due to
-   insufficient available amount, and there is no other impediment to
-   the transfer, the value of this field MUST be
+   insufficient available amount, and there are no other impediments
+   to the transfer, the value of this field MUST be
+   ``"INSUFFICIENT_AVAILABLE_AMOUNT"``. Note that if there are other
+   impediments to the transfer (invalid recipient account, for
+   example), the rejection code SHOULD NOT be
    ``"INSUFFICIENT_AVAILABLE_AMOUNT"``.
 
 coordinator_type : string
