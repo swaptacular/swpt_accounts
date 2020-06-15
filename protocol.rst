@@ -832,9 +832,10 @@ allowing clients to detect "dead" account records in their databases.
 .. [#interest] Note that the ``interest`` field shows the amount of
   interest accumulated on the account only up to the
   ``last_change_ts`` moment. Also, any amount that is shown as
-  accumulated interest, SHOULD be available for transfers. That is:
-  the owner of the account has to be able to "wire" the accumulated
-  interest to another account.
+  accumulated interest, MUST be available for transfers. That is: the
+  owner of the account has to be able to "wire" the accumulated
+  interest to another account. Accordingly, accumulated negative
+  interest MUST be subtracted from the account's available amount.
 
 .. [#verify-config] Note that ``last_config_ts`` and
   ``last_config_seqnum`` can be used to determine whether a sent
