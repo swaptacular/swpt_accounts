@@ -830,11 +830,11 @@ allowing clients to detect "dead" account records in their databases.
   they are equal, ``last_change_seqnum`` fields MUST be compared as
   well.
 
-.. [#interest] Any amount that is shown as accumulated interest, MUST
-  be available for transfers. That is: the owner of the account has to
-  be able to "wire" the accumulated interest to another
-  account. Accordingly, accumulated negative interest MUST be
-  subtracted from the account's available amount.
+.. [#interest] The accumulated interest MUST be available for
+  transfers. That is: the owner of the account has to be able to
+  "wire" the accumulated interest to another account. Accordingly,
+  accumulated negative interest MUST be subtracted from the account's
+  available amount.
 
 .. [#verify-config] Note that ``last_config_ts`` and
   ``last_config_seqnum`` can be used to determine whether a sent
