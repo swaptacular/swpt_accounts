@@ -712,9 +712,9 @@ principal : int64
 interest : float
    The amount of interest accumulated on the account up to the
    ``last_change_ts`` moment, which is not added to the ``principal``
-   yet. [#interest]_ Once in a while, the accumulated interest MUST be
-   zeroed out and added to the principal (an interest payment). This
-   can be a negative number.
+   yet. Once in a while, the accumulated interest MUST be zeroed out
+   and added to the principal (an interest payment). This can be a
+   negative number. [#interest]_
 
 interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
