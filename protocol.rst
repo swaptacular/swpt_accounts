@@ -392,7 +392,8 @@ server's database: [#transfer-match]_
 
 .. [#avl-amount] The *available amount* is the amount that the debtor
   owes to the creditor (including the accumulated interest), minis the
-  total sum secured (locked) for prepared transfers.
+  total sum secured (locked) for prepared transfers. Note that the
+  available amount can be a negative number.
 
 .. [#unlock-amount] Note that ``committed_amount`` can be smaller than
   ``locked_amount``.
@@ -455,7 +456,10 @@ creditor_id : int64
 
 rejection_code : string
    The reason for the rejection of the transfer. MUST be between 0 and
-   30 symbols, ASCII only.
+   30 symbols, ASCII only. If the transfer was rejected due to
+   insufficient available amount, and there is no other impediment to
+   the transfer, the value of this field MUST be
+   ``"INSUFFICIENT_AVAILABLE_AMOUNT"``.
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
@@ -472,11 +476,18 @@ coordinator_request_id : int64
    request to prepare a transfer.
 
 available_amount : int64
-   MUST be a non-negative number. If the transfer was rejected due to
-   insufficient available amount, but there is a good chance for a new
-   transfer request for a smaller amount to be successful, this field
-   SHOULD contain the amount currently available on sender's account;
-   otherwise this MUST be ``0``. [#avl-amount]_
+   If the transfer was rejected due to insufficient available amount
+   (the ``rejection_code`` is ``"INSUFFICIENT_AVAILABLE_AMOUNT"``),
+   then this field MUST contain the amount currently available on the
+   sender's account; otherwise the value of this field SHOULD be
+   ``0``. [#avl-amount]_
+
+total_locked_amount : int64
+   This MUST be a non-negative number. If the transfer was rejected
+   due to insufficient available amount (the ``rejection_code`` is
+   ``"INSUFFICIENT_AVAILABLE_AMOUNT"``), then this field MUST contain
+   the total sum secured (locked) for prepared transfers; otherwise
+   the value of this field SHOULD be ``0``.
 
 recipient : string
    The value of the ``recipient`` field in the corresponding

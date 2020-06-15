@@ -572,6 +572,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     assert rts_obj['coordinator_id'] == 1
     assert rts_obj['coordinator_request_id'] == 2
     assert rts_obj['available_amount'] == 0
+    assert rts_obj['total_locked_amount'] == 0
     assert rts_obj['recipient'] == '1234'
     assert isinstance(rts_obj['ts'], str)
 

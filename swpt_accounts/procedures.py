@@ -129,6 +129,7 @@ def prepare_transfer(
             coordinator_request_id=coordinator_request_id,
             rejection_code=RC_RECIPIENT_IS_UNREACHABLE,
             available_amount=0,
+            total_locked_amount=0,
             sender_creditor_id=creditor_id,
             recipient=recipient,
         ))
@@ -649,7 +650,7 @@ def _process_transfer_request(
         is_recipient_reachable: bool,
         current_ts: datetime) -> Union[RejectedTransferSignal, PreparedTransferSignal]:
 
-    def reject(rejection_code: str, available_amount: int) -> RejectedTransferSignal:
+    def reject(rejection_code: str, available_amount: int = 0, total_locked_amount: int = 0) -> RejectedTransferSignal:
         return RejectedTransferSignal(
             debtor_id=tr.debtor_id,
             coordinator_type=tr.coordinator_type,
@@ -657,8 +658,9 @@ def _process_transfer_request(
             coordinator_request_id=tr.coordinator_request_id,
             rejection_code=rejection_code,
             available_amount=available_amount,
+            total_locked_amount=total_locked_amount,
             sender_creditor_id=tr.sender_creditor_id,
-            recipient=str(i64_to_u64(tr.recipient_creditor_id))
+            recipient=str(i64_to_u64(tr.recipient_creditor_id)),
         )
 
     def prepare(amount: int) -> PreparedTransferSignal:
@@ -702,21 +704,21 @@ def _process_transfer_request(
     db.session.delete(tr)
 
     if sender_account is None:
-        return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, 0)
+        return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT)
 
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
     if sender_account.pending_transfers_count >= MAX_INT32:
-        return reject(RC_TOO_MANY_TRANSFERS, 0)
+        return reject(RC_TOO_MANY_TRANSFERS)
 
     if tr.sender_creditor_id == tr.recipient_creditor_id:
-        return reject(RC_RECIPIENT_SAME_AS_SENDER, 0)
+        return reject(RC_RECIPIENT_SAME_AS_SENDER)
 
     # NOTE: Transfers to the debtor's account must be allowed even
     # when the debtor's account does not exist. In this case, it will
     # be created when the transfer is committed.
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
-        return reject(RC_RECIPIENT_IS_UNREACHABLE, 0)
+        return reject(RC_RECIPIENT_IS_UNREACHABLE)
 
     # NOTE: The available amount should be checked last, because if
     # the transfer request is rejected due to insufficient available
@@ -726,7 +728,7 @@ def _process_transfer_request(
     available_amount = _get_available_amount(sender_account, current_ts)
     expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
     if expendable_amount < tr.min_amount:
-        return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, max(0, available_amount))
+        return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, available_amount, sender_account.locked_amount)
 
     return prepare(expendable_amount)
 
