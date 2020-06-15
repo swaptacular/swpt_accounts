@@ -301,8 +301,8 @@ When server implementations process a `PrepareTransfer`_ message they:
   of server implementations in this case must be as if a transfer for
   an infinite amount has been requested. That is: if the sender's
   account does exist, the transfer MUST be rejected with
-  ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` rejection code. In this
-  exceptional case, the value of the ``recipient`` field does not
+  ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` rejection code. Note that in
+  this exceptional case, the value of the ``recipient`` field does not
   matter. In particular, when the sender's own account is the
   ``recipient``, the transfer MUST be rejected with
   ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` code nevertheless .
