@@ -478,14 +478,13 @@ coordinator_request_id : int64
 available_amount : int64
    If the ``rejection_code`` is ``"INSUFFICIENT_AVAILABLE_AMOUNT"``),
    then this field MUST contain the amount currently available on the
-   sender's account; otherwise this field SHOULD contain
-   ``0``. [#avl-amount]_
+   sender's account; otherwise it SHOULD contain ``0``. [#avl-amount]_
 
 total_locked_amount : int64
    This MUST be a non-negative number. If the ``rejection_code`` is
    ``"INSUFFICIENT_AVAILABLE_AMOUNT"``, then this field MUST contain
    the total sum secured (locked) for prepared transfers on the
-   account; otherwise this field SHOULD contain ``0``.
+   account; otherwise it SHOULD contain ``0``.
 
 recipient : string
    The value of the ``recipient`` field in the corresponding
