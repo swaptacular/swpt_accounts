@@ -273,7 +273,8 @@ When server implementations process a `PrepareTransfer`_ message they:
   account exists, and does accept incoming transfers.
 
 * MUST try to secure as big amount as possible, within the requested
-  limits (between ``min_amount`` and ``max_amount``).
+  limits (a positive number between ``min_amount`` and
+  ``max_amount``).
 
 * MUST guarantee that if a transfer is successfully prepared, the
   probability for the success of the eventual commit is very
