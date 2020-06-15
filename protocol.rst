@@ -258,7 +258,8 @@ minimum_account_balance : int64
    Determines the amount that the coordinator wishes to remain
    available on the sender's account, after the requested amount has
    been secured. Note that this can be a negative number. Server
-   implementations are free to fulfill or ignore this wish.
+   implementations are free to fulfill or ignore this wish. Normally,
+   this would be ``0``.
 
 ts : date-time
    The moment at which this message was sent (the message's
