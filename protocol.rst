@@ -295,15 +295,16 @@ When server implementations process a `PrepareTransfer`_ message they:
   ``"interest"`` might be used for payments initiated by the interest
   capitalization service.
 
-.. [#zero-amounts] If both ``min_amount`` and ``max_amount`` values
-  are equal to zero, the behavior of server implementations MUST be as
-  if a transfer for an infinite amount has been requested. That is: in
-  case there are no other impediments to the transfer, the transfer
-  should be rejected with ``"INSUFFICIENT_AVAILABLE_AMOUNT"``
-  rejection code. This behavior is useful when the client does not
-  need to prepare a transfer, but wants to get the
-  ``available_amount`` and ``total_locked_amount`` fields from the
-  `RejectedTransfer`_ response.
+.. [#zero-amounts] The case when both ``min_amount`` and
+  ``max_amount`` values are equal to zero is exceptional. The behavior
+  of server implementations in this case MUST be as if a transfer for
+  an infinite amount has been requested. That is: unless there are
+  other impediments to the transfer, the transfer should be rejected
+  with ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` rejection code. This
+  behavior is useful when the client does not want to prepare a
+  transfer, but needs to get the ``available_amount`` and
+  ``total_locked_amount`` fields from the `RejectedTransfer`_ received
+  response.
 
 
 FinalizeTransfer
