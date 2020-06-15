@@ -710,10 +710,11 @@ principal : int64
    interest. This can be a negative number.
 
 interest : float
-   The amount of interest accumulated on the account, that is not
-   added to the ``principal`` yet. [#interest]_ This can be a negative
-   number. The accumulated interest SHOULD be zeroed out and added to
-   the principal once in a while (an interest payment).
+   The amount of interest accumulated on the account up to the
+   ``last_change_ts`` moment, which is not added to the ``principal``
+   yet. [#interest]_ This can be a negative number. The accumulated
+   interest SHOULD be zeroed out and added to the principal once in a
+   while (an interest payment).
 
 interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
@@ -829,13 +830,11 @@ allowing clients to detect "dead" account records in their databases.
   they are equal, ``last_change_seqnum`` fields MUST be compared as
   well.
 
-.. [#interest] Note that the ``interest`` field shows the amount of
-  interest accumulated on the account only up to the
-  ``last_change_ts`` moment. Also, any amount that is shown as
-  accumulated interest, MUST be available for transfers. That is: the
-  owner of the account has to be able to "wire" the accumulated
-  interest to another account. Accordingly, accumulated negative
-  interest MUST be subtracted from the account's available amount.
+.. [#interest] Any amount that is shown as accumulated interest, MUST
+  be available for transfers. That is: the owner of the account has to
+  be able to "wire" the accumulated interest to another
+  account. Accordingly, accumulated negative interest MUST be
+  subtracted from the account's available amount.
 
 .. [#verify-config] Note that ``last_config_ts`` and
   ``last_config_seqnum`` can be used to determine whether a sent

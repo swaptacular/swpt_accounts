@@ -195,6 +195,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1_obj['transfer_flags'] & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
     assert isinstance(cts1_obj['ts'], str)
     assert cts1_obj['previous_transfer_number'] == 0
+    assert cts1_obj['principal'] == amount
 
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_NOTE)
     p.process_pending_account_changes(D_ID, C_ID)
