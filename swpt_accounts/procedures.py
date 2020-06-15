@@ -708,17 +708,19 @@ def _process_transfer_request(
 
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
-    if sender_account.pending_transfers_count >= MAX_INT32:
-        return reject(RC_TOO_MANY_TRANSFERS)
 
-    if tr.sender_creditor_id == tr.recipient_creditor_id:
-        return reject(RC_RECIPIENT_SAME_AS_SENDER)
+    if not tr.min_amount == tr.max_amount == 0:
+        if sender_account.pending_transfers_count >= MAX_INT32:
+            return reject(RC_TOO_MANY_TRANSFERS)
 
-    # NOTE: Transfers to the debtor's account must be allowed even
-    # when the debtor's account does not exist. In this case, it will
-    # be created when the transfer is committed.
-    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
-        return reject(RC_RECIPIENT_IS_UNREACHABLE)
+        if tr.sender_creditor_id == tr.recipient_creditor_id:
+            return reject(RC_RECIPIENT_SAME_AS_SENDER)
+
+        # NOTE: Transfers to the debtor's account must be allowed even
+        # when the debtor's account does not exist. In this case, it will
+        # be created when the transfer is committed.
+        if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
+            return reject(RC_RECIPIENT_IS_UNREACHABLE)
 
     # NOTE: The available amount should be checked last, because if
     # the transfer request is rejected due to insufficient available

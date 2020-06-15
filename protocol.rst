@@ -298,10 +298,14 @@ When server implementations process a `PrepareTransfer`_ message they:
 .. [#zero-amounts] The case when both ``min_amount`` and
   ``max_amount`` values are equal to zero is exceptional. The behavior
   of server implementations in this case MUST be as if a transfer for
-  an infinite amount has been requested. That is: unless there are
-  other impediments to the transfer, the transfer should be rejected
-  with ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` rejection code. This
-  behavior is useful when the client does not want to prepare a
+  an infinite amount has been requested. That is: if the sender's
+  account exists, the transfer MUST be rejected with
+  ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` rejection code. In this
+  exceptional case, the value of the ``recipient`` field does not
+  matter. In particular, the sender's account MUST be allowed as a
+  ``recipient``.
+
+  This behavior is useful when the client does not want to prepare a
   transfer, but wants to get the values of ``available_amount`` and
   ``total_locked_amount`` fields from the received `RejectedTransfer`_
   message.
