@@ -834,7 +834,8 @@ ts : date-time
 ttl : int32
    The time-to-live (in seconds) for this message. The message MUST be
    ignored if more than ``ttl`` seconds have elapsed since the message
-   was emitted (``ts``). This MUST be a positive number.
+   was emitted (``ts``). [#account-update-ttl]_ This MUST be a
+   positive number.
 
 If for a given account, no `AccountUpdate`_ messages have been sent
 for a long while (1 week for example), the server MUST send a new
@@ -885,6 +886,9 @@ allowing clients to detect "dead" account records in their databases.
 .. [#missing-identity] When the account does not have an identity yet,
   the ``status_flags`` field MUST indicate that the account is an
   "unreachable account".
+
+.. [#account-update-ttl] The ignored `AccountUpdate`_ message MAY be
+  archived, or used for statistical purposes.
 
 
 AccountPurge
@@ -1152,9 +1156,9 @@ Received `AccountUpdate`_ message
 
 When client implementations process an `AccountUpdate`_ message, they
 MUST first verify message's ``ts`` and ``ttl`` fields. If the message
-has "expired", it MUST be ignored. Otherwise, implementations MUST
-verify whether a corresponding `AD record`_ already exists:
-[#matching-adr]_
+has "expired", it MUST be ignored. [#account-update-ttl]_ Otherwise,
+implementations MUST verify whether a corresponding `AD record`_
+already exists: [#matching-adr]_
 
 1. If a corresponding `AD record`_ already exists, the value of its
    ``last_heartbeat_ts`` field SHOULD be advanced to the value of the
