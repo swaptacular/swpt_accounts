@@ -269,8 +269,8 @@ commit_period : int32
    generated ``deadline`` for the prepared transfer MUST NOT be later
    than this message's timestamp (the ``ts`` field) plus this number
    of seconds. This MUST be a non-negative number. If the client does
-   want the deadline for the transfer to be shorter that normal, this
-   field should be set to some huge number.
+   not want the deadline for the transfer to be shorter that normal,
+   this field should be set to some huge number.
 
 ts : date-time
    The moment at which this message was sent (the message's
