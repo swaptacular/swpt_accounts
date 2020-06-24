@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c709782b2332
+Revision ID: bf973610051d
 Revises: 
-Create Date: 2020-06-15 22:45:19.589233
+Create Date: 2020-06-24 14:36:43.880995
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c709782b2332'
+revision = 'bf973610051d'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -185,7 +185,8 @@ def upgrade():
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('min_amount', sa.BigInteger(), nullable=False),
     sa.Column('max_amount', sa.BigInteger(), nullable=False),
-    sa.Column('minimum_account_balance', sa.BigInteger(), nullable=False),
+    sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('min_account_balance', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('min_amount <= max_amount'),
     sa.CheckConstraint('min_amount >= 0'),

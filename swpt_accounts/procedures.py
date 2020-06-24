@@ -102,7 +102,8 @@ def prepare_transfer(
         creditor_id: int,
         recipient: str,
         ts: datetime,
-        minimum_account_balance: int = 0) -> None:
+        commit_period: int = MAX_INT32,
+        min_account_balance: int = 0) -> None:
 
     assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
@@ -111,13 +112,14 @@ def prepare_transfer(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert ts > BEGINNING_OF_TIME
-    assert MIN_INT64 <= minimum_account_balance <= MAX_INT64
+    assert 0 <= commit_period <= MAX_INT32
+    assert MIN_INT64 <= min_account_balance <= MAX_INT64
 
     if creditor_id != ROOT_CREDITOR_ID:
         # NOTE: Only the debtor's account is allowed to go
         # deliberately negative. This is because only the debtor's
         # account is allowed to issue money.
-        minimum_account_balance = max(0, minimum_account_balance)
+        min_account_balance = max(0, min_account_balance)
 
     try:
         recipient_creditor_id = u64_to_i64(int(recipient))
@@ -143,7 +145,8 @@ def prepare_transfer(
             max_amount=max_amount,
             sender_creditor_id=creditor_id,
             recipient_creditor_id=recipient_creditor_id,
-            minimum_account_balance=minimum_account_balance,
+            deadline=ts + timedelta(seconds=commit_period),
+            min_account_balance=min_account_balance,
         ))
 
 
@@ -670,7 +673,7 @@ def _process_transfer_request(
         sender_account.last_transfer_id += 1
         gratis_period = int(current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS'])
         demurrage_rate = INTEREST_RATE_FLOOR
-        deadline = _calc_prepared_transfer_deadline(current_ts)
+        deadline = _calc_prepared_transfer_deadline(tr, current_ts)
         db.session.add(PreparedTransfer(
             debtor_id=tr.debtor_id,
             sender_creditor_id=tr.sender_creditor_id,
@@ -728,7 +731,7 @@ def _process_transfer_request(
     # small enough amount, we want it to succeed, and not fail for
     # some of the other possible reasons.
     available_amount = _get_available_amount(sender_account, current_ts)
-    expendable_amount = min(available_amount - tr.minimum_account_balance, tr.max_amount)
+    expendable_amount = min(available_amount - tr.min_account_balance, tr.max_amount)
     if expendable_amount <= 0 or expendable_amount < tr.min_amount:
         return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, available_amount, sender_account.locked_amount)
 
@@ -764,11 +767,12 @@ def _get_reachable_recipient_account_pks(transfer_requests: List[TransferRequest
     return set(account_pks)
 
 
-def _calc_prepared_transfer_deadline(current_ts: datetime) -> timedelta:
+def _calc_prepared_transfer_deadline(tr: TransferRequest, current_ts: datetime) -> timedelta:
     # NOTE: To avoid timing out prepared transfers due to signal
     # bus delays, here we ensure that prepared transfers' maximum
     # delay is not smaller than the allowed signal bus delay.
-    return current_ts + max(
+    deadline = current_ts + max(
         timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS']),
         timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS']),
     )
+    return min(deadline, tr.deadline)

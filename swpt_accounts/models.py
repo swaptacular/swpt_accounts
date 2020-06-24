@@ -146,7 +146,8 @@ class TransferRequest(db.Model):
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     min_amount = db.Column(db.BigInteger, nullable=False)
     max_amount = db.Column(db.BigInteger, nullable=False)
-    minimum_account_balance = db.Column(db.BigInteger, nullable=False)
+    deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    min_account_balance = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
 
     __table_args__ = (

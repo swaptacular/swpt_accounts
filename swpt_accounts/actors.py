@@ -37,7 +37,8 @@ def prepare_transfer(
         creditor_id: int,
         recipient: str,
         ts: str,
-        minimum_account_balance: int = 0) -> None:
+        commit_period: int,
+        min_account_balance: int = 0) -> None:
 
     """Try to secure some amount, to eventually transfer it to another account."""
 
@@ -51,7 +52,8 @@ def prepare_transfer(
         creditor_id,
         recipient,
         iso8601.parse_date(ts),
-        minimum_account_balance,
+        commit_period,
+        min_account_balance,
     )
 
 

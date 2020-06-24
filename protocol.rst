@@ -256,12 +256,21 @@ recipient : string
    A string which (along with ``debtor_id``) globally identifies the
    recipient's account. [#account-identity]_
    
-minimum_account_balance : int64
+min_account_balance : int64
    Determines the amount that the coordinator wishes to remain
    available on the sender's account, after the requested amount has
    been secured. Note that this can be a negative number. Server
    implementations are free to fulfill or ignore this wish. Normally,
    this would be ``0``.
+
+commit_period : int32
+   A period (in seconds) during which the the prepared transfer can be
+   committed successfully. This instructs the server that the
+   generated ``deadline`` for the prepared transfer MUST NOT be later
+   than this message's timestamp (the ``ts`` field) plus this number
+   of seconds. This MUST be a non-negative number. If the client does
+   want the deadline for the transfer to be shorter that normal, this
+   field should be set to some huge number.
 
 ts : date-time
    The moment at which this message was sent (the message's
