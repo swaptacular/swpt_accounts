@@ -581,7 +581,7 @@ gratis_period : int32
 deadline : date-time
    The prepared transfer can be committed successfully only before
    this moment. If the client ties to commit the prepared transfer
-   after this moment, the commit SHOULD NOT be successful.
+   after this moment, the commit MUST NOT be successful.
 
 ts : date-time
    The moment at which this message was sent (the message's
