@@ -767,10 +767,10 @@ interest_rate : float
 last_interest_rate_change_ts : date-time
    The moment at which the latest change in the account's interest
    rate has happened. The interval between the changes in the
-   account's interest rate MUST be big enough so as to guarantee that,
+   account's interest rate MUST be big enough so as to ensure that,
    even in case of a temporary network disconnect, at least 24 hours
    have passed since the `AccountUpdate`_ message for the previous
-   interest rate change has been processed.
+   interest rate change has been processed by all clients.
 
 min_interest_rate : float
    A guaranteed long-term lower limit on the interest rate. The annual
