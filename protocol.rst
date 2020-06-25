@@ -770,7 +770,7 @@ last_interest_rate_change_ts : date-time
    account's interest rate MUST be big enough so as to provide a
    reasonable guarantee that, even in case of a temporary network
    disconnect, at least 24 hours have passed since the
-   `AccountUpdate`_ message set for the previous interest rate change
+   `AccountUpdate`_ message sent for the previous interest rate change
    has been processed by all clients.
 
 min_interest_rate : float
