@@ -248,6 +248,7 @@ def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate:
         is_request_outdated = (current_ts - request_ts).total_seconds() > signalbus_max_delay_seconds
         is_change_allowed = (current_ts - account.last_interest_rate_change_ts).total_seconds() > change_min_seconds
         if is_change_allowed and not is_request_outdated and has_incorrect_interest_rate:
+            assert current_ts >= account.last_interest_rate_change_ts
             account.interest = float(_calc_account_accumulated_interest(account, current_ts))
             account.interest_rate = interest_rate
             account.last_interest_rate_change_ts = current_ts
