@@ -37,7 +37,7 @@ def test_finalize_transfer(db_session):
 
 
 def test_set_interest_rate(db_session):
-    a.change_interest_rate(
+    a.try_to_change_interest_rate(
         debtor_id=D_ID,
         creditor_id=C_ID,
         interest_rate=10.0,

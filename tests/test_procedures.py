@@ -114,29 +114,33 @@ def test_invalid_config(db_session, current_ts):
 
 def test_set_interest_rate(db_session, current_ts):
     # The account does not exist.
-    p.change_interest_rate(D_ID, C_ID, 7.0, current_ts)
+    p.try_to_change_interest_rate(D_ID, C_ID, 7.0, current_ts)
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountUpdateSignal.query.all()) == 0
 
     # The account does exist.
     p.configure_account(D_ID, C_ID, current_ts, 0)
-    p.change_interest_rate(D_ID, C_ID, 7.0, current_ts)
+    p.try_to_change_interest_rate(D_ID, C_ID, 7.0, current_ts)
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
     assert a.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     assert len(AccountUpdateSignal.query.all()) == 2
 
-    # Too old request timestamp.
-    p.change_interest_rate(D_ID, C_ID, 1.0, BEGINNING_OF_TIME)
+    # Changing the interest rate too often.
+    p.try_to_change_interest_rate(D_ID, C_ID, 1.0, current_ts)
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
 
-    # Too big positive interest rate.
-    p.change_interest_rate(D_ID, C_ID, 1e9, current_ts)
+
+def test_too_big_interest_rate(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.try_to_change_interest_rate(D_ID, C_ID, 1e9, current_ts)
     assert p.get_account(D_ID, C_ID).interest_rate == INTEREST_RATE_CEIL
 
-    # Too big negative interest rate.
-    p.change_interest_rate(D_ID, C_ID, -99.9999999999, current_ts)
+
+def test_too_small_interest_rate(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.try_to_change_interest_rate(D_ID, C_ID, -99.9999999999, current_ts)
     assert p.get_account(D_ID, C_ID).interest_rate == INTEREST_RATE_FLOOR
 
 

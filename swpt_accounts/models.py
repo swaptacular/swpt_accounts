@@ -92,6 +92,13 @@ class Account(db.Model):
                 f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "
                 f"{STATUS_OVERFLOWN_FLAG} - overflown."
     )
+    last_interest_rate_change_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=BEGINNING_OF_TIME,
+        comment='The moment at which the last change of the interest rate happened. This column '
+                'helps to prevent changing the interest rate too often.',
+    )
     last_reminder_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,

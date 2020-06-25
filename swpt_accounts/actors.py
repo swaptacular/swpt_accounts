@@ -87,15 +87,20 @@ def finalize_transfer(
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
-def change_interest_rate(
+def try_to_change_interest_rate(
         debtor_id: int,
         creditor_id: int,
         interest_rate: float,
         request_ts: str) -> None:
 
-    """Change the interest rate on the account."""
+    """Try to change the interest rate on the account.
 
-    procedures.change_interest_rate(
+    The interest rate will not be changed if not enough time has
+    passed since the previous change in the interest rate.
+
+    """
+
+    procedures.try_to_change_interest_rate(
         debtor_id,
         creditor_id,
         interest_rate,

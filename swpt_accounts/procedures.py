@@ -218,7 +218,7 @@ def finalize_transfer(
 
 
 @atomic
-def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
+def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert not math.isnan(interest_rate)
@@ -244,10 +244,13 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
         has_established_interest_rate = account.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         has_incorrect_interest_rate = not has_established_interest_rate or account.interest_rate != interest_rate
         signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
+        change_min_seconds = signalbus_max_delay_seconds + max(SECONDS_IN_DAY, 0.2 * signalbus_max_delay_seconds)
         is_request_outdated = (current_ts - request_ts).total_seconds() > signalbus_max_delay_seconds
-        if not is_request_outdated and has_incorrect_interest_rate:
+        is_change_allowed = (current_ts - account.last_interest_rate_change_ts).total_seconds() > change_min_seconds
+        if is_change_allowed and not is_request_outdated and has_incorrect_interest_rate:
             account.interest = float(_calc_account_accumulated_interest(account, current_ts))
             account.interest_rate = interest_rate
+            account.last_interest_rate_change_ts = current_ts
             account.status_flags |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
             _insert_account_update_signal(account, current_ts)
 
@@ -463,6 +466,7 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
         principal=account.principal,
         interest=account.interest,
         interest_rate=account.interest_rate,
+        last_interest_rate_change_ts=account.last_interest_rate_change_ts,
         last_transfer_number=account.last_transfer_number,
         last_transfer_committed_at_ts=account.last_transfer_committed_at_ts,
         last_outgoing_transfer_date=account.last_outgoing_transfer_date,

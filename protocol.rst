@@ -764,6 +764,16 @@ interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
    account. This can be a negative number.
 
+last_interest_rate_change_ts : date-time
+   The moment at which the latest change in the account's interest
+   rate has happened.
+
+   **Important note:** The interval between the changes in the
+   account's interest rate MUST be big enough so as to guarantee that,
+   even in the case of a temporary network disconnect, at least 24
+   hours have passed since the `AccountUpdate`_ message for the
+   previous interest rate change has been processed.
+
 min_interest_rate : float
    A guaranteed long-term lower limit on the interest rate. The annual
    interest rate (in percents) MUST not fall under this value for at

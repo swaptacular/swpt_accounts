@@ -216,6 +216,7 @@ class AccountUpdateSignal(Signal):
         interest = fields.Float()
         interest_rate = fields.Float()
         min_interest_rate = fields.Constant(INTEREST_RATE_FLOOR)
+        last_interest_rate_change_ts = fields.DateTime()
         last_transfer_number = fields.Integer()
         last_transfer_committed_at_ts = fields.DateTime(data_key='last_transfer_committed_at')
         last_outgoing_transfer_date = fields.Date()
@@ -239,6 +240,7 @@ class AccountUpdateSignal(Signal):
     principal = db.Column(db.BigInteger, nullable=False)
     interest = db.Column(db.FLOAT, nullable=False)
     interest_rate = db.Column(db.REAL, nullable=False)
+    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     last_transfer_number = db.Column(db.BigInteger, nullable=False)
     last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     last_outgoing_transfer_date = db.Column(db.DATE, nullable=False)
@@ -295,10 +297,10 @@ class AccountMaintenanceSignal(Signal):
 
     Maintenance operations are:
 
-    - `actor.change_interest_rate`
     - `actor.capitalize_interest`
     - `actor.zero_out_negative_balance`
     - `actor.try_to_delete_account`
+    - `actor.try_to_change_interest_rate`
 
     The event indicates that more maintenance operation requests can
     be made for the given account, without the risk of flooding the
