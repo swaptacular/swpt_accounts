@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: b8f0bce0aacc
+Revision ID: bce7651fb24c
 Revises: 
-Create Date: 2020-06-25 14:39:57.094877
+Create Date: 2020-06-27 19:49:19.142602
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'b8f0bce0aacc'
+revision = 'bce7651fb24c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,6 +26,7 @@ def upgrade():
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
+    sa.Column('previous_interest_rate', sa.REAL(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
@@ -46,6 +47,7 @@ def upgrade():
     sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.CheckConstraint('pending_transfers_count >= 0'),
+    sa.CheckConstraint('previous_interest_rate >= -50.0 AND previous_interest_rate <= 100.0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id'),
     comment='Tells who owes what to whom.'

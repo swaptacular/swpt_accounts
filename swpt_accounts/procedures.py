@@ -249,6 +249,7 @@ def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate:
         if seconds_since_last_change > signalbus_max_delay_seconds + SECONDS_IN_DAY and has_incorrect_interest_rate:
             assert current_ts >= account.last_interest_rate_change_ts
             account.interest = float(_calc_account_accumulated_interest(account, current_ts))
+            account.previous_interest_rate = account.interest_rate
             account.interest_rate = interest_rate
             account.last_interest_rate_change_ts = current_ts
             account.status_flags |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
@@ -378,7 +379,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         current_date = current_ts.date()
         nonzero_deltas = False
         principal_delta = 0
-        interest_delta = 0
+        interest_delta = 0.0
         account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
 
         # TODO: Consider using bulk-inserts and bulk-deletes when we
@@ -389,11 +390,13 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 nonzero_deltas = True
                 principal_delta += change.principal_delta
                 interest_delta += change.interest_delta
+
             if change.unlocked_amount is not None:
                 account.locked_amount = max(0, account.locked_amount - change.unlocked_amount)
                 account.pending_transfers_count = max(0, account.pending_transfers_count - 1)
                 if change.principal_delta < 0:
                     account.last_outgoing_transfer_date = current_date
+
             if change.principal_delta != 0:
                 _insert_account_transfer_signal(
                     account=account,
@@ -404,6 +407,13 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     transfer_note=change.transfer_note,
                     principal=_contain_principal_overflow(account.principal + principal_delta),
                 )
+
+                # We should compensate for the fact that the transfer
+                # was committed at `change.inserted_at_ts`, but the
+                # transferred amount is being added to the account's
+                # principal just now (`current_ts`).
+                interest_delta += account.calc_due_interest(change.principal_delta, change.inserted_at_ts, current_ts)
+
             db.session.delete(change)
 
         if nonzero_deltas:
@@ -602,8 +612,8 @@ def _mark_account_as_deleted(account: Account, current_ts: datetime):
     _insert_account_update_signal(account, current_ts)
 
 
-def _apply_account_change(account: Account, principal_delta: int, interest_delta: int, current_ts: datetime) -> None:
-    account.interest = float(_calc_account_accumulated_interest(account, current_ts) + interest_delta)
+def _apply_account_change(account: Account, principal_delta: int, interest_delta: float, current_ts: datetime) -> None:
+    account.interest = float(_calc_account_accumulated_interest(account, current_ts)) + interest_delta
     principal_possibly_overflown = account.principal + principal_delta
     principal = _contain_principal_overflow(principal_possibly_overflown)
     if principal != principal_possibly_overflown:
