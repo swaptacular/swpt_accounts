@@ -224,7 +224,9 @@ def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate:
     assert not math.isnan(interest_rate)
 
     current_ts = datetime.now(tz=timezone.utc)
-    account = get_account(debtor_id, creditor_id, lock=True)
+    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
+    is_valid_request = (current_ts - request_ts).total_seconds() <= signalbus_max_delay_seconds
+    account = get_account(debtor_id, creditor_id, lock=True) if is_valid_request else None
     if account:
         # NOTE: Too big positive interest rates can cause account
         # balance overflows. To prevent this, the interest rates
@@ -243,11 +245,8 @@ def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate:
 
         has_established_interest_rate = account.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         has_incorrect_interest_rate = not has_established_interest_rate or account.interest_rate != interest_rate
-        signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-        change_min_seconds = signalbus_max_delay_seconds + SECONDS_IN_DAY
-        is_request_outdated = (current_ts - request_ts).total_seconds() > signalbus_max_delay_seconds
-        is_change_allowed = (current_ts - account.last_interest_rate_change_ts).total_seconds() > change_min_seconds
-        if is_change_allowed and not is_request_outdated and has_incorrect_interest_rate:
+        seconds_since_last_change = (current_ts - account.last_interest_rate_change_ts).total_seconds()
+        if seconds_since_last_change > signalbus_max_delay_seconds + SECONDS_IN_DAY and has_incorrect_interest_rate:
             assert current_ts >= account.last_interest_rate_change_ts
             account.interest = float(_calc_account_accumulated_interest(account, current_ts))
             account.interest_rate = interest_rate
