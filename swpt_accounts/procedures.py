@@ -399,7 +399,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                     account=account,
                     coordinator_type=change.coordinator_type,
                     other_creditor_id=change.other_creditor_id,
-                    committed_at_ts=current_ts,
+                    committed_at_ts=change.inserted_at_ts,
                     acquired_amount=change.principal_delta,
                     transfer_note=change.transfer_note,
                     principal=_contain_principal_overflow(account.principal + principal_delta),
