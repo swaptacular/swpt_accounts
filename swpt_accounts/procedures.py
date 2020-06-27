@@ -244,7 +244,7 @@ def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate:
         has_established_interest_rate = account.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         has_incorrect_interest_rate = not has_established_interest_rate or account.interest_rate != interest_rate
         signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-        change_min_seconds = signalbus_max_delay_seconds + max(SECONDS_IN_DAY, 0.2 * signalbus_max_delay_seconds)
+        change_min_seconds = signalbus_max_delay_seconds + SECONDS_IN_DAY
         is_request_outdated = (current_ts - request_ts).total_seconds() > signalbus_max_delay_seconds
         is_change_allowed = (current_ts - account.last_interest_rate_change_ts).total_seconds() > change_min_seconds
         if is_change_allowed and not is_request_outdated and has_incorrect_interest_rate:
