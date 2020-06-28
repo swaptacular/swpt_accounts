@@ -178,14 +178,7 @@ class TransferRequest(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_request_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    coordinator_type = db.Column(
-        db.String(30),
-        nullable=False,
-        comment='Indicates which subsystem has initiated the transfer and is responsible for '
-                'finalizing it (coordinating the transfer). The value must be a valid python '
-                'identifier, all lowercase, no double underscores. Example: direct, interest, '
-                'circular.',
-    )
+    coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     min_amount = db.Column(db.BigInteger, nullable=False)

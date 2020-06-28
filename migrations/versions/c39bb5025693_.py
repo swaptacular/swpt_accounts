@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: d8253e420ca1
+Revision ID: c39bb5025693
 Revises: 
-Create Date: 2020-06-28 14:27:36.249175
+Create Date: 2020-06-28 14:49:35.059840
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'd8253e420ca1'
+revision = 'c39bb5025693'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -184,7 +184,7 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_request_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False, comment='Indicates which subsystem has initiated the transfer and is responsible for finalizing it (coordinating the transfer). The value must be a valid python identifier, all lowercase, no double underscores. Example: direct, interest, circular.'),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('min_amount', sa.BigInteger(), nullable=False),
