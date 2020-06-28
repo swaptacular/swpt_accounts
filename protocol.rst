@@ -776,29 +776,6 @@ last_interest_rate_change_ts : date-time
    `AccountUpdate`_ message sent for the previous interest rate change
    has been processed by all clients.
 
-demurrage_rate : float
-   The demurrage rate (in percents) for new prepared transfers. That
-   is: the value of the ``demurrage_rate`` field in new
-   `PreparedTransfer`_ messages. This MUST be a number between
-   ``-100`` and ``0``, which MUST be the same for all accounts with
-   the given debtor. [#demurrage-rate]_
-
-gratis_period : int32
-   The gratis period (in seconds) for new prepared transfers. That is:
-   the value of the ``gratis_period`` field in new `PreparedTransfer`_
-   messages. This MUST be a non-negative number, which MUST be the
-   same for all accounts with the given debtor. [#gratis-period]_
-
-commit_period : int32
-   The maximal allowed period (in seconds) during which new prepared
-   transfers can be committed successfully. That is: unless the client
-   explicitly requested the deadline for the transfer to be shorter
-   that normal, the value of the ``deadline`` field in new
-   `PreparedTransfer`_ messages will be calculated by adding
-   ``commit_period`` seconds to the current timestamp. This MUST be a
-   non-negative number, which MUST be the same for all accounts with
-   the given debtor.
-
 status_flags : int32
    Account status bit-flags. Different server implementations may use
    these flags for different purposes. The lowest 16 bits are
@@ -865,6 +842,29 @@ last_transfer_committed_at : date-time
    creation of the account there have not been any emitted
    `AccountTransfer`_ messages, the value MUST be
    "1970-01-01T00:00:00+00:00".
+
+demurrage_rate : float
+   The demurrage rate (in percents) for new prepared transfers. That
+   is: the value of the ``demurrage_rate`` field in new
+   `PreparedTransfer`_ messages. This MUST be a number between
+   ``-100`` and ``0``, which MUST be the same for all accounts with
+   the given debtor. [#demurrage-rate]_
+
+gratis_period : int32
+   The gratis period (in seconds) for new prepared transfers. That is:
+   the value of the ``gratis_period`` field in new `PreparedTransfer`_
+   messages. This MUST be a non-negative number, which MUST be the
+   same for all accounts with the given debtor. [#gratis-period]_
+
+commit_period : int32
+   The maximal allowed period (in seconds) during which new prepared
+   transfers can be committed successfully. That is: unless the client
+   explicitly requested the deadline for the transfer to be shorter
+   that normal, the value of the ``deadline`` field in new
+   `PreparedTransfer`_ messages will be calculated by adding
+   ``commit_period`` seconds to the ``prepared_at`` timestamp. This
+   MUST be a non-negative number, which MUST be the same for all
+   accounts with the given debtor.
 
 ts : date-time
    The moment at which this message was sent (the message's
