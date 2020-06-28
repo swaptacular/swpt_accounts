@@ -51,6 +51,7 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['interest_rate'] == a.interest_rate
     assert acs_obj['demurrage_rate'] == -50.0
     assert acs_obj['gratis_period'] == 600
+    assert acs_obj['commit_period'] == 30 * 24 * 60 * 60
     assert acs_obj['last_config_ts'] == a.last_config_ts.isoformat()
     assert acs_obj['last_config_seqnum'] == a.last_config_seqnum
     assert acs_obj['negligible_amount'] == a.negligible_amount

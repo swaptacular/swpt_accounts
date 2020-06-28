@@ -264,7 +264,7 @@ min_account_balance : int64
    this would be ``0``.
 
 commit_period : int32
-   A period (in seconds) during which the the prepared transfer can be
+   A period (in seconds) during which the prepared transfer can be
    committed successfully. This instructs the server that the
    generated ``deadline`` for the prepared transfer MUST NOT be later
    than this message's timestamp (the ``ts`` field) plus this number
@@ -777,17 +777,25 @@ last_interest_rate_change_ts : date-time
    has been processed by all clients.
 
 demurrage_rate : float
-   The demurrage rate for new prepared transfers. That is: the value
-   of the ``demurrage_rate`` field in new `PreparedTransfer`_
-   messages. This MUST be a number between ``-100`` and ``0``, which
-   MUST be the same for all accounts with the given
-   debtor. [#demurrage-rate]_
+   The demurrage rate (in percents) for new prepared transfers. That
+   is: the value of the ``demurrage_rate`` field in new
+   `PreparedTransfer`_ messages. This MUST be a number between
+   ``-100`` and ``0``, which MUST be the same for all accounts with
+   the given debtor. [#demurrage-rate]_
 
 gratis_period : int32
-   The gratis period for new prepared transfers. That is: the value of
-   the ``gratis_period`` field in new `PreparedTransfer`_
+   The gratis period (in seconds) for new prepared transfers. That is:
+   the value of the ``gratis_period`` field in new `PreparedTransfer`_
    messages. This MUST be a non-negative number, which MUST be the
    same for all accounts with the given debtor. [#gratis-period]_
+
+commit_period : int32
+   A period (in seconds) during which new prepared transfers can be
+   committed successfully. That is: the most faraway value, which is
+   allowed, for the ``deadline`` filed in new `PreparedTransfer`_
+   messages will be calculated by addinng that many seconds to the
+   current timestamp.  This MUST be a non-negative number, which MUST
+   be the same for all accounts with the given debtor.
 
 status_flags : int32
    Account status bit-flags. Different server implementations may use
@@ -1091,8 +1099,8 @@ otherwise, the way to proceed depends on the status of the RT record:
 initiated
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be stored
-   in the `RT record`_, and the the status of the record MUST be set
-   to "prepared".
+   in the `RT record`_, and the status of the record MUST be set to
+   "prepared".
 
 prepared
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
