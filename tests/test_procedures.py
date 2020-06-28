@@ -719,7 +719,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pt.transfer_id == pts.transfer_id
     assert pt.coordinator_type == 'test'
     assert pt.recipient_creditor_id == 1234
-    assert pt.sender_locked_amount == pts.locked_amount
+    assert pt.locked_amount == pts.locked_amount
 
     pts_obj = pts.__marshmallow_schema__.dump(pts)
     assert pts_obj['debtor_id'] == D_ID
@@ -863,7 +863,7 @@ def test_commit_to_debtor_account(db_session, current_ts):
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
-    assert pt.sender_locked_amount == 50
+    assert pt.locked_amount == 50
     p.finalize_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 'test', 1, 2, 40)
 
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)

@@ -190,7 +190,7 @@ def finalize_transfer(
             inserted_at_ts=current_ts,
             transfer_note=transfer_note,
             principal_delta=-committed_amount,
-            unlocked_amount=pt.sender_locked_amount,
+            unlocked_amount=pt.locked_amount,
         )
         _insert_pending_account_change(
             debtor_id=pt.debtor_id,
@@ -695,7 +695,7 @@ def _process_transfer_request(
             coordinator_type=tr.coordinator_type,
             coordinator_id=tr.coordinator_id,
             coordinator_request_id=tr.coordinator_request_id,
-            sender_locked_amount=amount,
+            locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
             gratis_period=gratis_period,
             demurrage_rate=demurrage_rate,

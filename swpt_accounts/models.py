@@ -78,8 +78,8 @@ class Account(db.Model):
         nullable=False,
         default=0,
         comment='The total sum of all pending transfer locks (the total sum of the values of '
-                'the `pending_transfer.sender_locked_amount` column) for this account. This '
-                'value has been reserved and must be subtracted from the available amount, to '
+                'the `pending_transfer.locked_amount` column) for this account. This value '
+                'has been reserved and must be subtracted from the available amount, to '
                 'avoid double-spending.',
     )
     pending_transfers_count = db.Column(
@@ -220,11 +220,7 @@ class PreparedTransfer(db.Model):
     gratis_period = db.Column(db.Integer, nullable=False)
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    sender_locked_amount = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment="The actual transferred (committed) amount may not exceed this number.",
-    )
+    locked_amount = db.Column(db.BigInteger, nullable=False)
     last_reminder_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         comment='The moment at which the last `PreparedTransferSignal` was sent to remind '
@@ -238,7 +234,7 @@ class PreparedTransfer(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(transfer_id > 0),
-        db.CheckConstraint(sender_locked_amount > 0),
+        db.CheckConstraint(locked_amount > 0),
         db.CheckConstraint(gratis_period >= 0),
         db.CheckConstraint((demurrage_rate > -100.0) & (demurrage_rate <= 0.0)),
         {
@@ -252,7 +248,7 @@ class PreparedTransfer(db.Model):
         if current_ts > self.deadline:
             return 'TRANSFER_TIMEOUT'
 
-        if not (0 <= committed_amount <= self.sender_locked_amount):  # pragma: no cover
+        if not (0 <= committed_amount <= self.locked_amount):  # pragma: no cover
             return 'INSUFFICIENT_LOCKED_AMOUNT'
 
         is_regular_transfer = ROOT_CREDITOR_ID not in [self.sender_creditor_id, self.recipient_creditor_id]
@@ -260,7 +256,7 @@ class PreparedTransfer(db.Model):
             demurrage_seconds = (current_ts - self.prepared_at_ts).total_seconds() - self.gratis_period
             if demurrage_seconds > 0:
                 k = calc_k(self.demurrage_rate)
-                unconsumed_locked_amount = self.sender_locked_amount * math.exp(k * demurrage_seconds)
+                unconsumed_locked_amount = self.locked_amount * math.exp(k * demurrage_seconds)
                 if float(committed_amount) > unconsumed_locked_amount:
                     assert committed_amount > 0
                     return 'INSUFFICIENT_LOCKED_AMOUNT'

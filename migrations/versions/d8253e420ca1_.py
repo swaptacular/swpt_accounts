@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 0fc0798ffe39
+Revision ID: d8253e420ca1
 Revises: 
-Create Date: 2020-06-28 14:22:56.083711
+Create Date: 2020-06-28 14:27:36.249175
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '0fc0798ffe39'
+revision = 'd8253e420ca1'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -36,7 +36,7 @@ def upgrade():
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('status_flags', sa.Integer(), nullable=False, comment='Contain additional account status bits: 1 - unreachable, 65536 - deleted, 131072 - established interest rate, 262144 - overflown.'),
-    sa.Column('total_locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.sender_locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
+    sa.Column('total_locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
     sa.Column('previous_interest_rate', sa.REAL(), nullable=False, comment='The annual interest rate (in percents) as it was before the last change of the interest rate happened (see `last_interest_rate_change_ts`).'),
@@ -209,11 +209,11 @@ def upgrade():
     sa.Column('gratis_period', sa.Integer(), nullable=False),
     sa.Column('demurrage_rate', sa.FLOAT(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('sender_locked_amount', sa.BigInteger(), nullable=False, comment='The actual transferred (committed) amount may not exceed this number.'),
+    sa.Column('locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The moment at which the last `PreparedTransferSignal` was sent to remind that the prepared transfer must be finalized. A `NULL` means that no reminders have been sent yet. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('demurrage_rate > -100.0 AND demurrage_rate <= 0.0'),
     sa.CheckConstraint('gratis_period >= 0'),
-    sa.CheckConstraint('sender_locked_amount > 0'),
+    sa.CheckConstraint('locked_amount > 0'),
     sa.CheckConstraint('transfer_id > 0'),
     sa.ForeignKeyConstraint(['debtor_id', 'sender_creditor_id'], ['account.debtor_id', 'account.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id'),
