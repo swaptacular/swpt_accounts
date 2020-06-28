@@ -645,11 +645,12 @@ lost message, or a complete database loss on the client's side.
 
 .. [#demurrage-rate] The value of the ``demurrage_rate`` field in
   `PreparedTransfer`_ messages SHOULD be equal to the most negative
-  interest rate that is theoretically possible to occur on the sender'
-  account, between the transfer's preparation and the transfer's
-  commit. Note that the current interest rate on the sender's account
-  is not that important, because it can change significantly between
-  the transfer's preparation and the transfer's commit.
+  interest rate that is theoretically possible to occur on any of the
+  accounts with the given debtor, between the transfer's preparation
+  and the transfer's commit. Note that the current interest rate on
+  the sender's account is not that important, because it can change
+  significantly between the transfer's preparation and the transfer's
+  commit.
 
 .. [#gratis-period] When the interest rate on creditors' accounts
   could be negative, the value of the ``gratis_period`` field in
@@ -779,13 +780,14 @@ demurrage_rate : float
    The demurrage rate for new prepared transfers. That is: the value
    of the ``demurrage_rate`` field in new `PreparedTransfer`_
    messages. This MUST be a number between ``-100`` and ``0``, which
-   MUST be the same for all accounts with the given debtor.
+   MUST be the same for all accounts with the given
+   debtor. [#demurrage-rate]_
 
 gratis_period : int32
    The gratis period for new prepared transfers. That is: the value of
    the ``gratis_period`` field in new `PreparedTransfer`_
    messages. This MUST be a non-negative number, which MUST be the
-   same for all accounts with the given debtor.
+   same for all accounts with the given debtor. [#gratis-period]_
 
 status_flags : int32
    Account status bit-flags. Different server implementations may use
