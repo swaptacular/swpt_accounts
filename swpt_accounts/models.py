@@ -181,7 +181,7 @@ class Account(db.Model):
         assert 0 <= t1 <= t
         assert 0 <= t2 <= t
         assert abs(t1 + t2 - t) <= t / 1000
-        return amount * (math.exp(k1 * t1 + k2 * t2) - 1)
+        return amount * (math.exp(k1 * t1 + k2 * t2) - 1.0)
 
 
 class TransferRequest(db.Model):
