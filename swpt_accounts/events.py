@@ -216,6 +216,7 @@ class AccountUpdateSignal(Signal):
         interest = fields.Float()
         interest_rate = fields.Float()
         demurrage_rate = fields.Constant(INTEREST_RATE_FLOOR)
+        gratis_period = fields.Integer()
         last_interest_rate_change_ts = fields.DateTime()
         last_transfer_number = fields.Integer()
         last_transfer_committed_at_ts = fields.DateTime(data_key='last_transfer_committed_at')
@@ -254,6 +255,10 @@ class AccountUpdateSignal(Signal):
     @property
     def ttl(self):
         return int(current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * 86400)
+
+    @property
+    def gratis_period(self):
+        return int(current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS'])
 
 
 class AccountPurgeSignal(Signal):

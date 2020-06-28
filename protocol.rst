@@ -778,7 +778,14 @@ last_interest_rate_change_ts : date-time
 demurrage_rate : float
    The demurrage rate for new prepared transfers. That is: the value
    of the ``demurrage_rate`` field in new `PreparedTransfer`_
-   messages.
+   messages. This MUST be a number between ``-100`` and ``0``, which
+   MUST be the same for all accounts with the given debtor.
+
+gratis_period : int32
+   The gratis period for new prepared transfers. That is: the value of
+   the ``gratis_period`` field in new `PreparedTransfer`_
+   messages. This MUST be a non-negative number, which MUST be the
+   same for all accounts with the given debtor.
 
 status_flags : int32
    Account status bit-flags. Different server implementations may use
