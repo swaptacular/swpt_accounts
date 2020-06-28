@@ -861,8 +861,8 @@ commit_period : int32
    The maximal allowed period (in seconds) during which new prepared
    transfers can be committed successfully. That is: unless the client
    explicitly requested the deadline for the transfer to be shorter
-   than normal, the value of the ``deadline`` field in new
-   `PreparedTransfer`_ messages will be calculated by adding
+   than normal, the value of the ``deadline`` field in the
+   `PreparedTransfer`_ message will be calculated by adding
    ``commit_period`` seconds to the ``prepared_at`` timestamp. The
    value of this filed MUST be the same for all accounts with the
    given debtor, and MUST be equal or bigger than ``86400`` (24
