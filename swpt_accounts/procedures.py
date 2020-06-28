@@ -102,7 +102,7 @@ def prepare_transfer(
         creditor_id: int,
         recipient: str,
         ts: datetime,
-        commit_period: int = MAX_INT32,
+        max_commit_delay: int = MAX_INT32,
         min_account_balance: int = 0) -> None:
 
     assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
@@ -112,7 +112,7 @@ def prepare_transfer(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert ts > BEGINNING_OF_TIME
-    assert 0 <= commit_period <= MAX_INT32
+    assert 0 <= max_commit_delay <= MAX_INT32
     assert MIN_INT64 <= min_account_balance <= MAX_INT64
 
     if creditor_id != ROOT_CREDITOR_ID:
@@ -145,7 +145,7 @@ def prepare_transfer(
             max_amount=max_amount,
             sender_creditor_id=creditor_id,
             recipient_creditor_id=recipient_creditor_id,
-            deadline=ts + timedelta(seconds=commit_period),
+            deadline=ts + timedelta(seconds=max_commit_delay),
             min_account_balance=min_account_balance,
         ))
 
@@ -687,8 +687,8 @@ def _process_transfer_request(
         sender_account.last_transfer_id += 1
         gratis_period = int(current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS'])
         demurrage_rate = INTEREST_RATE_FLOOR
-        commit_interval = timedelta(seconds=AccountUpdateSignal.get_commit_period())
-        deadline = min(current_ts + commit_interval, tr.deadline)
+        commit_period = AccountUpdateSignal.get_commit_period()
+        deadline = min(current_ts + timedelta(seconds=commit_period), tr.deadline)
         db.session.add(PreparedTransfer(
             debtor_id=tr.debtor_id,
             sender_creditor_id=tr.sender_creditor_id,

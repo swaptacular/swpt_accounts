@@ -263,8 +263,8 @@ min_account_balance : int64
    implementations are free to fulfill or ignore this wish. Normally,
    this would be ``0``.
 
-commit_period : int32
-   A period (in seconds) during which the prepared transfer can be
+max_commit_delay : int32
+   The period (in seconds) during which the prepared transfer can be
    committed successfully. This instructs the server that the
    generated ``deadline`` for the prepared transfer MUST NOT be later
    than this message's timestamp (the ``ts`` field) plus this number

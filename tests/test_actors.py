@@ -16,7 +16,7 @@ def test_prepare_transfer(db_session):
         creditor_id=C_ID,
         recipient='1234',
         min_account_balance=0,
-        commit_period=1000000,
+        max_commit_delay=1000000,
         ts=datetime.now(tz=timezone.utc).isoformat(),
     )
 
