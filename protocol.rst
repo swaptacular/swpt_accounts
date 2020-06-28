@@ -776,18 +776,16 @@ last_interest_rate_change_ts : date-time
    has been processed by all clients.
 
 demurrage_rate : float
-   A lower limit for the demurrage rate on new prepared
-   transfers. That is: the value of the ``demurrage_rate`` field in
-   new `PreparedTransfer`_ messages will be equal or bigger than this
-   value. This MUST be a number between ``-100`` and ``0``, which MUST
-   be the same for all accounts with the given debtor.
+   The demurrage rate for new prepared transfers. That is: the value
+   of the ``demurrage_rate`` field in new `PreparedTransfer`_
+   messages. This MUST be a number between ``-100`` and ``0``, which
+   MUST be the same for all accounts with the given debtor.
 
 gratis_period : int32
-   A lower limit for the gratis period for new prepared
-   transfers. That is: the value of the ``gratis_period`` field in new
-   `PreparedTransfer`_ messages will be equal or bigger than this
-   value. This MUST be a non-negative number, which MUST be the same
-   for all accounts with the given debtor.
+   The gratis period for new prepared transfers. That is: the value of
+   the ``gratis_period`` field in new `PreparedTransfer`_
+   messages. This MUST be a non-negative number, which MUST be the
+   same for all accounts with the given debtor.
 
 status_flags : int32
    Account status bit-flags. Different server implementations may use
