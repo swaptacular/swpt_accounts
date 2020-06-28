@@ -267,10 +267,11 @@ max_commit_delay : int32
    The period (in seconds) during which the prepared transfer can be
    committed successfully. This instructs the server that the
    generated ``deadline`` for the prepared transfer MUST NOT be later
-   than this message's timestamp (the ``ts`` field) plus this number
-   of seconds. This MUST be a non-negative number. If the client does
-   not want the deadline for the transfer to be shorter that normal,
-   this field should be set to some huge number.
+   than this message's timestamp (the ``ts`` field) plus
+   ``max_commit_delay`` seconds. This MUST be a non-negative
+   number. If the client does not want the deadline for the transfer
+   to be shorter that normal, this field should be set to some huge
+   number.
 
 ts : date-time
    The moment at which this message was sent (the message's
