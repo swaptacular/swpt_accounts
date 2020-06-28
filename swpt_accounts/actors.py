@@ -86,6 +86,9 @@ def finalize_transfer(
     )
 
 
+# TODO: Consider passing a `min_interest_rate` argument here as
+#       well. This would allow us to more accurately set the
+#       `min_interest_rate` field in `AccountUpdate` messages.
 @broker.actor(queue_name=APP_QUEUE_NAME)
 def try_to_change_interest_rate(
         debtor_id: int,

@@ -2,7 +2,7 @@ import math
 from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, or_
+from sqlalchemy.sql.expression import null, or_, and_
 from swpt_lib.utils import date_to_int24
 from .extensions import db
 from .events import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
@@ -33,6 +33,10 @@ ROOT_CREDITOR_ID = 0
 
 def get_now_utc() -> datetime:
     return datetime.now(tz=timezone.utc)
+
+
+def calc_k(interest_rate: float) -> float:
+    return math.log(1.0 + interest_rate / 100.0) / SECONDS_IN_YEAR
 
 
 class Account(db.Model):
@@ -92,6 +96,13 @@ class Account(db.Model):
                 f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "
                 f"{STATUS_OVERFLOWN_FLAG} - overflown."
     )
+    previous_interest_rate = db.Column(
+        db.REAL,
+        nullable=False,
+        default=0.0,
+        comment='The annual interest rate (in percents) as it was before the last change of '
+                'the interest rate happened (see `last_interest_rate_change_ts`).',
+    )
     last_interest_rate_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
@@ -108,7 +119,14 @@ class Account(db.Model):
                 'often.',
     )
     __table_args__ = (
-        db.CheckConstraint((interest_rate >= INTEREST_RATE_FLOOR) & (interest_rate <= INTEREST_RATE_CEIL)),
+        db.CheckConstraint(and_(
+            interest_rate >= INTEREST_RATE_FLOOR,
+            interest_rate <= INTEREST_RATE_CEIL,
+        )),
+        db.CheckConstraint(and_(
+            previous_interest_rate >= INTEREST_RATE_FLOOR,
+            previous_interest_rate <= INTEREST_RATE_CEIL,
+        )),
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(pending_transfers_count >= 0),
         db.CheckConstraint(principal > MIN_INT64),
@@ -120,7 +138,7 @@ class Account(db.Model):
         }
     )
 
-    def calc_current_balance(self, current_ts: datetime = None) -> Decimal:
+    def calc_current_balance(self, current_ts: datetime) -> Decimal:
         current_balance = Decimal(self.principal)
 
         # Note that any interest accumulated on the debtor's account
@@ -129,12 +147,36 @@ class Account(db.Model):
         if self.creditor_id != ROOT_CREDITOR_ID:
             current_balance += Decimal.from_float(self.interest)
             if current_balance > 0:
-                k = math.log(1.0 + self.interest_rate / 100.0) / SECONDS_IN_YEAR
+                k = calc_k(self.interest_rate)
                 current_ts = current_ts or datetime.now(tz=timezone.utc)
                 passed_seconds = max(0.0, (current_ts - self.last_change_ts).total_seconds())
                 current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
 
         return current_balance
+
+    def calc_due_interest(self, amount: int, start_ts: datetime, end_ts: datetime) -> float:
+        """Return the accumulated interest between `start_ts` and `end_ts`.
+
+        When `amount` is a positive number, returns the amount of
+        interest that would have been accumulated for the given
+        `amount`, between `start_ts` and `end_ts`. When `amount` is a
+        negative number, returns `-self.calc_due_interest(-amount,
+        start_ts, end_ts)`.
+
+        """
+
+        end_ts = max(start_ts, end_ts)
+        interest_rate_change_ts = min(self.last_interest_rate_change_ts, end_ts)
+        t = (end_ts - start_ts).total_seconds()
+        t1 = max((interest_rate_change_ts - start_ts).total_seconds(), 0)
+        t2 = min((end_ts - interest_rate_change_ts).total_seconds(), t)
+        k1 = calc_k(self.previous_interest_rate)
+        k2 = calc_k(self.interest_rate)
+        assert t >= 0
+        assert 0 <= t1 <= t
+        assert 0 <= t2 <= t
+        assert abs(t1 + t2 - t) <= t / 1000
+        return amount * (math.exp(k1 * t1 + k2 * t2) - 1)
 
 
 class TransferRequest(db.Model):
@@ -222,7 +264,7 @@ class PreparedTransfer(db.Model):
         if is_regular_transfer:
             demurrage_seconds = (current_ts - self.prepared_at_ts).total_seconds() - self.gratis_period
             if demurrage_seconds > 0:
-                k = math.log(1.0 + self.demurrage_rate / 100.0) / SECONDS_IN_YEAR
+                k = calc_k(self.demurrage_rate)
                 unconsumed_locked_amount = self.sender_locked_amount * math.exp(k * demurrage_seconds)
                 if float(committed_amount) > unconsumed_locked_amount:
                     assert committed_amount > 0
