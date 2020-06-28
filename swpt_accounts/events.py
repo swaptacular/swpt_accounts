@@ -263,6 +263,13 @@ class AccountUpdateSignal(Signal):
 
     @property
     def commit_period(self):
+        return self.get_commit_period()
+
+    @classmethod
+    def get_commit_period(cls) -> int:
+        # NOTE: To avoid timing out prepared transfers due to signal
+        # bus delays, here we ensure that prepared transfers' maximum
+        # delay is not smaller than the allowed signal bus delay.
         days = max(
             current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'],
             current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'],

@@ -687,7 +687,8 @@ def _process_transfer_request(
         sender_account.last_transfer_id += 1
         gratis_period = int(current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS'])
         demurrage_rate = INTEREST_RATE_FLOOR
-        deadline = _calc_prepared_transfer_deadline(tr, current_ts)
+        commit_interval = timedelta(seconds=AccountUpdateSignal.get_commit_period())
+        deadline = min(current_ts + commit_interval, tr.deadline)
         db.session.add(PreparedTransfer(
             debtor_id=tr.debtor_id,
             sender_creditor_id=tr.sender_creditor_id,
@@ -779,14 +780,3 @@ def _get_reachable_recipient_account_pks(transfer_requests: List[TransferRequest
         filter(Account.status_flags.op('&')(Account.STATUS_UNREACHABLE_FLAG) == 0).\
         all()
     return set(account_pks)
-
-
-def _calc_prepared_transfer_deadline(tr: TransferRequest, current_ts: datetime) -> timedelta:
-    # NOTE: To avoid timing out prepared transfers due to signal
-    # bus delays, here we ensure that prepared transfers' maximum
-    # delay is not smaller than the allowed signal bus delay.
-    deadline = current_ts + max(
-        timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS']),
-        timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS']),
-    )
-    return min(deadline, tr.deadline)
