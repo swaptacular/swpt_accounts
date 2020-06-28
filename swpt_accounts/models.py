@@ -73,7 +73,7 @@ class Account(db.Model):
                 f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "
                 f"{STATUS_OVERFLOWN_FLAG} - overflown."
     )
-    locked_amount = db.Column(
+    total_locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
         default=0,
@@ -122,7 +122,7 @@ class Account(db.Model):
             previous_interest_rate >= INTEREST_RATE_FLOOR,
             previous_interest_rate <= INTEREST_RATE_CEIL,
         )),
-        db.CheckConstraint(locked_amount >= 0),
+        db.CheckConstraint(total_locked_amount >= 0),
         db.CheckConstraint(pending_transfers_count >= 0),
         db.CheckConstraint(principal > MIN_INT64),
         db.CheckConstraint(last_transfer_id >= 0),
@@ -284,8 +284,8 @@ class PendingAccountChange(db.Model):
     )
     unlocked_amount = db.Column(
         db.BigInteger,
-        comment='If not NULL, the value must be subtracted from `account.locked_amount`, and '
-                '`account.pending_transfers_count` must be decremented.',
+        comment='If not NULL, the value must be subtracted from `account.total_locked_amount`, '
+                'and `account.pending_transfers_count` must be decremented.',
     )
     coordinator_type = db.Column(db.String(30), nullable=False)
     transfer_note = db.Column(
@@ -311,9 +311,9 @@ class PendingAccountChange(db.Model):
         db.CheckConstraint(unlocked_amount >= 0),
         {
             'comment': 'Represents a pending change to a given account. Pending updates to '
-                       '`account.principal`, `account.interest`, and `account.locked_amount` are '
-                       'queued to this table, before being processed, because this allows '
-                       'multiple updates to one account to coalesce, reducing the lock '
-                       'contention on `account` table rows.',
+                       '`account.principal`, `account.interest`, and `account.total_locked_amount` '
+                       'are queued to this table, before being processed, because this allows '
+                       'multiple updates to one account to coalesce, reducing the lock contention '
+                       'on `account` table rows.',
         }
     )

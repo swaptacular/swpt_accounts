@@ -392,7 +392,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 interest_delta += change.interest_delta
 
             if change.unlocked_amount is not None:
-                account.locked_amount = max(0, account.locked_amount - change.unlocked_amount)
+                account.total_locked_amount = max(0, account.total_locked_amount - change.unlocked_amount)
                 account.pending_transfers_count = max(0, account.pending_transfers_count - 1)
                 if change.principal_delta < 0:
                     account.last_outgoing_transfer_date = current_date
@@ -525,7 +525,7 @@ def _lock_or_create_account(debtor_id: int, creditor_id: int, current_ts: dateti
 
 def _get_available_amount(account: Account, current_ts: datetime) -> int:
     current_balance = math.floor(account.calc_current_balance(current_ts))
-    return _contain_principal_overflow(current_balance - account.locked_amount)
+    return _contain_principal_overflow(current_balance - account.total_locked_amount)
 
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
@@ -607,7 +607,7 @@ def _insert_account_transfer_signal(
 def _mark_account_as_deleted(account: Account, current_ts: datetime):
     account.principal = 0
     account.interest = 0.0
-    account.locked_amount = 0
+    account.total_locked_amount = 0
     account.status_flags |= Account.STATUS_DELETED_FLAG
     _insert_account_update_signal(account, current_ts)
 
@@ -682,7 +682,7 @@ def _process_transfer_request(
 
     def prepare(amount: int) -> PreparedTransferSignal:
         assert sender_account is not None
-        sender_account.locked_amount = min(sender_account.locked_amount + amount, MAX_INT64)
+        sender_account.total_locked_amount = min(sender_account.total_locked_amount + amount, MAX_INT64)
         sender_account.pending_transfers_count += 1
         sender_account.last_transfer_id += 1
         gratis_period = int(current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS'])
@@ -747,7 +747,7 @@ def _process_transfer_request(
     available_amount = _get_available_amount(sender_account, current_ts)
     expendable_amount = min(available_amount - tr.min_account_balance, tr.max_amount)
     if expendable_amount <= 0 or expendable_amount < tr.min_amount:
-        return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, available_amount, sender_account.locked_amount)
+        return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, available_amount, sender_account.total_locked_amount)
 
     return prepare(expendable_amount)
 

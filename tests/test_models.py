@@ -14,7 +14,7 @@ def test_configure_account():
         creditor_id=C_ID,
         creation_date=date(1970, 1, 1),
         principal=1000,
-        locked_amount=0,
+        total_locked_amount=0,
         pending_transfers_count=0,
         last_transfer_id=0,
         status_flags=0,

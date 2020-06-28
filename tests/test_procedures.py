@@ -29,7 +29,7 @@ def test_configure_account(db_session, current_ts):
     assert a.status_flags == 0
     assert a.principal == 0
     assert a.interest == 0.0
-    assert a.locked_amount == 0
+    assert a.total_locked_amount == 0
     assert a.pending_transfers_count == 0
     assert a.interest_rate == 0.0
     assert a.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
@@ -319,7 +319,7 @@ def test_get_available_amount(db_session, current_ts):
     })
     assert p.get_available_amount(D_ID, C_ID) == 5100
     q.update({
-        Account.locked_amount: 1000,
+        Account.total_locked_amount: 1000,
     })
     assert p.get_available_amount(D_ID, C_ID) == 4100
     q.update({
@@ -554,7 +554,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     )
     p.process_transfer_requests(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
-    assert a.locked_amount == 0
+    assert a.total_locked_amount == 0
     assert a.pending_transfers_count == 0
     p.process_pending_account_changes(D_ID, 1234)
     p.process_pending_account_changes(D_ID, C_ID)
@@ -698,7 +698,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     )
     p.process_transfer_requests(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
-    assert a.locked_amount == 100
+    assert a.total_locked_amount == 100
     assert a.pending_transfers_count == 1
     p.process_pending_account_changes(D_ID, 1234)
     p.process_pending_account_changes(D_ID, C_ID)
@@ -743,7 +743,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     p.process_pending_account_changes(D_ID, 1234)
     p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
-    assert a.locked_amount == 0
+    assert a.total_locked_amount == 0
     assert a.pending_transfers_count == 0
     assert a.principal == 100
     assert a.interest == 0.0
@@ -789,13 +789,13 @@ def test_commit_prepared_transfer(db_session, current_ts):
     p.process_pending_account_changes(D_ID, 1234)
     p.process_pending_account_changes(D_ID, C_ID)
     a1 = p.get_account(D_ID, 1234)
-    assert a1.locked_amount == 0
+    assert a1.total_locked_amount == 0
     assert a1.pending_transfers_count == 0
     assert a1.principal == 40
     assert a1.interest == 0.0
     assert a1.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     a2 = p.get_account(D_ID, C_ID)
-    assert a2.locked_amount == 0
+    assert a2.total_locked_amount == 0
     assert a2.pending_transfers_count == 0
     assert a2.principal == 60
     assert a2.interest == 0.0

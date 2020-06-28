@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 9a2dfc502546
+Revision ID: 0fc0798ffe39
 Revises: 
-Create Date: 2020-06-28 14:05:39.711958
+Create Date: 2020-06-28 14:22:56.083711
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '9a2dfc502546'
+revision = '0fc0798ffe39'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -36,7 +36,7 @@ def upgrade():
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('status_flags', sa.Integer(), nullable=False, comment='Contain additional account status bits: 1 - unreachable, 65536 - deleted, 131072 - established interest rate, 262144 - overflown.'),
-    sa.Column('locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.sender_locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
+    sa.Column('total_locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.sender_locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
     sa.Column('previous_interest_rate', sa.REAL(), nullable=False, comment='The annual interest rate (in percents) as it was before the last change of the interest rate happened (see `last_interest_rate_change_ts`).'),
@@ -44,11 +44,11 @@ def upgrade():
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_id >= 0'),
     sa.CheckConstraint('last_transfer_number >= 0'),
-    sa.CheckConstraint('locked_amount >= 0'),
     sa.CheckConstraint('negligible_amount >= 0.0'),
     sa.CheckConstraint('pending_transfers_count >= 0'),
     sa.CheckConstraint('previous_interest_rate >= -50.0 AND previous_interest_rate <= 100.0'),
     sa.CheckConstraint('principal > -9223372036854775808'),
+    sa.CheckConstraint('total_locked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id'),
     comment='Tells who owes what to whom.'
     )
@@ -126,7 +126,7 @@ def upgrade():
     sa.Column('change_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('principal_delta', sa.BigInteger(), nullable=False, comment='The change in `account.principal`.'),
     sa.Column('interest_delta', sa.BigInteger(), nullable=False, comment='The change in `account.interest`.'),
-    sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.locked_amount`, and `account.pending_transfers_count` must be decremented.'),
+    sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.total_locked_amount`, and `account.pending_transfers_count` must be decremented.'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=True, comment='A note from the sender. Can be any string that the sender wants the recipient to see. If the account change represents a committed transfer, the note will be included in the generated `on_account_transfer_signal` event, otherwise the note is ignored. Can be NULL only if `principal_delta` is zero.'),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='If the account change represents a committed transfer, this is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, the value is irrelevant.'),
@@ -134,7 +134,7 @@ def upgrade():
     sa.CheckConstraint('principal_delta = 0 OR transfer_note IS NOT NULL'),
     sa.CheckConstraint('unlocked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
-    comment='Represents a pending change to a given account. Pending updates to `account.principal`, `account.interest`, and `account.locked_amount` are queued to this table, before being processed, because this allows multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'
+    comment='Represents a pending change to a given account. Pending updates to `account.principal`, `account.interest`, and `account.total_locked_amount` are queued to this table, before being processed, because this allows multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'
     )
     op.create_table('prepared_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
