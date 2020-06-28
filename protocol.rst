@@ -792,11 +792,12 @@ gratis_period : int32
 commit_period : int32
    The maximal allowed period (in seconds) during which new prepared
    transfers can be committed successfully. That is: unless the client
-   wants the deadline for the transfer to be shorter that normal, the
-   ``deadline`` field in new `PreparedTransfer`_ messages will be
-   calculated by addinng that many seconds to the current
-   timestamp. This MUST be a non-negative number, which MUST be the
-   same for all accounts with the given debtor.
+   explicitly requested the deadline for the transfer to be shorter
+   that normal, the value of the ``deadline`` field in new
+   `PreparedTransfer`_ messages will be calculated by adding
+   ``commit_period`` seconds to the current timestamp. This MUST be a
+   non-negative number, which MUST be the same for all accounts with
+   the given debtor.
 
 status_flags : int32
    Account status bit-flags. Different server implementations may use
