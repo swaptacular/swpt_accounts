@@ -54,7 +54,6 @@ class Account(db.Model):
     last_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
-    previous_interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     interest = db.Column(db.FLOAT, nullable=False, default=0.0)
     last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
@@ -96,6 +95,13 @@ class Account(db.Model):
                 f"{STATUS_DELETED_FLAG} - deleted, "
                 f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "
                 f"{STATUS_OVERFLOWN_FLAG} - overflown."
+    )
+    previous_interest_rate = db.Column(
+        db.REAL,
+        nullable=False,
+        default=0.0,
+        comment='The annual interest rate (in percents) as it was before the last change of '
+                'the interest rate happened (see `last_interest_rate_change_ts`).',
     )
     last_interest_rate_change_ts = db.Column(
         db.TIMESTAMP(timezone=True),

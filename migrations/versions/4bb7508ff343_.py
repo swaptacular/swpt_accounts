@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: bce7651fb24c
+Revision ID: 4bb7508ff343
 Revises: 
-Create Date: 2020-06-27 19:49:19.142602
+Create Date: 2020-06-28 13:06:00.524395
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'bce7651fb24c'
+revision = '4bb7508ff343'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,7 +26,6 @@ def upgrade():
     sa.Column('last_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('interest_rate', sa.REAL(), nullable=False),
-    sa.Column('previous_interest_rate', sa.REAL(), nullable=False),
     sa.Column('interest', sa.FLOAT(), nullable=False),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
@@ -39,6 +38,7 @@ def upgrade():
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
     sa.Column('status_flags', sa.Integer(), nullable=False, comment='Contain additional account status bits: 65536 - deleted, 131072 - established interest rate, 262144 - overflown.'),
+    sa.Column('previous_interest_rate', sa.REAL(), nullable=False, comment='The annual interest rate (in percents) as it was before the last change of the interest rate happened (see `last_interest_rate_change_ts`).'),
     sa.Column('last_interest_rate_change_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last change of the interest rate happened. This column helps to prevent changing the interest rate too often.'),
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdateSignal` was sent to remind that the account still exists. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
