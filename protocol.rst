@@ -863,9 +863,10 @@ commit_period : int32
    explicitly requested the deadline for the transfer to be shorter
    than normal, the value of the ``deadline`` field in new
    `PreparedTransfer`_ messages will be calculated by adding
-   ``commit_period`` seconds to the ``prepared_at`` timestamp. This
-   MUST be a non-negative number, which MUST be the same for all
-   accounts with the given debtor.
+   ``commit_period`` seconds to the ``prepared_at`` timestamp. The
+   value of this filed MUST be the same for all accounts with the
+   given debtor, and MUST be equal or bigger than ``86400`` (24
+   hours).
 
 ts : date-time
    The moment at which this message was sent (the message's
