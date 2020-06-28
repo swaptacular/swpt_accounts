@@ -55,6 +55,7 @@ class Account(db.Model):
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     interest = db.Column(db.FLOAT, nullable=False, default=0.0)
+    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
@@ -62,6 +63,16 @@ class Account(db.Model):
     last_outgoing_transfer_date = db.Column(db.DATE, nullable=False, default=BEGINNING_OF_TIME.date())
     negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
     config_flags = db.Column(db.Integer, nullable=False, default=0)
+    status_flags = db.Column(
+        db.Integer,
+        nullable=False,
+        default=PRISTINE_ACCOUNT_STATUS_FLAGS,
+        comment="Contain additional account status bits: "
+                f"{STATUS_UNREACHABLE_FLAG} - unreachable, "
+                f"{STATUS_DELETED_FLAG} - deleted, "
+                f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "
+                f"{STATUS_OVERFLOWN_FLAG} - overflown."
+    )
     locked_amount = db.Column(
         db.BigInteger,
         nullable=False,
@@ -87,28 +98,12 @@ class Account(db.Model):
                 'to zero, and its higher 24 bits calculated from the value of `creation_date` '
                 '(the number of days since Jan 1st, 1970).',
     )
-    status_flags = db.Column(
-        db.Integer,
-        nullable=False,
-        default=PRISTINE_ACCOUNT_STATUS_FLAGS,
-        comment="Contain additional account status bits: "
-                f"{STATUS_DELETED_FLAG} - deleted, "
-                f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate, "
-                f"{STATUS_OVERFLOWN_FLAG} - overflown."
-    )
     previous_interest_rate = db.Column(
         db.REAL,
         nullable=False,
         default=0.0,
         comment='The annual interest rate (in percents) as it was before the last change of '
                 'the interest rate happened (see `last_interest_rate_change_ts`).',
-    )
-    last_interest_rate_change_ts = db.Column(
-        db.TIMESTAMP(timezone=True),
-        nullable=False,
-        default=BEGINNING_OF_TIME,
-        comment='The moment at which the last change of the interest rate happened. This column '
-                'helps to prevent changing the interest rate too often.',
     )
     last_reminder_ts = db.Column(
         db.TIMESTAMP(timezone=True),
