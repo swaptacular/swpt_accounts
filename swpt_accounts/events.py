@@ -215,7 +215,7 @@ class AccountUpdateSignal(Signal):
         principal = fields.Integer()
         interest = fields.Float()
         interest_rate = fields.Float()
-        min_interest_rate = fields.Constant(INTEREST_RATE_FLOOR)
+        demurrage_rate = fields.Constant(INTEREST_RATE_FLOOR)
         last_interest_rate_change_ts = fields.DateTime()
         last_transfer_number = fields.Integer()
         last_transfer_committed_at_ts = fields.DateTime(data_key='last_transfer_committed_at')

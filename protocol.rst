@@ -775,10 +775,10 @@ last_interest_rate_change_ts : date-time
    `AccountUpdate`_ message sent for the previous interest rate change
    has been processed by all clients.
 
-min_interest_rate : float
-   A guaranteed long-term lower limit on the interest rate. The annual
-   interest rate (in percents) MUST not fall under this value for at
-   least one year. This can be a negative number.
+demurrage_rate : float
+   The demurrage rate for new prepared transfers. That is: the value
+   of the ``demurrage_rate`` field in new `PreparedTransfer`_
+   messages.
 
 status_flags : int32
    Account status bit-flags. Different server implementations may use

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: c39bb5025693
+Revision ID: 146814e225dd
 Revises: 
-Create Date: 2020-06-28 14:49:35.059840
+Create Date: 2020-06-28 21:47:59.828515
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'c39bb5025693'
+revision = '146814e225dd'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -127,9 +127,9 @@ def upgrade():
     sa.Column('principal_delta', sa.BigInteger(), nullable=False, comment='The change in `account.principal`.'),
     sa.Column('interest_delta', sa.BigInteger(), nullable=False, comment='The change in `account.interest`.'),
     sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.total_locked_amount`, and `account.pending_transfers_count` must be decremented.'),
-    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=True, comment='A note from the sender. Can be any string that the sender wants the recipient to see. If the account change represents a committed transfer, the note will be included in the generated `on_account_transfer_signal` event, otherwise the note is ignored. Can be NULL only if `principal_delta` is zero.'),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='If the account change represents a committed transfer, this is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, the value is irrelevant.'),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('principal_delta = 0 OR transfer_note IS NOT NULL'),
     sa.CheckConstraint('unlocked_amount >= 0'),
