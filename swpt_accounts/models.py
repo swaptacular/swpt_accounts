@@ -141,14 +141,13 @@ class Account(db.Model):
     def calc_current_balance(self, current_ts: datetime) -> Decimal:
         current_balance = Decimal(self.principal)
 
-        # Note that any interest accumulated on the debtor's account
-        # will not be included in the current balance. Thus,
-        # accumulating interest on the debtor's account has no effect.
+        # NOTE: Any interest accumulated on the debtor's account will
+        # not be included in the current balance. Thus, accumulating
+        # interest on the debtor's account has no effect.
         if self.creditor_id != ROOT_CREDITOR_ID:
             current_balance += Decimal.from_float(self.interest)
             if current_balance > 0:
                 k = calc_k(self.interest_rate)
-                current_ts = current_ts or datetime.now(tz=timezone.utc)
                 passed_seconds = max(0.0, (current_ts - self.last_change_ts).total_seconds())
                 current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
 
@@ -248,6 +247,8 @@ class PreparedTransfer(db.Model):
     )
 
     def calc_status_code(self, committed_amount: int, current_ts: datetime) -> str:
+        """Calculate the finalization status code."""
+
         if current_ts > self.deadline:
             return SC_TRANSFER_TIMEOUT
 
@@ -293,7 +294,6 @@ class PendingAccountChange(db.Model):
         comment='If not NULL, the value must be subtracted from `account.total_locked_amount`, '
                 'and `account.pending_transfers_count` must be decremented.',
     )
-    coordinator_type = db.Column(db.String(30), nullable=False)
     transfer_note = db.Column(
         pg.TEXT,
         comment='A note from the sender. Can be any string that the sender wants the '
@@ -310,6 +310,7 @@ class PendingAccountChange(db.Model):
                 'sender. When `principal_delta` is negative, this is the recipient. When '
                 '`principal_delta` is zero, the value is irrelevant.',
     )
+    coordinator_type = db.Column(db.String(30), nullable=False)
     inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     __table_args__ = (
