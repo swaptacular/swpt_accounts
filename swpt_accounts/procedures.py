@@ -12,7 +12,7 @@ from .models import (
     AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, SECONDS_IN_DAY,
-    CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT
+    CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT, SC_OK
 )
 
 T = TypeVar('T')
@@ -178,8 +178,8 @@ def finalize_transfer(
         and pt.coordinator_request_id == coordinator_request_id
     )
     if pt_with_matching_coordinator_request:
-        status_code = pt.get_status_code(committed_amount, current_ts)
-        if status_code != 'OK':
+        status_code = pt.calc_status_code(committed_amount, current_ts)
+        if status_code != SC_OK:
             committed_amount = 0
 
         _insert_pending_account_change(

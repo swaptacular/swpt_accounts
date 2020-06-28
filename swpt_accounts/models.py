@@ -25,6 +25,11 @@ CT_NULLIFY = 'nullify'
 CT_DELETE = 'delete'
 CT_DIRECT = 'direct'
 
+# Finalized transfer status codes:
+SC_OK = 'OK'
+SC_TRANSFER_TIMEOUT = 'TRANSFER_TIMEOUT'
+SC_TOO_BIG_COMMITTED_AMOUNT = 'TOO_BIG_COMMITTED_AMOUNT'
+
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
 # demurrage payments come from/to this account.
@@ -149,18 +154,23 @@ class Account(db.Model):
 
         return current_balance
 
-    def calc_due_interest(self, amount: int, start_ts: datetime, end_ts: datetime) -> float:
-        """Return the accumulated interest between `start_ts` and `end_ts`.
+    def calc_due_interest(self, amount: int, due_ts: datetime, current_ts: datetime) -> float:
+        """Return the accumulated interest between `due_ts` and `current_ts`.
 
         When `amount` is a positive number, returns the amount of
         interest that would have been accumulated for the given
-        `amount`, between `start_ts` and `end_ts`. When `amount` is a
-        negative number, returns `-self.calc_due_interest(-amount,
-        start_ts, end_ts)`.
+        `amount`, between `due_ts` and `current_ts`. When `amount` is
+        a negative number, returns `-self.calc_due_interest(-amount,
+        due_ts, current_ts)`.
+
+        To calculate the accumulated interest, this function assumes
+        that: 1) `current_ts` is the current time; 2) The interest
+        rate has not changed more than once between `due_ts` and
+        `current_ts`.
 
         """
 
-        end_ts = max(start_ts, end_ts)
+        start_ts, end_ts = due_ts, max(due_ts, current_ts)
         interest_rate_change_ts = min(self.last_interest_rate_change_ts, end_ts)
         t = (end_ts - start_ts).total_seconds()
         t1 = max((interest_rate_change_ts - start_ts).total_seconds(), 0)
@@ -237,24 +247,31 @@ class PreparedTransfer(db.Model):
         }
     )
 
-    def get_status_code(self, committed_amount: int, current_ts: datetime) -> str:
+    def calc_status_code(self, committed_amount: int, current_ts: datetime) -> str:
         if current_ts > self.deadline:
-            return 'TRANSFER_TIMEOUT'
+            return SC_TRANSFER_TIMEOUT
 
-        if not (0 <= committed_amount <= self.locked_amount):  # pragma: no cover
-            return 'INSUFFICIENT_LOCKED_AMOUNT'
+        if not (0 <= committed_amount <= self.locked_amount):
+            # NOTE: Normally, the committed amount must not be
+            # negative. Just to be on the safe side, here we treat
+            # negative committed amounts as too big amounts.
 
-        is_regular_transfer = ROOT_CREDITOR_ID not in [self.sender_creditor_id, self.recipient_creditor_id]
-        if is_regular_transfer:
+            return SC_TOO_BIG_COMMITTED_AMOUNT
+
+        if self.sender_creditor_id != ROOT_CREDITOR_ID and self.recipient_creditor_id != ROOT_CREDITOR_ID:
+            # NOTE: We do not need to calculate demurrage for
+            # transfers from/to the debtor's account, because all
+            # interest payments come from the debtor's account
+            # anyway. Also, note that here we should be careful when
+            # comparing big integers with floats.
+
             demurrage_seconds = (current_ts - self.prepared_at_ts).total_seconds() - self.gratis_period
             if demurrage_seconds > 0:
                 k = calc_k(self.demurrage_rate)
-                unconsumed_locked_amount = self.locked_amount * math.exp(k * demurrage_seconds)
-                if float(committed_amount) > unconsumed_locked_amount:
-                    assert committed_amount > 0
-                    return 'INSUFFICIENT_LOCKED_AMOUNT'
+                if committed_amount * 1.0 > self.locked_amount * math.exp(k * demurrage_seconds):
+                    return SC_TOO_BIG_COMMITTED_AMOUNT
 
-        return 'OK'
+        return SC_OK
 
 
 class PendingAccountChange(db.Model):
