@@ -878,7 +878,7 @@ ttl : int32
    The time-to-live (in seconds) for this message. The message MUST be
    ignored if more than ``ttl`` seconds have elapsed since the message
    was emitted (``ts``). [#account-update-ttl]_ This MUST be a
-   positive number.
+   non-negative number.
 
 If for a given account, no `AccountUpdate`_ messages have been sent
 for a long while (1 week for example), the server MUST send a new
