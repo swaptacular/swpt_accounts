@@ -775,7 +775,9 @@ last_interest_rate_change_ts : date-time
    to provide a reasonable guarantee that, even in case of a temporary
    network disconnect, at least 24 hours have passed since the
    `AccountUpdate`_ message sent for the previous interest rate change
-   has been processed by all clients.
+   has been processed by all clients. If there have not been any
+   changes in the interest rate yet, the value MUST be
+   "1970-01-01T00:00:00+00:00".
 
 status_flags : int32
    Account status bit-flags. Different server implementations may use
