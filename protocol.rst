@@ -249,7 +249,7 @@ min_amount : int64
    value MUST be a non-negative number.
 
 max_amount : int64
-   The secured amount SHOULD NOT exceed this value. This value MUST be
+   The secured amount MUST NOT exceed this value. This value MUST be
    equal or bigger than the value of ``min_amount``. [#zero-amounts]_
 
 recipient : string
@@ -279,11 +279,11 @@ ts : date-time
 
 When server implementations process a `PrepareTransfer`_ message they:
 
-* MUST NOT allow a transfer in which the sender and the recipient is
-  the same account.
-
 * SHOULD NOT allow a transfer without verifying that the recipient's
   account exists, and does accept incoming transfers.
+
+* MUST NOT allow a transfer in which the sender and the recipient is
+  the same account.
 
 * MUST try to secure *as big amount as possible*, within the requested
   limits (that is: a positive number between ``min_amount`` and
