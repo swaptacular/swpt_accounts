@@ -865,7 +865,7 @@ commit_period : int32
    `PreparedTransfer`_ messages will be calculated by adding
    ``commit_period`` seconds to the ``prepared_at`` timestamp. The
    value of this filed MUST be the same for all accounts with the
-   given debtor, MUST be a positive number, and SHOULD be equal or
+   given debtor, MUST be a non-negative number, and SHOULD be equal or
    bigger than ``86400`` (24 hours).
 
 ts : date-time
