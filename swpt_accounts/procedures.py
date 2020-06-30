@@ -171,8 +171,8 @@ def finalize_transfer(
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert MIN_INT32 <= finalization_flags <= MAX_INT32
     assert 0 <= committed_amount <= MAX_INT64
+    assert ts is None or ts > BEGINNING_OF_TIME
 
-    current_ts = datetime.now(tz=timezone.utc)
     db.session.add(FinalizationRequest(
         debtor_id=debtor_id,
         sender_creditor_id=creditor_id,
@@ -184,10 +184,11 @@ def finalize_transfer(
         finalization_flags=finalization_flags,
         transfer_note=transfer_note,
         min_interest_rate=0.0,
-        ts=current_ts,
+        ts=ts or datetime.now(tz=timezone.utc),
     ))
 
     # TODO: Do this in process_finalization_requests().
+    current_ts = datetime.now(tz=timezone.utc)
     pt = PreparedTransfer.lock_instance((debtor_id, creditor_id, transfer_id))
     pt_with_matching_coordinator_request = (
         pt is not None
