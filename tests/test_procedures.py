@@ -742,6 +742,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     with pytest.raises(AssertionError):
         p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'test', 1, 2, -1)
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'test', 1, 2, 0)
+    p.process_finalization_requests(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, 1234)
     p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
@@ -788,6 +789,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
+    p.process_finalization_requests(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, 1234)
     p.process_pending_account_changes(D_ID, C_ID)
     a1 = p.get_account(D_ID, 1234)
@@ -842,6 +844,7 @@ def test_prepared_transfer_commit_timeout(db_session, current_ts):
     pt.deadline = pt.prepared_at_ts + timedelta(days=30)
     db_session.commit()
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
+    p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
     assert fts.status_code == SC_TRANSFER_TIMEOUT
     assert fts.committed_amount == 0
@@ -866,6 +869,7 @@ def test_prepared_transfer_too_big_committed_amount(db_session, current_ts):
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40000)
+    p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
     assert fts.status_code == SC_TOO_BIG_COMMITTED_AMOUNT
     assert fts.committed_amount == 0
@@ -891,7 +895,7 @@ def test_commit_to_debtor_account(db_session, current_ts):
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     assert pt.locked_amount == 50
     p.finalize_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 'test', 1, 2, 40)
-
+    p.process_finalization_requests(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.process_pending_account_changes(D_ID, C_ID)
     assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 1
@@ -947,6 +951,7 @@ def test_delayed_direct_transfer(db_session, current_ts):
     assert pt.calc_status_code(1000, current_ts) == SC_OK
     assert pt.calc_status_code(1000, current_ts + timedelta(days=30)) != SC_OK
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, CT_DIRECT, 1, 2, 9999999)
+    p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
     assert fts.status_code != SC_OK
     assert fts.committed_amount == 0
