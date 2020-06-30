@@ -94,6 +94,12 @@ def process_transfers(threads):
     pool2.close()
     pool2.join()
 
+    pool3 = ThreadPool(threads, initializer=push_app_context)
+    for account_pk in procedures.get_accounts_with_finalization_requests():
+        pool3.apply_async(procedures.process_finalization_requests, account_pk, error_callback=log_error)
+    pool3.close()
+    pool3.join()
+
 
 @swpt_accounts.command('scan_accounts')
 @with_appcontext

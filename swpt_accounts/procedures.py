@@ -9,7 +9,7 @@ from .extensions import db
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
-    AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal,
+    AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal, FinalizationRequest,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, SECONDS_IN_DAY,
     CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT, SC_OK
@@ -170,6 +170,21 @@ def finalize_transfer(
     assert committed_amount >= 0
 
     current_ts = datetime.now(tz=timezone.utc)
+    db.session.add(FinalizationRequest(
+        debtor_id=debtor_id,
+        sender_creditor_id=creditor_id,
+        transfer_id=transfer_id,
+        coordinator_type=coordinator_type,
+        coordinator_id=coordinator_id,
+        coordinator_request_id=coordinator_request_id,
+        committed_amount=committed_amount,
+        finalization_flags=finalization_flags,
+        transfer_note=transfer_note,
+        min_interest_rate=0.0,
+        ts=current_ts,
+    ))
+
+    # TODO: Do this in process_finalization_requests().
     pt = PreparedTransfer.lock_instance((debtor_id, creditor_id, transfer_id))
     pt_with_matching_coordinator_request = (
         pt is not None
@@ -360,6 +375,17 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
         #       for each inserted row.
         db.session.add_all(rejected_transfer_signals)
         db.session.add_all(prepared_transfer_signals)
+
+
+@atomic
+def get_accounts_with_finalization_requests() -> Iterable[Tuple[int, int]]:
+    return set(db.session.query(FinalizationRequest.debtor_id, FinalizationRequest.sender_creditor_id).all())
+
+
+@atomic
+def process_finalization_requests(debtor_id: int, creditor_id: int) -> None:
+    # TODO: implement
+    pass
 
 
 @atomic
