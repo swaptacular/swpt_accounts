@@ -745,6 +745,8 @@ def _process_transfer_request(
 
 
 def _process_finalization_request(sender_account: Optional[Account], fr: FinalizationRequest, current_ts: datetime):
+    # TODO: correctly handele the situation when `sender_account is None`.
+
     pt = PreparedTransfer.lock_instance((fr.debtor_id, fr.sender_creditor_id, fr.transfer_id))
     pt_with_matching_coordinator_request = (
         pt is not None
