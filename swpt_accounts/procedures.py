@@ -4,6 +4,7 @@ from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Se
 from decimal import Decimal
 from flask import current_app
 from sqlalchemy.sql.expression import tuple_
+from sqlalchemy.exc import IntegrityError
 from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64, i64_to_u64
 from .extensions import db
 from .models import (
@@ -186,6 +187,11 @@ def finalize_transfer(
         min_interest_rate=0.0,
         ts=ts or datetime.now(tz=timezone.utc),
     ))
+
+    try:
+        db.session.flush()
+    except IntegrityError:
+        db.session.rollback()
 
 
 @atomic

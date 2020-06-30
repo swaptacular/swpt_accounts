@@ -6,7 +6,8 @@ from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountUpdateSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
-    AccountPurgeSignal, BEGINNING_OF_TIME, CT_DIRECT, SC_OK, SC_TRANSFER_TIMEOUT, SC_TOO_BIG_COMMITTED_AMOUNT
+    AccountPurgeSignal, FinalizationRequest, \
+    BEGINNING_OF_TIME, CT_DIRECT, SC_OK, SC_TRANSFER_TIMEOUT, SC_TOO_BIG_COMMITTED_AMOUNT
 
 
 def test_version(db_session):
@@ -955,6 +956,12 @@ def test_delayed_direct_transfer(db_session, current_ts):
     fts = FinalizedTransferSignal.query.one()
     assert fts.status_code != SC_OK
     assert fts.committed_amount == 0
+
+
+def test_finalize_transfer_twice(db_session):
+    p.finalize_transfer(D_ID, C_ID, 1, 'test', 1, 2, 0)
+    p.finalize_transfer(D_ID, C_ID, 1, 'test', 1, 2, 0)
+    assert len(FinalizationRequest.query.all()) == 1
 
 
 def test_account_purge_signal(db_session, current_ts):
