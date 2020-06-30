@@ -166,8 +166,10 @@ def finalize_transfer(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= transfer_id <= MAX_INT64
+    assert MIN_INT64 <= coordinator_id <= MAX_INT64
+    assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert MIN_INT32 <= finalization_flags <= MAX_INT32
-    assert committed_amount >= 0
+    assert 0 <= committed_amount <= MAX_INT64
 
     current_ts = datetime.now(tz=timezone.utc)
     db.session.add(FinalizationRequest(
