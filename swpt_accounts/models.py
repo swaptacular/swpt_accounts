@@ -210,6 +210,31 @@ class TransferRequest(db.Model):
     )
 
 
+class FinalizationRequest(db.Model):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    coordinator_id = db.Column(db.BigInteger, nullable=False)
+    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
+    committed_amount = db.Column(db.BigInteger, nullable=False)
+    transfer_note = db.Column(pg.TEXT, nullable=False)
+    finalization_flags = db.Column(db.Integer, nullable=False)
+    min_interest_rate = db.Column(db.REAL, nullable=False)
+    ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+
+    __table_args__ = (
+        db.CheckConstraint(committed_amount >= 0),
+        db.CheckConstraint(min_interest_rate >= -100.0),
+        {
+            'comment': 'Represents a request to finalize a prepared transfer. Requests are '
+                       'queued to the `finalization_request` table, before being processed, '
+                       'because this allows many requests from one sender to be processed at '
+                       'once, reducing the lock contention on `account` table rows.',
+        }
+    )
+
+
 class PreparedTransfer(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
