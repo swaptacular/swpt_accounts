@@ -365,16 +365,19 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
 
     if requests:
         sender_account = get_account(debtor_id, sender_creditor_id, lock=True)
-        total_committed_amount = 0
+        principal_delta = 0
         for fr, pt in requests:
             if pt and sender_account:
-                total_committed_amount += _finalize_prepared_transfer(pt, fr, sender_account, current_ts)
+                committed_amount = _finalize_prepared_transfer(pt, fr, sender_account, current_ts)
+                assert committed_amount >= 0
+                principal_delta -= committed_amount
                 db.session.delete(pt)
+
             db.session.delete(fr)
 
-        if total_committed_amount != 0:
+        if principal_delta != 0:
             assert sender_account
-            _apply_account_change(sender_account, -total_committed_amount, 0, current_ts)
+            _apply_account_change(sender_account, principal_delta, 0, current_ts)
 
 
 @atomic
