@@ -363,9 +363,10 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
         with_for_update(skip_locked=True, of=FinalizationRequest).\
         all()
 
-    # TODO: Consider using bulk-inserts and bulk-deletes when we
-    #       decide to disable auto-flushing. This would probably be
-    #       slightly faster.
+    # TODO: Use bulk-inserts when we decide to disable
+    #       auto-flushing. This will be faster, because the useless
+    #       auto-generated `change_id`s would not be fetched
+    #       separately for each inserted `PendingAccountChange` row.
     if requests:
         sender_account = get_account(debtor_id, sender_creditor_id, lock=True)
         starting_balance = math.floor(sender_account.calc_current_balance(current_ts)) if sender_account else 0
@@ -403,9 +404,6 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         with_for_update(skip_locked=True).\
         all()
 
-    # TODO: Consider using bulk-inserts and bulk-deletes when we
-    #       decide to disable auto-flushing. This would probably be
-    #       slightly faster.
     if changes:
         principal_delta = 0
         interest_delta = 0.0
