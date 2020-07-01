@@ -3,7 +3,7 @@ from datetime import datetime, date, timezone, timedelta
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Set
 from decimal import Decimal
 from flask import current_app
-from sqlalchemy.sql.expression import tuple_
+from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
 from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64, i64_to_u64
 from .extensions import db
@@ -25,6 +25,14 @@ RC_RECIPIENT_IS_UNREACHABLE = 'RECIPIENT_IS_UNREACHABLE'
 RC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
 RC_RECIPIENT_SAME_AS_SENDER = 'RC_RECIPIENT_IS_UNREACHABLE'
 RC_TOO_MANY_TRANSFERS = 'TOO_MANY_TRANSFERS'
+PREPARED_TRANSFER_JOIN_CLAUSE = and_(
+    FinalizationRequest.debtor_id == PreparedTransfer.debtor_id,
+    FinalizationRequest.sender_creditor_id == PreparedTransfer.sender_creditor_id,
+    FinalizationRequest.transfer_id == PreparedTransfer.transfer_id,
+    FinalizationRequest.coordinator_type == PreparedTransfer.coordinator_type,
+    FinalizationRequest.coordinator_id == PreparedTransfer.coordinator_id,
+    FinalizationRequest.coordinator_request_id == PreparedTransfer.coordinator_request_id,
+)
 
 
 @atomic
@@ -347,16 +355,26 @@ def get_accounts_with_finalization_requests() -> Iterable[Tuple[int, int]]:
 @atomic
 def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
-    finalization_requests = FinalizationRequest.query.\
-        filter_by(debtor_id=debtor_id, sender_creditor_id=sender_creditor_id).\
-        with_for_update(skip_locked=True).\
+    requests = db.session.query(FinalizationRequest, PreparedTransfer).\
+        outerjoin(PreparedTransfer, PREPARED_TRANSFER_JOIN_CLAUSE).\
+        filter(
+            FinalizationRequest.debtor_id == debtor_id,
+            FinalizationRequest.sender_creditor_id == sender_creditor_id).\
+        with_for_update(skip_locked=True, of=FinalizationRequest).\
         all()
 
-    if finalization_requests:
+    if requests:
         sender_account = get_account(debtor_id, sender_creditor_id, lock=True)
-        for fr in finalization_requests:
-            _process_finalization_request(sender_account, fr, current_ts)
+        total_committed_amount = 0
+        for fr, pt in requests:
+            if pt and sender_account:
+                total_committed_amount += _finalize_prepared_transfer(pt, fr, sender_account, current_ts)
+                db.session.delete(pt)
             db.session.delete(fr)
+
+        if total_committed_amount != 0:
+            assert sender_account
+            _apply_account_change(sender_account, -total_committed_amount, 0, current_ts)
 
 
 @atomic
@@ -373,7 +391,6 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         all()
 
     if changes:
-        current_date = current_ts.date()
         nonzero_deltas = False
         principal_delta = 0
         interest_delta = 0.0
@@ -387,12 +404,6 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 nonzero_deltas = True
                 principal_delta += change.principal_delta
                 interest_delta += change.interest_delta
-
-            if change.unlocked_amount is not None:
-                account.total_locked_amount = max(0, account.total_locked_amount - change.unlocked_amount)
-                account.pending_transfers_count = max(0, account.pending_transfers_count - 1)
-                if change.principal_delta < 0:
-                    account.last_outgoing_transfer_date = current_date
 
             if change.principal_delta != 0:
                 _insert_account_transfer_signal(
@@ -537,8 +548,7 @@ def _insert_pending_account_change(
         inserted_at_ts: datetime,
         transfer_note: str = None,
         principal_delta: int = 0,
-        interest_delta: int = 0,
-        unlocked_amount: int = None) -> None:
+        interest_delta: int = 0) -> None:
 
     # TODO: To achieve better scalability, consider emitting a
     #       `PendingAccountChangeSignal` instead (with a globally unique
@@ -546,20 +556,16 @@ def _insert_pending_account_change(
     #       inserts `PendingAccountChange` records for them (correctly
     #       handling possible multiple deliveries).
 
-    if principal_delta != 0 or interest_delta != 0 or unlocked_amount is not None:
-        if principal_delta == 0:
-            transfer_note = None
-        db.session.add(PendingAccountChange(
-            debtor_id=debtor_id,
-            creditor_id=creditor_id,
-            coordinator_type=coordinator_type,
-            other_creditor_id=other_creditor_id,
-            inserted_at_ts=inserted_at_ts,
-            transfer_note=transfer_note,
-            principal_delta=principal_delta,
-            interest_delta=interest_delta,
-            unlocked_amount=unlocked_amount,
-        ))
+    db.session.add(PendingAccountChange(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        coordinator_type=coordinator_type,
+        other_creditor_id=other_creditor_id,
+        inserted_at_ts=inserted_at_ts,
+        transfer_note=transfer_note,
+        principal_delta=principal_delta,
+        interest_delta=interest_delta,
+    ))
 
 
 def _insert_account_transfer_signal(
@@ -750,31 +756,25 @@ def _process_transfer_request(
     return prepare(expendable_amount)
 
 
-def _process_finalization_request(sender_account: Optional[Account], fr: FinalizationRequest, current_ts: datetime):
-    # TODO: correctly handele the situation when `sender_account is None`.
+def _finalize_prepared_transfer(
+        pt: PreparedTransfer,
+        fr: FinalizationRequest,
+        sender_account: Account,
+        current_ts: datetime) -> int:
 
-    pt = PreparedTransfer.lock_instance((fr.debtor_id, fr.sender_creditor_id, fr.transfer_id))
-    pt_with_matching_coordinator_request = (
-        pt is not None
-        and pt.coordinator_type == fr.coordinator_type
-        and pt.coordinator_id == fr.coordinator_id
-        and pt.coordinator_request_id == fr.coordinator_request_id
-    )
-    if pt_with_matching_coordinator_request:
-        committed_amount = fr.committed_amount
-        status_code = pt.calc_status_code(committed_amount, current_ts)
-        if status_code != SC_OK:
-            committed_amount = 0
-
-        _insert_pending_account_change(
-            debtor_id=pt.debtor_id,
-            creditor_id=pt.sender_creditor_id,
+    sender_account.total_locked_amount = max(0, sender_account.total_locked_amount - pt.locked_amount)
+    sender_account.pending_transfers_count = max(0, sender_account.pending_transfers_count - 1)
+    status_code = pt.calc_status_code(fr.committed_amount, current_ts)
+    committed_amount = fr.committed_amount if status_code == SC_OK else 0
+    if committed_amount > 0:
+        _insert_account_transfer_signal(
+            account=sender_account,
             coordinator_type=pt.coordinator_type,
             other_creditor_id=pt.recipient_creditor_id,
-            inserted_at_ts=current_ts,
+            committed_at_ts=current_ts,
+            acquired_amount=-committed_amount,
             transfer_note=fr.transfer_note,
-            principal_delta=-committed_amount,
-            unlocked_amount=pt.locked_amount,
+            principal=_contain_principal_overflow(sender_account.principal - committed_amount),
         )
         _insert_pending_account_change(
             debtor_id=pt.debtor_id,
@@ -785,20 +785,22 @@ def _process_finalization_request(sender_account: Optional[Account], fr: Finaliz
             transfer_note=fr.transfer_note,
             principal_delta=committed_amount,
         )
-        db.session.add(FinalizedTransferSignal(
-            debtor_id=pt.debtor_id,
-            sender_creditor_id=pt.sender_creditor_id,
-            transfer_id=fr.transfer_id,
-            coordinator_type=pt.coordinator_type,
-            coordinator_id=pt.coordinator_id,
-            coordinator_request_id=pt.coordinator_request_id,
-            recipient_creditor_id=pt.recipient_creditor_id,
-            prepared_at_ts=pt.prepared_at_ts,
-            finalized_at_ts=max(pt.prepared_at_ts, current_ts),
-            committed_amount=committed_amount,
-            status_code=status_code,
-        ))
-        db.session.delete(pt)
+        sender_account.last_outgoing_transfer_date = current_ts.date()
+
+    db.session.add(FinalizedTransferSignal(
+        debtor_id=pt.debtor_id,
+        sender_creditor_id=pt.sender_creditor_id,
+        transfer_id=pt.transfer_id,
+        coordinator_type=pt.coordinator_type,
+        coordinator_id=pt.coordinator_id,
+        coordinator_request_id=pt.coordinator_request_id,
+        recipient_creditor_id=pt.recipient_creditor_id,
+        prepared_at_ts=pt.prepared_at_ts,
+        finalized_at_ts=max(pt.prepared_at_ts, current_ts),
+        committed_amount=committed_amount,
+        status_code=status_code,
+    ))
+    return committed_amount
 
 
 def _insert_account_maintenance_signal(

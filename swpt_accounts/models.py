@@ -307,25 +307,18 @@ class PendingAccountChange(db.Model):
     principal_delta = db.Column(
         db.BigInteger,
         nullable=False,
-        comment='The change in `account.principal`.',
+        comment='The change in `account.principal`. Can not be zero.',
     )
     interest_delta = db.Column(
         db.BigInteger,
         nullable=False,
         comment='The change in `account.interest`.',
     )
-    unlocked_amount = db.Column(
-        db.BigInteger,
-        comment='If not NULL, the value must be subtracted from `account.total_locked_amount`, '
-                'and `account.pending_transfers_count` must be decremented.',
-    )
     transfer_note = db.Column(
         pg.TEXT,
+        nullable=False,
         comment='A note from the sender. Can be any string that the sender wants the '
-                'recipient to see. If the account change represents a committed transfer, '
-                'the note will be included in the generated `on_account_transfer_signal` '
-                'event, otherwise the note is ignored. Can be NULL only if '
-                '`principal_delta` is zero.',
+                'recipient to see.',
     )
     other_creditor_id = db.Column(
         db.BigInteger,
@@ -339,13 +332,12 @@ class PendingAccountChange(db.Model):
     inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     __table_args__ = (
-        db.CheckConstraint(or_(principal_delta == 0, transfer_note != null())),
-        db.CheckConstraint(unlocked_amount >= 0),
+        db.CheckConstraint(principal_delta != 0),
         {
             'comment': 'Represents a pending change to a given account. Pending updates to '
-                       '`account.principal`, `account.interest`, and `account.total_locked_amount` '
-                       'are queued to this table, before being processed, because this allows '
-                       'multiple updates to one account to coalesce, reducing the lock contention '
-                       'on `account` table rows.',
+                       '`account.principal` and `account.interest` are queued to this table '
+                       'before being processed, because this allows multiple updates to one '
+                       'account to coalesce, reducing the lock contention on `account` '
+                       'table rows.',
         }
     )
