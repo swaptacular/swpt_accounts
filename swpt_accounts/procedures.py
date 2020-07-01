@@ -45,6 +45,12 @@ def configure_account(
         config_flags: int = 0,
         config: str = '') -> None:
 
+    # TODO: Consider using a `ConfigureRequest` buffer table, to
+    #       reduce lock contention on `account` table rows. This might
+    #       be beneficial when there are lots of `ConfigureAccount`
+    #       messages for one account, in a short period of time
+    #       (probably not a typical load).
+
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert ts > BEGINNING_OF_TIME
