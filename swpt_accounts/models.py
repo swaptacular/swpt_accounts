@@ -272,7 +272,7 @@ class PreparedTransfer(db.Model):
         }
     )
 
-    def calc_status_code(self, committed_amount: int, current_ts: datetime) -> str:
+    def calc_status_code(self, committed_amount: int, expendable_amount: int, current_ts: datetime) -> str:
         """Calculate the finalization status code."""
 
         if current_ts > self.deadline:
