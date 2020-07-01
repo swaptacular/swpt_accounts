@@ -368,10 +368,17 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
     #       slightly faster.
     if requests:
         sender_account = get_account(debtor_id, sender_creditor_id, lock=True)
+        starting_balance = math.floor(sender_account.calc_current_balance(current_ts)) if sender_account else 0
         principal_delta = 0
         for fr, pt in requests:
             if pt and sender_account:
-                committed_amount = _finalize_prepared_transfer(pt, fr, sender_account, current_ts)
+                expendable_amount = (
+                    + starting_balance
+                    + principal_delta
+                    - sender_account.total_locked_amount
+                    - pt.min_account_balance
+                )
+                committed_amount = _finalize_prepared_transfer(pt, fr, sender_account, expendable_amount, current_ts)
                 assert committed_amount >= 0
                 principal_delta -= committed_amount
                 db.session.delete(pt)
@@ -700,6 +707,7 @@ def _process_transfer_request(
             coordinator_request_id=tr.coordinator_request_id,
             locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
+            min_account_balance=tr.min_account_balance,
             gratis_period=gratis_period,
             demurrage_rate=demurrage_rate,
             deadline=deadline,
@@ -759,6 +767,7 @@ def _finalize_prepared_transfer(
         pt: PreparedTransfer,
         fr: FinalizationRequest,
         sender_account: Account,
+        expendable_amount: int,
         current_ts: datetime) -> int:
 
     sender_account.total_locked_amount = max(0, sender_account.total_locked_amount - pt.locked_amount)
