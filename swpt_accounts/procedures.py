@@ -391,41 +391,34 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
         all()
 
     if changes:
-        nonzero_deltas = False
         principal_delta = 0
         interest_delta = 0.0
         account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
-
-        # TODO: Consider using bulk-inserts and bulk-deletes when we
-        #       decide to disable auto-flushing. This would probably be
-        #       slightly faster.
         for change in changes:
-            if change.principal_delta != 0 or change.interest_delta != 0:
-                nonzero_deltas = True
-                principal_delta += change.principal_delta
-                interest_delta += change.interest_delta
+            principal_delta += change.principal_delta
+            interest_delta += change.interest_delta
 
-            if change.principal_delta != 0:
-                _insert_account_transfer_signal(
-                    account=account,
-                    coordinator_type=change.coordinator_type,
-                    other_creditor_id=change.other_creditor_id,
-                    committed_at_ts=change.inserted_at_ts,
-                    acquired_amount=change.principal_delta,
-                    transfer_note=change.transfer_note,
-                    principal=_contain_principal_overflow(account.principal + principal_delta),
-                )
+            # NOTE: We should compensate for the fact that the
+            # transfer was committed at `change.inserted_at_ts`, but
+            # the transferred amount is being added to the account's
+            # principal just now (`current_ts`).
+            interest_delta += account.calc_due_interest(change.principal_delta, change.inserted_at_ts, current_ts)
 
-                # We should compensate for the fact that the transfer
-                # was committed at `change.inserted_at_ts`, but the
-                # transferred amount is being added to the account's
-                # principal just now (`current_ts`).
-                interest_delta += account.calc_due_interest(change.principal_delta, change.inserted_at_ts, current_ts)
-
+            # TODO: Consider using bulk-inserts and bulk-deletes when
+            #       we decide to disable auto-flushing. This would
+            #       probably be slightly faster.
+            _insert_account_transfer_signal(
+                account=account,
+                coordinator_type=change.coordinator_type,
+                other_creditor_id=change.other_creditor_id,
+                committed_at_ts=change.inserted_at_ts,
+                acquired_amount=change.principal_delta,
+                transfer_note=change.transfer_note,
+                principal=_contain_principal_overflow(account.principal + principal_delta),
+            )
             db.session.delete(change)
 
-        if nonzero_deltas:
-            _apply_account_change(account, principal_delta, interest_delta, current_ts)
+        _apply_account_change(account, principal_delta, interest_delta, current_ts)
 
 
 @atomic
