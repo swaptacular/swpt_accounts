@@ -295,11 +295,12 @@ class PreparedTransfer(db.Model):
 
             return True
 
-        if current_ts > self.deadline:
-            return SC_TRANSFER_TIMEOUT
+        if committed_amount != 0:
+            if current_ts > self.deadline:
+                return SC_TRANSFER_TIMEOUT
 
-        if not (get_is_expendable() or get_is_reserved()):
-            return SC_TOO_BIG_COMMITTED_AMOUNT
+            if not (get_is_expendable() or get_is_reserved()):
+                return SC_TOO_BIG_COMMITTED_AMOUNT
 
         return SC_OK
 
