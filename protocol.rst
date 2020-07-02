@@ -169,11 +169,11 @@ they MUST first verify whether the specified account already exists:
 
 2. If the specified account does not exist, the message's timestamp
    MUST be checked. If it is too far in the past, the message MUST be
-   ignored. Otherwise, an attempt MUST be made to create a new account
-   with the requested configuration settings. [#zero-principal]_
-   [#creation-date]_ If a new account has been successfully created,
-   an `AccountUpdate`_ message MUST be sent; otherwise a
-   `RejectedConfig`_ message MUST be sent.
+   ignored. [#config-delay]_ Otherwise, an attempt MUST be made to
+   create a new account with the requested configuration
+   settings. [#zero-principal]_ [#creation-date]_ If a new account has
+   been successfully created, an `AccountUpdate`_ message MUST be
+   sent; otherwise a `RejectedConfig`_ message MUST be sent.
 
 .. [#forbid-transfers] Server implementations SHOULD NOT accept
   incoming transfers for "scheduled for deletion" accounts.
@@ -190,8 +190,8 @@ they MUST first verify whether the specified account already exists:
   straightforward way to achieve this is not to remove accounts on the
   same day on which they have been created.
 
-.. [#config-delay] How long this "some time" is, depends on how far in
-  the past a `ConfigureAccount`_ message has to be, in order to be
+.. [#config-delay] How long this time is, depends on how far in the
+  past a `ConfigureAccount`_ message has to be, in order to be
   ignored. The goal is to avoid the scenario in which an account is
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
