@@ -108,7 +108,6 @@ class PreparedTransferSignal(Signal):
         recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         prepared_at_ts = fields.DateTime(data_key='prepared_at')
         inserted_at_ts = fields.DateTime(data_key='ts')
-        gratis_period = fields.Integer()
         demurrage_rate = fields.Float()
         deadline = fields.DateTime()
 
@@ -122,7 +121,6 @@ class PreparedTransferSignal(Signal):
     locked_amount = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    gratis_period = db.Column(db.Integer, nullable=False)
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
@@ -216,7 +214,6 @@ class AccountUpdateSignal(Signal):
         interest = fields.Float()
         interest_rate = fields.Float()
         demurrage_rate = fields.Constant(INTEREST_RATE_FLOOR)
-        gratis_period = fields.Integer()
         commit_period = fields.Integer()
         last_interest_rate_change_ts = fields.DateTime()
         last_transfer_number = fields.Integer()
@@ -256,10 +253,6 @@ class AccountUpdateSignal(Signal):
     @property
     def ttl(self):
         return int(current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * 86400)
-
-    @property
-    def gratis_period(self):
-        return int(current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS'])
 
     @property
     def commit_period(self):

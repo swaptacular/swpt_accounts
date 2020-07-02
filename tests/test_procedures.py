@@ -6,7 +6,8 @@ from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountUpdateSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
-    AccountPurgeSignal, BEGINNING_OF_TIME, CT_DIRECT, SC_OK, SC_TRANSFER_TIMEOUT, SC_TOO_BIG_COMMITTED_AMOUNT
+    AccountPurgeSignal, FinalizationRequest, \
+    BEGINNING_OF_TIME, CT_DIRECT, SC_OK, SC_TRANSFER_TIMEOUT, SC_TOO_BIG_COMMITTED_AMOUNT
 
 
 def test_version(db_session):
@@ -50,7 +51,6 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['interest'] == a.interest
     assert acs_obj['interest_rate'] == a.interest_rate
     assert acs_obj['demurrage_rate'] == -50.0
-    assert acs_obj['gratis_period'] == 600
     assert acs_obj['commit_period'] == 30 * 24 * 60 * 60
     assert acs_obj['last_config_ts'] == a.last_config_ts.isoformat()
     assert acs_obj['last_config_seqnum'] == a.last_config_seqnum
@@ -696,6 +696,7 @@ def test_prepare_transfer_success(db_session, current_ts):
         debtor_id=D_ID,
         creditor_id=C_ID,
         recipient='1234',
+        min_account_balance=-1,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -722,6 +723,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pt.coordinator_type == 'test'
     assert pt.recipient_creditor_id == 1234
     assert pt.locked_amount == pts.locked_amount
+    assert pt.min_account_balance == 0
 
     pts_obj = pts.__marshmallow_schema__.dump(pts)
     assert pts_obj['debtor_id'] == D_ID
@@ -734,7 +736,6 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pts_obj['recipient'] == '1234'
     assert pts_obj['prepared_at'] == pts_obj['ts']
     assert pts_obj['deadline'] == pts.deadline.isoformat()
-    assert pts_obj['gratis_period'] == 600
     assert pts_obj['demurrage_rate'] == -50.0
     assert isinstance(pts_obj['ts'], str)
 
@@ -742,6 +743,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     with pytest.raises(AssertionError):
         p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'test', 1, 2, -1)
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'test', 1, 2, 0)
+    p.process_finalization_requests(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, 1234)
     p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
@@ -788,6 +790,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
+    p.process_finalization_requests(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, 1234)
     p.process_pending_account_changes(D_ID, C_ID)
     a1 = p.get_account(D_ID, 1234)
@@ -834,14 +837,17 @@ def test_prepared_transfer_commit_timeout(db_session, current_ts):
         debtor_id=D_ID,
         creditor_id=C_ID,
         recipient='1234',
+        min_account_balance=3,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
+    assert pt.min_account_balance == 3
     pt.prepared_at_ts = pt.prepared_at_ts - timedelta(days=100)
     pt.deadline = pt.prepared_at_ts + timedelta(days=30)
     db_session.commit()
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
+    p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
     assert fts.status_code == SC_TRANSFER_TIMEOUT
     assert fts.committed_amount == 0
@@ -866,6 +872,7 @@ def test_prepared_transfer_too_big_committed_amount(db_session, current_ts):
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40000)
+    p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
     assert fts.status_code == SC_TOO_BIG_COMMITTED_AMOUNT
     assert fts.committed_amount == 0
@@ -891,7 +898,7 @@ def test_commit_to_debtor_account(db_session, current_ts):
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     assert pt.locked_amount == 50
     p.finalize_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 'test', 1, 2, 40)
-
+    p.process_finalization_requests(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.process_pending_account_changes(D_ID, C_ID)
     assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 1
@@ -944,12 +951,48 @@ def test_delayed_direct_transfer(db_session, current_ts):
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.one()
-    assert pt.calc_status_code(1000, current_ts) == SC_OK
-    assert pt.calc_status_code(1000, current_ts + timedelta(days=30)) != SC_OK
+    assert pt.calc_status_code(1000, 0, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, 0, current_ts + timedelta(days=31)) != SC_OK
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, CT_DIRECT, 1, 2, 9999999)
+    p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
     assert fts.status_code != SC_OK
     assert fts.committed_amount == 0
+
+
+def test_calc_status_code(db_session, current_ts):
+    pt = PreparedTransfer(
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        transfer_id=1,
+        coordinator_type='test',
+        coordinator_id=11,
+        coordinator_request_id=22,
+        recipient_creditor_id=1,
+        prepared_at_ts=current_ts,
+        min_account_balance=10,
+        demurrage_rate=-50,
+        deadline=current_ts + timedelta(days=10000),
+        locked_amount=1000,
+    )
+    assert pt.calc_status_code(1000, 0, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, 0, current_ts - timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, 0, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, -1, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, -1, current_ts + timedelta(seconds=1)) != SC_OK
+    assert pt.calc_status_code(1000, -1, current_ts - timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(999, -5, current_ts + timedelta(days=10)) != SC_OK
+    assert pt.calc_status_code(995, -5, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(995, -50000, current_ts + timedelta(days=10)) != SC_OK
+    assert pt.calc_status_code(980, -50000, current_ts + timedelta(days=10)) == SC_OK
+    pt.recipient_creditor_id = 0
+    assert pt.calc_status_code(1000, -50000, current_ts + timedelta(days=10)) == SC_OK
+
+
+def test_finalize_transfer_twice(db_session):
+    p.finalize_transfer(D_ID, C_ID, 1, 'test', 1, 2, 0)
+    p.finalize_transfer(D_ID, C_ID, 1, 'test', 1, 2, 0)
+    assert len(FinalizationRequest.query.all()) == 1
 
 
 def test_account_purge_signal(db_session, current_ts):

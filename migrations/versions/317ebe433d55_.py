@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 146814e225dd
+Revision ID: 317ebe433d55
 Revises: 
-Create Date: 2020-06-28 21:47:59.828515
+Create Date: 2020-07-02 14:32:56.690941
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '146814e225dd'
+revision = '317ebe433d55'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -105,6 +105,23 @@ def upgrade():
     sa.Column('status_flags', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
+    op.create_table('finalization_request',
+    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
+    sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_type', sa.String(length=30), nullable=False),
+    sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
+    sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
+    sa.Column('committed_amount', sa.BigInteger(), nullable=False),
+    sa.Column('transfer_note', sa.TEXT(), nullable=False),
+    sa.Column('finalization_flags', sa.Integer(), nullable=False),
+    sa.Column('min_interest_rate', sa.REAL(), nullable=False),
+    sa.Column('ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.CheckConstraint('committed_amount >= 0'),
+    sa.CheckConstraint('min_interest_rate >= -100.0'),
+    sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id'),
+    comment='Represents a request to finalize a prepared transfer. Requests are queued to the `finalization_request` table, before being processed, because this allows many requests from one sender to be processed at once, reducing the lock contention on `account` table rows.'
+    )
     op.create_table('finalized_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
@@ -124,17 +141,15 @@ def upgrade():
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('change_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('principal_delta', sa.BigInteger(), nullable=False, comment='The change in `account.principal`.'),
+    sa.Column('principal_delta', sa.BigInteger(), nullable=False, comment='The change in `account.principal`. Can not be zero.'),
     sa.Column('interest_delta', sa.BigInteger(), nullable=False, comment='The change in `account.interest`.'),
-    sa.Column('unlocked_amount', sa.BigInteger(), nullable=True, comment='If not NULL, the value must be subtracted from `account.total_locked_amount`, and `account.pending_transfers_count` must be decremented.'),
-    sa.Column('transfer_note', sa.TEXT(), nullable=True, comment='A note from the sender. Can be any string that the sender wants the recipient to see. If the account change represents a committed transfer, the note will be included in the generated `on_account_transfer_signal` event, otherwise the note is ignored. Can be NULL only if `principal_delta` is zero.'),
+    sa.Column('transfer_note', sa.TEXT(), nullable=False, comment='A note from the sender. Can be any string that the sender wants the recipient to see.'),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='If the account change represents a committed transfer, this is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, the value is irrelevant.'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.CheckConstraint('principal_delta = 0 OR transfer_note IS NOT NULL'),
-    sa.CheckConstraint('unlocked_amount >= 0'),
+    sa.CheckConstraint('principal_delta != 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
-    comment='Represents a pending change to a given account. Pending updates to `account.principal`, `account.interest`, and `account.total_locked_amount` are queued to this table, before being processed, because this allows multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'
+    comment='Represents a pending change to a given account. Pending updates to `account.principal` and `account.interest` are queued to this table before being processed, because this allows multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'
     )
     op.create_table('prepared_transfer_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -148,7 +163,6 @@ def upgrade():
     sa.Column('locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('gratis_period', sa.Integer(), nullable=False),
     sa.Column('demurrage_rate', sa.FLOAT(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'signal_id')
@@ -206,13 +220,12 @@ def upgrade():
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('gratis_period', sa.Integer(), nullable=False),
+    sa.Column('min_account_balance', sa.BigInteger(), nullable=False),
     sa.Column('demurrage_rate', sa.FLOAT(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The moment at which the last `PreparedTransferSignal` was sent to remind that the prepared transfer must be finalized. A `NULL` means that no reminders have been sent yet. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('demurrage_rate > -100.0 AND demurrage_rate <= 0.0'),
-    sa.CheckConstraint('gratis_period >= 0'),
     sa.CheckConstraint('locked_amount > 0'),
     sa.CheckConstraint('transfer_id > 0'),
     sa.ForeignKeyConstraint(['debtor_id', 'sender_creditor_id'], ['account.debtor_id', 'account.creditor_id'], ondelete='CASCADE'),
@@ -231,6 +244,7 @@ def downgrade():
     op.drop_table('prepared_transfer_signal')
     op.drop_table('pending_account_change')
     op.drop_table('finalized_transfer_signal')
+    op.drop_table('finalization_request')
     op.drop_table('account_update_signal')
     op.drop_table('account_transfer_signal')
     op.drop_table('account_purge_signal')

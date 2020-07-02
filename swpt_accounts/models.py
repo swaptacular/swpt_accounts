@@ -210,6 +210,31 @@ class TransferRequest(db.Model):
     )
 
 
+class FinalizationRequest(db.Model):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
+    transfer_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    coordinator_id = db.Column(db.BigInteger, nullable=False)
+    coordinator_request_id = db.Column(db.BigInteger, nullable=False)
+    committed_amount = db.Column(db.BigInteger, nullable=False)
+    transfer_note = db.Column(pg.TEXT, nullable=False)
+    finalization_flags = db.Column(db.Integer, nullable=False)
+    min_interest_rate = db.Column(db.REAL, nullable=False)
+    ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+
+    __table_args__ = (
+        db.CheckConstraint(committed_amount >= 0),
+        db.CheckConstraint(min_interest_rate >= -100.0),
+        {
+            'comment': 'Represents a request to finalize a prepared transfer. Requests are '
+                       'queued to the `finalization_request` table, before being processed, '
+                       'because this allows many requests from one sender to be processed at '
+                       'once, reducing the lock contention on `account` table rows.',
+        }
+    )
+
+
 class PreparedTransfer(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -219,7 +244,7 @@ class PreparedTransfer(db.Model):
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    gratis_period = db.Column(db.Integer, nullable=False)
+    min_account_balance = db.Column(db.BigInteger, nullable=False)
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     locked_amount = db.Column(db.BigInteger, nullable=False)
@@ -237,7 +262,6 @@ class PreparedTransfer(db.Model):
         ),
         db.CheckConstraint(transfer_id > 0),
         db.CheckConstraint(locked_amount > 0),
-        db.CheckConstraint(gratis_period >= 0),
         db.CheckConstraint((demurrage_rate > -100.0) & (demurrage_rate <= 0.0)),
         {
             'comment': 'A prepared transfer represent a guarantee that a particular transfer of '
@@ -246,31 +270,37 @@ class PreparedTransfer(db.Model):
         }
     )
 
-    def calc_status_code(self, committed_amount: int, current_ts: datetime) -> str:
+    def calc_status_code(self, committed_amount: int, expendable_amount: int, current_ts: datetime) -> str:
         """Calculate the finalization status code."""
 
-        if current_ts > self.deadline:
-            return SC_TRANSFER_TIMEOUT
+        assert committed_amount >= 0
 
-        if not (0 <= committed_amount <= self.locked_amount):
-            # NOTE: Normally, the committed amount must not be
-            # negative. Just to be on the safe side, here we treat
-            # negative committed amounts as too big amounts.
+        def get_is_expendable():
+            return committed_amount <= expendable_amount + self.locked_amount
 
-            return SC_TOO_BIG_COMMITTED_AMOUNT
+        def get_is_reserved():
+            if committed_amount > self.locked_amount:
+                return False
 
-        if self.sender_creditor_id != ROOT_CREDITOR_ID and self.recipient_creditor_id != ROOT_CREDITOR_ID:
-            # NOTE: We do not need to calculate demurrage for
-            # transfers from/to the debtor's account, because all
-            # interest payments come from the debtor's account
-            # anyway. Also, note that here we should be careful when
-            # comparing big integers with floats.
+            if self.sender_creditor_id != ROOT_CREDITOR_ID and self.recipient_creditor_id != ROOT_CREDITOR_ID:
+                # We do not need to calculate demurrage for transfers
+                # from/to the debtor's account, because all interest
+                # payments come from this account anyway. Also, note
+                # that here we should be careful when comparing big
+                # integers with floats.
 
-            demurrage_seconds = (current_ts - self.prepared_at_ts).total_seconds() - self.gratis_period
-            if demurrage_seconds > 0:
+                demurrage_seconds = max(0.0, (current_ts - self.prepared_at_ts).total_seconds())
                 k = calc_k(self.demurrage_rate)
-                if committed_amount * 1.0 > self.locked_amount * math.exp(k * demurrage_seconds):
-                    return SC_TOO_BIG_COMMITTED_AMOUNT
+                return committed_amount * 1.0 <= self.locked_amount * math.exp(k * demurrage_seconds)
+
+            return True
+
+        if committed_amount != 0:
+            if current_ts > self.deadline:
+                return SC_TRANSFER_TIMEOUT
+
+            if not (get_is_expendable() or get_is_reserved()):
+                return SC_TOO_BIG_COMMITTED_AMOUNT
 
         return SC_OK
 
@@ -282,25 +312,18 @@ class PendingAccountChange(db.Model):
     principal_delta = db.Column(
         db.BigInteger,
         nullable=False,
-        comment='The change in `account.principal`.',
+        comment='The change in `account.principal`. Can not be zero.',
     )
     interest_delta = db.Column(
         db.BigInteger,
         nullable=False,
         comment='The change in `account.interest`.',
     )
-    unlocked_amount = db.Column(
-        db.BigInteger,
-        comment='If not NULL, the value must be subtracted from `account.total_locked_amount`, '
-                'and `account.pending_transfers_count` must be decremented.',
-    )
     transfer_note = db.Column(
         pg.TEXT,
+        nullable=False,
         comment='A note from the sender. Can be any string that the sender wants the '
-                'recipient to see. If the account change represents a committed transfer, '
-                'the note will be included in the generated `on_account_transfer_signal` '
-                'event, otherwise the note is ignored. Can be NULL only if '
-                '`principal_delta` is zero.',
+                'recipient to see.',
     )
     other_creditor_id = db.Column(
         db.BigInteger,
@@ -314,13 +337,12 @@ class PendingAccountChange(db.Model):
     inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     __table_args__ = (
-        db.CheckConstraint(or_(principal_delta == 0, transfer_note != null())),
-        db.CheckConstraint(unlocked_amount >= 0),
+        db.CheckConstraint(principal_delta != 0),
         {
             'comment': 'Represents a pending change to a given account. Pending updates to '
-                       '`account.principal`, `account.interest`, and `account.total_locked_amount` '
-                       'are queued to this table, before being processed, because this allows '
-                       'multiple updates to one account to coalesce, reducing the lock contention '
-                       'on `account` table rows.',
+                       '`account.principal` and `account.interest` are queued to this table '
+                       'before being processed, because this allows multiple updates to one '
+                       'account to coalesce, reducing the lock contention on `account` '
+                       'table rows.',
         }
     )

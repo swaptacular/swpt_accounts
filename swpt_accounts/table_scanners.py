@@ -165,7 +165,6 @@ class PreparedTransferScanner(TableScanner):
                     locked_amount=row[c.locked_amount],
                     recipient_creditor_id=row[c.recipient_creditor_id],
                     prepared_at_ts=row[c.prepared_at_ts],
-                    gratis_period=row[c.gratis_period],
                     demurrage_rate=row[c.demurrage_rate],
                     deadline=row[c.deadline],
                     inserted_at_ts=max(current_ts, row[c.prepared_at_ts]),

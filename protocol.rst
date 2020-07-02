@@ -393,7 +393,7 @@ server's database: [#transfer-match]_
      account to the recipient's account. [#zero-commit]_ The transfer
      SHOULD NOT be allowed if, after the transfer, the *available
      amount* [#avl-amount]_ on the sender's account would become too
-     negative. [#demurrage]_ [#creditor-trick]_ [#gratis-period]_
+     negative. [#demurrage]_ [#creditor-trick]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#unlock-amount]_
@@ -580,14 +580,6 @@ demurrage_rate : float
    diminish with time, in the worst possible case. This MUST be a
    number between ``-100`` and ``0``. [#demurrage]_ [#demurrage-rate]_
 
-gratis_period : int32
-   An initial period (in seconds) during which the secured amount will
-   not diminish, even in the worst possible case. That is: exactly
-   ``gratis_period`` seconds after the ``prepared_at`` moment, the
-   secured amount may begin to diminish at the stated
-   ``demurrage_rate``, but not before that. This MUST be a
-   non-negative number. [#demurrage]_ [#gratis-period]_
-
 deadline : date-time
    The prepared transfer can be committed successfully only before
    this moment. If the client ties to commit the prepared transfer
@@ -615,9 +607,8 @@ lost message, or a complete database loss on the client's side.
   can not be predicted what amount will be available on the sender's
   account at the time of the transfer's commit. For this reason, when
   a `PreparedTransfer`_ message is sent, the server should set the
-  values of ``demurrage_rate`` and ``gratis_period`` fields correctly,
-  so as to inform the client (the coordinator) about *the worst
-  possible case*.
+  value of the ``demurrage_rate`` field correctly, so as to inform the
+  client (the coordinator) about *the worst possible case*.
 
   Here is an example how this may work, from the viewpoint of a
   coordinator who is trying to commit a *conditional transfer*: The
@@ -652,14 +643,6 @@ lost message, or a complete database loss on the client's side.
   the sender's account is not that important, because it can change
   significantly between the transfer's preparation and the transfer's
   commit.
-
-.. [#gratis-period] When the interest rate on creditors' accounts
-  could be negative, the value of the ``gratis_period`` field in
-  `PreparedTransfer`_ messages SHOULD be chosen so as to allow the
-  whole available amount on a given account to be transferred at once
-  (that is, given that the network latency is not exceptionally
-  high). Note that in this scenario, senders' accounts *would be
-  allowed to go slightly negative*.
 
 
 FinalizedTransfer
@@ -852,12 +835,6 @@ demurrage_rate : float
    `PreparedTransfer`_ messages. This MUST be a number between
    ``-100`` and ``0``, which MUST be the same for all accounts with
    the given debtor. [#demurrage-rate]_
-
-gratis_period : int32
-   The gratis period (in seconds) for new prepared transfers. That is:
-   the value of the ``gratis_period`` field in new `PreparedTransfer`_
-   messages. This MUST be a non-negative number, which MUST be the
-   same for all accounts with the given debtor. [#gratis-period]_
 
 commit_period : int32
    The maximal allowed period (in seconds) during which new prepared
