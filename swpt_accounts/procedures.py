@@ -1,5 +1,5 @@
 import math
-from datetime import datetime, date, timezone, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Set
 from decimal import Decimal
 from flask import current_app
@@ -13,7 +13,7 @@ from .models import (
     AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal, FinalizationRequest,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, SECONDS_IN_DAY,
-    CT_INTEREST, CT_NULLIFY, CT_DELETE, CT_DIRECT, SC_OK
+    CT_INTEREST, CT_DELETE, CT_DIRECT, SC_OK
 )
 
 T = TypeVar('T')
@@ -273,27 +273,6 @@ def capitalize_interest(
 
 
 @atomic
-def zero_out_negative_balance(
-        debtor_id: int,
-        creditor_id: int,
-        last_outgoing_transfer_date: date,
-        request_ts: datetime) -> None:
-
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-
-    current_ts = datetime.now(tz=timezone.utc)
-    account = get_account(debtor_id, creditor_id, lock=True)
-    if account:
-        zero_out_amount = -math.floor(account.calc_current_balance(current_ts))
-        zero_out_amount = _contain_principal_overflow(zero_out_amount)
-        if account.last_outgoing_transfer_date <= last_outgoing_transfer_date and zero_out_amount > 0:
-            _make_debtor_payment(CT_NULLIFY, account, zero_out_amount, current_ts)
-
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
-
-
-@atomic
 def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -304,8 +283,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
         if creditor_id == ROOT_CREDITOR_ID:
             can_be_deleted = account.principal == 0
         else:
-            current_balance = account.calc_current_balance(current_ts)
-            has_negligible_balance = -2.0 <= current_balance <= max(2.0, account.negligible_amount)
+            has_negligible_balance = account.calc_current_balance(current_ts) <= max(2.0, account.negligible_amount)
             is_scheduled_for_deletion = account.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
             can_be_deleted = has_negligible_balance and is_scheduled_for_deletion
 

@@ -312,7 +312,6 @@ class AccountMaintenanceSignal(Signal):
     Maintenance operations are:
 
     - `actor.capitalize_interest`
-    - `actor.zero_out_negative_balance`
     - `actor.try_to_delete_account`
     - `actor.try_to_change_interest_rate`
 

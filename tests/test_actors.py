@@ -66,15 +66,6 @@ def test_configure_account(db_session):
     )
 
 
-def test_zero_out_negative_balance(db_session):
-    a.zero_out_negative_balance(
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        last_outgoing_transfer_date='2019-07-01',
-        request_ts='2019-12-31T00:00:00Z',
-    )
-
-
 def test_try_to_delete_account(db_session):
     a.try_to_delete_account(
         debtor_id=D_ID,

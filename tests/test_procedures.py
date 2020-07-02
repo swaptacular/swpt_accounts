@@ -421,12 +421,6 @@ def test_delete_account_negative_balance(db_session, current_ts):
     q.update({Account.principal: -5})
     p.configure_account(D_ID, C_ID, current_ts, 1,
                         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=MAX_INT64)
-    p.try_to_delete_account(D_ID, C_ID, current_ts)
-    a = p.get_account(D_ID, C_ID)
-    assert a is not None
-    assert not a.status_flags & Account.STATUS_DELETED_FLAG
-    assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-    assert a.status_flags & Account.STATUS_UNREACHABLE_FLAG
 
     # Verify that incoming transfers are not allowed:
     p.configure_account(D_ID, 1234, current_ts, 0)
@@ -451,9 +445,15 @@ def test_delete_account_negative_balance(db_session, current_ts):
     assert rts.rejection_code == p.RC_RECIPIENT_IS_UNREACHABLE
 
     # Verify that re-creating the account clears CONFIG_SCHEDULED_FOR_DELETION_FLAG:
-    p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
+    p.configure_account(D_ID, C_ID, current_ts, 2)
     assert not q.one().status_flags & Account.STATUS_DELETED_FLAG
     assert not q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+
+    # Try to delete the account.
+    p.configure_account(D_ID, C_ID, current_ts, 3, config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
+    p.try_to_delete_account(D_ID, C_ID, current_ts)
+    a = p.get_account(D_ID, C_ID)
+    assert a is None
 
 
 def test_delete_account_tiny_positive_balance(db_session, current_ts):
@@ -913,24 +913,6 @@ def test_marshmallow_auto_generated_classes(db_session):
     assert hasattr(RejectedTransferSignal, '__marshmallow_schema__')
     assert hasattr(AccountTransferSignal, '__marshmallow__')
     assert hasattr(AccountTransferSignal, '__marshmallow_schema__')
-
-
-def test_zero_out_negative_balance(db_session, current_ts):
-    p.configure_account(D_ID, C_ID, current_ts, 0)
-    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    q.update({
-        Account.interest: 100.99,
-        Account.principal: -5000,
-    })
-    assert p.get_available_amount(D_ID, C_ID) == -4900
-    p.zero_out_negative_balance(D_ID, C_ID, current_ts.date(), current_ts)
-    p.process_pending_account_changes(D_ID, C_ID)
-    assert p.get_available_amount(D_ID, C_ID) == 0
-    p.configure_account(D_ID, C_ID, current_ts, 1, config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
-    p.try_to_delete_account(D_ID, C_ID, current_ts)
-    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    assert q.one().status_flags & Account.STATUS_DELETED_FLAG
-    assert q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
 def test_delayed_direct_transfer(db_session, current_ts):

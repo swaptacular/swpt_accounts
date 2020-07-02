@@ -21,7 +21,6 @@ PRISTINE_ACCOUNT_STATUS_FLAGS = 0
 
 # Reserved coordinator types:
 CT_INTEREST = 'interest'
-CT_NULLIFY = 'nullify'
 CT_DELETE = 'delete'
 CT_DIRECT = 'direct'
 
