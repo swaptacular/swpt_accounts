@@ -305,7 +305,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
             can_be_deleted = account.principal == 0
         else:
             current_balance = float(account.calc_current_balance(current_ts))
-            has_negligible_balance = 0.0 <= current_balance <= max(2.0, account.negligible_amount)
+            has_negligible_balance = -2.0 <= current_balance <= max(2.0, account.negligible_amount)
             is_scheduled_for_deletion = account.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
             can_be_deleted = has_negligible_balance and is_scheduled_for_deletion
 

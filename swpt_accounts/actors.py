@@ -166,8 +166,8 @@ def try_to_delete_account(
 
     If it is a "normal" account, it will be marked as deleted if it
     has been scheduled for deletion, there are no prepared transfers,
-    and the current balance is non-negative and no bigger than
-    `max(2.0, account.negligible_amount)`.
+    and the current balance is between `-2.0` and `max(2.0,
+    account.negligible_amount)`.
 
     If it is the debtor's account, it will be marked as deleted if its
     principal is zero (`account.negligible_amount` is ignored in this

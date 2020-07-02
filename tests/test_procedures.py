@@ -418,7 +418,7 @@ def test_delete_account(db_session, current_ts):
 def test_delete_account_negative_balance(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    q.update({Account.principal: -1})
+    q.update({Account.principal: -5})
     p.configure_account(D_ID, C_ID, current_ts, 1,
                         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=MAX_INT64)
     p.try_to_delete_account(D_ID, C_ID, current_ts)
