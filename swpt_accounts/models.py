@@ -245,7 +245,6 @@ class PreparedTransfer(db.Model):
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     min_account_balance = db.Column(db.BigInteger, nullable=False)
-    gratis_period = db.Column(db.Integer, nullable=False)
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     locked_amount = db.Column(db.BigInteger, nullable=False)
@@ -263,7 +262,6 @@ class PreparedTransfer(db.Model):
         ),
         db.CheckConstraint(transfer_id > 0),
         db.CheckConstraint(locked_amount > 0),
-        db.CheckConstraint(gratis_period >= 0),
         db.CheckConstraint((demurrage_rate > -100.0) & (demurrage_rate <= 0.0)),
         {
             'comment': 'A prepared transfer represent a guarantee that a particular transfer of '

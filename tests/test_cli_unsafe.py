@@ -142,7 +142,6 @@ def test_scan_prepared_transfers(app_unsafe_session):
         min_account_balance=0,
         prepared_at_ts=current_ts,
         deadline=current_ts + timedelta(days=30),
-        gratis_period=0,
         demurrage_rate=0.0,
     ))
     db.session.add(PreparedTransfer(
@@ -157,7 +156,6 @@ def test_scan_prepared_transfers(app_unsafe_session):
         min_account_balance=0,
         prepared_at_ts=past_ts,
         deadline=current_ts + timedelta(days=30),
-        gratis_period=0,
         demurrage_rate=0.0,
     ))
     db.session.commit()

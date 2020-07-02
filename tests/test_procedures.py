@@ -51,7 +51,6 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['interest'] == a.interest
     assert acs_obj['interest_rate'] == a.interest_rate
     assert acs_obj['demurrage_rate'] == -50.0
-    assert acs_obj['gratis_period'] == 600
     assert acs_obj['commit_period'] == 30 * 24 * 60 * 60
     assert acs_obj['last_config_ts'] == a.last_config_ts.isoformat()
     assert acs_obj['last_config_seqnum'] == a.last_config_seqnum
@@ -737,7 +736,6 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pts_obj['recipient'] == '1234'
     assert pts_obj['prepared_at'] == pts_obj['ts']
     assert pts_obj['deadline'] == pts.deadline.isoformat()
-    assert pts_obj['gratis_period'] == 600
     assert pts_obj['demurrage_rate'] == -50.0
     assert isinstance(pts_obj['ts'], str)
 
@@ -973,7 +971,6 @@ def test_calc_status_code(db_session, current_ts):
         recipient_creditor_id=1,
         prepared_at_ts=current_ts,
         min_account_balance=10,
-        gratis_period=0,
         demurrage_rate=-50,
         deadline=current_ts + timedelta(days=10000),
         locked_amount=1000,

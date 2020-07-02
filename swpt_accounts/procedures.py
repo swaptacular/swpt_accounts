@@ -698,7 +698,6 @@ def _process_transfer_request(
         sender_account.total_locked_amount = min(sender_account.total_locked_amount + amount, MAX_INT64)
         sender_account.pending_transfers_count += 1
         sender_account.last_transfer_id += 1
-        gratis_period = int(current_app.config['APP_PREPARED_TRANSFER_GRATIS_SECONDS'])
         demurrage_rate = INTEREST_RATE_FLOOR
         commit_period = AccountUpdateSignal.get_commit_period()
         deadline = min(current_ts + timedelta(seconds=commit_period), tr.deadline)
@@ -712,7 +711,6 @@ def _process_transfer_request(
             locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
             min_account_balance=tr.min_account_balance,
-            gratis_period=gratis_period,
             demurrage_rate=demurrage_rate,
             deadline=deadline,
             prepared_at_ts=current_ts,
@@ -727,7 +725,6 @@ def _process_transfer_request(
             locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
             prepared_at_ts=current_ts,
-            gratis_period=gratis_period,
             demurrage_rate=demurrage_rate,
             deadline=deadline,
             inserted_at_ts=current_ts,
