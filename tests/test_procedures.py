@@ -954,12 +954,42 @@ def test_delayed_direct_transfer(db_session, current_ts):
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.one()
     assert pt.calc_status_code(1000, 0, current_ts) == SC_OK
-    assert pt.calc_status_code(1000, 0, current_ts + timedelta(days=30)) != SC_OK
+    assert pt.calc_status_code(1000, 0, current_ts + timedelta(days=31)) != SC_OK
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, CT_DIRECT, 1, 2, 9999999)
     p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
     assert fts.status_code != SC_OK
     assert fts.committed_amount == 0
+
+
+def test_calc_status_code(db_session, current_ts):
+    pt = PreparedTransfer(
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        transfer_id=1,
+        coordinator_type='test',
+        coordinator_id=11,
+        coordinator_request_id=22,
+        recipient_creditor_id=1,
+        prepared_at_ts=current_ts,
+        min_account_balance=10,
+        gratis_period=0,
+        demurrage_rate=-50,
+        deadline=current_ts + timedelta(days=10000),
+        locked_amount=1000,
+    )
+    assert pt.calc_status_code(1000, 0, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, 0, current_ts - timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, 0, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, -1, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, -1, current_ts + timedelta(seconds=1)) != SC_OK
+    assert pt.calc_status_code(1000, -1, current_ts - timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(999, -5, current_ts + timedelta(days=10)) != SC_OK
+    assert pt.calc_status_code(995, -5, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(995, -50000, current_ts + timedelta(days=10)) != SC_OK
+    assert pt.calc_status_code(980, -50000, current_ts + timedelta(days=10)) == SC_OK
+    pt.recipient_creditor_id = 0
+    assert pt.calc_status_code(1000, -50000, current_ts + timedelta(days=10)) == SC_OK
 
 
 def test_finalize_transfer_twice(db_session):

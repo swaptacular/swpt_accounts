@@ -275,28 +275,33 @@ class PreparedTransfer(db.Model):
     def calc_status_code(self, committed_amount: int, expendable_amount: int, current_ts: datetime) -> str:
         """Calculate the finalization status code."""
 
+        assert committed_amount >= 0
+
+        def get_is_expendable():
+            return committed_amount <= expendable_amount + self.locked_amount
+
+        def get_is_reserved():
+            if committed_amount > self.locked_amount:
+                return False
+
+            if self.sender_creditor_id != ROOT_CREDITOR_ID and self.recipient_creditor_id != ROOT_CREDITOR_ID:
+                # We do not need to calculate demurrage for transfers
+                # from/to the debtor's account, because all interest
+                # payments come from this account anyway. Also, note
+                # that here we should be careful when comparing big
+                # integers with floats.
+
+                demurrage_seconds = max(0.0, (current_ts - self.prepared_at_ts).total_seconds())
+                k = calc_k(self.demurrage_rate)
+                return committed_amount * 1.0 <= self.locked_amount * math.exp(k * demurrage_seconds)
+
+            return True
+
         if current_ts > self.deadline:
             return SC_TRANSFER_TIMEOUT
 
-        if not (0 <= committed_amount <= self.locked_amount):
-            # NOTE: Normally, the committed amount must not be
-            # negative. Just to be on the safe side, here we treat
-            # negative committed amounts as too big amounts.
-
+        if not (get_is_expendable() or get_is_reserved()):
             return SC_TOO_BIG_COMMITTED_AMOUNT
-
-        if self.sender_creditor_id != ROOT_CREDITOR_ID and self.recipient_creditor_id != ROOT_CREDITOR_ID:
-            # NOTE: We do not need to calculate demurrage for
-            # transfers from/to the debtor's account, because all
-            # interest payments come from the debtor's account
-            # anyway. Also, note that here we should be careful when
-            # comparing big integers with floats.
-
-            demurrage_seconds = (current_ts - self.prepared_at_ts).total_seconds() - self.gratis_period
-            if demurrage_seconds > 0:
-                k = calc_k(self.demurrage_rate)
-                if committed_amount * 1.0 > self.locked_amount * math.exp(k * demurrage_seconds):
-                    return SC_TOO_BIG_COMMITTED_AMOUNT
 
         return SC_OK
 
