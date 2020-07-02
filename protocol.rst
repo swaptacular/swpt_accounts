@@ -783,20 +783,20 @@ last_config_seqnum : int32
 negligible_amount : float
    MUST contain value of the ``negligible_amount`` field in the latest
    applied `ConfigureAccount`_ message. If there have not been any
-   applied `ConfigureAccount`_ messages yet, the value SHOULD
-   represent the default configuration settings.
+   applied `ConfigureAccount`_ messages yet, the value MUST represent
+   the current configuration settings.
 
 config_flags : int32
    MUST contain the value of the ``config_flags`` field in the latest
    applied `ConfigureAccount`_ message. If there have not been any
-   applied `ConfigureAccount`_ messages yet, the value SHOULD
-   represent the default configuration settings.
+   applied `ConfigureAccount`_ messages yet, the value MUST represent
+   the current configuration settings.
 
 config : string
    MUST contain the value of the ``config`` field in the latest
    applied `ConfigureAccount`_ message. If there have not been any
-   applied `ConfigureAccount`_ messages yet, the value SHOULD
-   represent the default configuration settings.
+   applied `ConfigureAccount`_ messages yet, the value MUST represent
+   the current configuration settings.
 
 account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
