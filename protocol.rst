@@ -308,9 +308,10 @@ When server implementations process a `PrepareTransfer`_ message they:
   ``"interest"`` might be used for payments initiated by the interest
   capitalization service.
 
-.. [#zero-min-amount] If ``min_amount`` is zero, the transfer will be
-  prepared successfully even when the amount available on the account
-  is zero or less. (In this case, the secured amount will be zero.)
+.. [#zero-min-amount] If ``min_amount`` is zero, and there are no
+  other impediments to the transfer, the transfer MUST be prepared
+  successfully even when the amount available on the account is zero
+  or less. (In this case, the secured amount will be zero.)
 
 
 FinalizeTransfer
@@ -346,7 +347,7 @@ coordinator_request_id : int64
 
 committed_amount : int64
    The amount that has to be transferred. This MUST be a non-negative
-   number. [#unlock-amount]_ [#demurrage]_ A ``0`` signifies that the
+   number. [#locked-amount]_ [#demurrage]_ A ``0`` signifies that the
    transfer MUST be dismissed.
 
 transfer_note : string
@@ -376,13 +377,13 @@ server's database: [#transfer-match]_
 
    * Try to transfer the ``committed_amount`` from the sender's
      account to the recipient's account. [#zero-commit]_
-     [#unlock-amount]_ The transfer SHOULD NOT be allowed if, after
+     [#locked-amount]_ The transfer SHOULD NOT be allowed if, after
      the transfer, the *available amount* [#avl-amount]_ on the
      sender's account would become negative. [#demurrage]_
      [#creditor-trick]_
 
    * Unlock the remainder of the secured amount, so that it becomes
-     available for other transfers. [#unlock-amount]_
+     available for other transfers. [#locked-amount]_
 
    * Remove the prepared transfer from server's database.
 
@@ -415,8 +416,8 @@ server's database: [#transfer-match]_
   total sum secured (locked) for prepared transfers. Note that the
   available amount can be a negative number.
 
-.. [#unlock-amount] Note that ``committed_amount`` can be smaller or
-  bigger than ``locked_amount``.
+.. [#locked-amount] Note that ``committed_amount`` can be smaller or
+  bigger than the secured (locked) amount.
 
 .. [#successful-commit] If the commit has been successful,
   `AccountUpdate`_ and `AccountTransfer`_ messages will be sent
@@ -550,7 +551,7 @@ coordinator_request_id : int64
    issued request to prepare a transfer.
 
 locked_amount : int64
-   The secured (prepared) amount for the transfer. This MUST be a
+   The secured (locked) amount for the transfer. This MUST be a
    non-negative number.
 
 recipient : string
