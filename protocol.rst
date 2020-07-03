@@ -246,11 +246,11 @@ coordinator_request_id : int64
 
 min_amount : int64
    The secured amount MUST be equal or bigger than this value. This
-   value MUST be a non-negative number.
+   value MUST be a non-negative number. [#zero-min-amount]_
 
 max_amount : int64
    The secured amount MUST NOT exceed this value. This value MUST be
-   equal or bigger than the value of ``min_amount``. [#zero-amounts]_
+   equal or bigger than the value of ``min_amount``.
 
 recipient : string
    A string which (along with ``debtor_id``) globally identifies the
@@ -286,14 +286,13 @@ When server implementations process a `PrepareTransfer`_ message they:
   the same account.
 
 * MUST try to secure *as big amount as possible*, within the requested
-  limits (that is: a positive number between ``min_amount`` and
-  ``max_amount``).
+  limits (between ``min_amount`` and ``max_amount``).
 
 * MUST guarantee that if a transfer is successfully prepared, the
   probability for the success of the eventual commit is very
-  high. Notably, the secured amount MUST be locked, so that until the
-  prepared transfer is finalized, the amount is not available for
-  other transfers.
+  high. [#demurrage]_ Notably, the secured amount MUST be locked, so
+  that until the prepared transfer is finalized, the amount is not
+  available for other transfers.
 
 * If the requested transfer has been successfully prepared, MUST send
   a `PreparedTransfer`_ message, and MUST create a new prepared
@@ -309,21 +308,10 @@ When server implementations process a `PrepareTransfer`_ message they:
   ``"interest"`` might be used for payments initiated by the interest
   capitalization service.
 
-.. [#zero-amounts] The case when both ``min_amount`` and
-  ``max_amount`` values are equal to zero is exceptional. The behavior
-  of server implementations in this case must be as if a transfer for
-  an infinite amount has been requested. That is: if the sender's
-  account does exist, the transfer MUST be rejected with
-  ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` rejection code. Note that in
-  this exceptional case, the value of the ``recipient`` field does not
-  matter. In particular, when the sender's own account is the
-  ``recipient``, the transfer MUST be rejected with
-  ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` code nevertheless .
-
-  This contrived behavior can be useful when the client does not need
-  to prepare a transfer, but instead, wants to get the values of the
-  ``available_amount`` and ``total_locked_amount`` fields from the
-  received `RejectedTransfer`_ message.
+.. [#zero-min-amount] If ``min_amount`` is zero, and there are no
+  other impediments to the transfer, the transfer MUST be prepared
+  successfully even when the amount available on the account is zero
+  or less. (In this case, the secured amount will be zero.)
 
 
 FinalizeTransfer
@@ -359,9 +347,7 @@ coordinator_request_id : int64
 
 committed_amount : int64
    The amount that has to be transferred. This MUST be a non-negative
-   number, which MUST NOT exceed the value of the ``locked_amount``
-   field in the corresponding `PreparedTransfer`_
-   message. [#unlock-amount]_ [#demurrage]_ A ``0`` signifies that the
+   number. [#locked-amount]_ [#demurrage]_ A ``0`` signifies that the
    transfer MUST be dismissed.
 
 transfer_note : string
@@ -390,13 +376,14 @@ server's database: [#transfer-match]_
    MUST:
 
    * Try to transfer the ``committed_amount`` from the sender's
-     account to the recipient's account. [#zero-commit]_ The transfer
-     SHOULD NOT be allowed if, after the transfer, the *available
-     amount* [#avl-amount]_ on the sender's account would become too
-     negative. [#demurrage]_ [#creditor-trick]_
+     account to the recipient's account. [#zero-commit]_
+     [#locked-amount]_ The transfer SHOULD NOT be allowed if, after
+     the transfer, the *available amount* [#avl-amount]_ on the
+     sender's account would become negative. [#demurrage]_
+     [#creditor-trick]_
 
    * Unlock the remainder of the secured amount, so that it becomes
-     available for other transfers. [#unlock-amount]_
+     available for other transfers. [#locked-amount]_
 
    * Remove the prepared transfer from server's database.
 
@@ -429,8 +416,8 @@ server's database: [#transfer-match]_
   total sum secured (locked) for prepared transfers. Note that the
   available amount can be a negative number.
 
-.. [#unlock-amount] Note that ``committed_amount`` can be smaller than
-  ``locked_amount``.
+.. [#locked-amount] Note that ``committed_amount`` can be smaller or
+  bigger than the secured (locked) amount.
 
 .. [#successful-commit] If the commit has been successful,
   `AccountUpdate`_ and `AccountTransfer`_ messages will be sent
@@ -564,9 +551,8 @@ coordinator_request_id : int64
    issued request to prepare a transfer.
 
 locked_amount : int64
-   The secured (prepared) amount for the transfer. This MUST always be
-   a positive number. The actual transferred (committed) amount MUST
-   NOT exceed this number.
+   The secured (locked) amount for the transfer. This MUST be a
+   non-negative number.
 
 recipient : string
    The value of the ``recipient`` field in the corresponding

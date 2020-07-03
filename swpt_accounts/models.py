@@ -260,7 +260,7 @@ class PreparedTransfer(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(transfer_id > 0),
-        db.CheckConstraint(locked_amount > 0),
+        db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint((demurrage_rate > -100.0) & (demurrage_rate <= 0.0)),
         {
             'comment': 'A prepared transfer represent a guarantee that a particular transfer of '

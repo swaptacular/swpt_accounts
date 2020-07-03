@@ -716,18 +716,17 @@ def _process_transfer_request(
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
 
-    if not tr.min_amount == tr.max_amount == 0:
-        if sender_account.pending_transfers_count >= MAX_INT32:
-            return reject(RC_TOO_MANY_TRANSFERS)
+    if sender_account.pending_transfers_count >= MAX_INT32:
+        return reject(RC_TOO_MANY_TRANSFERS)
 
-        if tr.sender_creditor_id == tr.recipient_creditor_id:
-            return reject(RC_RECIPIENT_SAME_AS_SENDER)
+    if tr.sender_creditor_id == tr.recipient_creditor_id:
+        return reject(RC_RECIPIENT_SAME_AS_SENDER)
 
-        # NOTE: Transfers to the debtor's account must be allowed even
-        # when the debtor's account does not exist. In this case, it will
-        # be created when the transfer is committed.
-        if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
-            return reject(RC_RECIPIENT_IS_UNREACHABLE)
+    # NOTE: Transfers to the debtor's account must be allowed even
+    # when the debtor's account does not exist. In this case, it will
+    # be created when the transfer is committed.
+    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
+        return reject(RC_RECIPIENT_IS_UNREACHABLE)
 
     # NOTE: The available amount should be checked last, because if
     # the transfer request is rejected due to insufficient available
@@ -735,8 +734,10 @@ def _process_transfer_request(
     # small enough amount, we want it to succeed, and not fail for
     # some of the other possible reasons.
     available_amount = _get_available_amount(sender_account, current_ts)
-    expendable_amount = min(available_amount - tr.min_account_balance, tr.max_amount)
-    if expendable_amount <= 0 or expendable_amount < tr.min_amount:
+    expendable_amount = available_amount - tr.min_account_balance
+    expendable_amount = min(expendable_amount, tr.max_amount)
+    expendable_amount = max(0, expendable_amount)
+    if expendable_amount < tr.min_amount:
         return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, available_amount, sender_account.total_locked_amount)
 
     return prepare(expendable_amount)
