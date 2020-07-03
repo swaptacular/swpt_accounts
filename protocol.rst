@@ -658,9 +658,6 @@ recipient : string
    The value of the ``recipient`` field in the corresponding
    `PreparedTransfer`_ message.
 
-prepared_at : date-time
-   The moment at which the transfer was prepared.
-
 status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
    only. If the prepared transfer was committed, but the commit was
@@ -673,6 +670,9 @@ total_locked_amount : int64
    The total sum secured (locked) for prepared transfers on the
    account, after this transfer has been finalized. This MUST be a
    non-negative number.
+
+prepared_at : date-time
+   The moment at which the transfer was prepared.
 
 ts : date-time
    The moment at which this message was sent (the message's
