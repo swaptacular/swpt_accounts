@@ -751,8 +751,13 @@ last_interest_rate_change_ts : date-time
 status_flags : int32
    Account status bit-flags. Different server implementations may use
    these flags for different purposes. The lowest 16 bits are
-   reserved. Bit ``0`` has the meaning "unreachable account",
-   indicating that the account can not receive incoming transfers.
+   reserved:
+
+   * Bit ``0`` has the meaning "unreachable account", indicating that
+     the account can not receive incoming transfers.
+
+   * Bit ``1`` has the meaning "overflown account", indicating that
+     the account's principal have breached the ``int64`` boundaries.
 
 last_config_ts : date-time
    MUST contain the value of the ``ts`` field in the latest applied
