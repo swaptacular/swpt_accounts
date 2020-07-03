@@ -823,6 +823,72 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert cts2.acquired_amount == 40
 
 
+def test_zero_locked_amount_unsuccessful_commit(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    p.prepare_transfer(
+        coordinator_type='direct',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=0,
+        max_amount=0,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient='1234',
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
+    assert pt.locked_amount == 0
+
+    p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
+    p.process_finalization_requests(D_ID, C_ID)
+    fts = FinalizedTransferSignal.query.one()
+    assert fts.status_code == SC_TOO_BIG_COMMITTED_AMOUNT
+    assert fts.committed_amount == 0
+
+    p.process_pending_account_changes(D_ID, 1234)
+    p.process_pending_account_changes(D_ID, C_ID)
+    a1 = p.get_account(D_ID, 1234)
+    assert a1.principal == 0
+    a2 = p.get_account(D_ID, C_ID)
+    assert a2.principal == 0
+
+
+def test_zero_locked_amount_successful_commit(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    p.prepare_transfer(
+        coordinator_type='direct',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=0,
+        max_amount=0,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient='1234',
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
+    assert pt.locked_amount == 0
+
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 100})
+    p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
+    p.process_finalization_requests(D_ID, C_ID)
+    fts = FinalizedTransferSignal.query.one()
+    assert fts.status_code == SC_OK
+    assert fts.committed_amount == 40
+
+    p.process_pending_account_changes(D_ID, 1234)
+    p.process_pending_account_changes(D_ID, C_ID)
+    a1 = p.get_account(D_ID, 1234)
+    assert a1.principal == 40
+    a2 = p.get_account(D_ID, C_ID)
+    assert a2.principal == 60
+
+
 def test_prepared_transfer_commit_timeout(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
