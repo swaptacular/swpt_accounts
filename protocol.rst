@@ -310,8 +310,7 @@ When server implementations process a `PrepareTransfer`_ message they:
 
 .. [#zero-min-amount] If ``min_amount`` is zero, the transfer will be
   prepared successfully even when the amount available on the account
-  is zero or less. (In this case, the secured (locked) amount will be
-  zero.)
+  is zero or less. (In this case, the secured amount will be zero.)
 
 
 FinalizeTransfer
@@ -376,10 +375,11 @@ server's database: [#transfer-match]_
    MUST:
 
    * Try to transfer the ``committed_amount`` from the sender's
-     account to the recipient's account. [#zero-commit]_ The transfer
-     SHOULD NOT be allowed if, after the transfer, the *available
-     amount* [#avl-amount]_ on the sender's account would become
-     negative. [#demurrage]_ [#creditor-trick]_
+     account to the recipient's account. [#zero-commit]_
+     [#unlock-amount]_ The transfer SHOULD NOT be allowed if, after
+     the transfer, the *available amount* [#avl-amount]_ on the
+     sender's account would become negative. [#demurrage]_
+     [#creditor-trick]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#unlock-amount]_
