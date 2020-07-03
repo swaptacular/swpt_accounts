@@ -494,8 +494,8 @@ status_code : string
    30 symbols, ASCII only. The value MUST not be ``"OK"``.
 
 total_locked_amount : int64
-   The total sum secured (locked) for prepared transfers on the
-   account. This MUST be a non-negative number.
+   SHOULD contain the total sum secured (locked) for prepared
+   transfers on the account. This MUST be a non-negative number.
 
 recipient : string
    The value of the ``recipient`` field in the corresponding
@@ -667,9 +667,9 @@ status_code : string
    ``"OK"``.
 
 total_locked_amount : int64
-   The total sum secured (locked) for prepared transfers on the
-   account, after this transfer has been finalized. This MUST be a
-   non-negative number.
+   SHOULD contain the total sum secured (locked) for prepared
+   transfers on the account, after this transfer has been
+   finalized. This MUST be a non-negative number.
 
 prepared_at : date-time
    The moment at which the transfer was prepared.
