@@ -2,7 +2,7 @@ import math
 from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import null, or_, and_
+from sqlalchemy.sql.expression import and_
 from swpt_lib.utils import date_to_int24
 from .extensions import db
 from .events import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
@@ -24,10 +24,13 @@ CT_INTEREST = 'interest'
 CT_DELETE = 'delete'
 CT_DIRECT = 'direct'
 
-# Finalized transfer status codes:
+# Transfer status codes:
 SC_OK = 'OK'
-SC_TRANSFER_TIMEOUT = 'TRANSFER_TIMEOUT'
-SC_TOO_BIG_COMMITTED_AMOUNT = 'TOO_BIG_COMMITTED_AMOUNT'
+SC_TIMEOUT = 'TIMEOUT'
+SC_RECIPIENT_IS_UNREACHABLE = 'RECIPIENT_IS_UNREACHABLE'
+SC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
+SC_RECIPIENT_SAME_AS_SENDER = 'RC_RECIPIENT_IS_UNREACHABLE'
+SC_TOO_MANY_TRANSFERS = 'TOO_MANY_TRANSFERS'
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
@@ -296,10 +299,10 @@ class PreparedTransfer(db.Model):
 
         if committed_amount != 0:
             if current_ts > self.deadline:
-                return SC_TRANSFER_TIMEOUT
+                return SC_TIMEOUT
 
             if not (get_is_expendable() or get_is_reserved()):
-                return SC_TOO_BIG_COMMITTED_AMOUNT
+                return SC_INSUFFICIENT_AVAILABLE_AMOUNT
 
         return SC_OK
 

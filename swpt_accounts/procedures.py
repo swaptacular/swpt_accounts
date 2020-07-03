@@ -13,7 +13,9 @@ from .models import (
     AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal, FinalizationRequest,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, SECONDS_IN_DAY,
-    CT_INTEREST, CT_DELETE, CT_DIRECT, SC_OK
+    CT_INTEREST, CT_DELETE, CT_DIRECT,
+    SC_OK, SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT,
+    SC_RECIPIENT_SAME_AS_SENDER, SC_TOO_MANY_TRANSFERS,
 )
 
 T = TypeVar('T')
@@ -21,10 +23,6 @@ atomic: Callable[[T], T] = db.atomic
 
 ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
 RC_INVALID_CONFIGURATION = 'INVALID_CONFIGURATION'
-RC_RECIPIENT_IS_UNREACHABLE = 'RECIPIENT_IS_UNREACHABLE'
-RC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
-RC_RECIPIENT_SAME_AS_SENDER = 'RC_RECIPIENT_IS_UNREACHABLE'
-RC_TOO_MANY_TRANSFERS = 'TOO_MANY_TRANSFERS'
 PREPARED_TRANSFER_JOIN_CLAUSE = and_(
     FinalizationRequest.debtor_id == PreparedTransfer.debtor_id,
     FinalizationRequest.sender_creditor_id == PreparedTransfer.sender_creditor_id,
@@ -144,8 +142,7 @@ def prepare_transfer(
             coordinator_type=coordinator_type,
             coordinator_id=coordinator_id,
             coordinator_request_id=coordinator_request_id,
-            rejection_code=RC_RECIPIENT_IS_UNREACHABLE,
-            available_amount=0,
+            status_code=SC_RECIPIENT_IS_UNREACHABLE,
             total_locked_amount=0,
             sender_creditor_id=creditor_id,
             recipient=recipient,
@@ -658,14 +655,14 @@ def _process_transfer_request(
         is_recipient_reachable: bool,
         current_ts: datetime) -> Union[RejectedTransferSignal, PreparedTransferSignal]:
 
-    def reject(rejection_code: str, available_amount: int = 0, total_locked_amount: int = 0) -> RejectedTransferSignal:
+    def reject(status_code: str, total_locked_amount: int) -> RejectedTransferSignal:
+        assert total_locked_amount >= 0
         return RejectedTransferSignal(
             debtor_id=tr.debtor_id,
             coordinator_type=tr.coordinator_type,
             coordinator_id=tr.coordinator_id,
             coordinator_request_id=tr.coordinator_request_id,
-            rejection_code=rejection_code,
-            available_amount=available_amount,
+            status_code=status_code,
             total_locked_amount=total_locked_amount,
             sender_creditor_id=tr.sender_creditor_id,
             recipient=str(i64_to_u64(tr.recipient_creditor_id)),
@@ -711,22 +708,22 @@ def _process_transfer_request(
     db.session.delete(tr)
 
     if sender_account is None:
-        return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT)
+        return reject(SC_INSUFFICIENT_AVAILABLE_AMOUNT, 0)
 
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
 
     if sender_account.pending_transfers_count >= MAX_INT32:
-        return reject(RC_TOO_MANY_TRANSFERS)
+        return reject(SC_TOO_MANY_TRANSFERS, sender_account.total_locked_amount)
 
     if tr.sender_creditor_id == tr.recipient_creditor_id:
-        return reject(RC_RECIPIENT_SAME_AS_SENDER)
+        return reject(SC_RECIPIENT_SAME_AS_SENDER, sender_account.total_locked_amount)
 
     # NOTE: Transfers to the debtor's account must be allowed even
     # when the debtor's account does not exist. In this case, it will
     # be created when the transfer is committed.
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
-        return reject(RC_RECIPIENT_IS_UNREACHABLE)
+        return reject(SC_RECIPIENT_IS_UNREACHABLE, sender_account.total_locked_amount)
 
     # NOTE: The available amount should be checked last, because if
     # the transfer request is rejected due to insufficient available
@@ -738,7 +735,7 @@ def _process_transfer_request(
     expendable_amount = min(expendable_amount, tr.max_amount)
     expendable_amount = max(0, expendable_amount)
     if expendable_amount < tr.min_amount:
-        return reject(RC_INSUFFICIENT_AVAILABLE_AMOUNT, available_amount, sender_account.total_locked_amount)
+        return reject(SC_INSUFFICIENT_AVAILABLE_AMOUNT, sender_account.total_locked_amount)
 
     return prepare(expendable_amount)
 
@@ -786,6 +783,7 @@ def _finalize_prepared_transfer(
         prepared_at_ts=pt.prepared_at_ts,
         finalized_at_ts=max(pt.prepared_at_ts, current_ts),
         committed_amount=committed_amount,
+        total_locked_amount=sender_account.total_locked_amount,
         status_code=status_code,
     ))
     return committed_amount

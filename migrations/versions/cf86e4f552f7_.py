@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3dfc10f37a72
+Revision ID: cf86e4f552f7
 Revises: 
-Create Date: 2020-07-03 15:11:53.052080
+Create Date: 2020-07-03 16:49:16.417766
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '3dfc10f37a72'
+revision = 'cf86e4f552f7'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -134,6 +134,7 @@ def upgrade():
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
+    sa.Column('total_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('status_code', sa.String(length=30), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id')
     )
@@ -188,8 +189,7 @@ def upgrade():
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
-    sa.Column('rejection_code', sa.String(length=30), nullable=False),
-    sa.Column('available_amount', sa.BigInteger(), nullable=False),
+    sa.Column('status_code', sa.String(length=30), nullable=False),
     sa.Column('total_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('recipient', sa.String(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'signal_id')

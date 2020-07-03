@@ -475,16 +475,6 @@ debtor_id : int64
 creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
-rejection_code : string
-   The reason for the rejection of the transfer. MUST be between 0 and
-   30 symbols, ASCII only. If the transfer was rejected due to
-   insufficient available amount, and there are no other impediments
-   to the transfer, the value of this field MUST be
-   ``"INSUFFICIENT_AVAILABLE_AMOUNT"``. Note that if there are other
-   impediments to the transfer (invalid recipient account, for
-   example), the rejection code SHOULD NOT be
-   ``"INSUFFICIENT_AVAILABLE_AMOUNT"``.
-
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
    between 1 and 30 symbols, ASCII only. [#coordinator-type]_
@@ -499,16 +489,13 @@ coordinator_request_id : int64
    view, so that the coordinator can pair this message with the issued
    request to prepare a transfer.
 
-available_amount : int64
-   If the ``rejection_code`` is ``"INSUFFICIENT_AVAILABLE_AMOUNT"``),
-   then this field MUST contain the amount currently available on the
-   sender's account; otherwise it SHOULD contain ``0``. [#avl-amount]_
+status_code : string
+   The reason for the rejection of the transfer. MUST be between 0 and
+   30 symbols, ASCII only. The value MUST not be ``"OK"``.
 
 total_locked_amount : int64
-   This MUST be a non-negative number. If the ``rejection_code`` is
-   ``"INSUFFICIENT_AVAILABLE_AMOUNT"``, then this field MUST contain
-   the total sum secured (locked) for prepared transfers on the
-   account; otherwise it SHOULD contain ``0``.
+   SHOULD contain the total sum secured (locked) for prepared
+   transfers on the account. This MUST be a non-negative number.
 
 recipient : string
    The value of the ``recipient`` field in the corresponding
@@ -671,9 +658,6 @@ recipient : string
    The value of the ``recipient`` field in the corresponding
    `PreparedTransfer`_ message.
 
-prepared_at : date-time
-   The moment at which the transfer was prepared.
-
 status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
    only. If the prepared transfer was committed, but the commit was
@@ -681,6 +665,14 @@ status_code : string
    ``"OK"``, and SHOULD hint at the reason for the
    failure. [#failed-commit]_ In all other cases, this value MUST be
    ``"OK"``.
+
+total_locked_amount : int64
+   SHOULD contain the total sum secured (locked) for prepared
+   transfers on the account, after this transfer has been
+   finalized. This MUST be a non-negative number.
+
+prepared_at : date-time
+   The moment at which the transfer was prepared.
 
 ts : date-time
    The moment at which this message was sent (the message's
