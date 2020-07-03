@@ -73,7 +73,6 @@ class RejectedTransferSignal(Signal):
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
         rejection_code = fields.String()
-        available_amount = fields.Integer()
         total_locked_amount = fields.Integer()
         debtor_id = fields.Integer()
         sender_creditor_id = fields.Integer(data_key='creditor_id')
@@ -87,7 +86,6 @@ class RejectedTransferSignal(Signal):
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
-    available_amount = db.Column(db.BigInteger, nullable=False)
     total_locked_amount = db.Column(db.BigInteger, nullable=False)
     recipient = db.Column(db.String, nullable=False)
 
@@ -141,6 +139,7 @@ class FinalizedTransferSignal(Signal):
         prepared_at_ts = fields.DateTime(data_key='prepared_at')
         finalized_at_ts = fields.DateTime(data_key='ts')
         committed_amount = fields.Integer()
+        total_locked_amount = fields.Integer()
         status_code = fields.String()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
@@ -153,6 +152,7 @@ class FinalizedTransferSignal(Signal):
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     finalized_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
+    total_locked_amount = db.Column(db.BigInteger, nullable=False)
     status_code = db.Column(db.String(30), nullable=False)
 
     @property

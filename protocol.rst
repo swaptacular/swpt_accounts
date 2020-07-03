@@ -477,13 +477,7 @@ creditor_id : int64
 
 rejection_code : string
    The reason for the rejection of the transfer. MUST be between 0 and
-   30 symbols, ASCII only. If the transfer was rejected due to
-   insufficient available amount, and there are no other impediments
-   to the transfer, the value of this field MUST be
-   ``"INSUFFICIENT_AVAILABLE_AMOUNT"``. Note that if there are other
-   impediments to the transfer (invalid recipient account, for
-   example), the rejection code SHOULD NOT be
-   ``"INSUFFICIENT_AVAILABLE_AMOUNT"``.
+   30 symbols, ASCII only.
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
@@ -499,16 +493,9 @@ coordinator_request_id : int64
    view, so that the coordinator can pair this message with the issued
    request to prepare a transfer.
 
-available_amount : int64
-   If the ``rejection_code`` is ``"INSUFFICIENT_AVAILABLE_AMOUNT"``),
-   then this field MUST contain the amount currently available on the
-   sender's account; otherwise it SHOULD contain ``0``. [#avl-amount]_
-
 total_locked_amount : int64
-   This MUST be a non-negative number. If the ``rejection_code`` is
-   ``"INSUFFICIENT_AVAILABLE_AMOUNT"``, then this field MUST contain
-   the total sum secured (locked) for prepared transfers on the
-   account; otherwise it SHOULD contain ``0``.
+   The total sum secured (locked) for prepared transfers on the
+   account. This MUST be a non-negative number.
 
 recipient : string
    The value of the ``recipient`` field in the corresponding
@@ -681,6 +668,11 @@ status_code : string
    ``"OK"``, and SHOULD hint at the reason for the
    failure. [#failed-commit]_ In all other cases, this value MUST be
    ``"OK"``.
+
+total_locked_amount : int64
+   The total sum secured (locked) for prepared transfers on the
+   account, after the transfer has been finalized. This MUST be a
+   non-negative number.
 
 ts : date-time
    The moment at which this message was sent (the message's
