@@ -475,10 +475,6 @@ debtor_id : int64
 creditor_id : int64
    Along with ``debtor_id`` identifies the sender's account.
 
-rejection_code : string
-   The reason for the rejection of the transfer. MUST be between 0 and
-   30 symbols, ASCII only.
-
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
    between 1 and 30 symbols, ASCII only. [#coordinator-type]_
@@ -492,6 +488,10 @@ coordinator_request_id : int64
    identifies the rejected request from the coordinator's point of
    view, so that the coordinator can pair this message with the issued
    request to prepare a transfer.
+
+status_code : string
+   The reason for the rejection of the transfer. MUST be between 0 and
+   30 symbols, ASCII only. The value MUST not be ``"OK"``.
 
 total_locked_amount : int64
    The total sum secured (locked) for prepared transfers on the
@@ -671,7 +671,7 @@ status_code : string
 
 total_locked_amount : int64
    The total sum secured (locked) for prepared transfers on the
-   account, after the transfer has been finalized. This MUST be a
+   account, after this transfer has been finalized. This MUST be a
    non-negative number.
 
 ts : date-time

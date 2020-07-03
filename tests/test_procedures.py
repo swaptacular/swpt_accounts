@@ -7,7 +7,7 @@ from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTE
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountUpdateSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
     AccountPurgeSignal, FinalizationRequest, \
-    BEGINNING_OF_TIME, CT_DIRECT, SC_OK, SC_TRANSFER_TIMEOUT, SC_TOO_BIG_COMMITTED_AMOUNT
+    BEGINNING_OF_TIME, CT_DIRECT, SC_OK, SC_TIMEOUT, SC_INSUFFICIENT_AVAILABLE_AMOUNT
 
 
 def test_version(db_session):
@@ -442,7 +442,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == p.RC_RECIPIENT_IS_UNREACHABLE
+    assert rts.status_code == p.SC_RECIPIENT_IS_UNREACHABLE
 
     # Verify that re-creating the account clears CONFIG_SCHEDULED_FOR_DELETION_FLAG:
     p.configure_account(D_ID, C_ID, current_ts, 2)
@@ -573,7 +573,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     rts_obj = rts.__marshmallow_schema__.dump(rts)
     assert rts_obj['debtor_id'] == D_ID
     assert rts_obj['creditor_id'] == C_ID
-    assert isinstance(rts_obj['rejection_code'], str)
+    assert isinstance(rts_obj['status_code'], str)
     assert rts_obj['coordinator_type'] == 'test'
     assert rts_obj['coordinator_id'] == 1
     assert rts_obj['coordinator_request_id'] == 2
@@ -603,7 +603,7 @@ def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == p.RC_RECIPIENT_IS_UNREACHABLE
+    assert rts.status_code == p.SC_RECIPIENT_IS_UNREACHABLE
 
 
 def test_prepare_transfer_to_self(db_session, current_ts):
@@ -627,7 +627,7 @@ def test_prepare_transfer_to_self(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == p.RC_RECIPIENT_SAME_AS_SENDER
+    assert rts.status_code == p.SC_RECIPIENT_SAME_AS_SENDER
 
 
 def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
@@ -652,7 +652,7 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == p.RC_TOO_MANY_TRANSFERS
+    assert rts.status_code == p.SC_TOO_MANY_TRANSFERS
 
 
 def test_prepare_transfer_invalid_recipient(db_session, current_ts):
@@ -676,7 +676,7 @@ def test_prepare_transfer_invalid_recipient(db_session, current_ts):
     assert rts.coordinator_type == 'test'
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
-    assert rts.rejection_code == p.RC_RECIPIENT_IS_UNREACHABLE
+    assert rts.status_code == p.SC_RECIPIENT_IS_UNREACHABLE
 
 
 def test_prepare_transfer_success(db_session, current_ts):
@@ -844,7 +844,7 @@ def test_zero_locked_amount_unsuccessful_commit(db_session, current_ts):
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
     p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
-    assert fts.status_code == SC_TOO_BIG_COMMITTED_AMOUNT
+    assert fts.status_code == SC_INSUFFICIENT_AVAILABLE_AMOUNT
     assert fts.committed_amount == 0
 
     p.process_pending_account_changes(D_ID, 1234)
@@ -915,7 +915,7 @@ def test_prepared_transfer_commit_timeout(db_session, current_ts):
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
     p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
-    assert fts.status_code == SC_TRANSFER_TIMEOUT
+    assert fts.status_code == SC_TIMEOUT
     assert fts.committed_amount == 0
 
 
@@ -940,7 +940,7 @@ def test_prepared_transfer_too_big_committed_amount(db_session, current_ts):
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40000)
     p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
-    assert fts.status_code == SC_TOO_BIG_COMMITTED_AMOUNT
+    assert fts.status_code == SC_INSUFFICIENT_AVAILABLE_AMOUNT
     assert fts.committed_amount == 0
 
 

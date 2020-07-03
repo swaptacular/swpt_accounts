@@ -72,7 +72,7 @@ class RejectedTransferSignal(Signal):
         coordinator_type = fields.String()
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
-        rejection_code = fields.String()
+        status_code = fields.String()
         total_locked_amount = fields.Integer()
         debtor_id = fields.Integer()
         sender_creditor_id = fields.Integer(data_key='creditor_id')
@@ -85,7 +85,7 @@ class RejectedTransferSignal(Signal):
     coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
-    rejection_code = db.Column(db.String(30), nullable=False)
+    status_code = db.Column(db.String(30), nullable=False)
     total_locked_amount = db.Column(db.BigInteger, nullable=False)
     recipient = db.Column(db.String, nullable=False)
 
