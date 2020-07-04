@@ -33,10 +33,8 @@ def test_configure_account(db_session, current_ts):
     assert a.total_locked_amount == 0
     assert a.pending_transfers_count == 0
     assert a.interest_rate == 0.0
-    assert a.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     assert not a.status_flags & Account.STATUS_UNREACHABLE_FLAG
     acs = AccountUpdateSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
-    assert acs.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     assert acs.status_flags == a.status_flags
     assert acs.principal == a.principal
     assert acs.interest == a.interest
@@ -59,7 +57,6 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['config_flags'] == a.config_flags
     assert acs_obj['status_flags'] == a.status_flags
     assert acs_obj['account_identity'] == str(C_ID)
-    assert acs_obj['last_outgoing_transfer_date'] == a.last_outgoing_transfer_date.isoformat()
     assert acs_obj['last_transfer_number'] == 0
     assert acs_obj['last_transfer_committed_at'] == a.last_transfer_committed_at_ts.isoformat()
     assert acs_obj['debtor_url'] == 'https://example.com/debtors/{}/'.format(i64_to_u64(D_ID))
@@ -209,7 +206,6 @@ def test_make_debtor_payment(db_session, current_ts, amount):
         debtor_id=D_ID, creditor_id=C_ID, transfer_number=transfer_number1 + 1).one()
     assert cts.acquired_amount == 2 * amount
     assert cts.principal == 3 * amount
-    assert p.get_account(D_ID, C_ID).last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
 
 
 def test_make_debtor_zero_payment(db_session, current_ts):
@@ -750,7 +746,6 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert a.pending_transfers_count == 0
     assert a.principal == 100
     assert a.interest == 0.0
-    assert a.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     assert not PreparedTransfer.query.one_or_none()
     assert len(AccountUpdateSignal.query.all()) == 2
     assert len(RejectedTransferSignal.query.all()) == 0
@@ -798,13 +793,11 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert a1.pending_transfers_count == 0
     assert a1.principal == 40
     assert a1.interest == 0.0
-    assert a1.last_outgoing_transfer_date == BEGINNING_OF_TIME.date()
     a2 = p.get_account(D_ID, C_ID)
     assert a2.total_locked_amount == 0
     assert a2.pending_transfers_count == 0
     assert a2.principal == 60
     assert a2.interest == 0.0
-    assert a2.last_outgoing_transfer_date > BEGINNING_OF_TIME.date()
     assert not PreparedTransfer.query.one_or_none()
     assert len(AccountUpdateSignal.query.all()) == 4
     assert len(RejectedTransferSignal.query.all()) == 0

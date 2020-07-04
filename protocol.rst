@@ -793,12 +793,6 @@ debtor_url : string
    provides a reliable way for creditors to get up-to-date information
    about the debtor.
 
-last_outgoing_transfer_date : date
-   The date of the latest transfer (not counting interest payments),
-   for which the owner of the account was the sender. If there have
-   not been any outgoing transfers yet, the value MUST be
-   "1970-01-01".
-
 last_transfer_number : int64
    MUST contain the value of the ``transfer_number`` field in the
    latest emitted `AccountTransfer`_ message for the account. If since

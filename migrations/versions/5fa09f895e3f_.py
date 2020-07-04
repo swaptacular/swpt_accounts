@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: cf86e4f552f7
+Revision ID: 5fa09f895e3f
 Revises: 
-Create Date: 2020-07-03 16:49:16.417766
+Create Date: 2020-07-04 13:30:39.271850
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'cf86e4f552f7'
+revision = '5fa09f895e3f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -32,7 +32,6 @@ def upgrade():
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('status_flags', sa.Integer(), nullable=False, comment='Contain additional account status bits: 1 - unreachable, 2 - overflown, 65536 - deleted, 131072 - established interest rate.'),
@@ -96,7 +95,6 @@ def upgrade():
     sa.Column('last_interest_rate_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('last_outgoing_transfer_date', sa.DATE(), nullable=False),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),

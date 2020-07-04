@@ -472,7 +472,6 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
         last_interest_rate_change_ts=account.last_interest_rate_change_ts,
         last_transfer_number=account.last_transfer_number,
         last_transfer_committed_at_ts=account.last_transfer_committed_at_ts,
-        last_outgoing_transfer_date=account.last_outgoing_transfer_date,
         last_config_ts=account.last_config_ts,
         last_config_seqnum=account.last_config_seqnum,
         creation_date=account.creation_date,
@@ -770,7 +769,6 @@ def _finalize_prepared_transfer(
             transfer_note=fr.transfer_note,
             principal_delta=committed_amount,
         )
-        sender_account.last_outgoing_transfer_date = current_ts.date()
 
     db.session.add(FinalizedTransferSignal(
         debtor_id=pt.debtor_id,
