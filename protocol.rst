@@ -764,22 +764,22 @@ last_config_seqnum : int32
    `0`. [#verify-config]_
 
 negligible_amount : float
-   MUST contain value of the ``negligible_amount`` field in the latest
-   applied `ConfigureAccount`_ message. If there have not been any
-   applied `ConfigureAccount`_ messages yet, the value MUST represent
-   the current configuration settings.
+   The value of the ``negligible_amount`` field in the latest applied
+   `ConfigureAccount`_ message. If there have not been any applied
+   `ConfigureAccount`_ messages yet, the value MUST represent the
+   current configuration settings.
 
 config_flags : int32
-   MUST contain the value of the ``config_flags`` field in the latest
-   applied `ConfigureAccount`_ message. If there have not been any
-   applied `ConfigureAccount`_ messages yet, the value MUST represent
-   the current configuration settings.
+   The value of the ``config_flags`` field in the latest applied
+   `ConfigureAccount`_ message. If there have not been any applied
+   `ConfigureAccount`_ messages yet, the value MUST represent the
+   current configuration settings.
 
 config : string
-   MUST contain the value of the ``config`` field in the latest
-   applied `ConfigureAccount`_ message. If there have not been any
-   applied `ConfigureAccount`_ messages yet, the value MUST represent
-   the current configuration settings.
+   The value of the ``config`` field in the latest applied
+   `ConfigureAccount`_ message. If there have not been any applied
+   `ConfigureAccount`_ messages yet, the value MUST represent the
+   current configuration settings.
 
 account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
@@ -810,7 +810,7 @@ demurrage_rate : float
    The demurrage rate (in percents) for new prepared transfers. That
    is: the value of the ``demurrage_rate`` field in new
    `PreparedTransfer`_ messages. This MUST be a number between
-   ``-100`` and ``0``, which MUST be the same for all accounts with
+   ``-100`` and ``0``, which SHOULD be the same for all accounts with
    the given debtor. [#demurrage-rate]_
 
 commit_period : int32
@@ -820,8 +820,8 @@ commit_period : int32
    than normal, the value of the ``deadline`` field in new
    `PreparedTransfer`_ messages will be calculated by adding
    ``commit_period`` seconds to the ``prepared_at`` timestamp. The
-   value of this filed MUST be the same for all accounts with the
-   given debtor, MUST be a non-negative number, and SHOULD be equal or
+   value of this filed MUST be a non-negative number, SHOULD be the
+   same for all accounts with the given debtor, and SHOULD be equal or
    bigger than ``86400`` (24 hours).
 
 ts : date-time
