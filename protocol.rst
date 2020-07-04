@@ -269,7 +269,7 @@ min_interest_rate : float
    value, the transfer MUST NOT be successful. This can be useful when
    the transferred amount may need to be decreased if the interest
    rate on the account has decreased. The value MUST be equal or
-   bigger than ``-100``. Normally, it would be ``-100``.
+   bigger than ``-100``. Normally, this would be ``-100``.
 
 max_commit_delay : int32
    The period (in seconds) during which the prepared transfer can be
@@ -279,7 +279,7 @@ max_commit_delay : int32
    ``max_commit_delay`` seconds. This MUST be a non-negative
    number. If the client does not want the deadline for the transfer
    to be shorter that normal, this field should be set to some huge
-   number.
+   number. Normally, this would be ``2147483647``.
 
 ts : date-time
    The moment at which this message was sent (the message's
