@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2020-06-05
-:Version: 0.2
+:Date: 2020-07-04
+:Version: 0.3
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -265,7 +265,7 @@ min_account_balance : int64
 
 min_interest_rate : float
    The minimal acceptable interest rate. This instructs the server
-   that if the interest rate on the account becomes smaller than this
+   that if the interest rate on the account becomes lower than this
    value, the transfer MUST NOT be successful. This can be useful when
    the transferred amount may need to be decreased if the interest
    rate on the account has decreased. The value MUST be equal or
