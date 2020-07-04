@@ -221,7 +221,7 @@ PrepareTransfer
 ---------------
 
 Upon receiving this message, the server tries to secure some amount,
-to eventually transfer it from sender's account to recipient's
+to eventually make a transfer from sender's account to recipient's
 account.
 
 debtor_id : int64
@@ -285,7 +285,7 @@ When server implementations process a `PrepareTransfer`_ message they:
 * MUST NOT allow a transfer in which the sender and the recipient is
   the same account.
 
-* MUST try to secure *as big amount as possible*, within the requested
+* MUST try to secure *as big amount as possible* within the requested
   limits (between ``min_amount`` and ``max_amount``).
 
 * MUST guarantee that if a transfer is successfully prepared, the
@@ -457,7 +457,7 @@ config : string
 
 rejection_code : string
    The reason for the rejection of the `ConfigureAccount`_
-   request. Between 0 and 30 symbols, ASCII only.
+   request. MUST be between 0 and 30 symbols, ASCII only.
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -565,7 +565,7 @@ ts : date-time
 If a prepared transfer has not been finalized (committed or dismissed)
 for a long while (1 week for example), the server MUST send another
 `PreparedTransfer`_ message, identical to the previous one (except for
-the **ts** field), to remind that a transfer has been prepared and is
+the ``ts`` field), to remind that a transfer has been prepared and is
 waiting for a resolution. This guarantees that prepared transfers will
 not be hanging in the server's database forever, even in the case of a
 lost message, or a complete database loss on the client's side.
@@ -584,7 +584,7 @@ lost message, or a complete database loss on the client's side.
   client (the coordinator) about *the worst possible case*.
 
   Here is an example how this may work, from the viewpoint of a
-  coordinator who is trying to commit a *conditional transfer*: The
+  coordinator who is trying to commit a conditional transfer: The
   coordinator sends a `PrepareTransfer`_ message for the conditional
   transfer, which he knows, because of the still unrealized condition,
   will take up to 1 month to get finalized. Then, a
@@ -846,7 +846,7 @@ allowing clients to detect "dead" account records in their databases.
 .. [#meaningful-change] For a given account, every change in the value
   of one of the fields included in `AccountUpdate`_ messages (except
   for the ``ts`` field) should be considered meaningful, and therefore
-  an `AccountUpdate`_ message SHOULD *eventually* be emitted to inform
+  an `AccountUpdate`_ message MUST *eventually* be emitted to inform
   about it. There is no requirement, though, `AccountUpdate`_ messages
   to be emitted instantly, following each individual change. For
   example, if a series of transactions are committed on the account in
