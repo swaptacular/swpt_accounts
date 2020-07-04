@@ -360,9 +360,9 @@ committed_amount : int64
 
 transfer_note : string
    A string that the coordinator (the client that finalizes the
-   prepared transfer) wants the recipient and the sender to see.  If
-   the transfer is being dismissed, this MUST be an empty
-   string. [#note-limitations]_
+   prepared transfer) wants the recipient and the sender to see. If
+   the transfer is being dismissed, this field will be ignored, and
+   therefore SHOULD contain an empty string. [#note-limitations]_
 
 finalization_flags : int32
    Various bit-flags that may affect the behavior of the server when
