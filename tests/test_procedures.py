@@ -7,7 +7,7 @@ from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTE
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountUpdateSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
     AccountPurgeSignal, FinalizationRequest, \
-    BEGINNING_OF_TIME, CT_DIRECT, SC_OK, SC_TIMEOUT, SC_INSUFFICIENT_AVAILABLE_AMOUNT
+    CT_DIRECT, SC_OK, SC_TIMEOUT, SC_INSUFFICIENT_AVAILABLE_AMOUNT
 
 
 def test_version(db_session):
@@ -675,6 +675,29 @@ def test_prepare_transfer_invalid_recipient(db_session, current_ts):
     assert rts.status_code == p.SC_RECIPIENT_IS_UNREACHABLE
 
 
+def test_prepare_transfer_interest_rate_too_low(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    q.update({Account.principal: 100, Account.interest_rate: -10.0})
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_amount=1,
+        max_amount=200,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient='1234',
+        min_account_balance=-1,
+        min_interest_rate=-9.99999,
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    rts = RejectedTransferSignal.query.one()
+    assert rts.status_code == p.SC_TOO_LOW_INTEREST_RATE
+
+
 def test_prepare_transfer_success(db_session, current_ts):
     assert 1234 != C_ID
     p.configure_account(D_ID, C_ID, current_ts, 0)
@@ -992,8 +1015,8 @@ def test_delayed_direct_transfer(db_session, current_ts):
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.one()
-    assert pt.calc_status_code(1000, 0, current_ts) == SC_OK
-    assert pt.calc_status_code(1000, 0, current_ts + timedelta(days=31)) != SC_OK
+    assert pt.calc_status_code(1000, 0, -100.0, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, 0, -100.0, current_ts + timedelta(days=31)) != SC_OK
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, CT_DIRECT, 1, 2, 9999999)
     p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
@@ -1012,22 +1035,24 @@ def test_calc_status_code(db_session, current_ts):
         recipient_creditor_id=1,
         prepared_at_ts=current_ts,
         min_account_balance=10,
+        min_interest_rate=-10.0,
         demurrage_rate=-50,
         deadline=current_ts + timedelta(days=10000),
         locked_amount=1000,
     )
-    assert pt.calc_status_code(1000, 0, current_ts) == SC_OK
-    assert pt.calc_status_code(1000, 0, current_ts - timedelta(days=10)) == SC_OK
-    assert pt.calc_status_code(1000, 0, current_ts + timedelta(days=10)) == SC_OK
-    assert pt.calc_status_code(1000, -1, current_ts) == SC_OK
-    assert pt.calc_status_code(1000, -1, current_ts + timedelta(seconds=1)) != SC_OK
-    assert pt.calc_status_code(1000, -1, current_ts - timedelta(days=10)) == SC_OK
-    assert pt.calc_status_code(999, -5, current_ts + timedelta(days=10)) != SC_OK
-    assert pt.calc_status_code(995, -5, current_ts + timedelta(days=10)) == SC_OK
-    assert pt.calc_status_code(995, -50000, current_ts + timedelta(days=10)) != SC_OK
-    assert pt.calc_status_code(980, -50000, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, 0, -10.0001, current_ts) != SC_OK
+    assert pt.calc_status_code(1000, 0, -10.0, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, 0, -10.0, current_ts - timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, 0, -10.0, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, -1, -10.0, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, -1, -10.0, current_ts + timedelta(seconds=1)) != SC_OK
+    assert pt.calc_status_code(1000, -1, -10.0, current_ts - timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(999, -5, -10.0, current_ts + timedelta(days=10)) != SC_OK
+    assert pt.calc_status_code(995, -5, -10.0, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(995, -50000, -10.0, current_ts + timedelta(days=10)) != SC_OK
+    assert pt.calc_status_code(980, -50000, -10.0, current_ts + timedelta(days=10)) == SC_OK
     pt.recipient_creditor_id = 0
-    assert pt.calc_status_code(1000, -50000, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, -50000, -10.0, current_ts + timedelta(days=10)) == SC_OK
 
 
 def test_finalize_transfer_twice(db_session):

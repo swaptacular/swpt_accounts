@@ -263,6 +263,14 @@ min_account_balance : int64
    this can be a negative number. Server implementations are free to
    fulfill or ignore this wish. Normally, this would be ``0``.
 
+min_interest_rate : float
+   The minimal acceptable interest rate. This instructs the server
+   that if the interest rate on the account becomes smaller than this
+   value, the transfer MUST NOT be successful. This can be useful when
+   the transferred amount may need to be decreased if the interest
+   rate on the account has decreased. The value MUST be equal or
+   bigger than ``-100``. Normally, it would be ``-100``.
+
 max_commit_delay : int32
    The period (in seconds) during which the prepared transfer can be
    committed successfully. This instructs the server that the

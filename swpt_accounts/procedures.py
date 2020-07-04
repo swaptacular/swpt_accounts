@@ -15,7 +15,7 @@ from .models import (
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, SECONDS_IN_DAY,
     CT_INTEREST, CT_DELETE, CT_DIRECT,
     SC_OK, SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT,
-    SC_RECIPIENT_SAME_AS_SENDER, SC_TOO_MANY_TRANSFERS,
+    SC_RECIPIENT_SAME_AS_SENDER, SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE,
 )
 
 T = TypeVar('T')
@@ -116,7 +116,8 @@ def prepare_transfer(
         recipient: str,
         ts: datetime,
         max_commit_delay: int = MAX_INT32,
-        min_account_balance: int = 0) -> None:
+        min_account_balance: int = 0,
+        min_interest_rate: float = -100.0) -> None:
 
     assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
@@ -159,6 +160,7 @@ def prepare_transfer(
             recipient_creditor_id=recipient_creditor_id,
             deadline=ts + timedelta(seconds=max_commit_delay),
             min_account_balance=min_account_balance,
+            min_interest_rate=min_interest_rate,
         ))
 
 
@@ -195,7 +197,6 @@ def finalize_transfer(
         committed_amount=committed_amount,
         finalization_flags=finalization_flags,
         transfer_note=transfer_note,
-        min_interest_rate=0.0,
         ts=ts or datetime.now(tz=timezone.utc),
     ))
 
@@ -685,6 +686,7 @@ def _process_transfer_request(
             locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
             min_account_balance=tr.min_account_balance,
+            min_interest_rate=tr.min_interest_rate,
             demurrage_rate=demurrage_rate,
             deadline=deadline,
             prepared_at_ts=current_ts,
@@ -724,6 +726,9 @@ def _process_transfer_request(
     if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
         return reject(SC_RECIPIENT_IS_UNREACHABLE, sender_account.total_locked_amount)
 
+    if sender_account.interest_rate < tr.min_interest_rate:
+        return reject(SC_TOO_LOW_INTEREST_RATE, sender_account.total_locked_amount)
+
     # NOTE: The available amount should be checked last, because if
     # the transfer request is rejected due to insufficient available
     # amount, and the same transfer request is made again, but for
@@ -748,7 +753,8 @@ def _finalize_prepared_transfer(
 
     sender_account.total_locked_amount = max(0, sender_account.total_locked_amount - pt.locked_amount)
     sender_account.pending_transfers_count = max(0, sender_account.pending_transfers_count - 1)
-    status_code = pt.calc_status_code(fr.committed_amount, expendable_amount, current_ts)
+    interest_rate = sender_account.interest_rate
+    status_code = pt.calc_status_code(fr.committed_amount, expendable_amount, interest_rate, current_ts)
     committed_amount = fr.committed_amount if status_code == SC_OK else 0
     if committed_amount > 0:
         _insert_account_transfer_signal(

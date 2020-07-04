@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5fa09f895e3f
+Revision ID: 3ec7e431e75f
 Revises: 
-Create Date: 2020-07-04 13:30:39.271850
+Create Date: 2020-07-04 14:28:54.521448
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '5fa09f895e3f'
+revision = '3ec7e431e75f'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -113,10 +113,8 @@ def upgrade():
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
     sa.Column('finalization_flags', sa.Integer(), nullable=False),
-    sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.Column('ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('committed_amount >= 0'),
-    sa.CheckConstraint('min_interest_rate >= -100.0'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id'),
     comment='Represents a request to finalize a prepared transfer. Requests are queued to the `finalization_request` table, before being processed, because this allows many requests from one sender to be processed at once, reducing the lock contention on `account` table rows.'
     )
@@ -203,9 +201,11 @@ def upgrade():
     sa.Column('max_amount', sa.BigInteger(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('min_account_balance', sa.BigInteger(), nullable=False),
+    sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('min_amount <= max_amount'),
     sa.CheckConstraint('min_amount >= 0'),
+    sa.CheckConstraint('min_interest_rate >= -100.0'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_request_id'),
     comment='Represents a request to secure (prepare) some amount for transfer, if it is available on a given account. If the request is fulfilled, a new row will be inserted in the `prepared_transfer` table. Requests are queued to the `transfer_request` table, before being processed, because this allows many requests from one sender to be processed at once, reducing the lock contention on `account` table rows.'
     )
@@ -219,12 +219,14 @@ def upgrade():
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('min_account_balance', sa.BigInteger(), nullable=False),
+    sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.Column('demurrage_rate', sa.FLOAT(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('last_reminder_ts', sa.TIMESTAMP(timezone=True), nullable=True, comment='The moment at which the last `PreparedTransferSignal` was sent to remind that the prepared transfer must be finalized. A `NULL` means that no reminders have been sent yet. This column helps to prevent sending reminders too often.'),
     sa.CheckConstraint('demurrage_rate > -100.0 AND demurrage_rate <= 0.0'),
     sa.CheckConstraint('locked_amount >= 0'),
+    sa.CheckConstraint('min_interest_rate >= -100.0'),
     sa.CheckConstraint('transfer_id > 0'),
     sa.ForeignKeyConstraint(['debtor_id', 'sender_creditor_id'], ['account.debtor_id', 'account.creditor_id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id'),

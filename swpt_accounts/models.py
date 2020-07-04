@@ -31,6 +31,7 @@ SC_RECIPIENT_IS_UNREACHABLE = 'RECIPIENT_IS_UNREACHABLE'
 SC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
 SC_RECIPIENT_SAME_AS_SENDER = 'RC_RECIPIENT_IS_UNREACHABLE'
 SC_TOO_MANY_TRANSFERS = 'TOO_MANY_TRANSFERS'
+SC_TOO_LOW_INTEREST_RATE = 'TOO_LOW_INTEREST_RATE'
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
@@ -195,11 +196,13 @@ class TransferRequest(db.Model):
     max_amount = db.Column(db.BigInteger, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     min_account_balance = db.Column(db.BigInteger, nullable=False)
+    min_interest_rate = db.Column(db.REAL, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
 
     __table_args__ = (
         db.CheckConstraint(min_amount >= 0),
         db.CheckConstraint(min_amount <= max_amount),
+        db.CheckConstraint(min_interest_rate >= -100.0),
         {
             'comment': 'Represents a request to secure (prepare) some amount for transfer, if '
                        'it is available on a given account. If the request is fulfilled, a new '
@@ -221,12 +224,10 @@ class FinalizationRequest(db.Model):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
     finalization_flags = db.Column(db.Integer, nullable=False)
-    min_interest_rate = db.Column(db.REAL, nullable=False)
     ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     __table_args__ = (
         db.CheckConstraint(committed_amount >= 0),
-        db.CheckConstraint(min_interest_rate >= -100.0),
         {
             'comment': 'Represents a request to finalize a prepared transfer. Requests are '
                        'queued to the `finalization_request` table, before being processed, '
@@ -246,6 +247,7 @@ class PreparedTransfer(db.Model):
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     min_account_balance = db.Column(db.BigInteger, nullable=False)
+    min_interest_rate = db.Column(db.REAL, nullable=False)
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     locked_amount = db.Column(db.BigInteger, nullable=False)
@@ -262,6 +264,7 @@ class PreparedTransfer(db.Model):
             ondelete='CASCADE',
         ),
         db.CheckConstraint(transfer_id > 0),
+        db.CheckConstraint(min_interest_rate >= -100.0),
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint((demurrage_rate > -100.0) & (demurrage_rate <= 0.0)),
         {
@@ -271,8 +274,12 @@ class PreparedTransfer(db.Model):
         }
     )
 
-    def calc_status_code(self, committed_amount: int, expendable_amount: int, current_ts: datetime) -> str:
-        """Calculate the finalization status code."""
+    def calc_status_code(
+            self,
+            committed_amount: int,
+            expendable_amount: int,
+            interest_rate: float,
+            current_ts: datetime) -> str:
 
         assert committed_amount >= 0
 
@@ -299,6 +306,9 @@ class PreparedTransfer(db.Model):
         if committed_amount != 0:
             if current_ts > self.deadline:
                 return SC_TIMEOUT
+
+            if interest_rate < self.min_interest_rate:
+                return SC_TOO_LOW_INTEREST_RATE
 
             if not (get_is_expendable() or get_is_reserved()):
                 return SC_INSUFFICIENT_AVAILABLE_AMOUNT
