@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3ec7e431e75f
+Revision ID: 5dd0af3ef159
 Revises: 
-Create Date: 2020-07-04 14:28:54.521448
+Create Date: 2020-07-10 20:59:30.889057
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '3ec7e431e75f'
+revision = '5dd0af3ef159'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -197,15 +197,15 @@ def upgrade():
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
-    sa.Column('min_amount', sa.BigInteger(), nullable=False),
-    sa.Column('max_amount', sa.BigInteger(), nullable=False),
+    sa.Column('min_locked_amount', sa.BigInteger(), nullable=False),
+    sa.Column('max_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('min_account_balance', sa.BigInteger(), nullable=False),
     sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
-    sa.CheckConstraint('min_amount <= max_amount'),
-    sa.CheckConstraint('min_amount >= 0'),
     sa.CheckConstraint('min_interest_rate >= -100.0'),
+    sa.CheckConstraint('min_locked_amount <= max_locked_amount'),
+    sa.CheckConstraint('min_locked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_request_id'),
     comment='Represents a request to secure (prepare) some amount for transfer, if it is available on a given account. If the request is fulfilled, a new row will be inserted in the `prepared_transfer` table. Requests are queued to the `transfer_request` table, before being processed, because this allows many requests from one sender to be processed at once, reducing the lock contention on `account` table rows.'
     )

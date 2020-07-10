@@ -244,13 +244,13 @@ coordinator_request_id : int64
    that the coordinator can pair this request with the received
    response message.
 
-min_amount : int64
+min_locked_amount : int64
    The secured amount MUST be equal or bigger than this value. This
    value MUST be a non-negative number. [#zero-min-amount]_
 
-max_amount : int64
+max_locked_amount : int64
    The secured amount MUST NOT exceed this value. This value MUST be
-   equal or bigger than the value of ``min_amount``.
+   equal or bigger than the value of ``min_locked_amount``.
 
 recipient : string
    A string which (along with ``debtor_id``) globally identifies the
@@ -294,7 +294,7 @@ When server implementations process a `PrepareTransfer`_ message they:
   the same account.
 
 * MUST try to secure *as big amount as possible* within the requested
-  limits (between ``min_amount`` and ``max_amount``).
+  limits (between ``min_locked_amount`` and ``max_locked_amount``).
 
 * MUST guarantee that if a transfer is successfully prepared, the
   probability for the success of the eventual commit is very
@@ -316,8 +316,8 @@ When server implementations process a `PrepareTransfer`_ message they:
   ``"interest"`` might be used for payments initiated by the interest
   capitalization service.
 
-.. [#zero-min-amount] If ``min_amount`` is zero, and there are no
-  other impediments to the transfer, the transfer MUST be prepared
+.. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
+  no other impediments to the transfer, the transfer MUST be prepared
   successfully even when the amount available on the account is zero
   or less. (In this case, the secured amount will be zero.)
 

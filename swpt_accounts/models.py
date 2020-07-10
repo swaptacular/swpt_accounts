@@ -192,16 +192,16 @@ class TransferRequest(db.Model):
     coordinator_type = db.Column(db.String(30), nullable=False)
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
-    min_amount = db.Column(db.BigInteger, nullable=False)
-    max_amount = db.Column(db.BigInteger, nullable=False)
+    min_locked_amount = db.Column(db.BigInteger, nullable=False)
+    max_locked_amount = db.Column(db.BigInteger, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     min_account_balance = db.Column(db.BigInteger, nullable=False)
     min_interest_rate = db.Column(db.REAL, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
 
     __table_args__ = (
-        db.CheckConstraint(min_amount >= 0),
-        db.CheckConstraint(min_amount <= max_amount),
+        db.CheckConstraint(min_locked_amount >= 0),
+        db.CheckConstraint(min_locked_amount <= max_locked_amount),
         db.CheckConstraint(min_interest_rate >= -100.0),
         {
             'comment': 'Represents a request to secure (prepare) some amount for transfer, if '

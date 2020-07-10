@@ -109,8 +109,8 @@ def prepare_transfer(
         coordinator_type: str,
         coordinator_id: int,
         coordinator_request_id: int,
-        min_amount: int,
-        max_amount: int,
+        min_locked_amount: int,
+        max_locked_amount: int,
         debtor_id: int,
         creditor_id: int,
         recipient: str,
@@ -122,7 +122,7 @@ def prepare_transfer(
     assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
-    assert 0 <= min_amount <= max_amount <= MAX_INT64
+    assert 0 <= min_locked_amount <= max_locked_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert ts > BEGINNING_OF_TIME
@@ -154,8 +154,8 @@ def prepare_transfer(
             coordinator_type=coordinator_type,
             coordinator_id=coordinator_id,
             coordinator_request_id=coordinator_request_id,
-            min_amount=min_amount,
-            max_amount=max_amount,
+            min_locked_amount=min_locked_amount,
+            max_locked_amount=max_locked_amount,
             sender_creditor_id=creditor_id,
             recipient_creditor_id=recipient_creditor_id,
             deadline=ts + timedelta(seconds=max_commit_delay),
@@ -736,9 +736,9 @@ def _process_transfer_request(
     # some of the other possible reasons.
     available_amount = _get_available_amount(sender_account, current_ts)
     expendable_amount = available_amount - tr.min_account_balance
-    expendable_amount = min(expendable_amount, tr.max_amount)
+    expendable_amount = min(expendable_amount, tr.max_locked_amount)
     expendable_amount = max(0, expendable_amount)
-    if expendable_amount < tr.min_amount:
+    if expendable_amount < tr.min_locked_amount:
         return reject(SC_INSUFFICIENT_AVAILABLE_AMOUNT, sender_account.total_locked_amount)
 
     return prepare(expendable_amount)
