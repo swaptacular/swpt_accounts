@@ -791,12 +791,11 @@ config : string
 
 account_identity : string
    A string which (along with ``debtor_id``) globally identifies the
-   account. [#account-identity]_ The string MUST match the regular
-   expression ``^[a-zA-Z0-9_=-]{0,100}$``. An empty string indicates
-   that the account does not have an identity
-   yet. [#missing-identity]_ Once the account have got an identity,
-   the identity SHOULD NOT be changed until the account is removed
-   from the server's database.
+   account. [#account-identity]_ MUST be at most 30 symbols, ASCII
+   only. An empty string indicates that the account does not have an
+   identity yet. [#missing-identity]_ Once the account have got an
+   identity, the identity SHOULD NOT be changed until the account is
+   removed from the server's database.
 
 debtor_url : string
    An URL for obtaining information about the account's debtor. This
