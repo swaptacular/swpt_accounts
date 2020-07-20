@@ -799,7 +799,9 @@ account_identity : string
 debtor_info_url : string
    An URL for obtaining information about the account's debtor. This
    provides a reliable way for creditors to get up-to-date information
-   about the debtor.
+   about the debtor. Note that changing the URL will likely cause the
+   clients to initiate requests to the new URL, so as to obtain
+   updated information about the debtor.
 
 last_transfer_number : int64
    MUST contain the value of the ``transfer_number`` field in the
