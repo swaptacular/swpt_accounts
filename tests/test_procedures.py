@@ -182,7 +182,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1.transfer_number == transfer_number1
     assert cts1.principal == amount
     assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
-    assert cts1.transfer_flags & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
+    assert bool(cts1.transfer_flags & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE) is (amount > 0)
     cts1_obj = cts1.__marshmallow_schema__.dump(cts1)
     assert cts1_obj['debtor_id'] == D_ID
     assert cts1_obj['creditor_id'] == C_ID
@@ -195,7 +195,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
     assert cts1_obj['acquired_amount'] == amount
     assert cts1_obj['committed_at'] == cts1.committed_at_ts.isoformat()
     assert cts1_obj['transfer_note'] == TRANSFER_NOTE
-    assert cts1_obj['transfer_flags'] & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
+    assert bool(cts1_obj['transfer_flags'] & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE) is (amount > 0)
     assert isinstance(cts1_obj['ts'], str)
     assert cts1_obj['previous_transfer_number'] == 0
     assert cts1_obj['principal'] == amount

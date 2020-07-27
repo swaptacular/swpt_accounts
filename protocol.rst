@@ -975,8 +975,9 @@ transfer_flags : int32
    Various bit-flags characterizing the transfer. Server
    implementations may use these flags for different purposes. The
    lowest 16 bits are reserved. Bit ``0`` has the meaning "negligible
-   transfer", indicating that the transferred amount does not exceed
-   the configured ``negligible_amount``. [#negligible-transfer]_
+   transfer", indicating that this is an incoming transfer, and the
+   transferred amount does not exceed the configured
+   ``negligible_amount``. [#negligible-transfer]_
 
 committed_at : date-time
    The moment at which the transfer was committed.
@@ -1004,7 +1005,7 @@ be emitted for each committed transfer.
   the database, and then recreated again, the generation of transfer
   numbers MAY start from ``1`` again.
 
-.. [#negligible-transfer] That is: ``abs(amount) <=
+.. [#negligible-transfer] That is: ``0 < acquired_amount <=
    negligible_amount``.
 
 

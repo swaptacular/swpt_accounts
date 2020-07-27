@@ -573,7 +573,7 @@ def _insert_account_transfer_signal(
     if account.creditor_id != ROOT_CREDITOR_ID:
         transfer_flags = 0
 
-        if abs(acquired_amount) <= account.negligible_amount:
+        if 0 < acquired_amount <= account.negligible_amount:
             transfer_flags |= AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
 
         db.session.add(AccountTransferSignal(
