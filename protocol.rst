@@ -997,8 +997,8 @@ Every committed transfer affects two accounts: the sender's, and the
 recipient's. Therefore, two separate `AccountTransfer`_ messages would
 be emitted for each committed transfer.
 
-.. [#negligible-transfer] Negligible transfer is an incoming transfer
-   for which the transferred amount does not exceed the
+.. [#negligible-transfer] A *negligible transfer* is an incoming
+   transfer for which the transferred amount does not exceed the
    ``negligible_amount`` configured for the recipient's account (that
    is: ``0 < acquired_amount <= negligible_amount``).
 
@@ -1251,9 +1251,9 @@ may have been just created), the following steps MUST be performed:
    the transfer number of the *latest sequential transfer* in the set
    of processed `AccountTransfer`_ messages. [#sequential-transfer]_
    [#transfer-chain]_ Note that when between two `AccountTransfer`_
-   messages that are being added to the ledger, there was one or more
+   messages that are being added to the ledger, there were one or more
    negligible transfers, a dummy in-between entry SHOULD be added to
-   the `AL record`_ so as to compensate for the negligible transfers
+   the `AL record`_, so as to compensate for the negligible transfers
    (for wihch `AccountTransfer`_ messages have not been sent).
 
 **Note:** Client implementations should have some way to remove
