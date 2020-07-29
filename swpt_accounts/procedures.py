@@ -566,16 +566,12 @@ def _insert_account_transfer_signal(
     previous_transfer_number = account.last_transfer_number
     account.last_transfer_number += 1
     account.last_transfer_committed_at = committed_at_ts
+    is_negligible = 0 < acquired_amount <= account.negligible_amount
 
     # NOTE: We do not send notifications for transfers from/to the
     # debtor's account, because the debtor's account does not have a
     # real owning creditor.
-    if account.creditor_id != ROOT_CREDITOR_ID:
-        transfer_flags = 0
-
-        if 0 < acquired_amount <= account.negligible_amount:
-            transfer_flags |= AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
-
+    if not is_negligible and account.creditor_id != ROOT_CREDITOR_ID:
         db.session.add(AccountTransferSignal(
             debtor_id=account.debtor_id,
             creditor_id=account.creditor_id,
@@ -585,7 +581,6 @@ def _insert_account_transfer_signal(
             committed_at_ts=committed_at_ts,
             acquired_amount=acquired_amount,
             transfer_note=transfer_note,
-            transfer_flags=transfer_flags,
             creation_date=account.creation_date,
             principal=principal,
             previous_transfer_number=previous_transfer_number,

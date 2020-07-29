@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5dd0af3ef159
+Revision ID: 23f819d48082
 Revises: 
-Create Date: 2020-07-10 20:59:30.889057
+Create Date: 2020-07-29 11:21:57.123055
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '5dd0af3ef159'
+revision = '23f819d48082'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -70,17 +70,16 @@ def upgrade():
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
-    sa.Column('transfer_flags', sa.Integer(), nullable=False),
-    sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('principal', sa.BigInteger(), nullable=False),
     sa.Column('previous_transfer_number', sa.BigInteger(), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'transfer_number')
+    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'creation_date', 'transfer_number')
     )
     op.create_table('account_update_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),

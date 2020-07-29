@@ -171,34 +171,35 @@ def test_make_debtor_payment(db_session, current_ts, amount):
 
     p.process_pending_account_changes(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
-    assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 1
-    cts1 = AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
     transfer_number1 = 1
-    assert cts1.coordinator_type == 'test'
-    assert cts1.creditor_id == C_ID
-    assert cts1.other_creditor_id == p.ROOT_CREDITOR_ID
-    assert cts1.acquired_amount == amount
-    assert cts1.transfer_note == TRANSFER_NOTE
-    assert cts1.transfer_number == transfer_number1
-    assert cts1.principal == amount
-    assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
-    assert bool(cts1.transfer_flags & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE) is (amount > 0)
-    cts1_obj = cts1.__marshmallow_schema__.dump(cts1)
-    assert cts1_obj['debtor_id'] == D_ID
-    assert cts1_obj['creditor_id'] == C_ID
-    assert cts1_obj['creation_date'] == cts1.creation_date.isoformat()
-    assert cts1_obj['transfer_number'] == 1
-    assert cts1_obj['coordinator_type'] == 'test'
-    assert cts1_obj['sender'] in [str(p.ROOT_CREDITOR_ID), str(C_ID)]
-    assert cts1_obj['recipient'] in [str(p.ROOT_CREDITOR_ID), str(C_ID)]
-    assert cts1_obj['sender'] != cts1_obj['recipient']
-    assert cts1_obj['acquired_amount'] == amount
-    assert cts1_obj['committed_at'] == cts1.committed_at_ts.isoformat()
-    assert cts1_obj['transfer_note'] == TRANSFER_NOTE
-    assert bool(cts1_obj['transfer_flags'] & AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE) is (amount > 0)
-    assert isinstance(cts1_obj['ts'], str)
-    assert cts1_obj['previous_transfer_number'] == 0
-    assert cts1_obj['principal'] == amount
+    if amount < 0:
+        assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 1
+        cts1 = AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
+        assert cts1.coordinator_type == 'test'
+        assert cts1.creditor_id == C_ID
+        assert cts1.other_creditor_id == p.ROOT_CREDITOR_ID
+        assert cts1.acquired_amount == amount
+        assert cts1.transfer_note == TRANSFER_NOTE
+        assert cts1.transfer_number == transfer_number1
+        assert cts1.principal == amount
+        assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).all()) == 0
+        cts1_obj = cts1.__marshmallow_schema__.dump(cts1)
+        assert cts1_obj['debtor_id'] == D_ID
+        assert cts1_obj['creditor_id'] == C_ID
+        assert cts1_obj['creation_date'] == cts1.creation_date.isoformat()
+        assert cts1_obj['transfer_number'] == 1
+        assert cts1_obj['coordinator_type'] == 'test'
+        assert cts1_obj['sender'] in [str(p.ROOT_CREDITOR_ID), str(C_ID)]
+        assert cts1_obj['recipient'] in [str(p.ROOT_CREDITOR_ID), str(C_ID)]
+        assert cts1_obj['sender'] != cts1_obj['recipient']
+        assert cts1_obj['acquired_amount'] == amount
+        assert cts1_obj['committed_at'] == cts1.committed_at_ts.isoformat()
+        assert cts1_obj['transfer_note'] == TRANSFER_NOTE
+        assert isinstance(cts1_obj['ts'], str)
+        assert cts1_obj['previous_transfer_number'] == 0
+        assert cts1_obj['principal'] == amount
+    else:
+        assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 0
 
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_NOTE)
     p.process_pending_account_changes(D_ID, C_ID)
