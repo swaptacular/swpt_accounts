@@ -566,16 +566,12 @@ def _insert_account_transfer_signal(
     previous_transfer_number = account.last_transfer_number
     account.last_transfer_number += 1
     account.last_transfer_committed_at = committed_at_ts
+    is_negligible = 0 < acquired_amount <= account.negligible_amount
 
     # NOTE: We do not send notifications for transfers from/to the
     # debtor's account, because the debtor's account does not have a
     # real owning creditor.
-    if account.creditor_id != ROOT_CREDITOR_ID:
-        transfer_flags = 0
-
-        if 0 < acquired_amount <= account.negligible_amount:
-            transfer_flags |= AccountTransferSignal.SYSTEM_FLAG_IS_NEGLIGIBLE
-
+    if not is_negligible and account.creditor_id != ROOT_CREDITOR_ID:
         db.session.add(AccountTransferSignal(
             debtor_id=account.debtor_id,
             creditor_id=account.creditor_id,
@@ -585,7 +581,6 @@ def _insert_account_transfer_signal(
             committed_at_ts=committed_at_ts,
             acquired_amount=acquired_amount,
             transfer_note=transfer_note,
-            transfer_flags=transfer_flags,
             creation_date=account.creation_date,
             principal=principal,
             previous_transfer_number=previous_transfer_number,
@@ -785,7 +780,7 @@ def _finalize_prepared_transfer(
         coordinator_request_id=pt.coordinator_request_id,
         recipient_creditor_id=pt.recipient_creditor_id,
         prepared_at_ts=pt.prepared_at_ts,
-        finalized_at_ts=max(pt.prepared_at_ts, current_ts),
+        finalized_at_ts=current_ts,
         committed_amount=committed_amount,
         total_locked_amount=sender_account.total_locked_amount,
         status_code=status_code,

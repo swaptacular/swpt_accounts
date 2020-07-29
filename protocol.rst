@@ -55,11 +55,12 @@ reverse direction. The protocol supports the following operations:
    account. This can be useful for implementing automated payment and
    exchange systems.
 
-6. Creditors receive notification events for every transfer in which
-   they participate, either as senders (outgoing transfers), or as
-   recipients (incoming transfers). Those notification events are
-   properly ordered, so that the creditor can reliably assemble the
-   transfer history for each account (the account ledger).
+6. Creditors receive notification events for every non-negligible
+   transfer in which they participate (that is: all outgoing
+   transfers, and all non-negligible incoming transfers). Those
+   notification events are properly ordered, so that the creditor can
+   reliably assemble the transfer history for each account (the
+   account ledger).
 
 The protocol has been designed with these important properties in
 mind:
@@ -428,7 +429,8 @@ server's database: [#transfer-match]_
   bigger than the secured (locked) amount.
 
 .. [#successful-commit] If the commit has been successful,
-  `AccountUpdate`_ and `AccountTransfer`_ messages will be sent
+  `AccountUpdate`_ messages will be sent eventually, and for
+  non-negligible transfers `AccountTransfer`_ messages will be sent
   eventually as well.
 
 
@@ -684,7 +686,8 @@ prepared_at : date-time
 
 ts : date-time
    The moment at which this message was sent (the message's
-   timestamp).
+   timestamp). This MUST be the moment at which the transfer was
+   committed.
 
 .. [#failed-commit] In that case, ``committed_amount`` MUST be zero.
 
@@ -925,7 +928,8 @@ can safely remove a given account from their databases.
 AccountTransfer
 ---------------
 
-Emitted when a committed transfer has affected a given account.
+Emitted when a non-negligible committed transfer has affected a given
+account. [#negligible-transfer]_
 
 debtor_id : int64
    The ID of the debtor.
@@ -938,10 +942,10 @@ creation_date : date
 
 transfer_number : int64
    Along with ``debtor_id``, ``creditor_id``, and ``creation_date``,
-   uniquely identifies the committed transfer. This MUST be a positive
-   number. During the lifetime of a given account, later committed
-   transfers MUST have bigger ``transfer_number``\s, compared to
-   earlier transfers. [#transfer-number]_
+   uniquely identifies the non-negligible committed transfer. This
+   MUST be a positive number. During the lifetime of a given account,
+   later committed transfers MUST have bigger ``transfer_number``\s,
+   compared to earlier transfers. [#transfer-number]_
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
@@ -971,14 +975,6 @@ transfer_note : string
    SHOULD contain information pertaining to the reason for the
    transfer.
 
-transfer_flags : int32
-   Various bit-flags characterizing the transfer. Server
-   implementations may use these flags for different purposes. The
-   lowest 16 bits are reserved. Bit ``0`` has the meaning "negligible
-   transfer", indicating that this is an incoming transfer, and the
-   transferred amount does not exceed the configured
-   ``negligible_amount``. [#negligible-transfer]_
-
 committed_at : date-time
    The moment at which the transfer was committed.
 
@@ -1001,12 +997,14 @@ Every committed transfer affects two accounts: the sender's, and the
 recipient's. Therefore, two separate `AccountTransfer`_ messages would
 be emitted for each committed transfer.
 
+.. [#negligible-transfer] A *negligible transfer* is an incoming
+   transfer for which the transferred amount does not exceed the
+   ``negligible_amount`` configured for the recipient's account (that
+   is: ``0 < acquired_amount <= negligible_amount``).
+
 .. [#transfer-number] Note that when an account has been removed from
   the database, and then recreated again, the generation of transfer
   numbers MAY start from ``1`` again.
-
-.. [#negligible-transfer] That is: ``0 < acquired_amount <=
-   negligible_amount``.
 
 
 Requirements for Client Implementations
@@ -1252,7 +1250,11 @@ may have been just created), the following steps MUST be performed:
    the ``last_transfer_number``\'s value MUST be updated to contain
    the transfer number of the *latest sequential transfer* in the set
    of processed `AccountTransfer`_ messages. [#sequential-transfer]_
-   [#transfer-chain]_
+   [#transfer-chain]_ Note that when between two `AccountTransfer`_
+   messages that are being added to the ledger, there were one or more
+   negligible transfers, a dummy in-between ledger entry must be added
+   as well, so as to compensate for the negligible transfers (for
+   wihch `AccountTransfer`_ messages have not been sent).
 
 **Note:** Client implementations should have some way to remove
 created `AL record`_\s that are not needed anymore.
