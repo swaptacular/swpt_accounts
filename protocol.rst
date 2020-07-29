@@ -1252,9 +1252,9 @@ may have been just created), the following steps MUST be performed:
    of processed `AccountTransfer`_ messages. [#sequential-transfer]_
    [#transfer-chain]_ Note that when between two `AccountTransfer`_
    messages that are being added to the ledger, there were one or more
-   negligible transfers, a dummy in-between entry SHOULD be added to
-   the `AL record`_, so as to compensate for the negligible transfers
-   (for wihch `AccountTransfer`_ messages have not been sent).
+   negligible transfers, a dummy in-between ledger entry must be added
+   as well, so as to compensate for the negligible transfers (for
+   wihch `AccountTransfer`_ messages have not been sent).
 
 **Note:** Client implementations should have some way to remove
 created `AL record`_\s that are not needed anymore.
