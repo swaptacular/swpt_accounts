@@ -684,7 +684,8 @@ prepared_at : date-time
 
 ts : date-time
    The moment at which this message was sent (the message's
-   timestamp).
+   timestamp). This MUST be the moment at which the transfer was
+   committed.
 
 .. [#failed-commit] In that case, ``committed_amount`` MUST be zero.
 

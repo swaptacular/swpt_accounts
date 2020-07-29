@@ -785,7 +785,7 @@ def _finalize_prepared_transfer(
         coordinator_request_id=pt.coordinator_request_id,
         recipient_creditor_id=pt.recipient_creditor_id,
         prepared_at_ts=pt.prepared_at_ts,
-        finalized_at_ts=max(pt.prepared_at_ts, current_ts),
+        finalized_at_ts=current_ts,
         committed_amount=committed_amount,
         total_locked_amount=sender_account.total_locked_amount,
         status_code=status_code,
