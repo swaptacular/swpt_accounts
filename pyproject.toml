@@ -13,7 +13,7 @@ gunicorn = "*"
 python-json-logger = "^0.1.11"
 flask-env = "^2.0"
 flask-migrate = "^2.4"
-flask_signalbus = "^0.5.0"
+flask_signalbus = "^0.5.4"
 flask_melodramatiq = "^0.3.4"
 psycopg2-binary = "^2.8"
 dramatiq = {git = "https://github.com/epandurski/dramatiq.git", extras = ["rabbitmq", "watch"], branch = "set-queue-name-if-missing"}

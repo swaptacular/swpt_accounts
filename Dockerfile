@@ -1,9 +1,11 @@
-FROM python:3.7.3-alpine3.9 AS compile-image
+FROM python:3.7.8-alpine3.12 AS compile-image
 WORKDIR /usr/src/app
 
-ENV PIP_VERSION="19.1"
-ENV POETRY_VERSION="0.12.14"
+ENV PIP_VERSION="20.2"
+ENV POETRY_VERSION="1.0.10"
 RUN apk add --no-cache \
+    file \
+    make \
     curl \
     gcc \
     git \
@@ -17,7 +19,7 @@ RUN apk add --no-cache \
 
 ENV PATH="/opt/venv/bin:$PATH"
 COPY pyproject.toml poetry.lock ./
-RUN poetry config settings.virtualenvs.create false \
+RUN poetry config virtualenvs.create false \
   && poetry install --no-dev --no-interaction
 
 
