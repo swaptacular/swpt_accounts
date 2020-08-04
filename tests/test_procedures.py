@@ -56,7 +56,7 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['config'] == ''
     assert acs_obj['config_flags'] == a.config_flags
     assert acs_obj['status_flags'] == a.status_flags
-    assert acs_obj['account_identity'] == str(C_ID)
+    assert acs_obj['account_id'] == str(C_ID)
     assert acs_obj['last_transfer_number'] == 0
     assert acs_obj['last_transfer_committed_at'] == a.last_transfer_committed_at_ts.isoformat()
     assert acs_obj['debtor_info_url'] == 'https://example.com/debtors/{}/'.format(i64_to_u64(D_ID))

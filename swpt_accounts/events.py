@@ -225,7 +225,7 @@ class AccountUpdateSignal(Signal):
         status_flags = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
         ttl = fields.Integer()
-        account_identity = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
+        account_id = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
         debtor_info_url = fields.Function(lambda obj: build_url('debtor', debtorId=obj.debtor_id))
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)

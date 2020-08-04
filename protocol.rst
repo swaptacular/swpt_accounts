@@ -255,7 +255,7 @@ max_locked_amount : int64
 
 recipient : string
    A string which (along with ``debtor_id``) globally identifies the
-   recipient's account. [#account-identity]_
+   recipient's account. [#account-id]_
    
 min_account_balance : int64
    Determines the amount that the coordinator wishes to remain
@@ -792,12 +792,12 @@ config : string
    `ConfigureAccount`_ messages yet, the value MUST represent the
    current configuration settings.
 
-account_identity : string
+account_id : string
    A string which (along with ``debtor_id``) globally identifies the
-   account. [#account-identity]_ An empty string indicates that the
-   account does not have an identity yet. [#missing-identity]_ Once
-   the account have got an identity, the identity SHOULD NOT be
-   changed until the account is removed from the server's database.
+   account. [#account-id]_ An empty string indicates that the account
+   does not have an identity yet. [#missing-identity]_ Once the
+   account have got an identity, the identity SHOULD NOT be changed
+   until the account is removed from the server's database.
 
 debtor_info_url : string
    An URL for obtaining information about the account's debtor. This
@@ -886,9 +886,9 @@ allowing clients to detect "dead" account records in their databases.
   ``last_config_seqnum`` can be used to determine whether a sent
   `ConfigureAccount`_ message has been applied successfully.
 
-.. [#account-identity] MUST have at most 100 symbols, ASCII
-   only. Different server implementations may use different formats
-   for this identifier. Note that ``creditor_id`` is an ID which is
+.. [#account-id] MUST have at most 100 symbols, ASCII only. Different
+   server implementations may use different formats for this
+   identifier. Note that ``creditor_id`` is an ID which is
    recognizable only by the system that created the account. This
    identifier (along with ``debtor_id``), on the other hand, MUST
    provide enough information to globally identify the account (an
