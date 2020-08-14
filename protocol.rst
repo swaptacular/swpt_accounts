@@ -1188,11 +1188,6 @@ record`_ SHOULD be removed from the client's
 database. [#latest-heartbeat]_
 
 
-.. [#huge-negligible-amount] In this case, the ``negligible_amount``
-  field MUST be a set to some huge number, so as to ensure that the
-  account will be successfully deleted by the server.
-
-
 Received `AccountPurge`_ message
 ````````````````````````````````
 
@@ -1202,6 +1197,10 @@ values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
 the received message. If such AD record exists, it SHOULD be removed
 from the client's database; otherwise, the message MUST be ignored.
 
+
+.. [#huge-negligible-amount] In this case, the ``negligible_amount``
+  field MUST be a set to some huge number, so as to ensure that the
+  account will be successfully deleted by the server.
 
 .. [#adr-pk] Another alternative is the primary key for `AD record`_\s
   to be the (``creditor_id``, ``debtor_id``) tuple. In this case,
