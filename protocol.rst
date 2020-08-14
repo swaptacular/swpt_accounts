@@ -172,9 +172,10 @@ they MUST first verify whether the specified account already exists:
    MUST be checked. If it is too far in the past, the message MUST be
    ignored. [#config-delay]_ Otherwise, an attempt MUST be made to
    create a new account with the requested configuration
-   settings. [#zero-principal]_ [#creation-date]_ If a new account has
-   been successfully created, an `AccountUpdate`_ message MUST be
-   sent; otherwise a `RejectedConfig`_ message MUST be sent.
+   settings. [#zero-principal]_ [#for-deletion]_ [#creation-date]_ If
+   a new account has been successfully created, an `AccountUpdate`_
+   message MUST be sent; otherwise a `RejectedConfig`_ message MUST be
+   sent.
 
 .. [#forbid-transfers] Server implementations SHOULD NOT accept
   incoming transfers for "scheduled for deletion" accounts.
@@ -182,6 +183,10 @@ they MUST first verify whether the specified account already exists:
 .. [#zero-principal] The principal (the amount that the debtor owes to
   the creditor, without the interest) on newly created accounts MUST
   be zero.
+
+.. [#for-deletion] When the new account has its "scheduled for
+  deletion" flag set, server implementations MUST NOT reject to create
+  the account for this reason alone.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
