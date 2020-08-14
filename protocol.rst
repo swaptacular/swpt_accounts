@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2020-07-04
-:Version: 0.3
+:Date: 2020-08-14
+:Version: 0.4
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -1177,14 +1177,20 @@ already exists: [#matching-adr]_
    corresponding AD record MUST be updated with the data contained in
    the received message.
 
-2. If a corresponding `AD record`_ does not exist, a new AD record
-   SHOULD be created, storing the relevant data received with the
-   message.
+2. If a corresponding `AD record`_ does not exist, one of the
+   following two actions MUST be taken: either a new AD record is
+   created, or a `ConfigureAccount`_ message is sent to schedule the
+   account for deletion. [#huge-negligible-amount]_
 
 If for a given account, `AccountUpdate`_ messages have not been
 received for a very long time (1 year for example), the account's `AD
 record`_ SHOULD be removed from the client's
 database. [#latest-heartbeat]_
+
+
+.. [#huge-negligible-amount] In this case, the ``negligible_amount``
+  field MUST be a set to some huge number, so as to ensure that the
+  account will be successfully deleted by the server.
 
 
 Received `AccountPurge`_ message
