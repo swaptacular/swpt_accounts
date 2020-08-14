@@ -184,9 +184,9 @@ they MUST first verify whether the specified account already exists:
   the creditor, without the interest) on newly created accounts MUST
   be zero.
 
-.. [#for-deletion] When the new account has its "scheduled for
-  deletion" flag set, server implementations MUST NOT reject to create
-  the account for this reason alone.
+.. [#for-deletion] Even when the account that needs to be created has
+  its "scheduled for deletion" flag set, server implementations MUST
+  NOT reject to create the account for this reason alone.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
