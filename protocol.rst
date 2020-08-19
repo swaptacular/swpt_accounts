@@ -805,11 +805,12 @@ account_id : string
    until the account is removed from the server's database.
 
 debtor_info_url : string
-   An URL for obtaining information about the account's debtor. This
-   provides a reliable way for creditors to get up-to-date information
-   about the debtor. Note that changing the URL will likely cause the
-   clients to initiate requests to the new URL, so as to obtain
-   updated information about the debtor.
+   A link (Internationalized Resource Identifier) for obtaining
+   information about the account's debtor. This provides a reliable
+   way for creditors to get up-to-date information about the
+   debtor. Note that changing the IRI will likely cause the clients to
+   make requests to the new IRI, so as to obtain updated information
+   about the debtor.
 
 last_transfer_number : int64
    MUST contain the value of the ``transfer_number`` field in the
