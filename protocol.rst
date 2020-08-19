@@ -810,7 +810,7 @@ debtor_info_url : string
    way for creditors to get up-to-date information about the
    debtor. Note that changing the IRI will likely cause the clients to
    make requests to the new IRI, so as to obtain updated information
-   about the debtor.
+   about the debtor. MUST have at most 200 Unicode characters.
 
 last_transfer_number : int64
    MUST contain the value of the ``transfer_number`` field in the
