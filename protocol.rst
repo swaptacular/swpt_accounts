@@ -317,10 +317,10 @@ When server implementations process a `PrepareTransfer`_ message they:
   `RejectedTransfer`_ message.
 
 
-.. [#coordinator-type] Random examples: ``"direct"`` might be used for
-  payments initiated directly by the owner of the sender's account,
-  ``"interest"`` might be used for payments initiated by the interest
-  capitalization service.
+.. [#coordinator-type] ``"direct"`` and ``"exchange"`` are reserved
+  for payments initiated directly by the client, ``"interest"`` MUST
+  be used for payments initiated by the interest capitalization
+  service.
 
 .. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
   no other impediments to the transfer, the transfer MUST be prepared
