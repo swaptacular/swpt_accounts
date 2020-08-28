@@ -324,7 +324,9 @@ When server implementations process a `PrepareTransfer`_ message they:
 .. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
   no other impediments to the transfer, the transfer MUST be prepared
   successfully even when the amount available on the account is zero
-  or less. (In this case, the secured amount will be zero.)
+  or less. (In this case, the secured amount will be zero.) This is
+  useful, for example, when the sender want to verify that the
+  recipient's account exist and accepts incoming transfers.
 
 
 FinalizeTransfer
