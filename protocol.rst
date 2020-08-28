@@ -325,7 +325,7 @@ When server implementations process a `PrepareTransfer`_ message they:
   no other impediments to the transfer, the transfer MUST be prepared
   successfully even when the amount available on the account is zero
   or less. (In this case, the secured amount will be zero.) This is
-  useful, for example, when the sender want to verify that the
+  useful, for example, when the sender wants to verify whether the
   recipient's account exist and accepts incoming transfers.
 
 
