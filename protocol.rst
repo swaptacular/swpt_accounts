@@ -410,10 +410,11 @@ server's database: [#transfer-match]_
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
 
-.. [#note-limitations] Server implementations MAY impose additional
-  restrictions on the format and the content of this string, as long
-  as: 1) those restrictions are precisely defined and known in
-  advance; 2) an empty string is a valid ``transfer_note``.
+.. [#note-limitations] The UTF-8 encoding of the ``transfer_note``
+  string MUST NOT be longer than 500 bytes. Server implementations MAY
+  impose additional restrictions on the format and the content of this
+  string, as long as: 1) those restrictions are precisely defined and
+  known in advance; 2) an empty string is a valid ``transfer_note``.
 
 .. [#transfer-match] The matching prepared transfer MUST have the same
   ``debtor_id``, ``creditor_id``, ``transfer_id``,
@@ -978,7 +979,7 @@ transfer_note : string
    message, this field MUST contain the value of the ``transfer_note``
    field from the message that committed the transfer. Otherwise, it
    SHOULD contain information pertaining to the reason for the
-   transfer.
+   transfer. [#note-limitations]_
 
 committed_at : date-time
    The moment at which the transfer was committed.
