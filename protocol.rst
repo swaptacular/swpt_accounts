@@ -326,7 +326,7 @@ When server implementations process a `PrepareTransfer`_ message they:
   successfully even when the amount available on the account is zero
   or less. (In this case, the secured amount will be zero.) This is
   useful, for example, when the sender wants to verify whether the
-  recipient's account exist and accepts incoming transfers.
+  recipient's account exists and accepts incoming transfers.
 
 
 FinalizeTransfer
