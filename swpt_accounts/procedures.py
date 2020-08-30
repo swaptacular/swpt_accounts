@@ -563,15 +563,15 @@ def _insert_account_transfer_signal(
         principal: int) -> None:
 
     assert acquired_amount != 0
-    previous_transfer_number = account.last_transfer_number
-    account.last_transfer_number += 1
-    account.last_transfer_committed_at = committed_at_ts
     is_negligible = 0 < acquired_amount <= account.negligible_amount
 
     # NOTE: We do not send notifications for transfers from/to the
     # debtor's account, because the debtor's account does not have a
     # real owning creditor.
     if not is_negligible and account.creditor_id != ROOT_CREDITOR_ID:
+        previous_transfer_number = account.last_transfer_number
+        account.last_transfer_number += 1
+        account.last_transfer_committed_at_ts = committed_at_ts
         db.session.add(AccountTransferSignal(
             debtor_id=account.debtor_id,
             creditor_id=account.creditor_id,

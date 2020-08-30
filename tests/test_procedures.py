@@ -171,8 +171,9 @@ def test_make_debtor_payment(db_session, current_ts, amount):
 
     p.process_pending_account_changes(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
-    transfer_number1 = 1
+    transfer_number1 = 0
     if amount < 0:
+        transfer_number1 += 1
         assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 1
         cts1 = AccountTransferSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
         assert cts1.coordinator_type == 'test'
