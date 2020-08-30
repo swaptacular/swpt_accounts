@@ -375,9 +375,8 @@ finalization_flags : int32
    Various bit-flags that may affect the behavior of the server when
    it finalizes (commits or dismisses) the transfer. Different server
    implementations may use these flags for different purposes. For
-   example, they can be used to specify the format used for the
-   ``transfer_note`` field, or to indicate that some information about
-   the transfer should be stored on the server.
+   example, they can be used to specify that the server should make
+   some information about the transfer public.
 
 ts : date-time
    The moment at which this message was sent (the message's
