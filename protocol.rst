@@ -367,9 +367,10 @@ committed_amount : int64
 
 transfer_note : string
    A string that the coordinator (the client that finalizes the
-   prepared transfer) wants the recipient and the sender to see. If
-   the transfer is being dismissed, this field will be ignored, and
-   therefore SHOULD contain an empty string. [#note-limitations]_
+   prepared transfer) wants the recipient and the sender to
+   see. [#note-limitations]_ If the transfer is being dismissed, this
+   field will be ignored, and therefore SHOULD contain an empty
+   string.
 
    Server implementations MAY further limit the maximal allowed
    byte-length of the UTF-8 encoding of this string, as long as the
@@ -378,7 +379,9 @@ transfer_note : string
 
 transfer_note_format : string
    The format used for the ``transfer_note``
-   string. [#transfer-note-format]_
+   string. [#transfer-note-format]_ If the transfer is being
+   dismissed, this field will be ignored, and therefore SHOULD contain
+   an empty string.
 
 finalization_flags : int32
    Various bit-flags that may affect the behavior of the server when
@@ -424,7 +427,8 @@ server's database: [#transfer-match]_
   string MUST NOT be longer than 500 bytes.
 
 .. [#transfer-note-format] MUST match the regular expression
-   ``^[0-9A-Za-z.-]{0,8}$``.
+   ``^[0-9A-Za-z.-]{0,8}$``. An empty string signifies unstructured
+   text format.
 
 .. [#transfer-match] The matching prepared transfer MUST have the same
   ``debtor_id``, ``creditor_id``, ``transfer_id``,
