@@ -805,7 +805,7 @@ account_id : string
    account have got an identity, the identity SHOULD NOT be changed
    until the account is removed from the server's database.
 
-debtor_info_url : string
+debtor_info_iri : string
    A link (Internationalized Resource Identifier) for obtaining
    information about the account's debtor. This provides a reliable
    way for creditors to get up-to-date information about the
