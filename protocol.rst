@@ -428,7 +428,7 @@ server's database: [#transfer-match]_
 
 .. [#transfer-note-format] MUST match the regular expression
    ``^[0-9A-Za-z.-]{0,8}$``. An empty string signifies unstructured
-   text format.
+   text.
 
 .. [#transfer-match] The matching prepared transfer MUST have the same
   ``debtor_id``, ``creditor_id``, ``transfer_id``,
