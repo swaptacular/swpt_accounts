@@ -20,6 +20,7 @@ __all__ = [
 
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
+TRANSFER_NOTE_MAX_BYTES = 500
 
 
 def get_now_utc():
@@ -211,6 +212,7 @@ class AccountUpdateSignal(Signal):
         principal = fields.Integer()
         interest = fields.Float()
         interest_rate = fields.Float()
+        transfer_note_max_bytes = fields.Constant(TRANSFER_NOTE_MAX_BYTES)
         demurrage_rate = fields.Constant(INTEREST_RATE_FLOOR)
         commit_period = fields.Integer()
         last_interest_rate_change_ts = fields.DateTime()

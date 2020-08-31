@@ -11,7 +11,7 @@ from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
     AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal, FinalizationRequest,
-    ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL,
+    ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, TRANSFER_NOTE_MAX_BYTES,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, SECONDS_IN_DAY,
     CT_INTEREST, CT_DELETE, CT_DIRECT,
     SC_OK, SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT,
@@ -183,8 +183,10 @@ def finalize_transfer(
     assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
-    assert MIN_INT32 <= finalization_flags <= MAX_INT32
     assert 0 <= committed_amount <= MAX_INT64
+    assert MIN_INT32 <= finalization_flags <= MAX_INT32
+    assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
+    assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
     assert ts is None or ts > BEGINNING_OF_TIME
 
     db.session.add(FinalizationRequest(

@@ -371,6 +371,11 @@ transfer_note : string
    the transfer is being dismissed, this field will be ignored, and
    therefore SHOULD contain an empty string. [#note-limitations]_
 
+   Server implementations MAY further limit the maximal allowed
+   byte-length of the UTF-8 encoding of this string, as long as the
+   limit is correctly stated in the ``transfer_note_max_bytes`` field
+   in `AccountUpdate`_ messages.
+
 finalization_flags : int32
    Various bit-flags that may affect the behavior of the server when
    it finalizes (commits or dismisses) the transfer. Different server
@@ -412,10 +417,7 @@ server's database: [#transfer-match]_
    be ignored.
 
 .. [#note-limitations] The UTF-8 encoding of the ``transfer_note``
-  string MUST NOT be longer than 500 bytes. Server implementations MAY
-  impose additional restrictions on the format and the content of this
-  string, as long as: 1) those restrictions are precisely defined and
-  known in advance; 2) an empty string is a valid ``transfer_note``.
+  string MUST NOT be longer than 500 bytes.
 
 .. [#transfer-match] The matching prepared transfer MUST have the same
   ``debtor_id``, ``creditor_id``, ``transfer_id``,
@@ -843,6 +845,12 @@ commit_period : int32
    value of this filed MUST be a non-negative number, SHOULD be the
    same for all accounts with the given debtor, and SHOULD be equal or
    bigger than ``86400`` (24 hours).
+
+transfer_note_max_bytes: int32
+   The maximal number of bytes that the ``transfer_note`` field in
+   `FinalizeTransfer`_ messages is allowed to contain when UTF-8
+   encoded. This MUST be a non-negative number which does not exceed
+   the general limit imposed by this protocol. [#note-limitations]_
 
 ts : date-time
    The moment at which this message was sent (the message's

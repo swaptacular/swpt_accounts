@@ -5,7 +5,7 @@ from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import and_
 from swpt_lib.utils import date_to_int24
 from .extensions import db
-from .events import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+from .events import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, TRANSFER_NOTE_MAX_BYTES  # noqa
 from .events import *  # noqa
 
 MIN_INT16 = -1 << 15
