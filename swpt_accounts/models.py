@@ -222,6 +222,7 @@ class FinalizationRequest(db.Model):
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     committed_amount = db.Column(db.BigInteger, nullable=False)
+    transfer_note_format = db.Column(pg.TEXT, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
     finalization_flags = db.Column(db.Integer, nullable=False)
     ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
@@ -329,6 +330,11 @@ class PendingAccountChange(db.Model):
         db.BigInteger,
         nullable=False,
         comment='The change in `account.interest`.',
+    )
+    transfer_note_format = db.Column(
+        pg.TEXT,
+        nullable=False,
+        comment='The format used for the `transfer_note` string.',
     )
     transfer_note = db.Column(
         pg.TEXT,

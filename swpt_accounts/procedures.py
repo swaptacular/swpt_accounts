@@ -1,4 +1,5 @@
 import math
+import re
 from datetime import datetime, timezone, timedelta
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Set
 from decimal import Decimal
@@ -21,6 +22,7 @@ from .models import (
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
+RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
 RC_INVALID_CONFIGURATION = 'INVALID_CONFIGURATION'
 PREPARED_TRANSFER_JOIN_CLAUSE = and_(
@@ -174,6 +176,7 @@ def finalize_transfer(
         coordinator_request_id: int,
         committed_amount: int,
         finalization_flags: int = 0,
+        transfer_note_format: str = '',
         transfer_note: str = '',
         ts: datetime = None) -> None:
 
@@ -185,6 +188,7 @@ def finalize_transfer(
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 <= committed_amount <= MAX_INT64
     assert MIN_INT32 <= finalization_flags <= MAX_INT32
+    assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
     assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
     assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
     assert ts is None or ts > BEGINNING_OF_TIME
@@ -198,6 +202,7 @@ def finalize_transfer(
         coordinator_request_id=coordinator_request_id,
         committed_amount=committed_amount,
         finalization_flags=finalization_flags,
+        transfer_note_format=transfer_note_format,
         transfer_note=transfer_note,
         ts=ts or datetime.now(tz=timezone.utc),
     ))
@@ -408,6 +413,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 other_creditor_id=change.other_creditor_id,
                 committed_at_ts=change.inserted_at_ts,
                 acquired_amount=change.principal_delta,
+                transfer_note_format=change.transfer_note_format,
                 transfer_note=change.transfer_note,
                 principal=_contain_principal_overflow(account.principal + principal_delta),
             )
@@ -439,11 +445,12 @@ def make_debtor_payment(
         debtor_id: int,
         creditor_id: int,
         amount: int,
+        transfer_note_format: str = '',
         transfer_note: str = '') -> None:
 
     current_ts = datetime.now(tz=timezone.utc)
     account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
-    _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_note)
+    _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_note_format, transfer_note)
 
 
 def _contain_principal_overflow(value: int) -> int:
@@ -533,7 +540,8 @@ def _insert_pending_account_change(
         coordinator_type: str,
         other_creditor_id: int,
         inserted_at_ts: datetime,
-        transfer_note: str = None,
+        transfer_note_format: str,
+        transfer_note: str,
         principal_delta: int = 0,
         interest_delta: int = 0) -> None:
 
@@ -549,6 +557,7 @@ def _insert_pending_account_change(
         coordinator_type=coordinator_type,
         other_creditor_id=other_creditor_id,
         inserted_at_ts=inserted_at_ts,
+        transfer_note_format=transfer_note_format,
         transfer_note=transfer_note,
         principal_delta=principal_delta,
         interest_delta=interest_delta,
@@ -561,6 +570,7 @@ def _insert_account_transfer_signal(
         other_creditor_id: int,
         committed_at_ts: datetime,
         acquired_amount: int,
+        transfer_note_format: str,
         transfer_note: str,
         principal: int) -> None:
 
@@ -582,6 +592,7 @@ def _insert_account_transfer_signal(
             other_creditor_id=other_creditor_id,
             committed_at_ts=committed_at_ts,
             acquired_amount=acquired_amount,
+            transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
             creation_date=account.creation_date,
             principal=principal,
@@ -612,6 +623,7 @@ def _make_debtor_payment(
         account: Account,
         amount: int,
         current_ts: datetime,
+        transfer_note_format: str = '',
         transfer_note: str = '') -> None:
 
     assert coordinator_type != CT_DIRECT
@@ -624,6 +636,7 @@ def _make_debtor_payment(
             coordinator_type=coordinator_type,
             other_creditor_id=account.creditor_id,
             inserted_at_ts=current_ts,
+            transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
             principal_delta=-amount,
         )
@@ -633,6 +646,7 @@ def _make_debtor_payment(
             other_creditor_id=ROOT_CREDITOR_ID,
             committed_at_ts=current_ts,
             acquired_amount=amount,
+            transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
             principal=_contain_principal_overflow(account.principal + amount),
         )
@@ -760,6 +774,7 @@ def _finalize_prepared_transfer(
             other_creditor_id=pt.recipient_creditor_id,
             committed_at_ts=current_ts,
             acquired_amount=-committed_amount,
+            transfer_note_format=fr.transfer_note_format,
             transfer_note=fr.transfer_note,
             principal=_contain_principal_overflow(sender_account.principal - committed_amount),
         )
@@ -769,6 +784,7 @@ def _finalize_prepared_transfer(
             coordinator_type=pt.coordinator_type,
             other_creditor_id=pt.sender_creditor_id,
             inserted_at_ts=current_ts,
+            transfer_note_format=fr.transfer_note_format,
             transfer_note=fr.transfer_note,
             principal_delta=committed_amount,
         )

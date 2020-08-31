@@ -32,6 +32,7 @@ def test_finalize_transfer(db_session):
         coordinator_request_id=2,
         committed_amount=100,
         finalization_flags=0,
+        transfer_note_format='',
         transfer_note='',
         ts=datetime.now(tz=timezone.utc).isoformat(),
     )

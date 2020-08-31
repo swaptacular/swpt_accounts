@@ -69,6 +69,7 @@ def finalize_transfer(
         coordinator_request_id: int,
         committed_amount: int,
         finalization_flags: int,
+        transfer_note_format: str,
         transfer_note: str,
         ts: str) -> None:
 
@@ -83,6 +84,7 @@ def finalize_transfer(
         coordinator_request_id,
         committed_amount,
         finalization_flags,
+        transfer_note_format,
         transfer_note,
         iso8601.parse_date(ts),
     )

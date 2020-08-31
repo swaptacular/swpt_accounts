@@ -376,6 +376,10 @@ transfer_note : string
    limit is correctly stated in the ``transfer_note_max_bytes`` field
    in `AccountUpdate`_ messages.
 
+transfer_note_format : string
+   The format used for the ``transfer_note``
+   string. [#transfer-note-format]_
+
 finalization_flags : int32
    Various bit-flags that may affect the behavior of the server when
    it finalizes (commits or dismisses) the transfer. Different server
@@ -418,6 +422,9 @@ server's database: [#transfer-match]_
 
 .. [#note-limitations] The UTF-8 encoding of the ``transfer_note``
   string MUST NOT be longer than 500 bytes.
+
+.. [#transfer-note-format] MUST match the regular expression
+   ``^[0-9A-Za-z.-]{0,8}$``.
 
 .. [#transfer-match] The matching prepared transfer MUST have the same
   ``debtor_id``, ``creditor_id``, ``transfer_id``,
@@ -989,6 +996,13 @@ transfer_note : string
    field from the message that committed the transfer. Otherwise, it
    SHOULD contain information pertaining to the reason for the
    transfer. [#note-limitations]_
+
+transfer_note_format : string
+   If the transfer has been committed by a `FinalizeTransfer`_
+   message, this field MUST contain the value of the
+   ``transfer_note_format`` field from the message that committed the
+   transfer. Otherwise, it MUST contain the format used for the
+   ``transfer_note`` string. [#transfer-note-format]_
 
 committed_at : date-time
    The moment at which the transfer was committed.
