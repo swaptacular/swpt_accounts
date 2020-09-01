@@ -555,6 +555,9 @@ ts : date-time
    * ``"TERMINATED"`` signifies that the transfer has been terminated
      due to expired deadline, or unapproved interest rate change.
 
+   * ``"TRANSFER_NOTE_TOO_LONG"`` signifies that the transfer has been
+     rejected because the transfer note's byte-length is too big.
+
    * ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` signifies that the transfer
      has been rejected due to insufficient amount available on the
      account.
