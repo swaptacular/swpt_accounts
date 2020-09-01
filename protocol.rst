@@ -319,7 +319,9 @@ When server implementations process a `PrepareTransfer`_ message they:
 
 .. [#coordinator-type] ``"direct"`` is reserved for payments initiated
   directly by the owner of the account, ``"interest"`` MUST be used
-  for payments initiated by the interest capitalization service.
+  for transfers initiated by the interest capitalization service,
+  ``"issuing"`` MUST be used for transfers which create new money into
+  existence.
 
 .. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
   no other impediments to the transfer, the transfer MUST be prepared
