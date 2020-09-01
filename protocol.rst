@@ -547,9 +547,17 @@ ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
 
-.. [#insufficient-amount] The ``"INSUFFICIENT_AVAILABLE_AMOUNT"``
-   status code SHOULD be used when the transfer has been rejected due
-   to insufficient amount available on the account.
+.. [#insufficient-amount] The *recommended* status codes are:
+
+   * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
+   account does not exist, or does not accept incoming transfers.
+
+   * ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` signifies that the transfer
+   has been rejected due to insufficient amount available on the
+   account.
+
+   * ``"TERMINATED"`` signifies that the transfer has been rejected
+   due expired deadline, or unapproved interest rate change.
 
 
 PreparedTransfer
