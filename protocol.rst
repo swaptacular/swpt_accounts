@@ -892,6 +892,9 @@ even in the case of a lost message, or a complete database loss on the
 client's side. Also, this serves the purpose of a "heartbeat",
 allowing clients to detect "dead" account records in their databases.
 
+TODO: Consider documenting the need for limiting the maximal rate at
+which `AccountUpdate`_ messages are sent.
+
 .. [#meaningful-change] For a given account, every change in the value
   of one of the fields included in `AccountUpdate`_ messages (except
   for the ``ts`` field) should be considered meaningful, and therefore
