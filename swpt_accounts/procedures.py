@@ -15,7 +15,7 @@ from .models import (
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, TRANSFER_NOTE_MAX_BYTES,
     MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, SECONDS_IN_DAY,
     CT_INTEREST, CT_DELETE, CT_DIRECT,
-    SC_OK, SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT,
+    SC_OK, SC_SENDER_DOES_NOT_EXIST, SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT,
     SC_RECIPIENT_SAME_AS_SENDER, SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE,
 )
 
@@ -720,7 +720,7 @@ def _process_transfer_request(
     db.session.delete(tr)
 
     if sender_account is None:
-        return reject(SC_INSUFFICIENT_AVAILABLE_AMOUNT, 0)
+        return reject(SC_SENDER_DOES_NOT_EXIST, 0)
 
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id

@@ -549,6 +549,9 @@ ts : date-time
 
 .. [#status-codes] The *recommended* status codes are:
 
+   * ``"SENDER_DOES_NOT_EXIST"`` signifies that the sender's account
+     does not exist.
+
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
      account does not exist, or does not accept incoming transfers.
 
