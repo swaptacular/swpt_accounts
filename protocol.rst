@@ -534,8 +534,10 @@ status_code : string
    ``"OK"``. [#insufficient-amount]_
 
 total_locked_amount : int64
-   SHOULD contain the total sum secured (locked) for prepared
-   transfers on the account. This MUST be a non-negative number.
+   When the transfer has been rejected due to insufficient available
+   amount, this field SHOULD contain the total sum secured (locked)
+   for prepared transfers on the account. [#insufficient-amount]_ This
+   MUST be a non-negative number.
 
 recipient : string
    The value of the ``recipient`` field in the corresponding
@@ -546,7 +548,7 @@ ts : date-time
    timestamp).
 
 .. [#insufficient-amount] The ``"INSUFFICIENT_AVAILABLE_AMOUNT"``
-   status code MUST be used when the transfer is rejected due to
+   status code SHOULD be used when the transfer is rejected due to
    insufficient amount available on the account.
 
 
@@ -707,13 +709,15 @@ status_code : string
    only. If the prepared transfer was committed, but the commit was
    unsuccessful for some reason, this value MUST be different from
    ``"OK"``, and SHOULD hint at the reason for the
-   failure. [#failed-commit]_ [#insufficient-amount]_ In all other
+   failure. [#insufficient-amount]_ [#failed-commit]_ In all other
    cases, this value MUST be ``"OK"``.
 
 total_locked_amount : int64
-   SHOULD contain the total sum secured (locked) for prepared
-   transfers on the account, after this transfer has been
-   finalized. This MUST be a non-negative number.
+   When the transfer has been rejected due to insufficient available
+   amount, this field SHOULD contain the total sum secured (locked)
+   for prepared transfers on the account, after the transfer has been
+   finalized. [#insufficient-amount]_ This MUST be a non-negative
+   number.
 
 prepared_at : date-time
    The moment at which the transfer was prepared.
