@@ -552,12 +552,12 @@ ts : date-time
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
      account does not exist, or does not accept incoming transfers.
 
+   * ``"TERMINATED"`` signifies that the transfer has been rejected
+     due to expired deadline, or unapproved interest rate change.
+
    * ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` signifies that the transfer
      has been rejected due to insufficient amount available on the
      account.
-
-   * ``"TERMINATED"`` signifies that the transfer has been rejected
-     due expired deadline, or unapproved interest rate change.
 
 
 PreparedTransfer
