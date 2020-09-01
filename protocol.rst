@@ -548,8 +548,8 @@ ts : date-time
    timestamp).
 
 .. [#insufficient-amount] The ``"INSUFFICIENT_AVAILABLE_AMOUNT"``
-   status code SHOULD be used when the transfer is rejected due to
-   insufficient amount available on the account.
+   status code SHOULD be used when the transfer has been rejected due
+   to insufficient amount available on the account.
 
 
 PreparedTransfer
@@ -715,8 +715,8 @@ status_code : string
 total_locked_amount : int64
    When the transfer has been rejected due to insufficient available
    amount, this field SHOULD contain the total sum secured (locked)
-   for prepared transfers on the account, after the transfer has been
-   finalized. [#insufficient-amount]_ This MUST be a non-negative
+   for prepared transfers on the account, *after* this transfer has
+   been finalized. [#insufficient-amount]_ This MUST be a non-negative
    number.
 
 prepared_at : date-time
