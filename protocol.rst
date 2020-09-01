@@ -550,14 +550,14 @@ ts : date-time
 .. [#insufficient-amount] The *recommended* status codes are:
 
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
-   account does not exist, or does not accept incoming transfers.
+     account does not exist, or does not accept incoming transfers.
 
    * ``"INSUFFICIENT_AVAILABLE_AMOUNT"`` signifies that the transfer
-   has been rejected due to insufficient amount available on the
-   account.
+     has been rejected due to insufficient amount available on the
+     account.
 
    * ``"TERMINATED"`` signifies that the transfer has been rejected
-   due expired deadline, or unapproved interest rate change.
+     due expired deadline, or unapproved interest rate change.
 
 
 PreparedTransfer
