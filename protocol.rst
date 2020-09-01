@@ -836,6 +836,9 @@ debtor_info_iri : string
    make requests to the new IRI, so as to obtain updated information
    about the debtor. MUST have at most 200 Unicode characters.
 
+   TODO: Consider adding ``debtor_info_content_type`` and
+   ``debtor_info_sha256`` fields.
+
 last_transfer_number : int64
    MUST contain the value of the ``transfer_number`` field in the
    latest emitted `AccountTransfer`_ message for the account. If since
