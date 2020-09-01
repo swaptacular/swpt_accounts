@@ -267,10 +267,11 @@ min_account_balance : int64
    available on the sender's account, after the requested amount has
    been secured, and after the transfer has been committed. Note that
    this can be a negative number. Server implementations are free to
-   fulfill or ignore this wish. Normally, this would be ``0``.
+   fulfill or ignore this wish. This is mainly useful for bringing new
+   money into existence. Normally, this would be ``0``.
 
 min_interest_rate : float
-   Determines the minimal acceptable interest rate. This instructs the
+   Determines the minimal approved interest rate. This instructs the
    server that if the interest rate on the account becomes lower than
    this value, the transfer MUST NOT be successful. This can be useful
    when the transferred amount may need to be decreased if the
