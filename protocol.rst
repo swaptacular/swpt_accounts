@@ -303,7 +303,7 @@ When server implementations process a `PrepareTransfer`_ message they:
   limits (between ``min_locked_amount`` and ``max_locked_amount``).
 
 * MUST guarantee that if a transfer is successfully prepared, the
-  probability for the success of the eventual commit is very
+  probability for successful commit of the secured amount is very
   high. [#demurrage]_ Notably, the secured amount MUST be locked, so
   that until the prepared transfer is finalized, the amount is not
   available for other transfers.
@@ -316,6 +316,13 @@ When server implementations process a `PrepareTransfer`_ message they:
 * If the requested transfer can not be prepared, MUST send a
   `RejectedTransfer`_ message.
 
+An important special case is when ``min_locked_amount`` and
+``max_locked_amount`` are both equal to zero. [#zero-min-amount]_ In
+this case no amount will be secured, and whether the transfer will be
+successful or not will depend on whether the ``committed_amount``,
+sent with the `FinalizeTransfer`_ message, will be available at the
+time of the commit.
+
 
 .. [#coordinator-type] ``"direct"`` is reserved for payments initiated
   directly by the owner of the account, ``"interest"`` MUST be used
@@ -327,8 +334,8 @@ When server implementations process a `PrepareTransfer`_ message they:
   no other impediments to the transfer, the transfer MUST be prepared
   successfully even when the amount available on the account is zero
   or less. (In this case, the secured amount will be zero.) This is
-  useful, for example, when the sender wants to verify whether the
-  recipient's account exists and accepts incoming transfers.
+  useful, when the sender wants to verify whether the recipient's
+  account exists and accepts incoming transfers.
 
 
 FinalizeTransfer
