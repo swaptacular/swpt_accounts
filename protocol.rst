@@ -531,13 +531,13 @@ coordinator_request_id : int64
 status_code : string
    The reason for the rejection of the transfer. MUST be between 0 and
    30 symbols, ASCII only. The value MUST not be
-   ``"OK"``. [#insufficient-amount]_
+   ``"OK"``. [#status-codes]_
 
 total_locked_amount : int64
    When the transfer has been rejected due to insufficient available
    amount, this field SHOULD contain the total sum secured (locked)
-   for prepared transfers on the account. [#insufficient-amount]_ This
-   MUST be a non-negative number.
+   for prepared transfers on the account. This MUST be a non-negative
+   number.
 
 recipient : string
    The value of the ``recipient`` field in the corresponding
@@ -547,7 +547,7 @@ ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
 
-.. [#insufficient-amount] The *recommended* status codes are:
+.. [#status-codes] The *recommended* status codes are:
 
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
      account does not exist, or does not accept incoming transfers.
@@ -720,15 +720,14 @@ status_code : string
    only. If the prepared transfer was committed, but the commit was
    unsuccessful for some reason, this value MUST be different from
    ``"OK"``, and SHOULD hint at the reason for the
-   failure. [#insufficient-amount]_ [#failed-commit]_ In all other
-   cases, this value MUST be ``"OK"``.
+   failure. [#status-codes]_ [#failed-commit]_ In all other cases,
+   this value MUST be ``"OK"``.
 
 total_locked_amount : int64
    When the transfer has been rejected due to insufficient available
    amount, this field SHOULD contain the total sum secured (locked)
    for prepared transfers on the account, *after* this transfer has
-   been finalized. [#insufficient-amount]_ This MUST be a non-negative
-   number.
+   been finalized. This MUST be a non-negative number.
 
 prepared_at : date-time
    The moment at which the transfer was prepared.
