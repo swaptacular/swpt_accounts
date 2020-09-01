@@ -530,7 +530,8 @@ coordinator_request_id : int64
 
 status_code : string
    The reason for the rejection of the transfer. MUST be between 0 and
-   30 symbols, ASCII only. The value MUST not be ``"OK"``.
+   30 symbols, ASCII only. The value MUST not be
+   ``"OK"``. [#insufficient-amount]_
 
 total_locked_amount : int64
    SHOULD contain the total sum secured (locked) for prepared
@@ -543,6 +544,10 @@ recipient : string
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
+
+.. [#insufficient-amount] The ``"INSUFFICIENT_AVAILABLE_AMOUNT"``
+   status code MUST be used when the transfer is rejected due to
+   insufficient amount available on the account.
 
 
 PreparedTransfer
@@ -702,8 +707,8 @@ status_code : string
    only. If the prepared transfer was committed, but the commit was
    unsuccessful for some reason, this value MUST be different from
    ``"OK"``, and SHOULD hint at the reason for the
-   failure. [#failed-commit]_ In all other cases, this value MUST be
-   ``"OK"``.
+   failure. [#failed-commit]_ [#insufficient-amount]_ In all other
+   cases, this value MUST be ``"OK"``.
 
 total_locked_amount : int64
    SHOULD contain the total sum secured (locked) for prepared
