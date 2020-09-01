@@ -264,11 +264,11 @@ recipient : string
    
 min_account_balance : int64
    Determines the amount that the coordinator wishes to remain
-   available on the sender's account, after the requested amount has
-   been secured, and after the transfer has been committed. Note that
-   this can be a negative number. Server implementations are free to
-   fulfill or ignore this wish. This is mainly useful for bringing new
-   money into existence. Normally, this would be ``0``.
+   available on the sender's account after the transfer has been
+   committed. Server implementations are free to fulfill or ignore
+   this wish. Note that this can be a negative number. This is mainly
+   useful for issuing money into existence. Normally, this would be
+   ``0``.
 
 min_interest_rate : float
    Determines the minimal approved interest rate. This instructs the
