@@ -1234,10 +1234,10 @@ Received `AccountUpdate`_ message
 `````````````````````````````````
 
 When client implementations process an `AccountUpdate`_ message, they
-MUST first verify message's ``ts`` and ``ttl`` fields. If the message
-has "expired", it MUST be ignored. [#account-update-ttl]_ Otherwise,
-implementations MUST verify whether a corresponding `AD record`_
-already exists: [#matching-adr]_
+need to first verify message's ``ts`` and ``ttl`` fields. If the
+message has "expired", it SHOULD be ignored. [#account-update-ttl]_
+Otherwise, implementations MUST verify whether a corresponding `AD
+record`_ already exists: [#matching-adr]_
 
 1. If a corresponding `AD record`_ already exists, the value of its
    ``last_heartbeat_ts`` field SHOULD be advanced to the value of the
