@@ -1174,8 +1174,9 @@ they MUST first try to find a matching `RT record`_ in the client's
 database. [#crr-match]_ If a matching record exists, its status is
 "settled", and the values of ``debtor_id``, ``creditor_id``, and
 ``transfer_id`` fields in the received message are the same as the
-values stored in the RT record, the record MAY be deleted; otherwise
-the message MUST be ignored.
+values stored in the RT record, the record MAY be deleted (and the
+outcome of the transfer reported); otherwise the message SHOULD be
+ignored.
 
 
 .. [#cr-retention] The retention of committed `RT record`_\s is
