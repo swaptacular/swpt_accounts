@@ -1122,7 +1122,7 @@ Received `RejectedTransfer`_ message
 ````````````````````````````````````
 
 When client implementations process a `RejectedTransfer`_ message,
-they MUST first try to find a matching `RT record`_ in the client's
+they should first try to find a matching `RT record`_ in the client's
 database. [#crr-match]_ If a matching record exists, and its status is
 "initiated", the transer can be reported as unsuccessul, and the RT
 record MAY be deleted; otherwise the message SHOULD be ignored.
@@ -1170,7 +1170,7 @@ Received `FinalizedTransfer`_ message
 `````````````````````````````````````
 
 When client implementations process a `FinalizedTransfer`_ message,
-they MUST first try to find a matching `RT record`_ in the client's
+they should first try to find a matching `RT record`_ in the client's
 database. [#crr-match]_ If a matching record exists, its status is
 "settled", and the values of ``debtor_id``, ``creditor_id``, and
 ``transfer_id`` fields in the received message are the same as the
@@ -1234,7 +1234,7 @@ Received `AccountUpdate`_ message
 `````````````````````````````````
 
 When client implementations process an `AccountUpdate`_ message, they
-need to first verify message's ``ts`` and ``ttl`` fields. If the
+should first verify message's ``ts`` and ``ttl`` fields. If the
 message has "expired", it SHOULD be ignored. [#account-update-ttl]_
 Otherwise, implementations MUST verify whether a corresponding `AD
 record`_ already exists: [#matching-adr]_
@@ -1264,11 +1264,10 @@ Received `AccountPurge`_ message
 ````````````````````````````````
 
 When client implementations process an `AccountPurge`_ message, they
-need to first verify whether an `AD record`_ exists, which has the
-same values for ``creditor_id``, ``debtor_id``, and ``creation_date``
-as the received message. If such AD record exists, it SHOULD be
-removed from the client's database; otherwise, the message SHOULD be
-ignored.
+should first verify whether an `AD record`_ exists, which has the same
+values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
+the received message. If such AD record exists, it SHOULD be removed
+from the client's database; otherwise, the message SHOULD be ignored.
 
 
 .. [#huge-negligible-amount] In this case, the ``negligible_amount``
