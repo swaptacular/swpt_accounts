@@ -1124,8 +1124,8 @@ Received `RejectedTransfer`_ message
 When client implementations process a `RejectedTransfer`_ message,
 they MUST first try to find a matching `RT record`_ in the client's
 database. [#crr-match]_ If a matching record exists, and its status is
-"initiated", the record SHOULD be deleted; otherwise the message MUST
-be ignored.
+"initiated", the transer can be reported as unsuccessul, and the
+record MAY be deleted; otherwise the message MUST be ignored.
 
 
 Received `PreparedTransfer`_ message
