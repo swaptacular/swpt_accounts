@@ -1264,10 +1264,11 @@ Received `AccountPurge`_ message
 ````````````````````````````````
 
 When client implementations process an `AccountPurge`_ message, they
-SHOULD first verify whether an `AD record`_ exists, which has the same
-values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
-the received message. If such AD record exists, it SHOULD be removed
-from the client's database; otherwise, the message SHOULD be ignored.
+need to first verify whether an `AD record`_ exists, which has the
+same values for ``creditor_id``, ``debtor_id``, and ``creation_date``
+as the received message. If such AD record exists, it SHOULD be
+removed from the client's database; otherwise, the message SHOULD be
+ignored.
 
 
 .. [#huge-negligible-amount] In this case, the ``negligible_amount``
