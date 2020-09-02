@@ -1302,7 +1302,7 @@ data. The main function of `AL record`_\s is to reconstruct the
 original order in which the processed `AccountTransfer`_ messages were
 sent. [#sequential-transfer]_ The primary key for account ledger
 records is the (``creditor_id``, ``debtor_id``, ``creation_date``)
-tuple. As a minimum, AL records MUST also be able to store a set of
+tuple. As a minimum, AL records must also be able to store a set of
 processed `AccountTransfer`_ messages, plus a ``last_transfer_number``
 field, which contains the transfer number of the latest transfer that
 has been added to the given account's ledger.  [#transfer-chain]_
@@ -1312,19 +1312,20 @@ Received `AccountTransfer`_ message
 ```````````````````````````````````
 
 When client implementations process an `AccountTransfer`_ message,
-they MUST first verify whether a corresponding `AL record`_ already
-exists. [#matching-alr]_ If it does not exist, a new AL record MAY be
-created. [#new-alr]_ Then, if there is a corresponding AL record (it
-may have been just created), the following steps MUST be performed:
+they must first verify whether a corresponding `AL record`_ already
+exists. [#matching-alr]_ If it does not exist, a new AL record may be
+created. [#new-alr]_ Then, if there is a corresponding AL record (an
+alredy existing one, or the one that have been just created), the
+following steps must be performed:
 
-1. The received message MUST be added to the set of processed
+1. The received message must be added to the set of processed
    `AccountTransfer`_ messages, stored in the corresponding `AL
    record`_.
 
 2. If the value of the ``previous_transfer_number`` field in the
    received message is the same as the value of the
    ``last_transfer_number`` field in the corresponding `AL record`_,
-   the ``last_transfer_number``\'s value MUST be updated to contain
+   the ``last_transfer_number``\'s value must be updated to contain
    the transfer number of the *latest sequential transfer* in the set
    of processed `AccountTransfer`_ messages. [#sequential-transfer]_
    [#transfer-chain]_ Note that when between two `AccountTransfer`_
@@ -1340,18 +1341,18 @@ created `AL record`_\s that are not needed anymore.
 .. [#sequential-transfer] Note that `AccountTransfer`_ messages can be
   processed out-of-order. For example, it is possible *transfer #3* to
   be processed right after *transfer #1*, and only then *transfer #2*
-  to be received. In this case, *transfer #3* MUST NOT be added to the
-  account's ledger before *transfer #2* has been processed as
+  to be received. In this case, *transfer #3* should not be added to
+  the account's ledger before *transfer #2* has been processed as
   well. Thus, in this example, the value of ``last_transfer_number``
   will be updated from ``1`` to ``3``, but only after *transfer #2*
   has been processed successfully.
 
-  An important case which client implementations SHOULD be able to
+  An important case which client implementations should be able to
   deal with is when, in the previous example, *transfer #2* is never
-  received (or at least not received for a long time). In this case,
-  the `AL record`_ should to be "patched" with a made-up transfer, so
-  that the record remains consistent, and can continue to receive
-  transfers.
+  received (or at least not received for a quite long time). In this
+  case, the `AL record`_ should to be "patched" with a made-up
+  transfer, so that the record remains consistent, and can continue to
+  receive transfers.
 
 .. [#transfer-chain] Note that `AccountTransfer`_ messages form a
   singly linked list. That is: the ``previous_transfer_number`` field
@@ -1362,7 +1363,7 @@ created `AL record`_\s that are not needed anymore.
   values for ``creditor_id``, ``debtor_id``, and ``creation_date`` as
   the received `AccountTransfer`_ message.
 
-.. [#new-alr] The newly created `AL record`_ MUST have the same values
+.. [#new-alr] The newly created `AL record`_ must have the same values
   for ``creditor_id``, ``debtor_id``, and ``creation_date`` as the
   received `AccountTransfer`_ message, an empty set of stored
   `AccountTransfer`_ massages, and a ``last_transfer_number`` field
