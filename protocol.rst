@@ -1220,9 +1220,9 @@ the message SHOULD be ignored.
 AD record
 ---------
 
-Client implementations *that manage creditor accounts*, SHOULD
-maintain *account data records* (AD records) in their databases, to
-store accounts' current status data. The primary key for account data
+Client implementations *that manage creditor accounts*, MUST maintain
+*account data records* (AD records) in their databases, to store
+accounts' current status data. The primary key for account data
 records is the (``creditor_id``, ``debtor_id``, ``creation_date``)
 tuple. [#adr-pk]_ As a minimum, `AD record`_\s MUST also be able to
 store the values of ``last_change_ts`` and ``last_change_seqnum``
