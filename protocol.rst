@@ -1125,7 +1125,7 @@ When client implementations process a `RejectedTransfer`_ message,
 they MUST first try to find a matching `RT record`_ in the client's
 database. [#crr-match]_ If a matching record exists, and its status is
 "initiated", the transer can be reported as unsuccessul, and the
-record MAY be deleted; otherwise the message MUST be ignored.
+record MAY be deleted; otherwise the message SHOULD be ignored.
 
 
 Received `PreparedTransfer`_ message
@@ -1147,7 +1147,7 @@ prepared
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
    fields in the received `PreparedTransfer`_ message MUST be compared
    to the values stored in the `RT record`_. If they are the same, no
-   action MUST be taken; if they differ, the newly prepared transfer
+   action SHOULD be taken; if they differ, the newly prepared transfer
    MUST be immediately dismissed. [#dismiss-transfer]_
 
 settled
