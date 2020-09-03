@@ -125,10 +125,10 @@ config_flags : int32
 
    * If the account gets removed from the server's database, it is not
      possible the owner of the account to lose an amount bigger than
-     ``negligible_amount``. (This implies that, unless the owner of
-     the account has an alternative way to access his funds, the
-     account could not receive incoming transfers after being
-     deleted.)
+     ``negligible_amount``. (Unless the negligible amount is huge, or
+     the owner of the account has an alternative way to access his
+     funds, this implies that the account can not receive incoming
+     transfers after being deleted.)
 
    * Enough time has passed since account's
      creation. [#creation-date]_
