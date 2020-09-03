@@ -551,7 +551,7 @@ ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
 
-.. [#status-codes] The *recommended* status codes are:
+.. [#status-codes] The mandatory status codes which MUST be used are:
 
    * ``"SENDER_DOES_NOT_EXIST"`` signifies that the sender's account
      does not exist.
@@ -559,8 +559,9 @@ ts : date-time
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
      account does not exist, or does not accept incoming transfers.
 
-   * ``"TERMINATED"`` signifies that the transfer has been terminated
-     due to expired deadline, or unapproved interest rate change.
+   * ``"TERMINATED"`` (or anything that starts with "TERMINATED")
+     signifies that the transfer has been terminated due to expired
+     deadline, or unapproved interest rate change.
 
    * ``"TRANSFER_NOTE_IS_TOO_LONG"`` signifies that the transfer has been
      rejected because the transfer note's byte-length is too big.
