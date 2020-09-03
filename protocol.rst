@@ -222,8 +222,8 @@ they MUST first verify whether the specified account already exists:
   were saved to the database.
 
 .. [#zero-principal] The principal (the amount that the debtor owes to
-  the creditor, without the interest) on newly created accounts MUST
-  be zero.
+  the creditor, without the interest), and the accumulated interest on
+  newly created accounts MUST be zero.
 
 .. [#for-deletion] Even when the account that needs to be created has
   its "scheduled for deletion" flag set, server implementations MUST
