@@ -168,12 +168,11 @@ they MUST first verify whether the specified account already exists:
 
 2. If the specified account does not exist, the message's timestamp
    MUST be checked. If it is too far in the past, the message MUST be
-   ignored. [#config-delay]_ Otherwise, an attempt MUST be made to
-   create a new account with the requested configuration
-   settings. [#zero-principal]_ [#for-deletion]_ [#creation-date]_ If
-   a new account has been successfully created, an `AccountUpdate`_
-   message MUST be sent; otherwise a `RejectedConfig`_ message MUST be
-   sent.
+   ignored. Otherwise, an attempt MUST be made to create a new account
+   with the requested configuration settings. [#zero-principal]_
+   [#for-deletion]_ [#creation-date]_ If a new account has been
+   successfully created, an `AccountUpdate`_ message MUST be sent;
+   otherwise a `RejectedConfig`_ message MUST be sent.
 
 .. [#forbid-transfers] Server implementations must not accept incoming
   transfers for "scheduled for deletion" accounts. That is:
