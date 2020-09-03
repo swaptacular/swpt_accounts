@@ -125,10 +125,7 @@ config_flags : int32
 
    * If the account gets removed from the server's database, it is not
      possible the owner of the account to lose an amount bigger than
-     ``negligible_amount``. (Unless the negligible amount is huge, or
-     the owner of the account has an alternative way to access his
-     funds, this implies that the account can not receive incoming
-     transfers after being deleted.)
+     the ``negligible_amount``. [#implications]_
 
    * Enough time has passed since account's
      creation. [#creation-date]_
@@ -204,6 +201,11 @@ they MUST first verify whether the specified account already exists:
   ignored. The goal is to avoid the scenario in which an account is
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
+
+.. [#implications] Unless the negligible amount is huge, or the owner
+  of the account has an alternative way to access his funds, this
+  implies that the account can not receive incoming transfers after
+  being deleted.
 
 .. [#purge-delay] The delay MUST be long enough to ensure that after
   clients have received the `AccountPurge`_ message, if they continue
