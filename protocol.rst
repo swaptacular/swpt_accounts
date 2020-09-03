@@ -204,14 +204,6 @@ they MUST first verify whether the specified account already exists:
   to receive old `AccountUpdate`_ messages for the purged account,
   those messages will be ignored (due to expired ``ttl``).
 
-.. [#zero-principal] The principal (the amount that the debtor owes to
-  the creditor, without the interest) on newly created accounts MUST
-  be zero.
-
-.. [#for-deletion] Even when the account that needs to be created has
-  its "scheduled for deletion" flag set, server implementations MUST
-  NOT reject to create the account for this reason alone.
-
 .. [#compare-config] To do this, server implementations MUST compare
   the values of ``ts`` and ``seqnum`` fields in the received message,
   to the values of these fields in the latest applied
@@ -226,6 +218,14 @@ they MUST first verify whether the specified account already exists:
   seqnum1) % 0x100000000 < 0x80000000``. Timestamps must also be
   compared with care, because precision might have been lost when they
   were saved to the database.
+
+.. [#zero-principal] The principal (the amount that the debtor owes to
+  the creditor, without the interest) on newly created accounts MUST
+  be zero.
+
+.. [#for-deletion] Even when the account that needs to be created has
+  its "scheduled for deletion" flag set, server implementations MUST
+  NOT reject to create the account for this reason alone.
 
 
 PrepareTransfer
