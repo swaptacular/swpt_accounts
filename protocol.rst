@@ -559,9 +559,9 @@ ts : date-time
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
      account does not exist, or does not accept incoming transfers.
 
-   * ``"TERMINATED"`` (or anything that starts with "TERMINATED")
+   * ``"TERMINATED"`` or anything that starts with "TERMINATED",
      signifies that the transfer has been terminated due to expired
-     deadline, or unapproved interest rate change.
+     deadline or unapproved interest rate change.
 
    * ``"TRANSFER_NOTE_IS_TOO_LONG"`` signifies that the transfer has been
      rejected because the transfer note's byte-length is too big.
