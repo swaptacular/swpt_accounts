@@ -180,6 +180,12 @@ they MUST first verify whether the specified account already exists:
   `PrepareTransfer`_ messages that has a "scheduled for deletion"
   account as a recipient MUST be rejected.
 
+.. [#config-delay] How long this time is, depends on how far in the
+  past a `ConfigureAccount`_ message has to be, in order to be
+  ignored. The goal is to avoid the scenario in which an account is
+  removed from server's database, but an old, wandering
+  `ConfigureAccount`_ message "resurrects" it.
+
 .. [#zero-principal] The principal (the amount that the debtor owes to
   the creditor, without the interest) on newly created accounts MUST
   be zero.
@@ -196,16 +202,10 @@ they MUST first verify whether the specified account already exists:
   straightforward way to achieve this is not to remove accounts on the
   same day on which they have been created.
 
-.. [#config-delay] How long this time is, depends on how far in the
-  past a `ConfigureAccount`_ message has to be, in order to be
-  ignored. The goal is to avoid the scenario in which an account is
-  removed from server's database, but an old, wandering
-  `ConfigureAccount`_ message "resurrects" it.
-
-.. [#implications] Unless the negligible amount is huge, or the owner
-  of the account has an alternative way to access his funds, this
-  implies that the account can not receive incoming transfers after
-  being deleted.
+.. [#implications] Note that unless the negligible amount is huge, or
+  the owner of the account has an alternative way to access his funds,
+  this implies that the account can not receive incoming transfers
+  after being deleted.
 
 .. [#purge-delay] The delay MUST be long enough to ensure that after
   clients have received the `AccountPurge`_ message, if they continue
