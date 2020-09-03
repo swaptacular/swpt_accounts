@@ -125,8 +125,8 @@ config_flags : int32
 
    * It is extremely unlikely that amount bigger than
      ``negligible_amount`` will be lost if the account is removed from
-     server's database. (Note that this implies that it very unlikely
-     that the account will receive an incoming transfer.)
+     the server's database. (Note that this implies that it is very
+     unlikely that the account will receive an incoming transfer.)
 
    * Enough time has passed since account's
      creation. [#creation-date]_
