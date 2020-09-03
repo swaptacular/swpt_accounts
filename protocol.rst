@@ -123,11 +123,12 @@ config_flags : int32
    * The account has no prepared transfers (incoming or outgoing) that
      await finalization.
 
-   * It is extremely unlikely that amount bigger than
-     ``negligible_amount`` will be lost if the account is removed from
-     the server's database. (Note that in most cases this implies that
-     it is very unlikely that the account will receive an incoming
-     transfer.)
+   * If the account gets removed from the server's database, it is not
+     possible the owner of the account to lose an amount bigger than
+     ``negligible_amount``. (This implies that, unless the owner of
+     the account has an alternative way to access his funds, the
+     account could not receive incoming transfers after being
+     deleted.)
 
    * Enough time has passed since account's
      creation. [#creation-date]_
