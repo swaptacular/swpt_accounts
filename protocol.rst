@@ -113,7 +113,7 @@ config_flags : int32
    may use these flags for different purposes. The lowest 16 bits are
    reserved. Bit ``0`` has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
-   are met, an account SHOULD be removed from the server's database:
+   are met, an account must be removed from the server's database:
 
    * The account is "scheduled for deletion".
 
@@ -132,7 +132,7 @@ config_flags : int32
    * It is very unlikely that the account will be "resurrected" by a
      pending incoming transfer.
 
-   If those condition are *not met*, accounts SHOULD NOT be
+   If those condition are *not met*, accounts must not be
    removed. Some time after an account has been removed from the
    server's database, an `AccountPurge`_ message MUST be sent to
    inform about that. [#purge-delay]_
@@ -177,8 +177,10 @@ they MUST first verify whether the specified account already exists:
    message MUST be sent; otherwise a `RejectedConfig`_ message MUST be
    sent.
 
-.. [#forbid-transfers] Server implementations SHOULD NOT accept
-  incoming transfers for "scheduled for deletion" accounts.
+.. [#forbid-transfers] Server implementations must not accept incoming
+  transfers for "scheduled for deletion" accounts. That is:
+  `PrepareTransfer`_ messages that has a "scheduled for deletion"
+  account as a recipient MUST be rejected.
 
 .. [#zero-principal] The principal (the amount that the debtor owes to
   the creditor, without the interest) on newly created accounts MUST
@@ -294,7 +296,7 @@ ts : date-time
 
 When server implementations process a `PrepareTransfer`_ message they:
 
-* SHOULD NOT allow a transfer without verifying that the recipient's
+* MUST NOT allow a transfer without verifying that the recipient's
   account exists, and does accept incoming transfers.
 
 * MUST NOT allow a transfer in which the sender and the recipient is
@@ -335,7 +337,7 @@ time of the commit.
   no other impediments to the transfer, the transfer MUST be prepared
   successfully even when the amount available on the account is zero
   or less. (In this case, the secured amount will be zero.) This is
-  useful, when the sender wants to verify whether the recipient's
+  useful when the sender wants to verify whether the recipient's
   account exists and accepts incoming transfers.
 
 
@@ -808,7 +810,9 @@ status_flags : int32
    reserved:
 
    * Bit ``0`` has the meaning "unreachable account", indicating that
-     the account can not receive incoming transfers.
+     the account can not receive incoming transfers. Eeach "scheduled
+     for deletion" account MUST be indicated as "unreachable account"
+     as well.
 
    * Bit ``1`` has the meaning "overflown account", indicating that
      the account's principal have breached the ``int64`` boundaries.
@@ -903,9 +907,9 @@ ts : date-time
    timestamp).
 
 ttl : int32
-   The time-to-live (in seconds) for this message. The message MUST be
-   ignored if more than ``ttl`` seconds have elapsed since the message
-   was emitted (``ts``). [#account-update-ttl]_ This MUST be a
+   The time-to-live (in seconds) for this message. The message SHOULD
+   be ignored if more than ``ttl`` seconds have elapsed since the
+   message was emitted (``ts``). [#account-update-ttl]_ This MUST be a
    non-negative number.
 
 If for a given account, no `AccountUpdate`_ messages have been sent
