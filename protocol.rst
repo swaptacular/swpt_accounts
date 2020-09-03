@@ -186,13 +186,10 @@ they MUST first verify whether the specified account already exists:
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
 
-.. [#zero-principal] The principal (the amount that the debtor owes to
-  the creditor, without the interest) on newly created accounts MUST
-  be zero.
-
-.. [#for-deletion] Even when the account that needs to be created has
-  its "scheduled for deletion" flag set, server implementations MUST
-  NOT reject to create the account for this reason alone.
+.. [#implications] Note that unless the negligible amount is huge, or
+  the owner of the account has an alternative way to access his funds,
+  this implies that the account can not receive incoming transfers
+  after being deleted.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
@@ -202,10 +199,13 @@ they MUST first verify whether the specified account already exists:
   straightforward way to achieve this is not to remove accounts on the
   same day on which they have been created.
 
-.. [#implications] Note that unless the negligible amount is huge, or
-  the owner of the account has an alternative way to access his funds,
-  this implies that the account can not receive incoming transfers
-  after being deleted.
+.. [#zero-principal] The principal (the amount that the debtor owes to
+  the creditor, without the interest) on newly created accounts MUST
+  be zero.
+
+.. [#for-deletion] Even when the account that needs to be created has
+  its "scheduled for deletion" flag set, server implementations MUST
+  NOT reject to create the account for this reason alone.
 
 .. [#purge-delay] The delay MUST be long enough to ensure that after
   clients have received the `AccountPurge`_ message, if they continue
