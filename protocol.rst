@@ -113,26 +113,25 @@ config_flags : int32
    may use these flags for different purposes. The lowest 16 bits are
    reserved. Bit ``0`` has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
-   are met, an account must be removed from the server's database:
+   are met, an account MUST be removed from the server's database:
 
    * The account is "scheduled for deletion".
-
-   * The account has no prepared transfers that await finalization.
-
-   * Enough time has passed since account's
-     creation. [#creation-date]_
 
    * Account's configuration have not been updated for some time.
      [#config-delay]_
 
-   * It is very unlikely that an amount bigger than
+   * The account has no prepared transfers (incoming or outgoing) that
+     await finalization.
+
+   * It is extremely unlikely that amount bigger than
      ``negligible_amount`` will be lost if the account is removed from
-     server's database.
+     server's database. (Note that this implies that it very unlikely
+     that the account will receive an incoming transfer.)
 
-   * It is very unlikely that the account will be "resurrected" by a
-     pending incoming transfer.
+   * Enough time has passed since account's
+     creation. [#creation-date]_
 
-   If those condition are *not met*, accounts must not be
+   If those condition are *not met*, accounts MUST NOT be
    removed. Some time after an account has been removed from the
    server's database, an `AccountPurge`_ message MUST be sent to
    inform about that. [#purge-delay]_
