@@ -186,10 +186,10 @@ they MUST first verify whether the specified account already exists:
   removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
 
-.. [#implications] Note that unless the negligible amount is huge, or
-  the owner of the account has an alternative way to access his funds,
-  this implies that the account can not receive incoming transfers
-  after being deleted.
+.. [#implications] Note that unless the ``negligible_amount`` is huge,
+  or the owner of the account has an alternative way to access his
+  funds, this implies that the account can not receive incoming
+  transfers after being deleted.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
