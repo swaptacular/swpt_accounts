@@ -139,7 +139,7 @@ config : string
    Additional account configuration settings. Different server
    implementations may use different formats for this field, as long
    as the empty string is always a valid value, which represents the
-   default configuration settings.
+   default configuration settings. [#config-limitations]_
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -202,6 +202,9 @@ they MUST first verify whether the specified account already exists:
   clients have received the `AccountPurge`_ message, if they continue
   to receive old `AccountUpdate`_ messages for the purged account,
   those messages will be ignored (due to expired ``ttl``).
+
+.. [#config-limitations] The UTF-8 encoding of the ``config`` string
+  MUST NOT be longer than 1000 bytes.
 
 .. [#compare-config] To do this, server implementations MUST compare
   the values of ``ts`` and ``seqnum`` fields in the received message,
@@ -496,7 +499,8 @@ negligible_amount : float
    message.
 
 config : string
-   The value of the ``config`` field in the rejected message.
+   The value of the ``config`` field in the rejected
+   message. [#config-limitations]_
 
 rejection_code : string
    The reason for the rejection of the `ConfigureAccount`_
@@ -848,7 +852,7 @@ config : string
    The value of the ``config`` field in the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
    `ConfigureAccount`_ messages yet, the value MUST represent the
-   current configuration settings.
+   current configuration settings. [#config-limitations]_
 
 account_id : string
    A string which (along with ``debtor_id``) globally identifies the
