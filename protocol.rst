@@ -779,8 +779,8 @@ last_change_seqnum : int32
    32-bit integer wrapping). [#compare-change]_ [#compare-seqnums]_
 
 principal : int64
-   The amount that the debtor owes to the creditor, without the
-   interest. This can be a negative number.
+   The amount that the debtor owes to the owner of the affected
+   account, without the interest. This can be a negative number.
 
 interest : float
    The amount of interest accumulated on the account up to the
