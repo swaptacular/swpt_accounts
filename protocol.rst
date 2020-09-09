@@ -135,6 +135,16 @@ config_flags : int32
    server's database, an `AccountPurge`_ message MUST be sent to
    inform about that. [#purge-delay]_
 
+   TODO: Consider adding an "incoming transfers approval" flag. If
+   set, `FinalizeTransfer`_ messages for which the account is the
+   recipient will be redirected to the owner of the account for
+   approval. (Two new message type would be needed as well: one for
+   incoming transfer approval requests, and one for approved/rejected
+   incoming transfers.) This functionality might be useful for
+   implementing exchanges -- when money is sent for an accepted bid,
+   the exchange would be able to reject the transfer is the bid is off
+   at that time.
+
 config : string
    Additional account configuration settings. Different server
    implementations may use different formats for this field, as long
