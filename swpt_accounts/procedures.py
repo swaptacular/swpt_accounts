@@ -250,6 +250,8 @@ def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate:
             account.interest_rate = interest_rate
             account.last_interest_rate_change_ts = current_ts
             account.status_flags |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+            account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+            account.last_change_ts = max(account.last_change_ts, current_ts)
             _insert_account_update_signal(account, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
@@ -463,15 +465,6 @@ def _contain_principal_overflow(value: int) -> int:
 
 
 def _insert_account_update_signal(account: Account, current_ts: datetime) -> None:
-    # NOTE: Callers of this function should be very careful, because
-    # it updates `account.last_change_ts` without updating
-    # `account.interest`. This will result in an incorrect value for
-    # the interest, unless the current balance is zero, or
-    # `account.interest` is updated "manually" before this function is
-    # called.
-
-    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
-    account.last_change_ts = max(account.last_change_ts, current_ts)
     account.last_heartbeat_ts = current_ts
     db.session.add(AccountUpdateSignal(
         debtor_id=account.debtor_id,
@@ -522,6 +515,8 @@ def _lock_or_create_account(debtor_id: int, creditor_id: int, current_ts: dateti
     if account.status_flags & Account.STATUS_DELETED_FLAG:
         account.status_flags &= ~Account.STATUS_DELETED_FLAG
         account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+        account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+        account.last_change_ts = max(account.last_change_ts, current_ts)
         _insert_account_update_signal(account, current_ts)
 
     return account
@@ -607,6 +602,8 @@ def _mark_account_as_deleted(account: Account, current_ts: datetime):
     account.interest = 0.0
     account.total_locked_amount = 0
     account.status_flags |= Account.STATUS_DELETED_FLAG
+    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+    account.last_change_ts = max(account.last_change_ts, current_ts)
     _insert_account_update_signal(account, current_ts)
 
 
@@ -617,6 +614,8 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
     if principal != principal_possibly_overflown:
         account.status_flags |= Account.STATUS_OVERFLOWN_FLAG
     account.principal = principal
+    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+    account.last_change_ts = max(account.last_change_ts, current_ts)
 
 
 def _make_debtor_payment(
