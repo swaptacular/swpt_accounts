@@ -474,9 +474,8 @@ server's database: [#transfer-match]_
 .. [#locked-amount] Note that ``committed_amount`` can be smaller or
   bigger than the secured (locked) amount.
 
-.. [#successful-commit] If the commit has been successful,
-  `AccountUpdate`_ messages will be sent eventually, and for
-  non-negligible transfers `AccountTransfer`_ messages will be sent
+.. [#successful-commit] When a non-negligible transfer has been
+  committed successfully, an `AccountTransfer`_ message will be sent
   eventually as well.
 
 
@@ -929,7 +928,7 @@ ttl : int32
    message was emitted (``ts``). This MUST be a non-negative number.
 
 If for a given account, no `AccountUpdate`_ messages have been sent
-for a long while (1 week for example), the server MUST send a new
+for a while (1 day for example), the server MUST send a new
 `AccountUpdate`_ message identical to the previous one (except for the
 ``ts`` field), to remind that the account still exist. This guarantees
 that accounts will not be hanging in the server's database forever,
@@ -937,19 +936,17 @@ even in the case of a lost message, or a complete database loss on the
 client's side. Also, this serves the purpose of a "heartbeat",
 allowing clients to detect "dead" account records in their databases.
 
-TODO: Consider documenting the need for limiting the maximal rate at
-which `AccountUpdate`_ messages are sent.
-
 .. [#meaningful-change] For a given account, every change in the value
   of one of the fields included in `AccountUpdate`_ messages (except
   for the ``ts`` field) should be considered meaningful, and therefore
   an `AccountUpdate`_ message MUST *eventually* be emitted to inform
   about it. There is no requirement, though, `AccountUpdate`_ messages
   to be emitted instantly, following each individual change. For
-  example, if a series of transactions are committed on the account in
-  a short period of time, the server may emit only one
+  example, if a series of transactions are committed on an account in
+  a short period of time, the server SHOULD emit only one
   `AccountUpdate`_ message, announcing only the final state of the
-  account.
+  account. In general, notification for changes in accounts' principal
+  can be delayed until the next "heartbeat" message.
 
 .. [#compare-change] ``creation_date``, ``last_change_ts``, and
   ``last_change_seqnum`` can be used to reliably determine the correct

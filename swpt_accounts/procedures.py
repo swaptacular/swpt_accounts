@@ -81,6 +81,7 @@ def configure_account(
             account.last_config_ts = ts
             account.last_config_seqnum = seqnum
             _apply_account_change(account, 0, 0, current_ts)
+            _insert_account_update_signal(account, current_ts)
         else:
             db.session.add(RejectedConfigSignal(
                 debtor_id=debtor_id,
@@ -471,6 +472,7 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
 
     account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
     account.last_change_ts = max(account.last_change_ts, current_ts)
+    account.last_heartbeat_ts = current_ts
     db.session.add(AccountUpdateSignal(
         debtor_id=account.debtor_id,
         creditor_id=account.creditor_id,
@@ -615,7 +617,6 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
     if principal != principal_possibly_overflown:
         account.status_flags |= Account.STATUS_OVERFLOWN_FLAG
     account.principal = principal
-    _insert_account_update_signal(account, current_ts)
 
 
 def _make_debtor_payment(
@@ -650,14 +651,9 @@ def _make_debtor_payment(
             transfer_note=transfer_note,
             principal=_contain_principal_overflow(account.principal + amount),
         )
-
-        # NOTE: We do not need to update the principal and the
-        # interest when the account is getting deleted, because they
-        # will be consequently zeroed out anyway.
-        if coordinator_type != CT_DELETE:
-            principal_delta = amount
-            interest_delta = -amount if coordinator_type == CT_INTEREST else 0
-            _apply_account_change(account, principal_delta, interest_delta, current_ts)
+        principal_delta = amount
+        interest_delta = -amount if coordinator_type == CT_INTEREST else 0
+        _apply_account_change(account, principal_delta, interest_delta, current_ts)
 
 
 def _process_transfer_request(

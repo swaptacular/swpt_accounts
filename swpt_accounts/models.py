@@ -113,13 +113,11 @@ class Account(db.Model):
         comment='The annual interest rate (in percents) as it was before the last change of '
                 'the interest rate happened (see `last_interest_rate_change_ts`).',
     )
-    last_reminder_ts = db.Column(
+    last_heartbeat_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
-        default=BEGINNING_OF_TIME,
-        comment='The moment at which the last `AccountUpdateSignal` was sent to remind that '
-                'the account still exists. This column helps to prevent sending reminders too '
-                'often.',
+        default=get_now_utc,
+        comment='The moment at which the last `AccountUpdateSignal` was sent',
     )
     __table_args__ = (
         db.CheckConstraint(and_(

@@ -29,16 +29,11 @@ class AccountScanner(TableScanner):
     def __init__(self):
         super().__init__()
         signalbus_max_delay = timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'])
-        account_heartbeat_interval = timedelta(days=current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS'])
         prepared_transfer_max_delay = timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
 
         self.few_days_interval = timedelta(days=3)
         self.account_purge_delay = 2 * signalbus_max_delay + max(prepared_transfer_max_delay, signalbus_max_delay)
-
-        # NOTE: To prevent clogging the signal bus with heartbeat
-        # signals, we ensure that the account heartbeat interval is
-        # not shorter than the allowed delay in the signal bus.
-        self.account_heartbeat_interval = max(account_heartbeat_interval, signalbus_max_delay)
+        self.account_heartbeat_interval = timedelta(days=current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS'])
 
     @atomic
     def process_rows(self, rows):
@@ -80,27 +75,22 @@ class AccountScanner(TableScanner):
                     for debtor_id, creditor_id, creation_date in to_purge
                 ])
 
-        pks_to_remind = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
-            # NOTE: A reminder informing that the account still exists
-            # should be sent when there has been no meaningful change
-            # for a while, and no reminder has been recently sent.
+        pks_to_heartbeat = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
             not row[c.status_flags] & deleted_flag
-            and row[c.last_change_ts] < heartbeat_cutoff_ts
-            and row[c.last_reminder_ts] < heartbeat_cutoff_ts)
-        ]
-        if pks_to_remind:
-            to_remind = Account.query.\
-                filter(self.pk.in_(pks_to_remind)).\
+            and row[c.last_heartbeat_ts] < heartbeat_cutoff_ts
+        )]
+        if pks_to_heartbeat:
+            to_heartbeat = Account.query.\
+                filter(self.pk.in_(pks_to_heartbeat)).\
                 filter(Account.status_flags.op('&')(deleted_flag) == 0).\
-                filter(Account.last_change_ts < heartbeat_cutoff_ts).\
-                filter(Account.last_reminder_ts < heartbeat_cutoff_ts).\
+                filter(Account.last_heartbeat_ts < heartbeat_cutoff_ts).\
                 with_for_update().\
                 all()
-            if to_remind:
-                pks_to_remind = [(account.debtor_id, account.creditor_id) for account in to_remind]
+            if to_heartbeat:
+                pks_to_remind = [(account.debtor_id, account.creditor_id) for account in to_heartbeat]
                 Account.query.\
                     filter(self.pk.in_(pks_to_remind)).\
-                    update({Account.last_reminder_ts: current_ts}, synchronize_session=False)
+                    update({Account.last_heartbeat_ts: current_ts}, synchronize_session=False)
                 db.session.add_all([
                     AccountUpdateSignal(
                         debtor_id=account.debtor_id,
@@ -121,7 +111,7 @@ class AccountScanner(TableScanner):
                         status_flags=account.status_flags,
                         inserted_at_ts=max(current_ts, account.last_change_ts),
                     )
-                    for account in to_remind
+                    for account in to_heartbeat
                 ])
 
 
