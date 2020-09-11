@@ -117,7 +117,7 @@ class Account(db.Model):
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=get_now_utc,
-        comment='The moment at which the last `AccountUpdateSignal` was sent',
+        comment='The moment at which the last `AccountUpdateSignal` was sent.',
     )
     __table_args__ = (
         db.CheckConstraint(and_(
