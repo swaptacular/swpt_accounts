@@ -33,7 +33,7 @@ class AccountScanner(TableScanner):
 
         self.few_days_interval = timedelta(days=3)
         self.account_purge_delay = 2 * signalbus_max_delay + max(prepared_transfer_max_delay, signalbus_max_delay)
-        self.account_heartbeat_interval = timedelta(days=current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS'])
+        self.account_heartbeat_interval = timedelta(hours=current_app.config['APP_ACCOUNT_HEARTBEAT_HOURS'])
 
     @atomic
     def process_rows(self, rows):

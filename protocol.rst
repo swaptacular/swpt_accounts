@@ -474,8 +474,9 @@ server's database: [#transfer-match]_
 .. [#locked-amount] Note that ``committed_amount`` can be smaller or
   bigger than the secured (locked) amount.
 
-.. [#successful-commit] When a non-negligible transfer has been
-  committed successfully, an `AccountTransfer`_ message will be sent
+.. [#successful-commit] If the commit has been successful,
+  `AccountUpdate`_ messages will be sent eventually, and for
+  non-negligible transfers `AccountTransfer`_ messages will be sent
   eventually as well.
 
 
