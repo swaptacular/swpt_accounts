@@ -70,7 +70,7 @@ def test_scan_accounts(app_unsafe_session):
     db.engine.execute('ANALYZE account')
     assert len(Account.query.all()) == 4
     runner = app.test_cli_runner()
-    result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--days', '0.000001', '--quit-early'])
+    result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--hours', '0.000024', '--quit-early'])
     assert result.exit_code == 0
     assert len(Account.query.all()) == 3
     assert len(AccountUpdateSignal.query.all()) == 1
