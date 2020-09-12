@@ -1,7 +1,7 @@
 from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from swpt_lib.scan_table import TableScanner
-from sqlalchemy.sql.expression import tuple_
+from sqlalchemy.sql.expression import true, tuple_, or_
 from flask import current_app
 from .extensions import db
 from .models import Account, AccountUpdateSignal, AccountPurgeSignal, PreparedTransfer, PreparedTransferSignal
@@ -29,8 +29,8 @@ class AccountScanner(TableScanner):
     def __init__(self):
         super().__init__()
         signalbus_max_delay = timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'])
-        prepared_transfer_max_delay = timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
         account_heartbeat_interval = timedelta(days=current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS'])
+        prepared_transfer_max_delay = timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
 
         self.few_days_interval = timedelta(days=3)
         self.account_purge_delay = 2 * signalbus_max_delay + max(prepared_transfer_max_delay, signalbus_max_delay)
@@ -82,20 +82,26 @@ class AccountScanner(TableScanner):
 
         pks_to_heartbeat = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
             not row[c.status_flags] & deleted_flag
-            and row[c.last_heartbeat_ts] < heartbeat_cutoff_ts
+            and (row[c.last_heartbeat_ts] < heartbeat_cutoff_ts or row[c.pending_account_update])
         )]
         if pks_to_heartbeat:
             to_heartbeat = Account.query.\
                 filter(self.pk.in_(pks_to_heartbeat)).\
                 filter(Account.status_flags.op('&')(deleted_flag) == 0).\
-                filter(Account.last_heartbeat_ts < heartbeat_cutoff_ts).\
+                filter(or_(
+                    Account.last_heartbeat_ts < heartbeat_cutoff_ts,
+                    Account.pending_account_update == true(),
+                )).\
                 with_for_update().\
                 all()
             if to_heartbeat:
                 pks_to_remind = [(account.debtor_id, account.creditor_id) for account in to_heartbeat]
                 Account.query.\
                     filter(self.pk.in_(pks_to_remind)).\
-                    update({Account.last_heartbeat_ts: current_ts}, synchronize_session=False)
+                    update({
+                        Account.last_heartbeat_ts: current_ts,
+                        Account.pending_account_update: False,
+                    }, synchronize_session=False)
                 db.session.add_all([
                     AccountUpdateSignal(
                         debtor_id=account.debtor_id,

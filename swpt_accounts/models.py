@@ -119,6 +119,13 @@ class Account(db.Model):
         default=get_now_utc,
         comment='The moment at which the last `AccountUpdateSignal` was sent.',
     )
+    pending_account_update = db.Column(
+        db.BOOLEAN,
+        nullable=False,
+        default=False,
+        comment='Whether there has been a change in the record that requires an `AccountUpdate` message '
+                'to be send.',
+    )
     __table_args__ = (
         db.CheckConstraint(and_(
             interest_rate >= INTEREST_RATE_FLOOR,

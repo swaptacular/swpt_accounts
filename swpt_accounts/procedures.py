@@ -466,6 +466,7 @@ def _contain_principal_overflow(value: int) -> int:
 
 def _insert_account_update_signal(account: Account, current_ts: datetime) -> None:
     account.last_heartbeat_ts = current_ts
+    account.pending_account_update = False
     db.session.add(AccountUpdateSignal(
         debtor_id=account.debtor_id,
         creditor_id=account.creditor_id,
@@ -616,6 +617,7 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
     account.principal = principal
     account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
     account.last_change_ts = max(account.last_change_ts, current_ts)
+    account.pending_account_update = True
 
 
 def _make_debtor_payment(
