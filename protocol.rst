@@ -80,6 +80,11 @@ mind:
 4. The protocol works well both with positive and negative interest
    rates on creditors' accounts.
 
+**Note:** The key words "MUST", "MUST NOT", "REQUIRED", "SHALL",
+"SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
+"OPTIONAL" in this document are to be interpreted as described in
+RFC 2119.
+
 .. [#one-account-limit] A given creditor can have *at most one
   account* with a given debtor. This limitation greatly simplifies the
   protocol, at the cost of making rare use cases less convenient. (To
@@ -946,7 +951,8 @@ allowing clients to detect "dead" account records in their databases.
   example, if a series of transactions are committed on an account in
   a short period of time, the server SHOULD emit only one
   `AccountUpdate`_ message, announcing only the final state of the
-  account.
+  account. As a guideline, `AccountUpdate`_ messages for one account
+  SHOULD NOT be sent more often than once per hour.
 
 .. [#compare-change] ``creation_date``, ``last_change_ts``, and
   ``last_change_seqnum`` can be used to reliably determine the correct
