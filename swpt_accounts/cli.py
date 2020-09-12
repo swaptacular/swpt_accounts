@@ -103,22 +103,22 @@ def process_transfers(threads):
 
 @swpt_accounts.command('scan_accounts')
 @with_appcontext
-@click.option('-d', '--days', type=float, help='The number of days.')
+@click.option('-h', '--hours', type=float, help='The number of hours.')
 @click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
-def scan_accounts(days, quit_early):
+def scan_accounts(hours, quit_early):
     """Start a process that executes accounts maintenance operations.
 
-    The specified number of days determines the intended duration of a
-    single pass through the accounts table. If the number of days is
-    not specified, the default number of days is 1.
+    The specified number of hours determines the intended duration of
+    a single pass through the accounts table. If the number of hours
+    is not specified, the default number of hours is 8.
 
     """
 
     click.echo('Scanning accounts...')
-    days = days or 1
-    assert days > 0.0
+    hours = hours or 8
+    assert hours > 0.0
     scanner = AccountScanner()
-    scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
+    scanner.run(db.engine, timedelta(hours=hours), quit_early=quit_early)
 
 
 @swpt_accounts.command('scan_prepared_transfers')

@@ -267,10 +267,11 @@ def test_process_pending_account_changes(db_session, current_ts):
     assert len(p.get_accounts_with_pending_changes()) == 1
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID) is None
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
-    assert AccountUpdateSignal.query.filter_by(
+    assert AccountTransferSignal.query.filter_by(
         debtor_id=D_ID,
-        creditor_id=p.ROOT_CREDITOR_ID,
-        principal=-10000,
+        creditor_id=C_ID,
+        acquired_amount=10000,
+        principal=10000,
     ).one_or_none()
     assert len(p.get_accounts_with_pending_changes()) == 0
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID).principal == -10000
@@ -827,7 +828,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert a2.principal == 60
     assert a2.interest == 0.0
     assert not PreparedTransfer.query.one_or_none()
-    assert len(AccountUpdateSignal.query.all()) == 4
+    assert len(AccountUpdateSignal.query.all()) >= 2
     assert len(RejectedTransferSignal.query.all()) == 0
     assert len(FinalizedTransferSignal.query.all()) == 1
 

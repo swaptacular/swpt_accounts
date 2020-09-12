@@ -27,6 +27,7 @@ def test_scan_accounts(app_unsafe_session):
         last_transfer_id=3,
         status_flags=0,
         last_change_ts=past_ts,
+        last_heartbeat_ts=past_ts,
     )
     db.session.add(account)
     db.session.add(Account(
@@ -39,6 +40,7 @@ def test_scan_accounts(app_unsafe_session):
         last_transfer_id=3,
         status_flags=Account.STATUS_DELETED_FLAG,
         last_change_ts=past_ts,
+        last_heartbeat_ts=past_ts,
     ))
     db.session.add(Account(
         debtor_id=D_ID,
@@ -49,6 +51,8 @@ def test_scan_accounts(app_unsafe_session):
         pending_transfers_count=1,
         last_transfer_id=2,
         status_flags=0,
+        last_change_ts=current_ts - timedelta(seconds=10),
+        last_heartbeat_ts=current_ts - timedelta(seconds=10),
     ))
     db.session.add(Account(
         debtor_id=D_ID,
@@ -60,13 +64,13 @@ def test_scan_accounts(app_unsafe_session):
         last_transfer_id=1,
         status_flags=0,
         last_change_ts=past_ts,
-        last_reminder_ts=current_ts - timedelta(seconds=10),
+        last_heartbeat_ts=current_ts - timedelta(seconds=10),
     ))
     db.session.commit()
     db.engine.execute('ANALYZE account')
     assert len(Account.query.all()) == 4
     runner = app.test_cli_runner()
-    result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--days', '0.000001', '--quit-early'])
+    result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--hours', '0.000024', '--quit-early'])
     assert result.exit_code == 0
     assert len(Account.query.all()) == 3
     assert len(AccountUpdateSignal.query.all()) == 1
@@ -91,9 +95,9 @@ def test_scan_accounts(app_unsafe_session):
     assert aps.creation_date == date(1970, 1, 1)
 
     accounts = Account.query.order_by(Account.creditor_id).all()
-    assert accounts[0].last_reminder_ts >= current_ts
-    assert accounts[1].last_reminder_ts < current_ts
-    assert accounts[2].last_reminder_ts < current_ts
+    assert accounts[0].last_heartbeat_ts >= current_ts
+    assert accounts[1].last_heartbeat_ts < current_ts
+    assert accounts[2].last_heartbeat_ts < current_ts
 
     db.engine.execute('ANALYZE account')
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])

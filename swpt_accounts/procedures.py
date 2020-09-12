@@ -81,6 +81,7 @@ def configure_account(
             account.last_config_ts = ts
             account.last_config_seqnum = seqnum
             _apply_account_change(account, 0, 0, current_ts)
+            _insert_account_update_signal(account, current_ts)
         else:
             db.session.add(RejectedConfigSignal(
                 debtor_id=debtor_id,
@@ -249,6 +250,8 @@ def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate:
             account.interest_rate = interest_rate
             account.last_interest_rate_change_ts = current_ts
             account.status_flags |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+            account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+            account.last_change_ts = max(account.last_change_ts, current_ts)
             _insert_account_update_signal(account, current_ts)
 
     _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
@@ -462,15 +465,8 @@ def _contain_principal_overflow(value: int) -> int:
 
 
 def _insert_account_update_signal(account: Account, current_ts: datetime) -> None:
-    # NOTE: Callers of this function should be very careful, because
-    # it updates `account.last_change_ts` without updating
-    # `account.interest`. This will result in an incorrect value for
-    # the interest, unless the current balance is zero, or
-    # `account.interest` is updated "manually" before this function is
-    # called.
-
-    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
-    account.last_change_ts = max(account.last_change_ts, current_ts)
+    account.last_heartbeat_ts = current_ts
+    account.pending_account_update = False
     db.session.add(AccountUpdateSignal(
         debtor_id=account.debtor_id,
         creditor_id=account.creditor_id,
@@ -520,6 +516,8 @@ def _lock_or_create_account(debtor_id: int, creditor_id: int, current_ts: dateti
     if account.status_flags & Account.STATUS_DELETED_FLAG:
         account.status_flags &= ~Account.STATUS_DELETED_FLAG
         account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
+        account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+        account.last_change_ts = max(account.last_change_ts, current_ts)
         _insert_account_update_signal(account, current_ts)
 
     return account
@@ -605,6 +603,8 @@ def _mark_account_as_deleted(account: Account, current_ts: datetime):
     account.interest = 0.0
     account.total_locked_amount = 0
     account.status_flags |= Account.STATUS_DELETED_FLAG
+    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+    account.last_change_ts = max(account.last_change_ts, current_ts)
     _insert_account_update_signal(account, current_ts)
 
 
@@ -615,7 +615,9 @@ def _apply_account_change(account: Account, principal_delta: int, interest_delta
     if principal != principal_possibly_overflown:
         account.status_flags |= Account.STATUS_OVERFLOWN_FLAG
     account.principal = principal
-    _insert_account_update_signal(account, current_ts)
+    account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+    account.last_change_ts = max(account.last_change_ts, current_ts)
+    account.pending_account_update = True
 
 
 def _make_debtor_payment(
@@ -650,14 +652,9 @@ def _make_debtor_payment(
             transfer_note=transfer_note,
             principal=_contain_principal_overflow(account.principal + amount),
         )
-
-        # NOTE: We do not need to update the principal and the
-        # interest when the account is getting deleted, because they
-        # will be consequently zeroed out anyway.
-        if coordinator_type != CT_DELETE:
-            principal_delta = amount
-            interest_delta = -amount if coordinator_type == CT_INTEREST else 0
-            _apply_account_change(account, principal_delta, interest_delta, current_ts)
+        principal_delta = amount
+        interest_delta = -amount if coordinator_type == CT_INTEREST else 0
+        _apply_account_change(account, principal_delta, interest_delta, current_ts)
 
 
 def _process_transfer_request(
