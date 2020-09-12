@@ -30,10 +30,15 @@ class AccountScanner(TableScanner):
         super().__init__()
         signalbus_max_delay = timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'])
         prepared_transfer_max_delay = timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
+        account_heartbeat_interval = timedelta(days=current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS'])
 
         self.few_days_interval = timedelta(days=3)
         self.account_purge_delay = 2 * signalbus_max_delay + max(prepared_transfer_max_delay, signalbus_max_delay)
-        self.account_heartbeat_interval = timedelta(hours=current_app.config['APP_ACCOUNT_HEARTBEAT_HOURS'])
+
+        # NOTE: To prevent clogging the signal bus with heartbeat
+        # signals, we ensure that the account heartbeat interval is
+        # not shorter than the allowed delay in the signal bus.
+        self.account_heartbeat_interval = max(account_heartbeat_interval, signalbus_max_delay)
 
     @atomic
     def process_rows(self, rows):

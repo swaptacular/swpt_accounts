@@ -929,7 +929,7 @@ ttl : int32
    message was emitted (``ts``). This MUST be a non-negative number.
 
 If for a given account, no `AccountUpdate`_ messages have been sent
-for a while (1 day for example), the server MUST send a new
+for a long while (1 week for example), the server MUST send a new
 `AccountUpdate`_ message identical to the previous one (except for the
 ``ts`` field), to remind that the account still exist. This guarantees
 that accounts will not be hanging in the server's database forever,
@@ -946,8 +946,7 @@ allowing clients to detect "dead" account records in their databases.
   example, if a series of transactions are committed on an account in
   a short period of time, the server SHOULD emit only one
   `AccountUpdate`_ message, announcing only the final state of the
-  account. In general, notification for changes in accounts' principal
-  can be delayed until the next "heartbeat" message.
+  account.
 
 .. [#compare-change] ``creation_date``, ``last_change_ts``, and
   ``last_change_seqnum`` can be used to reliably determine the correct
