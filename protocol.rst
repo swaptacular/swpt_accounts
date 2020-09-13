@@ -951,8 +951,8 @@ allowing clients to detect "dead" account records in their databases.
   example, if a series of transactions are committed on an account in
   a short period of time, the server SHOULD emit only one
   `AccountUpdate`_ message, announcing only the final state of the
-  account. As a guideline, `AccountUpdate`_ messages for one account
-  SHOULD NOT be sent more often than once per hour.
+  account. As a guideline, on average, `AccountUpdate`_ messages for
+  one account SHOULD NOT be sent more often than once per hour.
 
 .. [#compare-change] ``creation_date``, ``last_change_ts``, and
   ``last_change_seqnum`` can be used to reliably determine the correct
