@@ -351,7 +351,8 @@ time of the commit.
   directly by the owner of the account, ``"interest"`` MUST be used
   for transfers initiated by the interest capitalization service,
   ``"issuing"`` MUST be used for transfers which create new money into
-  existence.
+  existence, ``"delete"`` MUST be used for transfers which zero out
+  the balance on deleted accounts.
 
 .. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
   no other impediments to the transfer, the transfer MUST be prepared
