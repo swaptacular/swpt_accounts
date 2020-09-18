@@ -1277,7 +1277,7 @@ already exists: [#matching-adr]_
 
 If for a given account, `AccountUpdate`_ messages have not been
 received for a very long time (1 year for example), the account's `AD
-record`_ SHOULD be removed from the client's
+record`_ MAY be removed from the client's
 database. [#latest-heartbeat]_
 
 
