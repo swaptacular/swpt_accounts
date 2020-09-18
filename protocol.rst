@@ -152,9 +152,9 @@ config_flags : int32
 
 config : string
    Additional account configuration settings. Different server
-   implementations may use different formats for this field, as long
-   as the empty string is always a valid value, which represents the
-   default configuration settings. [#config-limitations]_
+   implementations may use different formats for this field. An empty
+   string SHOULD be a valid value, which represents the default
+   configuration settings. [#config-limitations]_
 
 ts : date-time
    The moment at which this message was sent (the message's
