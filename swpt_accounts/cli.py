@@ -110,12 +110,14 @@ def scan_accounts(hours, quit_early):
 
     The specified number of hours determines the intended duration of
     a single pass through the accounts table. If the number of hours
-    is not specified, the default number of hours is 8.
+    is not specified, the value of the environment variable
+    APP_ACCOUNTS_SCAN_HOURS is taken. If it is not set, the default
+    number of hours is 8.
 
     """
 
     click.echo('Scanning accounts...')
-    hours = hours or 8
+    hours = hours or float(current_app.config['APP_ACCOUNTS_SCAN_HOURS'])
     assert hours > 0.0
     scanner = AccountScanner()
     scanner.run(db.engine, timedelta(hours=hours), quit_early=quit_early)
@@ -130,12 +132,14 @@ def scan_prepared_transfers(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the accounts table. If the number of days is
-    not specified, the default number of days is 1.
+    not specified, the value of the environment variable
+    APP_PREPARED_TRANSFERS_SCAN_DAYS is taken. If it is not set, the
+    default number of days is 1.
 
     """
 
     click.echo('Scanning prepared transfers...')
-    days = days or 1
+    days = days or float(current_app.config['APP_PREPARED_TRANSFERS_SCAN_DAYS'])
     assert days > 0.0
     scanner = PreparedTransferScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
