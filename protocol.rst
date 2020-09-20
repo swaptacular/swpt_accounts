@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2020-08-14
-:Version: 0.4
+:Date: 2020-09-20
+:Version: 0.4.1
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -130,7 +130,7 @@ config_flags : int32
 
    * If the account gets removed from the server's database, it is not
      possible the owner of the account to lose an amount bigger than
-     the ``negligible_amount``. [#implications]_
+     the ``negligible_amount``. [#implications]_ [#delete-transfer]_
 
    * Enough time has passed since account's
      creation. [#creation-date]_
@@ -204,6 +204,11 @@ they MUST first verify whether the specified account already exists:
   or the owner of the account has an alternative way to access his
   funds, this implies that the account can not receive incoming
   transfers after being deleted.
+
+.. [#delete-transfer] When an account which has a non-zero principal
+  is being deleted, an `AccountTransfer`_ message SHOULD be sent,
+  informing the owner of the account about the zeroing out of the
+  account's principal before the deletion.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
@@ -352,7 +357,7 @@ time of the commit.
   for transfers initiated by the interest capitalization service,
   ``"issuing"`` MUST be used for transfers which create new money into
   existence, ``"delete"`` MUST be used for transfers which zero out
-  the balance on deleted accounts.
+  the principal on deleted accounts.
 
 .. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
   no other impediments to the transfer, the transfer MUST be prepared
