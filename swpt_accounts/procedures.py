@@ -762,7 +762,13 @@ def _finalize_prepared_transfer(
     sender_account.total_locked_amount = max(0, sender_account.total_locked_amount - pt.locked_amount)
     sender_account.pending_transfers_count = max(0, sender_account.pending_transfers_count - 1)
     interest_rate = sender_account.interest_rate
-    status_code = pt.calc_status_code(fr.committed_amount, expendable_amount, interest_rate, current_ts)
+    status_code = pt.calc_status_code(
+        fr.finalization_flags,
+        fr.committed_amount,
+        expendable_amount,
+        interest_rate,
+        current_ts,
+    )
     committed_amount = fr.committed_amount if status_code == SC_OK else 0
     if committed_amount > 0:
         _insert_account_transfer_signal(

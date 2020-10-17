@@ -19,6 +19,9 @@ SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 PRISTINE_ACCOUNT_STATUS_FLAGS = 0
 
+# `FinalizeTransfer` finalization flags:
+FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG = 1
+
 # Reserved coordinator types:
 CT_INTEREST = 'interest'
 CT_DELETE = 'delete'
@@ -29,6 +32,7 @@ SC_OK = 'OK'
 SC_TIMEOUT = 'TERMINATED'
 SC_SENDER_DOES_NOT_EXIST = 'SENDER_DOES_NOT_EXIST'
 SC_RECIPIENT_IS_UNREACHABLE = 'RECIPIENT_IS_UNREACHABLE'
+SC_NO_RECIPIENT_CONFIRMATION = 'NO_RECIPIENT_CONFIRMATION'
 SC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
 SC_RECIPIENT_SAME_AS_SENDER = 'RC_RECIPIENT_IS_UNREACHABLE'
 SC_TOO_MANY_TRANSFERS = 'TOO_MANY_TRANSFERS'
@@ -283,6 +287,7 @@ class PreparedTransfer(db.Model):
 
     def calc_status_code(
             self,
+            finalization_flags: int,
             committed_amount: int,
             expendable_amount: int,
             interest_rate: float,
@@ -316,6 +321,14 @@ class PreparedTransfer(db.Model):
 
             if interest_rate < self.min_interest_rate:
                 return SC_TOO_LOW_INTEREST_RATE
+
+            if finalization_flags & FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG:
+                # TODO: This finctionality is not implemented
+                # yet. Three new message types would be needed for
+                # this: one outgoing message for transfer approval
+                # requests, and two incoming message types for
+                # approved and rejected transfers.
+                return SC_NO_RECIPIENT_CONFIRMATION
 
             if not (get_is_expendable() or get_is_reserved()):
                 return SC_INSUFFICIENT_AVAILABLE_AMOUNT

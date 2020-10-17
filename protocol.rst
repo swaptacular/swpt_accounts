@@ -140,16 +140,6 @@ config_flags : int32
    server's database, an `AccountPurge`_ message MUST be sent to
    inform about that. [#purge-delay]_
 
-   TODO: Consider adding an "incoming transfers approval" flag. If
-   set, `FinalizeTransfer`_ messages for which the account is the
-   recipient will be redirected to the owner of the account for
-   approval. (Two new message types would be needed for this: one for
-   incoming transfer approval requests, and one for approved/rejected
-   incoming transfers.) This functionality might be useful for
-   implementing exchanges -- when money is sent for an accepted bid,
-   the exchange would be able to reject the transfer if the bid is off
-   at that time.
-
 config : string
    Additional account configuration settings. Different server
    implementations may use different formats for this field. An empty
@@ -423,10 +413,17 @@ transfer_note_format : string
 
 finalization_flags : int32
    Various bit-flags that may affect the behavior of the server when
-   it finalizes (commits or dismisses) the transfer. Different server
-   implementations may use these flags for different purposes. For
-   example, they can be used to specify that the server should make
-   some information about the transfer public.
+   it finalizes commits the transfer. Different server implementations
+   may use these flags for different purposes. The lowest 16 bits are
+   reserved. Bit ``0`` has the meaning "require recipient
+   confirmation", indicating that the transfer MUST NOT be committed
+   until a confirmation from the recipient has been received. (This
+   might be useful for implementing exchanges -- when money is sent
+   for an accepted bid, the exchange would be able to reject the
+   transfer if the bid is already off at that time.)
+
+   If the transfer is being dismissed, this field will be ignored, and
+   therefore SHOULD contain ``0``.
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -583,6 +580,9 @@ ts : date-time
 
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
      account does not exist, or does not accept incoming transfers.
+
+   * ``"NO_RECIPIENT_CONFIRMATION"`` signifies that a confirmation
+     from the recipient is required, but has not been obtained.
 
    * ``"TERMINATED"`` or anything that starts with "TERMINATED",
      signifies that the transfer has been terminated due to expired
