@@ -231,6 +231,8 @@ class AccountUpdateSignal(Signal):
         ttl = fields.Integer()
         account_id = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
         debtor_info_iri = fields.Function(lambda obj: build_url('debtor', debtorId=obj.debtor_id))
+        debtor_info_content_type = fields.Constant('')
+        debtor_info_sha256 = fields.Constant('')
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)

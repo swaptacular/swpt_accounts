@@ -888,10 +888,21 @@ debtor_info_iri : string
    way for creditors to get up-to-date information about the
    debtor. Note that changing the IRI will likely cause the clients to
    make requests to the new IRI, so as to obtain updated information
-   about the debtor. MUST have at most 200 Unicode characters.
+   about the debtor. MUST have at most 200 Unicode characters. If no
+   link is available, the value SHOULD be an empty string.
 
-   TODO: Consider adding ``debtor_info_content_type`` and
-   ``debtor_info_sha256`` fields.
+debtor_info_content_type : string
+   The content type of the document that the ``debtor_info_iri`` field
+   refers to. MUST have at most 100 symbols, ASCII only. If no link is
+   available, or the content type of the document is unknown, the
+   value SHOULD be an empty string.
+
+debtor_info_sha256 : bytes
+   The SHA-256 cryptographic hash of the content of the document that
+   the ``debtor_info_iri`` field refers to. MUST contain exactly 0, or
+   exactly 32 bytes. If no link is available, or the SHA-256
+   cryptographic hash of the document is unknown, the value SHOULD
+   contain 0 bytes.
 
 last_transfer_number : int64
    MUST contain the value of the ``transfer_number`` field in the
