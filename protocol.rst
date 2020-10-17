@@ -413,8 +413,8 @@ transfer_note_format : string
 
 finalization_flags : int32
    Various bit-flags that may affect the behavior of the server when
-   it finalizes commits the transfer. Different server implementations
-   may use these flags for different purposes. The lowest 16 bits are
+   it commits the transfer. Different server implementations may use
+   these flags for different purposes. The lowest 16 bits are
    reserved. Bit ``0`` has the meaning "require recipient
    confirmation", indicating that the transfer MUST NOT be committed
    until a confirmation from the recipient has been received. (This
