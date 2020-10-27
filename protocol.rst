@@ -280,12 +280,10 @@ recipient : string
    recipient's account. [#account-id]_
    
 min_account_balance : int64
-   Determines the amount that the coordinator wishes to remain
-   available on the sender's account after the transfer has been
-   committed. Server implementations are free to fulfill or ignore
-   this wish. Note that this can be a negative number. This is mainly
-   useful for issuing money into existence. Normally, this would be
-   ``0``.
+   Determines the amount that MUST remain available on the sender's
+   account after the transfer has been committed. [#avl-amount]_ Note
+   that this can be a negative number. This is mainly useful for
+   issuing money into existence. Normally, this would be ``0``.
 
 min_interest_rate : float
    Determines the minimal approved interest rate. This instructs the
