@@ -302,7 +302,7 @@ max_commit_delay : int32
    than this message's timestamp (the ``ts`` field) plus
    ``max_commit_delay`` seconds. This MUST be a non-negative
    number. If the client does not want the deadline for the transfer
-   to be shorter that normal, this field should be set to some huge
+   to be shorter than normal, this field should be set to some huge
    number. Normally, this would be ``2147483647``.
 
 ts : date-time
