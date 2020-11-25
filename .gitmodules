@@ -1,0 +1,6 @@
+[submodule "submodules/swpt_debtors"]
+	path = submodules/swpt_debtors
+	url = https://github.com/epandurski/swpt_debtors.git
+[submodule "submodules/swpt_login"]
+	path = submodules/swpt_login
+	url = https://github.com/epandurski/swpt_login.git
