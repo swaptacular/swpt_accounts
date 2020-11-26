@@ -44,7 +44,7 @@ How to run it
 
 5. To run the unit tests, use this command::
 
-     $ docker-compose run tests-config test
+     $ docker-compose run tests-server test
 
 6. To start the containers, run this command::
 

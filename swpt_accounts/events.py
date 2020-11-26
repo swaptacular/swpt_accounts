@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
 from swpt_lib.utils import i64_to_u64
-from swpt_lib.endpoints import build_url
 from .extensions import db, broker, MAIN_EXCHANGE_NAME
 
 __all__ = [
@@ -230,7 +229,7 @@ class AccountUpdateSignal(Signal):
         inserted_at_ts = fields.DateTime(data_key='ts')
         ttl = fields.Integer()
         account_id = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
-        debtor_info_iri = fields.Function(lambda obj: build_url('debtor', debtorId=obj.debtor_id))
+        debtor_info_iri = fields.Constant('')
         debtor_info_content_type = fields.Constant('')
         debtor_info_sha256 = fields.Constant('')
 

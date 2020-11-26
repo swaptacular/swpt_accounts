@@ -1,4 +1,4 @@
-FROM python:3.7.8-alpine3.12 AS compile-image
+FROM python:3.7.8-alpine3.12 AS venv-image
 WORKDIR /usr/src/app
 
 ENV PIP_VERSION="20.2"
@@ -33,19 +33,28 @@ ENV APP_ROOT_DIR=/usr/src/app
 ENV APP_LOGGING_CONFIG_FILE="$APP_ROOT_DIR/$FLASK_APP/logging.conf"
 ENV PYTHONPATH="$APP_ROOT_DIR"
 ENV PATH="/opt/venv/bin:$PATH"
+ENV dramatiq_restart_delay=300
 
 RUN apk add --no-cache \
     libffi \
     postgresql-libs \
     supervisor \
+    gettext \
     && addgroup -S "$FLASK_APP" \
     && adduser -S -D -h "$APP_ROOT_DIR" "$FLASK_APP" "$FLASK_APP"
 
-COPY --from=compile-image /opt/venv /opt/venv
+COPY --from=venv-image /opt/venv /opt/venv
 
 WORKDIR /usr/src/app
 
-COPY docker/ wsgi.py tasks.py pytest.ini ./
+COPY docker/entrypoint.sh \
+     docker/gunicorn.conf \
+     docker/supervisord.conf \
+     docker/trigger_supervisor_process.py \
+     wsgi.py \
+     tasks.py \
+     pytest.ini \
+     ./
 COPY migrations/ migrations/
 COPY tests/ tests/
 COPY $FLASK_APP/ $FLASK_APP/
@@ -55,4 +64,4 @@ RUN python -m compileall -x '^\./(migrations|tests)/' . \
 
 USER $FLASK_APP
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
-CMD ["serve"]
+CMD ["supervisord"]
