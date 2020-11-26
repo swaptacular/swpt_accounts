@@ -1,0 +1,39 @@
+server {
+    listen ${USER_FACING_PORT} ssl;
+    server_name ${USER_FACING_HOST};
+    location /oauth2/ {
+        proxy_pass ${HYDRA_URL}/oauth2/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    location /login/ {
+        proxy_pass ${LOGIN_URL}/login/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    location /consent/ {
+        proxy_pass ${LOGIN_URL}/consent/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    location /debtors/ {
+        proxy_pass ${RESOURCE_SERVER_URL}/debtors/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    location /swagger-ui/ {
+        proxy_pass ${SWAGGER_UI_URL}/swagger-ui/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
