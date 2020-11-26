@@ -37,7 +37,16 @@ How to run it
 
      $ cp env.development .env
 
-4. To start the containers, run this command::
+4. To create a minimal *docker-compose.yml* file for development, use
+   this command::
+
+     $ cp docker-compose-tests.yml docker-compose.yml
+
+5. To run the unit tests, use this command::
+
+     $ docker-compose run tests-config test
+
+6. To start the containers, run this command::
 
      $ docker-compose up --build -d
 
@@ -53,8 +62,8 @@ How to setup a development environment
 
      $ poetry install
 
-4. You can use ``flask run`` to run a local Web server, or ``dramatiq
-   tasks:broker`` to spawn local task workers.
+4. You can use ``flask swpt_accounts`` to run management commands, or
+   ``dramatiq tasks:broker`` to spawn local task workers.
 
 
 .. _Docker: https://docs.docker.com/

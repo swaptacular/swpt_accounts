@@ -103,6 +103,9 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# The local docker file
+docker-compose.yml
+
 # Emacs files
 TAGS
 *~
