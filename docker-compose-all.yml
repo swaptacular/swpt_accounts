@@ -90,7 +90,7 @@ services:
     volumes:
       - './docker/hydra:/etc/hydra-config'
     command:
-      clients import --fail-after 1m /etc/hydra-config/debtors-supervisor.json /etc/hydra-config/swagger-ui.json
+      clients import --fail-after 2m /etc/hydra-config/debtors-supervisor.json /etc/hydra-config/swagger-ui.json
     depends_on:
       - hydra
 
