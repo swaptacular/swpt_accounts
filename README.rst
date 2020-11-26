@@ -46,7 +46,8 @@ How to run it
 
      $ docker-compose run tests-server test
 
-6. To start the containers, run this command::
+6. To run the minimal set of services needed for development, use this
+   command::
 
      $ docker-compose up --build -d
 
@@ -64,6 +65,19 @@ How to setup a development environment
 
 4. You can use ``flask swpt_accounts`` to run management commands, or
    ``dramatiq tasks:broker`` to spawn local task workers.
+
+
+How to run all services (production-like)
+-----------------------------------------
+
+1. To create a production-like *docker-compose.yml* file, use this
+   command::
+
+     $ cp docker-compose-all.yml docker-compose.yml
+
+2. To start the containers, use this command::
+
+     $ docker-compose up --build -d
 
 
 .. _Docker: https://docs.docker.com/

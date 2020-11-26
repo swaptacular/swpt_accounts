@@ -4,7 +4,6 @@ import os
 import os.path
 import logging
 import logging.config
-from flask_env import MetaFlaskEnv
 
 # Configure app logging. If the value of "$APP_LOGGING_CONFIG_FILE" is
 # a relative path, the directory of this (__init__.py) file will be
@@ -19,13 +18,42 @@ else:
     logging.basicConfig(level=logging.WARNING)
 
 
-class Configuration(metaclass=MetaFlaskEnv):
+class MetaEnvReader(type):
+    def __init__(cls, name, bases, dct):
+        """MetaEnvReader class initializer.
+
+        This function will get called when a new class which utilizes
+        this metaclass is defined, as opposed to when an instance is
+        initialized. This function overrides the default configuration
+        from environment variables.
+
+        """
+
+        super().__init__(name, bases, dct)
+        NoneType = type(None)
+        annotations = dct.get('__annotations__', {})
+        falsy_values = {'false', 'off', 'no', ''}
+        for key, value in os.environ.items():
+            if hasattr(cls, key):
+                target_type = annotations.get(key) or type(getattr(cls, key))
+                if target_type is NoneType:  # pragma: no cover
+                    target_type = str
+
+                if target_type is bool:
+                    value = value.lower() not in falsy_values
+                else:
+                    value = target_type(value)
+
+                setattr(cls, key, value)
+
+
+class Configuration(metaclass=MetaEnvReader):
     SECRET_KEY = 'dummy-secret'
     SQLALCHEMY_DATABASE_URI = ''
-    SQLALCHEMY_POOL_SIZE = None
-    SQLALCHEMY_POOL_TIMEOUT = None
-    SQLALCHEMY_POOL_RECYCLE = None
-    SQLALCHEMY_MAX_OVERFLOW = None
+    SQLALCHEMY_POOL_SIZE: int = None
+    SQLALCHEMY_POOL_TIMEOUT: int = None
+    SQLALCHEMY_POOL_RECYCLE: int = None
+    SQLALCHEMY_MAX_OVERFLOW: int = None
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
     DRAMATIQ_BROKER_CLASS = 'RabbitmqBroker'
