@@ -117,7 +117,7 @@ def scan_accounts(hours, quit_early):
     """
 
     click.echo('Scanning accounts...')
-    hours = hours or float(current_app.config['APP_ACCOUNTS_SCAN_HOURS'])
+    hours = hours or current_app.config['APP_ACCOUNTS_SCAN_HOURS']
     assert hours > 0.0
     scanner = AccountScanner()
     scanner.run(db.engine, timedelta(hours=hours), quit_early=quit_early)
@@ -139,7 +139,7 @@ def scan_prepared_transfers(days, quit_early):
     """
 
     click.echo('Scanning prepared transfers...')
-    days = days or float(current_app.config['APP_PREPARED_TRANSFERS_SCAN_DAYS'])
+    days = days or current_app.config['APP_PREPARED_TRANSFERS_SCAN_DAYS']
     assert days > 0.0
     scanner = PreparedTransferScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
