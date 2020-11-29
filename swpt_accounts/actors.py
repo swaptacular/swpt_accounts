@@ -28,7 +28,7 @@ def configure_account(
     assert ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= seqnum <= MAX_INT32
     assert MIN_INT32 <= config_flags <= MAX_INT32
-    assert len(config) <= CONFIG_MAX_BYTES
+    assert len(config) <= CONFIG_MAX_BYTES and len(config.encode('utf8')) <= CONFIG_MAX_BYTES
 
     procedures.configure_account(
         debtor_id,
