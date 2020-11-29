@@ -1,6 +1,12 @@
+import re
+import math
 import iso8601
 from .extensions import broker, APP_QUEUE_NAME
+from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, TRANSFER_NOTE_MAX_BYTES
 from . import procedures
+
+CONFIG_MAX_BYTES = 2000
+RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 
 
 @broker.actor(queue_name=APP_QUEUE_NAME)
@@ -15,10 +21,19 @@ def configure_account(
 
     """Make sure the account exists, and update its configuration settings."""
 
+    ts = iso8601.parse_date(ts)
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert ts > BEGINNING_OF_TIME
+    assert MIN_INT32 <= seqnum <= MAX_INT32
+    assert MIN_INT32 <= config_flags <= MAX_INT32
+    assert len(config) <= CONFIG_MAX_BYTES
+
     procedures.configure_account(
         debtor_id,
         creditor_id,
-        iso8601.parse_date(ts),
+        ts,
         seqnum,
         negligible_amount,
         config_flags,
@@ -43,6 +58,18 @@ def prepare_transfer(
 
     """Try to secure some amount, to eventually transfer it to another account."""
 
+    ts = iso8601.parse_date(ts)
+
+    assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
+    assert MIN_INT64 <= coordinator_id <= MAX_INT64
+    assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
+    assert 0 <= min_locked_amount <= max_locked_amount <= MAX_INT64
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert ts > BEGINNING_OF_TIME
+    assert 0 <= max_commit_delay <= MAX_INT32
+    assert MIN_INT64 <= min_account_balance <= MAX_INT64
+
     procedures.prepare_transfer(
         coordinator_type,
         coordinator_id,
@@ -52,7 +79,7 @@ def prepare_transfer(
         debtor_id,
         creditor_id,
         recipient,
-        iso8601.parse_date(ts),
+        ts,
         max_commit_delay,
         min_account_balance,
         min_interest_rate,
@@ -75,6 +102,21 @@ def finalize_transfer(
 
     """Finalize a prepared transfer."""
 
+    ts = iso8601.parse_date(ts)
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= transfer_id <= MAX_INT64
+    assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
+    assert MIN_INT64 <= coordinator_id <= MAX_INT64
+    assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
+    assert 0 <= committed_amount <= MAX_INT64
+    assert MIN_INT32 <= finalization_flags <= MAX_INT32
+    assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
+    assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
+    assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
+    assert ts > BEGINNING_OF_TIME
+
     procedures.finalize_transfer(
         debtor_id,
         creditor_id,
@@ -86,7 +128,7 @@ def finalize_transfer(
         finalization_flags,
         transfer_note_format,
         transfer_note,
-        iso8601.parse_date(ts),
+        ts,
     )
 
 
@@ -106,6 +148,10 @@ def try_to_change_interest_rate(
     passed since the previous change in the interest rate.
 
     """
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert not math.isnan(interest_rate)
 
     procedures.try_to_change_interest_rate(
         debtor_id,
@@ -128,6 +174,10 @@ def capitalize_interest(
     smaller than `abs(accumulated_interest_threshold)`.
 
     """
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= accumulated_interest_threshold <= MAX_INT64
 
     procedures.capitalize_interest(
         debtor_id,
@@ -164,6 +214,9 @@ def try_to_delete_account(
     database.
 
     """
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
 
     procedures.try_to_delete_account(
         debtor_id,

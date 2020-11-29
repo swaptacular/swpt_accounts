@@ -1,5 +1,4 @@
 import math
-import re
 from datetime import datetime, timezone, timedelta
 from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Set
 from decimal import Decimal
@@ -12,17 +11,15 @@ from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
     AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal, FinalizationRequest,
-    ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, TRANSFER_NOTE_MAX_BYTES,
-    MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, SECONDS_IN_DAY,
-    CT_INTEREST, CT_DELETE, CT_DIRECT,
-    SC_OK, SC_SENDER_DOES_NOT_EXIST, SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT,
-    SC_RECIPIENT_SAME_AS_SENDER, SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE,
+    ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MIN_INT64, MAX_INT64,
+    SECONDS_IN_DAY, CT_INTEREST, CT_DELETE, CT_DIRECT, SC_OK, SC_SENDER_DOES_NOT_EXIST,
+    SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_RECIPIENT_SAME_AS_SENDER,
+    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE,
 )
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
-RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
 RC_INVALID_CONFIGURATION = 'INVALID_CONFIGURATION'
 PREPARED_TRANSFER_JOIN_CLAUSE = and_(
@@ -50,12 +47,6 @@ def configure_account(
     #       be beneficial when there are lots of `ConfigureAccount`
     #       messages for one account, in a short period of time
     #       (probably not a typical load).
-
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert ts > BEGINNING_OF_TIME
-    assert MIN_INT32 <= seqnum <= MAX_INT32
-    assert MIN_INT32 <= config_flags <= MAX_INT32
 
     current_ts = datetime.now(tz=timezone.utc)
 
@@ -122,16 +113,6 @@ def prepare_transfer(
         min_account_balance: int = 0,
         min_interest_rate: float = -100.0) -> None:
 
-    assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
-    assert MIN_INT64 <= coordinator_id <= MAX_INT64
-    assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
-    assert 0 <= min_locked_amount <= max_locked_amount <= MAX_INT64
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert ts > BEGINNING_OF_TIME
-    assert 0 <= max_commit_delay <= MAX_INT32
-    assert MIN_INT64 <= min_account_balance <= MAX_INT64
-
     if creditor_id != ROOT_CREDITOR_ID:
         # NOTE: Only the debtor's account is allowed to go
         # deliberately negative. This is because only the debtor's
@@ -181,18 +162,7 @@ def finalize_transfer(
         transfer_note: str = '',
         ts: datetime = None) -> None:
 
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= transfer_id <= MAX_INT64
-    assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
-    assert MIN_INT64 <= coordinator_id <= MAX_INT64
-    assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
-    assert 0 <= committed_amount <= MAX_INT64
-    assert MIN_INT32 <= finalization_flags <= MAX_INT32
-    assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
-    assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
-    assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
-    assert ts is None or ts > BEGINNING_OF_TIME
+    assert 0 <= committed_amount
 
     db.session.add(FinalizationRequest(
         debtor_id=debtor_id,
@@ -216,10 +186,6 @@ def finalize_transfer(
 
 @atomic
 def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert not math.isnan(interest_rate)
-
     current_ts = datetime.now(tz=timezone.utc)
     signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
     is_valid_request = (current_ts - request_ts).total_seconds() <= signalbus_max_delay_seconds
@@ -264,10 +230,6 @@ def capitalize_interest(
         accumulated_interest_threshold: int,
         request_ts: datetime) -> None:
 
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= accumulated_interest_threshold <= MAX_INT64
-
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
@@ -282,9 +244,6 @@ def capitalize_interest(
 
 @atomic
 def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime) -> None:
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.pending_transfers_count == 0:

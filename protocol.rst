@@ -214,7 +214,7 @@ they MUST first verify whether the specified account already exists:
   those messages will be ignored (due to expired ``ttl``).
 
 .. [#config-limitations] The UTF-8 encoding of the ``config`` string
-  MUST NOT be longer than 1000 bytes.
+  MUST NOT be longer than 2000 bytes.
 
 .. [#compare-config] To do this, server implementations MUST compare
   the values of ``ts`` and ``seqnum`` fields in the received message,
