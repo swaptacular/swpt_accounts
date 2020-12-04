@@ -143,7 +143,7 @@ config_flags : int32
 config : string
    Additional account configuration settings. Different server
    implementations may use different formats for this field. An empty
-   string SHOULD be a valid value, which represents the default
+   string MUST always be a valid value, which represents the default
    configuration settings. [#config-limitations]_
 
 ts : date-time
