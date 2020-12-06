@@ -316,10 +316,12 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
         principal_delta = 0
         for fr, pt in requests:
             if pt and sender_account:
+                min_account_balance = _get_min_account_balance(sender_creditor_id)
                 expendable_amount = (
                     + starting_balance
                     + principal_delta
                     - sender_account.total_locked_amount
+                    - min_account_balance
                 )
                 committed_amount = _finalize_prepared_transfer(pt, fr, sender_account, expendable_amount, current_ts)
                 assert committed_amount >= 0
@@ -691,7 +693,8 @@ def _process_transfer_request(
     # amount, and the same transfer request is made again, but for
     # small enough amount, we want it to succeed, and not fail for
     # some of the other possible reasons.
-    expendable_amount = _get_available_amount(sender_account, current_ts)
+    available_amount = _get_available_amount(sender_account, current_ts)
+    expendable_amount = available_amount - _get_min_account_balance(tr.sender_creditor_id)
     expendable_amount = min(expendable_amount, tr.max_locked_amount)
     expendable_amount = max(0, expendable_amount)
     if expendable_amount < tr.min_locked_amount:
@@ -784,3 +787,7 @@ def _get_reachable_recipient_account_pks(transfer_requests: List[TransferRequest
         filter(Account.status_flags.op('&')(Account.STATUS_UNREACHABLE_FLAG) == 0).\
         all()
     return set(account_pks)
+
+
+def _get_min_account_balance(creditor_id):
+    return 0 if creditor_id != ROOT_CREDITOR_ID else -MAX_INT64

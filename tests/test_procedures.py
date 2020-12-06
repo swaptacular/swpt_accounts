@@ -1,12 +1,11 @@
 import pytest
 from datetime import datetime, timezone, timedelta
-from swpt_lib.utils import i64_to_u64
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountUpdateSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
-    AccountPurgeSignal, FinalizationRequest, \
+    AccountPurgeSignal, FinalizationRequest, ROOT_CREDITOR_ID, \
     CT_DIRECT, SC_OK, SC_TIMEOUT, SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_NO_RECIPIENT_CONFIRMATION
 
 
@@ -842,6 +841,41 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert cts2.creditor_id == 1234
     assert cts2.other_creditor_id == C_ID
     assert cts2.acquired_amount == 40
+
+
+def test_commit_issuing_transfer(db_session, current_ts):
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    p.configure_account(D_ID, ROOT_CREDITOR_ID, current_ts, 0)
+    p.prepare_transfer(
+        coordinator_type='issuing',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=200,
+        max_locked_amount=200,
+        debtor_id=D_ID,
+        creditor_id=ROOT_CREDITOR_ID,
+        recipient='1234',
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, ROOT_CREDITOR_ID)
+    pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=ROOT_CREDITOR_ID).one()
+    p.finalize_transfer(D_ID, ROOT_CREDITOR_ID, pt.transfer_id, 'issuing', 1, 2, 200)
+    p.process_finalization_requests(D_ID, ROOT_CREDITOR_ID)
+    p.process_pending_account_changes(D_ID, 1234)
+    p.process_pending_account_changes(D_ID, ROOT_CREDITOR_ID)
+    a1 = p.get_account(D_ID, 1234)
+    assert a1.total_locked_amount == 0
+    assert a1.pending_transfers_count == 0
+    assert a1.principal == 200
+    a2 = p.get_account(D_ID, ROOT_CREDITOR_ID)
+    assert a2.total_locked_amount == 0
+    assert a2.pending_transfers_count == 0
+    assert a2.principal == -200
+    assert a2.interest == 0.0
+    assert not PreparedTransfer.query.one_or_none()
+    assert len(AccountUpdateSignal.query.all()) >= 2
+    assert len(RejectedTransferSignal.query.all()) == 0
+    assert len(FinalizedTransferSignal.query.all()) == 1
 
 
 def test_zero_locked_amount_unsuccessful_commit(db_session, current_ts):
