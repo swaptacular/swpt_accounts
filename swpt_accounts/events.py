@@ -223,7 +223,7 @@ class AccountUpdateSignal(Signal):
         last_config_seqnum = fields.Integer()
         creation_date = fields.Date()
         negligible_amount = fields.Float()
-        config = fields.Constant('')
+        config_data = fields.Constant('')
         config_flags = fields.Integer()
         status_flags = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
@@ -290,7 +290,7 @@ class RejectedConfigSignal(Signal):
         config_ts = fields.DateTime()
         config_seqnum = fields.Integer()
         negligible_amount = fields.Float()
-        config = fields.String()
+        config_data = fields.String()
         config_flags = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
         rejection_code = fields.String()
@@ -301,8 +301,8 @@ class RejectedConfigSignal(Signal):
     config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     config_seqnum = db.Column(db.Integer, nullable=False)
     config_flags = db.Column(db.Integer, nullable=False)
+    config_data = db.Column(db.String, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
-    config = db.Column(db.String, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
 
 

@@ -63,7 +63,7 @@ def test_configure_account(db_session):
         seqnum=0,
         negligible_amount=500.0,
         config_flags=0,
-        config='',
+        config_data='',
     )
 
 

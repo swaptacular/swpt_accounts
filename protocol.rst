@@ -140,11 +140,11 @@ config_flags : int32
    server's database, an `AccountPurge`_ message MUST be sent to
    inform about that. [#purge-delay]_
 
-config : string
+config_data : string
    Additional account configuration settings. Different server
    implementations may use different formats for this field. An empty
    string MUST always be a valid value, which represents the default
-   configuration settings. [#config-limitations]_
+   configuration settings. [#config-data-limitations]_
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -213,8 +213,8 @@ they MUST first verify whether the specified account already exists:
   to receive old `AccountUpdate`_ messages for the purged account,
   those messages will be ignored (due to expired ``ttl``).
 
-.. [#config-limitations] The UTF-8 encoding of the ``config`` string
-  MUST NOT be longer than 2000 bytes.
+.. [#config-data-limitations] The UTF-8 encoding of the
+  ``config_data`` string MUST NOT be longer than 2000 bytes.
 
 .. [#compare-config] To do this, server implementations MUST compare
   the values of ``ts`` and ``seqnum`` fields in the received message,
@@ -508,9 +508,9 @@ negligible_amount : float
    The value of the ``negligible_amount`` field in the rejected
    message.
 
-config : string
-   The value of the ``config`` field in the rejected
-   message. [#config-limitations]_
+config_data : string
+   The value of the ``config_data`` field in the rejected
+   message. [#config-data-limitations]_
 
 rejection_code : string
    The reason for the rejection of the `ConfigureAccount`_
@@ -861,11 +861,11 @@ config_flags : int32
    `ConfigureAccount`_ messages yet, the value MUST represent the
    current configuration settings.
 
-config : string
+config_data : string
    The value of the ``config`` field in the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
    `ConfigureAccount`_ messages yet, the value MUST represent the
-   current configuration settings. [#config-limitations]_
+   current configuration settings. [#config-data-limitations]_
 
 account_id : string
    A string which (along with ``debtor_id``) globally identifies the

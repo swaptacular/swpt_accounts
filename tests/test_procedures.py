@@ -53,7 +53,7 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['last_config_ts'] == a.last_config_ts.isoformat()
     assert acs_obj['last_config_seqnum'] == a.last_config_seqnum
     assert acs_obj['negligible_amount'] == a.negligible_amount
-    assert acs_obj['config'] == ''
+    assert acs_obj['config_data'] == ''
     assert acs_obj['config_flags'] == a.config_flags
     assert acs_obj['status_flags'] == a.status_flags
     assert acs_obj['account_id'] == str(C_ID)
@@ -84,7 +84,7 @@ def test_ignored_config(db_session, current_ts):
 
 
 def test_invalid_config(db_session, current_ts):
-    p.configure_account(D_ID, C_ID, current_ts, 123, -10.0, config_flags=0x1fff, config='xxx')
+    p.configure_account(D_ID, C_ID, current_ts, 123, -10.0, config_flags=0x1fff, config_data='xxx')
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountUpdateSignal.query.all()) == 0
     rcs = RejectedConfigSignal.query.one()
@@ -95,7 +95,7 @@ def test_invalid_config(db_session, current_ts):
     assert rcs.config_seqnum == 123
     assert rcs.config_flags == 0x1fff
     assert rcs.negligible_amount == -10.0
-    assert rcs.config == 'xxx'
+    assert rcs.config_data == 'xxx'
     rcs_obj = rcs.__marshmallow_schema__.dump(rcs)
     assert rcs_obj['debtor_id'] == D_ID
     assert rcs_obj['creditor_id'] == C_ID
@@ -103,7 +103,7 @@ def test_invalid_config(db_session, current_ts):
     assert rcs_obj['config_seqnum'] == 123
     assert rcs_obj['config_flags'] == rcs.config_flags
     assert rcs_obj['negligible_amount'] == rcs.negligible_amount
-    assert rcs_obj['config'] == 'xxx'
+    assert rcs_obj['config_data'] == 'xxx'
     assert rcs_obj['rejection_code'] == p.RC_INVALID_CONFIGURATION
     assert isinstance(rcs_obj['ts'], str)
 

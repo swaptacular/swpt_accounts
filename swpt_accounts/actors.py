@@ -5,7 +5,7 @@ from .extensions import broker, APP_QUEUE_NAME
 from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, TRANSFER_NOTE_MAX_BYTES
 from . import procedures
 
-CONFIG_MAX_BYTES = 2000
+CONFIG_DATA_MAX_BYTES = 2000
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 
 
@@ -17,7 +17,7 @@ def configure_account(
         seqnum: int,
         negligible_amount: float = 0.0,
         config_flags: int = 0,
-        config: str = '') -> None:
+        config_data: str = '') -> None:
 
     """Make sure the account exists, and update its configuration settings."""
 
@@ -28,7 +28,7 @@ def configure_account(
     assert ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= seqnum <= MAX_INT32
     assert MIN_INT32 <= config_flags <= MAX_INT32
-    assert len(config) <= CONFIG_MAX_BYTES and len(config.encode('utf8')) <= CONFIG_MAX_BYTES
+    assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
 
     procedures.configure_account(
         debtor_id,
@@ -37,7 +37,7 @@ def configure_account(
         seqnum,
         negligible_amount,
         config_flags,
-        config,
+        config_data,
     )
 
 

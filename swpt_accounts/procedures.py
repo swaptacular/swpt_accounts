@@ -40,7 +40,7 @@ def configure_account(
         seqnum: int,
         negligible_amount: float = 0.0,
         config_flags: int = 0,
-        config: str = '') -> None:
+        config_data: str = '') -> None:
 
     # TODO: Consider using a `ConfigureRequest` buffer table, to
     #       reduce lock contention on `account` table rows. This might
@@ -60,7 +60,7 @@ def configure_account(
             account.status_flags &= ~Account.STATUS_UNREACHABLE_FLAG
 
     def is_valid_config():
-        return negligible_amount >= 0.0 and config == ''
+        return negligible_amount >= 0.0 and config_data == ''
 
     def try_to_configure(account):
         if is_valid_config():
@@ -81,7 +81,7 @@ def configure_account(
                 config_seqnum=seqnum,
                 config_flags=config_flags,
                 negligible_amount=negligible_amount,
-                config=config,
+                config_data=config_data,
                 rejection_code=RC_INVALID_CONFIGURATION,
             ))
 
