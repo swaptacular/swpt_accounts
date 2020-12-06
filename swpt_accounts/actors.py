@@ -53,7 +53,6 @@ def prepare_transfer(
         recipient: str,
         ts: str,
         max_commit_delay: int,
-        min_account_balance: int = 0,
         min_interest_rate: float = -100.0) -> None:
 
     """Try to secure some amount, to eventually transfer it to another account."""
@@ -68,7 +67,6 @@ def prepare_transfer(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert ts > BEGINNING_OF_TIME
     assert 0 <= max_commit_delay <= MAX_INT32
-    assert MIN_INT64 <= min_account_balance <= MAX_INT64
 
     procedures.prepare_transfer(
         coordinator_type,
@@ -81,7 +79,6 @@ def prepare_transfer(
         recipient,
         ts,
         max_commit_delay,
-        min_account_balance,
         min_interest_rate,
     )
 

@@ -205,7 +205,6 @@ class TransferRequest(db.Model):
     min_locked_amount = db.Column(db.BigInteger, nullable=False)
     max_locked_amount = db.Column(db.BigInteger, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    min_account_balance = db.Column(db.BigInteger, nullable=False)
     min_interest_rate = db.Column(db.REAL, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
 
@@ -257,7 +256,6 @@ class PreparedTransfer(db.Model):
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    min_account_balance = db.Column(db.BigInteger, nullable=False)
     min_interest_rate = db.Column(db.REAL, nullable=False)
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)

@@ -110,14 +110,7 @@ def prepare_transfer(
         recipient: str,
         ts: datetime,
         max_commit_delay: int = MAX_INT32,
-        min_account_balance: int = 0,
         min_interest_rate: float = -100.0) -> None:
-
-    if creditor_id != ROOT_CREDITOR_ID:
-        # NOTE: Only the debtor's account is allowed to go
-        # deliberately negative. This is because only the debtor's
-        # account is allowed to issue money.
-        min_account_balance = max(0, min_account_balance)
 
     try:
         recipient_creditor_id = u64_to_i64(int(recipient))
@@ -143,7 +136,6 @@ def prepare_transfer(
             sender_creditor_id=creditor_id,
             recipient_creditor_id=recipient_creditor_id,
             deadline=ts + timedelta(seconds=max_commit_delay),
-            min_account_balance=min_account_balance,
             min_interest_rate=min_interest_rate,
         ))
 
@@ -328,7 +320,6 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
                     + starting_balance
                     + principal_delta
                     - sender_account.total_locked_amount
-                    - pt.min_account_balance
                 )
                 committed_amount = _finalize_prepared_transfer(pt, fr, sender_account, expendable_amount, current_ts)
                 assert committed_amount >= 0
@@ -652,7 +643,6 @@ def _process_transfer_request(
             coordinator_request_id=tr.coordinator_request_id,
             locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
-            min_account_balance=tr.min_account_balance,
             min_interest_rate=tr.min_interest_rate,
             demurrage_rate=demurrage_rate,
             deadline=deadline,
@@ -701,8 +691,7 @@ def _process_transfer_request(
     # amount, and the same transfer request is made again, but for
     # small enough amount, we want it to succeed, and not fail for
     # some of the other possible reasons.
-    available_amount = _get_available_amount(sender_account, current_ts)
-    expendable_amount = available_amount - tr.min_account_balance
+    expendable_amount = _get_available_amount(sender_account, current_ts)
     expendable_amount = min(expendable_amount, tr.max_locked_amount)
     expendable_amount = max(0, expendable_amount)
     if expendable_amount < tr.min_locked_amount:

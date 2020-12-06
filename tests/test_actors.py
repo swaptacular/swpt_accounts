@@ -15,7 +15,6 @@ def test_prepare_transfer(db_session):
         debtor_id=D_ID,
         creditor_id=C_ID,
         recipient='1234',
-        min_account_balance=0,
         min_interest_rate=-100.0,
         max_commit_delay=1000000,
         ts=datetime.now(tz=timezone.utc).isoformat(),

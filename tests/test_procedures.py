@@ -697,7 +697,6 @@ def test_prepare_transfer_interest_rate_too_low(db_session, current_ts):
         debtor_id=D_ID,
         creditor_id=C_ID,
         recipient='1234',
-        min_account_balance=-1,
         min_interest_rate=-9.99999,
         ts=current_ts,
     )
@@ -722,7 +721,6 @@ def test_prepare_transfer_success(db_session, current_ts):
         debtor_id=D_ID,
         creditor_id=C_ID,
         recipient='1234',
-        min_account_balance=-1,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -749,7 +747,6 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pt.coordinator_type == 'test'
     assert pt.recipient_creditor_id == 1234
     assert pt.locked_amount == pts.locked_amount
-    assert pt.min_account_balance == 0
 
     pts_obj = pts.__marshmallow_schema__.dump(pts)
     assert pts_obj['debtor_id'] == D_ID
@@ -927,12 +924,10 @@ def test_prepared_transfer_commit_timeout(db_session, current_ts):
         debtor_id=D_ID,
         creditor_id=C_ID,
         recipient='1234',
-        min_account_balance=3,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
-    assert pt.min_account_balance == 3
     pt.prepared_at_ts = pt.prepared_at_ts - timedelta(days=100)
     pt.deadline = pt.prepared_at_ts + timedelta(days=30)
     db_session.commit()
@@ -1042,7 +1037,6 @@ def test_calc_status_code(db_session, current_ts):
         coordinator_request_id=22,
         recipient_creditor_id=1,
         prepared_at_ts=current_ts,
-        min_account_balance=10,
         min_interest_rate=-10.0,
         demurrage_rate=-50,
         deadline=current_ts + timedelta(days=10000),

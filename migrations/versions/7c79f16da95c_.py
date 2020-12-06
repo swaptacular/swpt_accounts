@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3f63907dd5cd
+Revision ID: 7c79f16da95c
 Revises: 
-Create Date: 2020-09-12 14:07:03.068451
+Create Date: 2020-12-06 15:41:12.458918
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '3f63907dd5cd'
+revision = '7c79f16da95c'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -203,7 +203,6 @@ def upgrade():
     sa.Column('min_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('max_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('min_account_balance', sa.BigInteger(), nullable=False),
     sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('min_interest_rate >= -100.0'),
@@ -221,7 +220,6 @@ def upgrade():
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('min_account_balance', sa.BigInteger(), nullable=False),
     sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.Column('demurrage_rate', sa.FLOAT(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
