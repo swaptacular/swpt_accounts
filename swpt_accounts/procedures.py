@@ -5,7 +5,7 @@ from decimal import Decimal
 from flask import current_app
 from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
-from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64, i64_to_u64
+from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64
 from .extensions import db
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
@@ -123,7 +123,6 @@ def prepare_transfer(
             status_code=SC_RECIPIENT_IS_UNREACHABLE,
             total_locked_amount=0,
             sender_creditor_id=creditor_id,
-            recipient=recipient,
         ))
     else:
         db.session.add(TransferRequest(
@@ -625,7 +624,6 @@ def _process_transfer_request(
             status_code=status_code,
             total_locked_amount=total_locked_amount,
             sender_creditor_id=tr.sender_creditor_id,
-            recipient=str(i64_to_u64(tr.recipient_creditor_id)),
         )
 
     def prepare(amount: int) -> PreparedTransferSignal:
@@ -750,7 +748,6 @@ def _finalize_prepared_transfer(
         coordinator_type=pt.coordinator_type,
         coordinator_id=pt.coordinator_id,
         coordinator_request_id=pt.coordinator_request_id,
-        recipient_creditor_id=pt.recipient_creditor_id,
         prepared_at_ts=pt.prepared_at_ts,
         finalized_at_ts=current_ts,
         committed_amount=committed_amount,

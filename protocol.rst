@@ -557,10 +557,6 @@ total_locked_amount : int64
    for prepared transfers on the account. This MUST be a non-negative
    number.
 
-recipient : string
-   The value of the ``recipient`` field in the corresponding
-   `PrepareTransfer`_ message.
-
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
@@ -735,10 +731,6 @@ committed_amount : int64
    non-negative number. A ``0`` means either that the prepared
    transfer was dismissed, or that it was committed, but the commit
    was unsuccessful for some reason.
-
-recipient : string
-   The value of the ``recipient`` field in the corresponding
-   `PreparedTransfer`_ message.
 
 status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII

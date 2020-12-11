@@ -581,7 +581,6 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     assert rts_obj['coordinator_id'] == 1
     assert rts_obj['coordinator_request_id'] == 2
     assert rts_obj['total_locked_amount'] == 0
-    assert rts_obj['recipient'] == '1234'
     assert isinstance(rts_obj['ts'], str)
 
 
@@ -787,7 +786,6 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert fpt_obj['coordinator_request_id'] == 2
     assert fpt_obj['committed_amount'] == 0
     assert fpt_obj['total_locked_amount'] == 0
-    assert fpt_obj['recipient'] == '1234'
     assert fpt_obj['status_code'] == 'OK'
     assert isinstance(fpt_obj['ts'], str)
     assert fpt_obj['prepared_at'] == fpt.prepared_at_ts.isoformat()
