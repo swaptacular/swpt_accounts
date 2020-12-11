@@ -636,6 +636,10 @@ deadline : date-time
    this moment. If the client ties to commit the prepared transfer
    after this moment, the commit MUST NOT be successful.
 
+min_interest_rate : float
+   The value of the ``min_interest_rate`` field in the corresponding
+   `PrepareTransfer`_ message.
+
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).

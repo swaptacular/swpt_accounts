@@ -106,6 +106,7 @@ class PreparedTransferSignal(Signal):
         inserted_at_ts = fields.DateTime(data_key='ts')
         demurrage_rate = fields.Float()
         deadline = fields.DateTime()
+        min_interest_rate = fields.Float()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -119,6 +120,7 @@ class PreparedTransferSignal(Signal):
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    min_interest_rate = db.Column(db.REAL, nullable=False)
 
     @property
     def event_name(self):  # pragma: no cover

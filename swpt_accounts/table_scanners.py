@@ -167,6 +167,7 @@ class PreparedTransferScanner(TableScanner):
                     prepared_at_ts=row[c.prepared_at_ts],
                     demurrage_rate=row[c.demurrage_rate],
                     deadline=row[c.deadline],
+                    min_interest_rate=row[c.min_interest_rate],
                     inserted_at_ts=max(current_ts, row[c.prepared_at_ts]),
                 ))
                 reminded_pks.append((row[c.debtor_id], row[c.sender_creditor_id], row[c.transfer_id]))

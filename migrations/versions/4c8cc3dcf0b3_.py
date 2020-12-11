@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 641612aeff5a
+Revision ID: 4c8cc3dcf0b3
 Revises: 
-Create Date: 2020-12-11 16:03:02.369012
+Create Date: 2020-12-11 16:39:07.064294
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '641612aeff5a'
+revision = '4c8cc3dcf0b3'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -164,6 +164,7 @@ def upgrade():
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('demurrage_rate', sa.FLOAT(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'signal_id')
     )
     op.create_table('rejected_config_signal',

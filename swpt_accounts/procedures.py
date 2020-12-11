@@ -633,6 +633,16 @@ def _process_transfer_request(
         sender_account.last_transfer_id += 1
         demurrage_rate = INTEREST_RATE_FLOOR
         commit_period = AccountUpdateSignal.get_commit_period()
+        min_interest_rate = tr.min_interest_rate
+
+        # NOTE: When a meaningful minimal approved interest rate is
+        # set, we put a limit on the deadline to ensure that no more
+        # than one change in the interest rate will happen before the
+        # transfer gets finalized. This should be OK, because distant
+        # deadlines are not needed in this case.
+        if min_interest_rate > INTEREST_RATE_FLOOR:  # pragma: no cover
+            commit_period = min(commit_period, SECONDS_IN_DAY)
+
         deadline = min(current_ts + timedelta(seconds=commit_period), tr.deadline)
         db.session.add(PreparedTransfer(
             debtor_id=tr.debtor_id,
@@ -643,7 +653,7 @@ def _process_transfer_request(
             coordinator_request_id=tr.coordinator_request_id,
             locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
-            min_interest_rate=tr.min_interest_rate,
+            min_interest_rate=min_interest_rate,
             demurrage_rate=demurrage_rate,
             deadline=deadline,
             prepared_at_ts=current_ts,
@@ -660,6 +670,7 @@ def _process_transfer_request(
             prepared_at_ts=current_ts,
             demurrage_rate=demurrage_rate,
             deadline=deadline,
+            min_interest_rate=min_interest_rate,
             inserted_at_ts=current_ts,
         )
 
