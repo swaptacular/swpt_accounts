@@ -1025,8 +1025,8 @@ can safely remove a given account from their databases.
 AccountTransfer
 ---------------
 
-Emitted when a non-negligible committed transfer has affected a given
-account. [#negligible-transfer]_ [#debtor-creditor-id]_
+Emitted when a non-negligible committed transfer has affected a
+creditor's account. [#negligible-transfer]_ [#debtor-creditor-id]_
 
 debtor_id : int64
    The ID of the debtor.
