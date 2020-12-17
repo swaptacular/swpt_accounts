@@ -184,8 +184,8 @@ they MUST first verify whether the specified account already exists:
   server MAY use a special account called "*the debtor's account*" (or
   "*the root account*"), whose balance is allowed to go
   negative. Interest SHOULD NOT be accumulated on the debtor's
-  account, and `AccountTransfer`_ messages SHOULD NOT be sent for
-  it. The ``creditor_id`` for the debtor's account SHOULD be ``0``.
+  account, and `AccountTransfer`_ messages MAY not be sent for it. The
+  ``creditor_id`` for the debtor's account SHOULD be ``0``.
 
 .. [#forbid-transfers] Server implementations must not accept incoming
   transfers for "scheduled for deletion" accounts. That is:
