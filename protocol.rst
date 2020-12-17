@@ -105,7 +105,8 @@ debtor_id : int64
    The ID of the debtor.
 
 creditor_id : int64
-   Along with ``debtor_id``, identifies the account.
+   Along with ``debtor_id``, identifies the
+   account. [#debtor-creditor-id]_
 
 negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
@@ -178,6 +179,13 @@ they MUST first verify whether the specified account already exists:
    [#for-deletion]_ [#creation-date]_ If a new account has been
    successfully created, an `AccountUpdate`_ message MUST be sent;
    otherwise a `RejectedConfig`_ message MUST be sent.
+
+.. [#debtor-creditor-id] To issue new tokens into existence, the
+  server MAY use a special account called *"the debtor's account"* (or
+  "the root account"), which balance is allowed to go negative. The
+  ``creditor_id`` for the debtor's account SHOULD be ``0``. Also,
+  `AccountTransfer`_ messages SHOULD NOT be sent for the debtor's
+  account, and interest SHOULD NOT be accumulated on it.
 
 .. [#forbid-transfers] Server implementations must not accept incoming
   transfers for "scheduled for deletion" accounts. That is:
@@ -433,7 +441,7 @@ server's database: [#transfer-match]_
      [#locked-amount]_ The transfer SHOULD NOT be allowed if, after
      the transfer, the *available amount* [#avl-amount]_ on the
      sender's account would become negative. [#demurrage]_
-     [#creditor-trick]_
+     [#creditor-trick]_ [#debtor-creditor-id]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#locked-amount]_
@@ -1018,7 +1026,7 @@ AccountTransfer
 ---------------
 
 Emitted when a non-negligible committed transfer has affected a given
-account. [#negligible-transfer]_
+account. [#negligible-transfer]_ [#debtor-creditor-id]_
 
 debtor_id : int64
    The ID of the debtor.
