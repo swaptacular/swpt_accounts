@@ -8,15 +8,8 @@ Swaptacular micro-service that manages user account balances
 This micro-service implements a generic `messaging
 protocol`_. Currently it defines several `Dramatiq`_ `actors`_, and
 emits several types of `events`_. Eventually, it should migrate to
-using `Cap'n Proto`_. This micro-service needs the `swpt_debtors`_
-helper micro-service to perform the following important maintenance
-operations:
+using `Cap'n Proto`_.
 
-1. Accounts removal.
-2. Interest capitalization.
-3. Setting and updating interest rates.
-
-.. _swpt_debtors: https://github.com/epandurski/swpt_debtors
 .. _actors: swpt_accounts/actors.py
 .. _events: swpt_accounts/events.py
 
@@ -63,8 +56,10 @@ How to setup a development environment
 
      $ poetry install
 
-4. You can use ``flask swpt_accounts`` to run management commands, or
-   ``dramatiq tasks:broker`` to spawn local task workers.
+4. You can use ``flask swpt_accounts`` to run management commands,
+   ``dramatiq tasks:broker`` to spawn local task workers, and
+   ``pytest --cov=swpt_accounts --cov-report=html`` to run the tests
+   and generate a test coverage report..
 
 
 How to run all services (production-like)

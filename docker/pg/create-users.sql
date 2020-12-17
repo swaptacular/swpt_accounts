@@ -17,10 +17,7 @@ BEGIN
   --------------------------
   -- Add your users here! --
   --------------------------
-  PERFORM create_user_with_own_schema('hydra');
   PERFORM create_user_with_own_schema('swpt_accounts');
-  PERFORM create_user_with_own_schema('swpt_debtors');
-  PERFORM create_user_with_own_schema('swpt_login');
   RETURN 'ok';
 END;
 $$ LANGUAGE plpgsql;
