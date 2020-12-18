@@ -194,8 +194,8 @@ they MUST first verify whether the specified account already exists:
 
   * The ``creditor_id`` for the debtor's account SHOULD be ``0``.
 
-  * It is RECOMMENDED to not send `AccountTransfer`_ messages for the
-    debtor's account.
+  * Sending `AccountTransfer`_ messages for the debtor's account is
+    OPTIONAL.
 
 .. [#forbid-transfers] Server implementations must not accept incoming
   transfers for "scheduled for deletion" accounts. That is:
