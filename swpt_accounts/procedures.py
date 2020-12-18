@@ -54,7 +54,10 @@ def configure_account(
         if account.status_flags & Account.STATUS_DELETED_FLAG:
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
             account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        if config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG:
+
+        is_scheduled_for_deletion = config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+        is_unreachable = is_scheduled_for_deletion and creditor_id != ROOT_CREDITOR_ID
+        if is_unreachable:
             account.status_flags |= Account.STATUS_UNREACHABLE_FLAG
         else:
             account.status_flags &= ~Account.STATUS_UNREACHABLE_FLAG

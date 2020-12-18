@@ -182,10 +182,20 @@ they MUST first verify whether the specified account already exists:
 
 .. [#debtor-creditor-id] To issue new tokens into existence, the
   server MAY use a special account called "*the debtor's account*" (or
-  "*the root account*"), whose balance is allowed to go
-  negative. Interest SHOULD NOT be accumulated on the debtor's
-  account, and `AccountTransfer`_ messages MAY not be sent for it. The
-  ``creditor_id`` for the debtor's account SHOULD be ``0``.
+  "*the root account*"):
+
+  * The balance on the debtor's account SHOULD be allowed to go
+    negative.
+
+  * The debtor's account SHOULD always be able to receive incoming
+    transfers.
+
+  * Interest SHOULD NOT be accumulated on the debtor's account.
+
+  * The ``creditor_id`` for the debtor's account SHOULD be ``0``.
+
+  * It is RECOMMENDED to not send `AccountTransfer`_ messages for the
+    debtor's account.
 
 .. [#forbid-transfers] Server implementations must not accept incoming
   transfers for "scheduled for deletion" accounts. That is:
@@ -834,9 +844,9 @@ status_flags : int32
    reserved:
 
    * Bit ``0`` has the meaning "unreachable account", indicating that
-     the account can not receive incoming transfers. Eeach "scheduled
-     for deletion" account MUST be indicated as "unreachable account"
-     as well.
+     the account can not receive incoming transfers. Creditor's
+     accounts that are "scheduled for deletion" MUST be indicated and
+     act as unreachable accounts. [#debtor-creditor-id]_
 
    * Bit ``1`` has the meaning "overflown account", indicating that
      the account's principal have breached the ``int64`` boundaries.
