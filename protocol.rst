@@ -190,6 +190,9 @@ they MUST first verify whether the specified account already exists:
   * The debtor's account SHOULD always be able to receive incoming
     transfers.
 
+  * Interest paid to/from creditor's accounts SHOULD come from/to the
+    debtor's account.
+
   * Interest SHOULD NOT be accumulated on the debtor's account.
 
   * The ``creditor_id`` for the debtor's account SHOULD be ``0``.
