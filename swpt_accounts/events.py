@@ -221,7 +221,7 @@ class AccountUpdateSignal(Signal):
         last_config_seqnum = fields.Integer()
         creation_date = fields.Date()
         negligible_amount = fields.Float()
-        config_data = fields.Constant('')
+        config_data = fields.String()
         config_flags = fields.Integer()
         status_flags = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
@@ -246,6 +246,7 @@ class AccountUpdateSignal(Signal):
     last_config_seqnum = db.Column(db.Integer, nullable=False)
     creation_date = db.Column(db.DATE, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
+    config_data = db.Column(db.String, nullable=False)
     config_flags = db.Column(db.Integer, nullable=False)
     status_flags = db.Column(db.Integer, nullable=False)
 

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 4c8cc3dcf0b3
+Revision ID: 543f9e516ec6
 Revises: 
-Create Date: 2020-12-11 16:39:07.064294
+Create Date: 2020-12-20 19:34:10.158153
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '4c8cc3dcf0b3'
+revision = '543f9e516ec6'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -34,6 +34,7 @@ def upgrade():
     sa.Column('last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
+    sa.Column('config_data', sa.String(), nullable=False),
     sa.Column('status_flags', sa.Integer(), nullable=False, comment='Contain additional account status bits: 1 - unreachable, 2 - overflown, 65536 - deleted, 131072 - established interest rate.'),
     sa.Column('total_locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
@@ -100,6 +101,7 @@ def upgrade():
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
+    sa.Column('config_data', sa.String(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('status_flags', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')

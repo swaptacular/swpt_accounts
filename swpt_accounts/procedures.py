@@ -71,6 +71,7 @@ def configure_account(
                 account = _create_account(debtor_id, creditor_id, current_ts)
             update_account_status_flags(account)
             account.config_flags = config_flags
+            account.config_data = config_data
             account.negligible_amount = negligible_amount
             account.last_config_ts = ts
             account.last_config_seqnum = seqnum
@@ -176,6 +177,28 @@ def finalize_transfer(
         db.session.flush()
     except IntegrityError:
         db.session.rollback()
+
+
+@atomic
+def is_reachable_account(debtor_id: int, creditor_id: int) -> bool:
+    if creditor_id == ROOT_CREDITOR_ID:
+        return True
+
+    account_query = Account.query.\
+        filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
+        filter(Account.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
+        filter(Account.status_flags.op('&')(Account.STATUS_UNREACHABLE_FLAG) == 0)
+
+    return db.session.query(account_query.exists()).scalar()
+
+
+@atomic
+def get_account_config_data(debtor_id: int, creditor_id: int) -> Optional[str]:
+    return db.session.\
+        query(Account.config_data).\
+        filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
+        filter(Account.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
+        scalar()
 
 
 @atomic
@@ -436,6 +459,7 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
         last_config_seqnum=account.last_config_seqnum,
         creation_date=account.creation_date,
         negligible_amount=account.negligible_amount,
+        config_data=account.config_data,
         config_flags=account.config_flags,
         status_flags=account.status_flags,
         inserted_at_ts=account.last_change_ts,

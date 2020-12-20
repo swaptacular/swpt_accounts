@@ -67,16 +67,22 @@ class Configuration(metaclass=MetaEnvReader):
 
 
 def create_app(config_dict={}):
+    from werkzeug.middleware.proxy_fix import ProxyFix
     from flask import Flask
+    from swpt_lib.utils import Int64Converter
     from .extensions import db, migrate, broker
+    from .routes import fetch_api
     from .cli import swpt_accounts
     from . import models  # noqa
 
     app = Flask(__name__)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_port=1)
+    app.url_map.converters['i64'] = Int64Converter
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
     db.init_app(app)
     migrate.init_app(app, db)
     broker.init_app(app)
+    app.register_blueprint(fetch_api)
     app.cli.add_command(swpt_accounts)
     return app

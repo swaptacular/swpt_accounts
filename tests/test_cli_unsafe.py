@@ -87,6 +87,7 @@ def test_scan_accounts(app_unsafe_session):
     assert acs.last_config_seqnum == account.last_config_seqnum
     assert acs.creation_date == account.creation_date
     assert acs.negligible_amount == account.negligible_amount
+    assert acs.config_data == ''
     assert acs.config_flags == account.config_flags
     assert acs.status_flags == account.status_flags
 

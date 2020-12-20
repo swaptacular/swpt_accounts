@@ -75,6 +75,7 @@ class Account(db.Model):
     last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
     config_flags = db.Column(db.Integer, nullable=False, default=0)
+    config_data = db.Column(db.String, nullable=False, default='')
     status_flags = db.Column(
         db.Integer,
         nullable=False,
