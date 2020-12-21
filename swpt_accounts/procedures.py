@@ -65,20 +65,18 @@ def configure_account(
 
     def is_valid_config():
         if not negligible_amount >= 0.0:
-            return False
-
-        if config_data == '':
-            return True
-
-        if creditor_id == ROOT_CREDITOR_ID:
+            is_valid = False
+        elif config_data == '':
+            is_valid = True
+        elif creditor_id == ROOT_CREDITOR_ID:
             try:
                 parse_root_config_data(config_data)
             except ValueError:
-                pass
+                is_valid = False
             else:
-                return True
+                is_valid = True
 
-        return False
+        return is_valid
 
     def try_to_configure(account):
         if is_valid_config():
