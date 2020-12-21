@@ -5,13 +5,11 @@ from swpt_accounts.fetch_api_client import parse_root_config_data, RootConfigDat
 
 def test_parse_root_config_data():
     assert RootConfigData().interest_rate == 0.0
+    assert parse_root_config_data('') == RootConfigData()
     assert parse_root_config_data('{}') == RootConfigData()
     assert parse_root_config_data('{"rate": 99.5}') == RootConfigData(99.5)
     assert parse_root_config_data('{"rate": -49.0}') == RootConfigData(-49.0)
     assert parse_root_config_data('{"type": "RootConfigData", "rate": 0.0}') == RootConfigData(0.0)
-
-    with pytest.raises(ValueError):
-        parse_root_config_data('')
 
     with pytest.raises(ValueError):
         parse_root_config_data('{"rate": NaN}')
