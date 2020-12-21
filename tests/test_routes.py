@@ -52,6 +52,21 @@ def test_get_config(client, account, current_ts):
     assert r.cache_control.max_age > 10000
     assert r.get_data() == b''
 
-    r = client.get('/accounts/18446744073709551614/1/reachable')
+    r = client.get('/accounts/18446744073709551614/1/config')
     assert r.status_code == 404
+    assert r.get_data() == b''
+
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 1, config_data='INVALID_CONFIG')
+    r = client.get('/accounts/18446744073709551615/0/config')
+    assert r.status_code == 404
+    assert r.get_data() == b''
+
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 2, config_data='{"rate": 1.0}')
+    r = client.get('/accounts/18446744073709551615/0/config')
+    assert r.status_code == 200
+    assert r.get_data() == b'{"rate": 1.0}'
+
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 3, config_data='')
+    r = client.get('/accounts/18446744073709551615/0/config')
+    assert r.status_code == 200
     assert r.get_data() == b''

@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 543f9e516ec6
+Revision ID: 38fafa7cd6d9
 Revises: 
-Create Date: 2020-12-20 19:34:10.158153
+Create Date: 2020-12-21 17:40:28.078331
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '543f9e516ec6'
+revision = '38fafa7cd6d9'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -35,6 +35,9 @@ def upgrade():
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('config_data', sa.String(), nullable=False),
+    sa.Column('debtor_info_iri', sa.String(), nullable=True),
+    sa.Column('debtor_info_content_type', sa.String(), nullable=True),
+    sa.Column('debtor_info_sha256', sa.LargeBinary(), nullable=True),
     sa.Column('status_flags', sa.Integer(), nullable=False, comment='Contain additional account status bits: 1 - unreachable, 2 - overflown, 65536 - deleted, 131072 - established interest rate.'),
     sa.Column('total_locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
@@ -42,6 +45,7 @@ def upgrade():
     sa.Column('previous_interest_rate', sa.REAL(), nullable=False, comment='The annual interest rate (in percents) as it was before the last change of the interest rate happened (see `last_interest_rate_change_ts`).'),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdateSignal` was sent.'),
     sa.Column('pending_account_update', sa.BOOLEAN(), nullable=False, comment='Whether there has been a change in the record that requires an `AccountUpdate` message to be send.'),
+    sa.CheckConstraint('debtor_info_sha256 IS NULL OR octet_length(debtor_info_sha256) = 32'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_id >= 0'),
     sa.CheckConstraint('last_transfer_number >= 0'),
@@ -103,6 +107,9 @@ def upgrade():
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config_data', sa.String(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
+    sa.Column('debtor_info_iri', sa.String(), nullable=True),
+    sa.Column('debtor_info_content_type', sa.String(), nullable=True),
+    sa.Column('debtor_info_sha256', sa.LargeBinary(), nullable=True),
     sa.Column('status_flags', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )

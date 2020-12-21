@@ -1,3 +1,4 @@
+from base64 import b16encode
 import dramatiq
 from flask import current_app
 from datetime import datetime, timezone
@@ -227,9 +228,9 @@ class AccountUpdateSignal(Signal):
         inserted_at_ts = fields.DateTime(data_key='ts')
         ttl = fields.Integer()
         account_id = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
-        debtor_info_iri = fields.Constant('')
-        debtor_info_content_type = fields.Constant('')
-        debtor_info_sha256 = fields.Constant('')
+        debtor_info_iri = fields.Function(lambda obj: obj.debtor_info_iri or '')
+        debtor_info_content_type = fields.Function(lambda obj: obj.debtor_info_content_type or '')
+        debtor_info_sha256 = fields.Function(lambda obj: b16encode(obj.debtor_info_sha256 or b'').decode())
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -248,6 +249,9 @@ class AccountUpdateSignal(Signal):
     negligible_amount = db.Column(db.REAL, nullable=False)
     config_data = db.Column(db.String, nullable=False)
     config_flags = db.Column(db.Integer, nullable=False)
+    debtor_info_iri = db.Column(db.String)
+    debtor_info_content_type = db.Column(db.String)
+    debtor_info_sha256 = db.Column(db.LargeBinary)
     status_flags = db.Column(db.Integer, nullable=False)
 
     @property

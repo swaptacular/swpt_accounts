@@ -120,6 +120,9 @@ class AccountScanner(TableScanner):
                         negligible_amount=account.negligible_amount,
                         config_data=account.config_data,
                         config_flags=account.config_flags,
+                        debtor_info_iri=account.debtor_info_iri,
+                        debtor_info_content_type=account.debtor_info_content_type,
+                        debtor_info_sha256=account.debtor_info_sha256,
                         status_flags=account.status_flags,
                         inserted_at_ts=max(current_ts, account.last_change_ts),
                     )

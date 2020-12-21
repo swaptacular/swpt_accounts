@@ -7,6 +7,7 @@ from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
 from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64
 from .extensions import db
+from .fetch_api_client import parse_root_config_data
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
@@ -63,7 +64,21 @@ def configure_account(
             account.status_flags &= ~Account.STATUS_UNREACHABLE_FLAG
 
     def is_valid_config():
-        return negligible_amount >= 0.0 and config_data == ''
+        if not negligible_amount >= 0.0:
+            return False
+
+        if config_data == '':
+            return True
+
+        if creditor_id == ROOT_CREDITOR_ID:
+            try:
+                parse_root_config_data(config_data)
+            except ValueError:
+                pass
+            else:
+                return True
+
+        return False
 
     def try_to_configure(account):
         if is_valid_config():
@@ -461,6 +476,9 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
         negligible_amount=account.negligible_amount,
         config_data=account.config_data,
         config_flags=account.config_flags,
+        debtor_info_iri=account.debtor_info_iri,
+        debtor_info_content_type=account.debtor_info_content_type,
+        debtor_info_sha256=account.debtor_info_sha256,
         status_flags=account.status_flags,
         inserted_at_ts=account.last_change_ts,
     ))

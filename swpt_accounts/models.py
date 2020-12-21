@@ -2,7 +2,7 @@ import math
 from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import and_
+from sqlalchemy.sql.expression import func, null, or_, and_
 from swpt_lib.utils import date_to_int24
 from .extensions import db
 from .events import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, TRANSFER_NOTE_MAX_BYTES  # noqa
@@ -18,6 +18,7 @@ SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 PRISTINE_ACCOUNT_STATUS_FLAGS = 0
+CONFIG_DATA_MAX_BYTES = 2000
 
 # `FinalizeTransfer` finalization flags:
 FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG = 1
@@ -76,6 +77,9 @@ class Account(db.Model):
     negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
     config_flags = db.Column(db.Integer, nullable=False, default=0)
     config_data = db.Column(db.String, nullable=False, default='')
+    debtor_info_iri = db.Column(db.String)
+    debtor_info_content_type = db.Column(db.String)
+    debtor_info_sha256 = db.Column(db.LargeBinary)
     status_flags = db.Column(
         db.Integer,
         nullable=False,
@@ -146,6 +150,7 @@ class Account(db.Model):
         db.CheckConstraint(last_transfer_id >= 0),
         db.CheckConstraint(last_transfer_number >= 0),
         db.CheckConstraint(negligible_amount >= 0.0),
+        db.CheckConstraint(or_(debtor_info_sha256 == null(), func.octet_length(debtor_info_sha256) == 32)),
         {
             'comment': 'Tells who owes what to whom.',
         }
