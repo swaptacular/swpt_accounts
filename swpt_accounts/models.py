@@ -150,6 +150,7 @@ class Account(db.Model):
         db.CheckConstraint(last_transfer_id >= 0),
         db.CheckConstraint(last_transfer_number >= 0),
         db.CheckConstraint(negligible_amount >= 0.0),
+        db.CheckConstraint(func.octet_length(config_data) <= CONFIG_DATA_MAX_BYTES),
         db.CheckConstraint(or_(debtor_info_sha256 == null(), func.octet_length(debtor_info_sha256) == 32)),
         {
             'comment': 'Tells who owes what to whom.',

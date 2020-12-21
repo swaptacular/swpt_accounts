@@ -89,7 +89,7 @@ def parse_root_config_data(config_data: str) -> RootConfigData:
     if config_data == '':
         return RootConfigData()
 
-    if len(config_data) > CONFIG_DATA_MAX_BYTES or len(config_data.encode('utf8')) > CONFIG_DATA_MAX_BYTES:
+    if len(config_data) > CONFIG_DATA_MAX_BYTES:
         raise ValueError
 
     try:

@@ -2,10 +2,10 @@ import re
 import math
 import iso8601
 from .extensions import broker, APP_QUEUE_NAME
-from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, TRANSFER_NOTE_MAX_BYTES
+from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, TRANSFER_NOTE_MAX_BYTES, \
+    CONFIG_DATA_MAX_BYTES
 from . import procedures
 
-CONFIG_DATA_MAX_BYTES = 2000
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 
 
