@@ -24,9 +24,6 @@ def test_parse_root_config_data():
         parse_root_config_data('{"type": "INVALID_TYPE", "rate": 0.0}')
 
     with pytest.raises(ValueError):
-        parse_root_config_data('{"rate": 0.0}' + 2000 * ' ')
-
-    with pytest.raises(ValueError):
         parse_root_config_data('{"info": {"iri": "%s"}}' % (201 * 'x'))
 
     with pytest.raises(ValueError):

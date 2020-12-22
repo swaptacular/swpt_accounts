@@ -89,9 +89,6 @@ def parse_root_config_data(config_data: str) -> RootConfigData:
     if config_data == '':
         return RootConfigData()
 
-    if len(config_data) > CONFIG_DATA_MAX_BYTES:
-        raise ValueError
-
     try:
         data = _root_config_data_schema.loads(config_data)
     except ValidationError:
