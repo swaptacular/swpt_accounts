@@ -64,6 +64,8 @@ class Configuration(metaclass=MetaEnvReader):
     APP_ACCOUNT_HEARTBEAT_DAYS = 7.0
     APP_PREPARED_TRANSFER_REMAINDER_DAYS = 7.0
     APP_PREPARED_TRANSFER_MAX_DELAY_DAYS = 30.0
+    APP_FETCH_API_URL: str = None
+    APP_FETCH_API_TIMEOUT_SECONDS = 5.0
 
 
 def create_app(config_dict={}):

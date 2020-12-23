@@ -1,7 +1,12 @@
+import logging
+from urllib.parse import urljoin
 from base64 import b16decode
 from typing import NamedTuple, Optional
+import requests
 from marshmallow import Schema, fields, validate, validates, ValidationError
-from .models import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, CONFIG_DATA_MAX_BYTES
+from flask import current_app, url_for
+from .extensions import requests_session
+from .models import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 
 class ValidateTypeMixin:
@@ -107,3 +112,24 @@ def parse_root_config_data(config_data: str) -> RootConfigData:
         info_content_type = None
 
     return RootConfigData(interest_rate_target, info_iri, info_sha256, info_content_type)
+
+
+def get_if_account_is_reachable(debtor_id: int, creditor_id: int) -> bool:
+    with current_app.test_request_context():
+        path = url_for('fetch.reachable', _external=False, debtorId=debtor_id, creditorId=creditor_id)
+
+    url = urljoin(current_app.config['APP_FETCH_API_URL'], path)
+
+    try:
+        response = requests_session.get(url)
+        status_code = response.status_code
+        if status_code == 204:
+            return True
+        if status_code != 404:  # pragma: no cover
+            response.raise_for_status()
+
+    except requests.RequestException:  # pragma: no cover
+        logger = logging.getLogger(__name__)
+        logger.exception('Caught error while making a fetch request.')
+
+    return False

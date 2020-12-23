@@ -37,7 +37,7 @@ How to run it
 
 5. To run the unit tests, use this command::
 
-     $ docker-compose run tests-server test
+     $ docker-compose run tests-tasks test
 
 6. To run the minimal set of services needed for development, use this
    command::

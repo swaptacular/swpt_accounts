@@ -1,5 +1,7 @@
 from datetime import date, datetime, timezone, timedelta
 from swpt_accounts.extensions import db
+from swpt_accounts.fetch_api_client import get_if_account_is_reachable
+from swpt_accounts import procedures as p
 
 
 D_ID = -1
@@ -199,4 +201,21 @@ def test_scan_prepared_transfers(app_unsafe_session):
     Account.query.delete()
     PreparedTransfer.query.delete()
     PreparedTransferSignal.query.delete()
+    db.session.commit()
+
+
+def test_fetch_api(app_unsafe_session):
+    from swpt_accounts.models import Account, AccountUpdateSignal
+
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    db.session.commit()
+
+    current_ts = datetime.now(tz=timezone.utc)
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    assert get_if_account_is_reachable(D_ID, C_ID)
+    assert not get_if_account_is_reachable(666, C_ID)
+
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
     db.session.commit()
