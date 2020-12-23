@@ -48,7 +48,7 @@ services:
       - tests-config
 
 
-  tests-tasks:
+  tests-dummy:
     build:
       context: .
       dockerfile: Dockerfile
@@ -59,6 +59,6 @@ services:
       - 'PYTHONDONTWRITEBYTECODE=1'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@tests-pg:5432/${POSTGRES_DB}'
       - 'APP_FETCH_API_URL=http://tests-web:8080'
-    command: develop-run-tasks --watch '/usr/src/app/swpt_accounts' tasks:broker
+    command: echo This is a dummy container used only to run the tests.
     depends_on:
       - tests-web

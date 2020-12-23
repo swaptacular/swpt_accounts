@@ -37,7 +37,7 @@ How to run it
 
 5. To run the unit tests, use this command::
 
-     $ docker-compose run tests-tasks test
+     $ docker-compose run tests-dummy test
 
 6. To run the minimal set of services needed for development, use this
    command::
@@ -57,9 +57,9 @@ How to setup a development environment
      $ poetry install
 
 4. You can use ``flask swpt_accounts`` to run management commands,
-   ``dramatiq tasks:broker`` to spawn local task workers, and
-   ``pytest --cov=swpt_accounts --cov-report=html`` to run the tests
-   and generate a test coverage report..
+   ``dramatiq --watch . swpt_accounts tasks:broker`` to spawn local
+   task workers, and ``pytest --cov=swpt_accounts --cov-report=html``
+   to run the tests and generate a test coverage report..
 
 
 How to run all services (production-like)
