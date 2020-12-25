@@ -37,7 +37,9 @@ class EventSubscriptionMiddleware(Middleware):
 
 def get_asyncio_loop():
     if not hasattr(_local, 'asyncio_loop'):
-        _local.asyncio_loop = asyncio.new_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        _local.asyncio_loop = loop
 
     return _local.asyncio_loop
 

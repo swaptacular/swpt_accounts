@@ -1,10 +1,12 @@
 import logging
+import time
 import asyncio
 from functools import partial
 from urllib.parse import urljoin
 from base64 import b16decode
 from typing import NamedTuple, Optional, Iterable, Dict, List, Union
 import requests
+from async_lru import alru_cache
 from marshmallow import Schema, fields, validate, validates, ValidationError
 from flask import current_app, url_for
 from .extensions import requests_session, aiohttp_session, asyncio_loop
@@ -159,24 +161,38 @@ def _log_error(e):  # pragma: no cover
         logger.exception('Caught error while making a fetch request.')
 
 
-async def _fetch_root_config_data_list(debtor_ids: Iterable[int]) -> List[Union[str, Exception]]:
+@alru_cache(maxsize=10000)
+async def _fetch_root_config_data(debtor_id: int, ttl_hash: int) -> str:
     fetch_api_url = current_app.config['APP_FETCH_API_URL']
+    url = urljoin(fetch_api_url, _fetch_conifg_path(debtorId=debtor_id))
+
+    async with aiohttp_session.get(url) as response:
+        status_code = response.status
+        if status_code == 200:
+            return await response.text()
+        if status_code == 404:
+            return None
+
+        raise RuntimeError(f'Got an unexpected status code ({status_code}) from fetch request.')  # pragma: no cover
+
+
+def _get_ttl_hash(debtor_id: int) -> int:
+    # For each `debtor_id`, every two hours, we produce a different
+    # "ttl_hash"` value, which invalidates the entry for the given
+    # debtor in `_fetch_root_config_data()`'s LRU cache. Note that the
+    # cache entries for different debtors are invalidated at different
+    # times, which prevents a momentary total invalidation of the
+    # cache.
+
+    max_retention_seconds = 7200
+    variation = (debtor_id * 2654435761) % max_retention_seconds  # a pseudo-random number
+    ttl_hash = int((time.time() + variation) / max_retention_seconds)
+    return ttl_hash
+
+
+async def _fetch_root_config_data_list(debtor_ids: Iterable[int]) -> List[Union[str, Exception]]:
     with current_app.test_request_context():
-        paths = {debtor_id: _fetch_conifg_path(debtorId=debtor_id) for debtor_id in debtor_ids}
-
-    async def fetch(debtor_id: int) -> str:
-        url = urljoin(fetch_api_url, paths[debtor_id])
-
-        async with aiohttp_session.get(url) as response:
-            status_code = response.status
-            if status_code == 200:
-                return await response.text()
-            if status_code == 404:
-                return None
-
-            raise RuntimeError(f'Got an unexpected status code ({status_code}) from fetch request.')  # pragma: no cover
-
-    return await asyncio.gather(
-        *(fetch(debtor_id) for debtor_id in debtor_ids),
-        return_exceptions=True,
-    )
+        return await asyncio.gather(
+            *(_fetch_root_config_data(debtor_id, _get_ttl_hash(debtor_id)) for debtor_id in debtor_ids),
+            return_exceptions=True,
+        )
