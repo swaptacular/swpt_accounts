@@ -139,16 +139,16 @@ def get_if_account_is_reachable(debtor_id: int, creditor_id: int) -> bool:
 
 
 def get_root_config_data_dict(debtor_ids: Iterable[int]) -> Dict[int, Optional[str]]:
-    result = {debtor_id: None for debtor_id in debtor_ids}
-    fetch_results = asyncio_loop.run_until_complete(_fetch_root_config_data(debtor_ids))
+    result_dict = {debtor_id: None for debtor_id in debtor_ids}
+    results = asyncio_loop.run_until_complete(_fetch_root_config_data_list(debtor_ids))
 
-    for debtor_id, fetch_result in zip(debtor_ids, fetch_results):
-        if isinstance(fetch_result, Exception):  # pragma: no cover
-            _log_error(fetch_result)
+    for debtor_id, result in zip(debtor_ids, results):
+        if isinstance(result, Exception):  # pragma: no cover
+            _log_error(result)
         else:
-            result[debtor_id] = fetch_result
+            result_dict[debtor_id] = result
 
-    return result
+    return result_dict
 
 
 def _log_error(e):  # pragma: no cover
@@ -159,7 +159,7 @@ def _log_error(e):  # pragma: no cover
         logger.exception('Caught error while making a fetch request.')
 
 
-async def _fetch_root_config_data(debtor_ids: Iterable[int]) -> List[Union[str, Exception]]:
+async def _fetch_root_config_data_list(debtor_ids: Iterable[int]) -> List[Union[str, Exception]]:
     fetch_api_url = current_app.config['APP_FETCH_API_URL']
     with current_app.test_request_context():
         paths = {debtor_id: _fetch_conifg_path(debtorId=debtor_id) for debtor_id in debtor_ids}
