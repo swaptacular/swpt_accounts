@@ -138,20 +138,20 @@ def get_if_account_is_reachable(debtor_id: int, creditor_id: int) -> bool:
     return False
 
 
-def get_root_config_data(debtor_ids: Iterable[int]) -> Dict[int, Optional[str]]:
+def get_root_config_data_dict(debtor_ids: Iterable[int]) -> Dict[int, Optional[str]]:
     result = {debtor_id: None for debtor_id in debtor_ids}
     fetch_results = asyncio_loop.run_until_complete(_fetch_root_config_data(debtor_ids))
 
     for debtor_id, fetch_result in zip(debtor_ids, fetch_results):
         if isinstance(fetch_result, Exception):  # pragma: no cover
-            log_error(fetch_result)
+            _log_error(fetch_result)
         else:
             result[debtor_id] = fetch_result
 
     return result
 
 
-def log_error(e):  # pragma: no cover
+def _log_error(e):  # pragma: no cover
     try:
         raise e
     except Exception:

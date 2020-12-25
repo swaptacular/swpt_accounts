@@ -1,6 +1,6 @@
 from datetime import date, datetime, timezone, timedelta
 from swpt_accounts.extensions import db
-from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data
+from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict
 from swpt_accounts import procedures as p
 
 
@@ -221,7 +221,7 @@ def test_fetch_api(app_unsafe_session):
     db.session.commit()
 
 
-def test_get_root_config_data(app_unsafe_session):
+def test_get_root_config_data_dict(app_unsafe_session):
     from swpt_accounts.models import Account, AccountUpdateSignal
 
     Account.query.delete()
@@ -230,7 +230,7 @@ def test_get_root_config_data(app_unsafe_session):
 
     current_ts = datetime.now(tz=timezone.utc)
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 2.0}')
-    assert get_root_config_data([D_ID, 666]) == {D_ID: '{"rate": 2.0}', 666: None}
+    assert get_root_config_data_dict([D_ID, 666]) == {D_ID: '{"rate": 2.0}', 666: None}
 
     Account.query.delete()
     AccountUpdateSignal.query.delete()
