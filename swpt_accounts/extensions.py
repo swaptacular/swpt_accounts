@@ -44,7 +44,10 @@ def get_asyncio_loop():
 
 def get_aiohttp_session():
     if not hasattr(_local, 'aiohttp_session'):
-        connector = aiohttp.TCPConnector(limit=current_app.config['APP_FETCH_CONNECTIONS'], ttl_dns_cache=86400)
+        connector = aiohttp.TCPConnector(
+            limit=current_app.config['APP_FETCH_CONNECTIONS'],
+            ttl_dns_cache=int(current_app.config['APP_FETCH_DNS_CACHE_SECONDS']),
+        )
         timeout = aiohttp.ClientTimeout(total=current_app.config['APP_FETCH_API_TIMEOUT_SECONDS'])
         session = aiohttp.ClientSession(connector=connector, timeout=timeout)
         _local.aiohttp_session = session
