@@ -1,6 +1,8 @@
 import os
 import warnings
+import asyncio
 import requests
+import aiohttp
 from sqlalchemy.exc import SAWarning
 from werkzeug.local import Local, LocalProxy
 from flask import current_app
@@ -33,6 +35,23 @@ class EventSubscriptionMiddleware(Middleware):
         return {'event_subscription'}
 
 
+def get_asyncio_loop():
+    if not hasattr(_local, 'asyncio_loop'):
+        _local.asyncio_loop = asyncio.new_event_loop()
+
+    return _local.asyncio_loop
+
+
+def get_aiohttp_session():
+    if not hasattr(_local, 'aiohttp_session'):
+        connector = aiohttp.TCPConnector(limit=current_app.config['APP_FETCH_CONNECTIONS'], ttl_dns_cache=86400)
+        timeout = aiohttp.ClientTimeout(total=current_app.config['APP_FETCH_API_TIMEOUT_SECONDS'])
+        session = aiohttp.ClientSession(connector=connector, timeout=timeout)
+        _local.aiohttp_session = session
+
+    return _local.aiohttp_session
+
+
 def get_requests_session():
     if not hasattr(_local, 'requests_session'):
         session = requests.Session()
@@ -44,6 +63,8 @@ def get_requests_session():
 
 db = CustomAlchemy()
 migrate = Migrate()
+asyncio_loop = LocalProxy(get_asyncio_loop)
+aiohttp_session = LocalProxy(get_aiohttp_session)
 requests_session = LocalProxy(get_requests_session)
 broker = RabbitmqBroker(confirm_delivery=True)
 broker.add_middleware(EventSubscriptionMiddleware())

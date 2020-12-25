@@ -1,12 +1,14 @@
 import logging
+import asyncio
+from functools import partial
 from urllib.parse import urljoin
 from base64 import b16decode
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Iterable, Dict, List, Union
 import requests
 from marshmallow import Schema, fields, validate, validates, ValidationError
 from flask import current_app, url_for
-from .extensions import requests_session
-from .models import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+from .extensions import requests_session, aiohttp_session, asyncio_loop
+from .models import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, ROOT_CREDITOR_ID
 
 
 class ValidateTypeMixin:
@@ -88,6 +90,7 @@ class RootConfigData(NamedTuple):
 
 
 _root_config_data_schema = RootConfigDataSchema()
+_fetch_conifg_path = partial(url_for, 'fetch.config', _external=False, creditorId=ROOT_CREDITOR_ID)
 
 
 def parse_root_config_data(config_data: str) -> RootConfigData:
@@ -133,3 +136,47 @@ def get_if_account_is_reachable(debtor_id: int, creditor_id: int) -> bool:
         logger.exception('Caught error while making a fetch request.')
 
     return False
+
+
+def get_root_config_data(debtor_ids: Iterable[int]) -> Dict[int, Optional[str]]:
+    result = {debtor_id: None for debtor_id in debtor_ids}
+    fetch_results = asyncio_loop.run_until_complete(_fetch_root_config_data(debtor_ids))
+
+    for debtor_id, fetch_result in zip(debtor_ids, fetch_results):
+        if isinstance(fetch_result, Exception):  # pragma: no cover
+            log_error(fetch_result)
+        else:
+            result[debtor_id] = fetch_result
+
+    return result
+
+
+def log_error(e):  # pragma: no cover
+    try:
+        raise e
+    except Exception:
+        logger = logging.getLogger(__name__)
+        logger.exception('Caught error while making a fetch request.')
+
+
+async def _fetch_root_config_data(debtor_ids: Iterable[int]) -> List[Union[str, Exception]]:
+    fetch_api_url = current_app.config['APP_FETCH_API_URL']
+    with current_app.test_request_context():
+        paths = {debtor_id: _fetch_conifg_path(debtorId=debtor_id) for debtor_id in debtor_ids}
+
+    async def fetch(debtor_id: int) -> str:
+        url = urljoin(fetch_api_url, paths[debtor_id])
+
+        async with aiohttp_session.get(url) as response:
+            status_code = response.status
+            if status_code == 200:
+                return await response.text()
+            if status_code == 404:
+                return None
+
+            raise RuntimeError(f'Got an unexpected status code ({status_code}) from fetch request.')  # pragma: no cover
+
+    return await asyncio.gather(
+        *(fetch(debtor_id) for debtor_id in debtor_ids),
+        return_exceptions=True,
+    )

@@ -66,6 +66,7 @@ class Configuration(metaclass=MetaEnvReader):
     APP_PREPARED_TRANSFER_MAX_DELAY_DAYS = 30.0
     APP_FETCH_API_URL: str = None
     APP_FETCH_API_TIMEOUT_SECONDS = 5.0
+    APP_FETCH_CONNECTIONS = 100
 
 
 def create_app(config_dict={}):
