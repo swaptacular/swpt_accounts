@@ -21,11 +21,11 @@ def configure_account(
 
     """Make sure the account exists, and update its configuration settings."""
 
-    ts = iso8601.parse_date(ts)
+    parsed_ts = iso8601.parse_date(ts)
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert ts > BEGINNING_OF_TIME
+    assert parsed_ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= seqnum <= MAX_INT32
     assert MIN_INT32 <= config_flags <= MAX_INT32
     assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
@@ -33,7 +33,7 @@ def configure_account(
     procedures.configure_account(
         debtor_id,
         creditor_id,
-        ts,
+        parsed_ts,
         seqnum,
         negligible_amount,
         config_flags,
@@ -57,7 +57,7 @@ def prepare_transfer(
 
     """Try to secure some amount, to eventually transfer it to another account."""
 
-    ts = iso8601.parse_date(ts)
+    parsed_ts = iso8601.parse_date(ts)
 
     assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
@@ -65,7 +65,7 @@ def prepare_transfer(
     assert 0 <= min_locked_amount <= max_locked_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert ts > BEGINNING_OF_TIME
+    assert parsed_ts > BEGINNING_OF_TIME
     assert 0 <= max_commit_delay <= MAX_INT32
 
     procedures.prepare_transfer(
@@ -77,7 +77,7 @@ def prepare_transfer(
         debtor_id,
         creditor_id,
         recipient,
-        ts,
+        parsed_ts,
         max_commit_delay,
         min_interest_rate,
     )
@@ -99,7 +99,7 @@ def finalize_transfer(
 
     """Finalize a prepared transfer."""
 
-    ts = iso8601.parse_date(ts)
+    parsed_ts = iso8601.parse_date(ts)
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -112,7 +112,7 @@ def finalize_transfer(
     assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
     assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
     assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
-    assert ts > BEGINNING_OF_TIME
+    assert parsed_ts > BEGINNING_OF_TIME
 
     procedures.finalize_transfer(
         debtor_id,
@@ -125,7 +125,7 @@ def finalize_transfer(
         finalization_flags,
         transfer_note_format,
         transfer_note,
-        ts,
+        parsed_ts,
     )
 
 

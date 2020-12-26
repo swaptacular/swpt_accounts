@@ -140,7 +140,7 @@ def get_if_account_is_reachable(debtor_id: int, creditor_id: int) -> bool:
 
 
 def get_root_config_data_dict(debtor_ids: Iterable[int]) -> Dict[int, Optional[str]]:
-    result_dict = {debtor_id: None for debtor_id in debtor_ids}
+    result_dict: Dict[int, Optional[str]] = {debtor_id: None for debtor_id in debtor_ids}
     results = asyncio_loop.run_until_complete(_fetch_root_config_data_list(debtor_ids))
 
     for debtor_id, result in zip(debtor_ids, results):
@@ -148,6 +148,19 @@ def get_root_config_data_dict(debtor_ids: Iterable[int]) -> Dict[int, Optional[s
             _log_error(result)
         else:
             result_dict[debtor_id] = result
+
+    return result_dict
+
+
+def get_parsed_root_config_data_dict(debtor_ids: Iterable[int]) -> Dict[int, Optional[RootConfigData]]:
+    result_dict: Dict[int, Optional[RootConfigData]] = {debtor_id: None for debtor_id in debtor_ids}
+
+    for debtor_id, config_data in get_root_config_data_dict(debtor_ids).items():
+        if config_data is not None:
+            try:
+                result_dict[debtor_id] = parse_root_config_data(config_data)
+            except ValueError as e:  # pragma: nocover
+                _log_error(e)
 
     return result_dict
 
@@ -161,7 +174,7 @@ def _log_error(e):
 
 
 @alru_cache(maxsize=10000, cache_exceptions=False)
-async def _fetch_root_config_data(debtor_id: int, ttl_hash: int) -> str:
+async def _fetch_root_config_data(debtor_id: int, ttl_hash: int) -> Optional[str]:
     fetch_api_url = current_app.config['APP_FETCH_API_URL']
     url = urljoin(fetch_api_url, _fetch_conifg_path(debtorId=debtor_id))
 
