@@ -160,7 +160,7 @@ def _log_error(e):
         logger.exception('Caught error while making a fetch request.')
 
 
-@alru_cache(maxsize=10000)
+@alru_cache(maxsize=10000, cache_exceptions=False)
 async def _fetch_root_config_data(debtor_id: int, ttl_hash: int) -> str:
     fetch_api_url = current_app.config['APP_FETCH_API_URL']
     url = urljoin(fetch_api_url, _fetch_conifg_path(debtorId=debtor_id))

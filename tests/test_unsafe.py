@@ -250,7 +250,10 @@ def test_get_root_config_data_dict(app_unsafe_session, caplog):
         assert ["Caught error while making a fetch request."] == [rec.message for rec in caplog.records]
 
     current_app.config['APP_FETCH_API_URL'] = app_fetch_api_url
-    assert get_root_config_data_dict([D_ID, 666, 777]) == {D_ID: '{"rate": 2.0}', 666: None, 777: None}
+    caplog.clear()
+    with caplog.at_level(logging.ERROR):
+        assert get_root_config_data_dict([D_ID, 666, 777]) == {D_ID: '{"rate": 2.0}', 666: None, 777: None}
+        assert len(caplog.records) == 0
 
     Account.query.delete()
     AccountUpdateSignal.query.delete()
