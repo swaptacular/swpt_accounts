@@ -327,11 +327,13 @@ class PreparedTransfer(db.Model):
                 return SC_TOO_LOW_INTEREST_RATE
 
             if finalization_flags & FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG:
-                # TODO: This finctionality is not implemented
-                # yet. Three new message types would be needed for
+                # TODO: This functionality is not implemented
+                # yet. Several new message types would be needed for
                 # this: one outgoing message for transfer approval
-                # requests, and two incoming message types for
-                # approved and rejected transfers.
+                # requests, one (or two) incoming message types for
+                # approving and rejecting transfers, and one outgoing
+                # message to inform whether the transfer has been
+                # performed or not.
                 return SC_NO_RECIPIENT_CONFIRMATION
 
             if not (get_is_expendable() or get_is_reserved()):
