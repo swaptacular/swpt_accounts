@@ -1,13 +1,13 @@
 import math
 from datetime import datetime, timezone, timedelta
-from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Set
+from typing import TypeVar, Iterable, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from flask import current_app
 from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
 from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64
 from .extensions import db
-from .fetch_api_client import parse_root_config_data
+from .fetch_api_client import parse_root_config_data, get_if_account_is_reachable
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
@@ -132,16 +132,11 @@ def prepare_transfer(
     try:
         recipient_creditor_id = u64_to_i64(int(recipient))
     except ValueError:
-        db.session.add(RejectedTransferSignal(
-            debtor_id=debtor_id,
-            coordinator_type=coordinator_type,
-            coordinator_id=coordinator_id,
-            coordinator_request_id=coordinator_request_id,
-            status_code=SC_RECIPIENT_IS_UNREACHABLE,
-            total_locked_amount=0,
-            sender_creditor_id=creditor_id,
-        ))
+        is_reachable = False
     else:
+        is_reachable = get_if_account_is_reachable(debtor_id, recipient_creditor_id)
+
+    if is_reachable:
         db.session.add(TransferRequest(
             debtor_id=debtor_id,
             coordinator_type=coordinator_type,
@@ -153,6 +148,16 @@ def prepare_transfer(
             recipient_creditor_id=recipient_creditor_id,
             deadline=ts + timedelta(seconds=max_commit_delay),
             min_interest_rate=min_interest_rate,
+        ))
+    else:
+        db.session.add(RejectedTransferSignal(
+            debtor_id=debtor_id,
+            coordinator_type=coordinator_type,
+            coordinator_id=coordinator_id,
+            coordinator_request_id=coordinator_request_id,
+            status_code=SC_RECIPIENT_IS_UNREACHABLE,
+            total_locked_amount=0,
+            sender_creditor_id=creditor_id,
         ))
 
 
@@ -307,13 +312,11 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
 
     if transfer_requests:
         sender_account = get_account(debtor_id, creditor_id, lock=True)
-        reachable_recipient_account_pks = _get_reachable_recipient_account_pks(transfer_requests)
         rejected_transfer_signals = []
         prepared_transfer_signals = []
 
         for tr in transfer_requests:
-            is_recipient_reachable = (debtor_id, tr.recipient_creditor_id) in reachable_recipient_account_pks
-            signal = _process_transfer_request(tr, sender_account, is_recipient_reachable, current_ts)
+            signal = _process_transfer_request(tr, sender_account, current_ts)
             if isinstance(signal, RejectedTransferSignal):
                 rejected_transfer_signals.append(signal)
             else:
@@ -654,7 +657,6 @@ def _make_debtor_payment(
 def _process_transfer_request(
         tr: TransferRequest,
         sender_account: Optional[Account],
-        is_recipient_reachable: bool,
         current_ts: datetime) -> Union[RejectedTransferSignal, PreparedTransferSignal]:
 
     def reject(status_code: str, total_locked_amount: int) -> RejectedTransferSignal:
@@ -730,12 +732,6 @@ def _process_transfer_request(
 
     if tr.sender_creditor_id == tr.recipient_creditor_id:
         return reject(SC_RECIPIENT_SAME_AS_SENDER, sender_account.total_locked_amount)
-
-    # NOTE: Transfers to the debtor's account must be allowed even
-    # when the debtor's account does not exist. In this case, it will
-    # be created when the transfer is committed.
-    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
-        return reject(SC_RECIPIENT_IS_UNREACHABLE, sender_account.total_locked_amount)
 
     if sender_account.interest_rate < tr.min_interest_rate:
         return reject(SC_TOO_LOW_INTEREST_RATE, sender_account.total_locked_amount)
@@ -823,21 +819,6 @@ def _insert_account_maintenance_signal(
         request_ts=request_ts,
         inserted_at_ts=current_ts,
     ))
-
-
-def _get_reachable_recipient_account_pks(transfer_requests: List[TransferRequest]) -> Set[Tuple[int, int]]:
-    # TODO: To achieve better scalability, consider using some fast
-    #       distributed key-store (Redis?) containing the (debtor_id,
-    #       creditor_id) tuples for all accessible accounts.
-
-    account_pks = [(tr.debtor_id, tr.recipient_creditor_id) for tr in transfer_requests]
-    account_pks = db.session.\
-        query(Account.debtor_id, Account.creditor_id).\
-        filter(ACCOUNT_PK.in_(account_pks)).\
-        filter(Account.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
-        filter(Account.status_flags.op('&')(Account.STATUS_UNREACHABLE_FLAG) == 0).\
-        all()
-    return set(account_pks)
 
 
 def _get_min_account_balance(creditor_id):

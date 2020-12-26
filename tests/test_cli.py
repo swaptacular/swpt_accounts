@@ -17,7 +17,9 @@ def test_process_transfers_pending_changes(app, db_session):
     assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID) == -1000
 
 
-def test_process_transfers_transfer_requests(app, db_session):
+def test_process_transfers_transfer_requests(app, db_session, mock_account_is_reachable):
+    current_ts = datetime.now(tz=timezone.utc)
+    p.configure_account(D_ID, 1234, current_ts, 0)
     p.prepare_transfer(
         coordinator_type='test',
         coordinator_id=1,
@@ -27,7 +29,7 @@ def test_process_transfers_transfer_requests(app, db_session):
         debtor_id=D_ID,
         creditor_id=C_ID,
         recipient='1234',
-        ts=datetime.now(tz=timezone.utc),
+        ts=current_ts,
     )
     assert len(TransferRequest.query.all()) == 1
     runner = app.test_cli_runner()
@@ -37,7 +39,7 @@ def test_process_transfers_transfer_requests(app, db_session):
     assert len(TransferRequest.query.all()) == 0
 
 
-def test_process_transfers_finalization_requests(app, db_session):
+def test_process_transfers_finalization_requests(app, db_session, mock_account_is_reachable):
     p.make_debtor_payment('test', D_ID, C_ID, 1000)
     p.process_pending_account_changes(D_ID, C_ID)
     p.prepare_transfer(

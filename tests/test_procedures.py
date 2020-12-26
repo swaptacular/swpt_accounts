@@ -418,7 +418,7 @@ def test_delete_account(db_session, current_ts):
         one_or_none()
 
 
-def test_delete_account_negative_balance(db_session, current_ts):
+def test_delete_account_negative_balance(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: -5})
@@ -542,7 +542,7 @@ def test_resurrect_deleted_account_transfer(db_session, current_ts):
     assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
-def test_prepare_transfer_insufficient_funds(db_session, current_ts):
+def test_prepare_transfer_insufficient_funds(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, 1234, current_ts, 0)
     p.configure_account(D_ID, C_ID, current_ts, 0)
     assert len(AccountUpdateSignal.query.all()) == 2
@@ -584,7 +584,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     assert isinstance(rts_obj['ts'], str)
 
 
-def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
+def test_prepare_transfer_account_does_not_exist(db_session, current_ts, mocker, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 100})
@@ -608,7 +608,7 @@ def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
     assert rts.status_code == p.SC_RECIPIENT_IS_UNREACHABLE
 
 
-def test_prepare_transfer_to_self(db_session, current_ts):
+def test_prepare_transfer_to_self(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 100})
@@ -632,7 +632,7 @@ def test_prepare_transfer_to_self(db_session, current_ts):
     assert rts.status_code == p.SC_RECIPIENT_SAME_AS_SENDER
 
 
-def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
+def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
@@ -657,7 +657,7 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
     assert rts.status_code == p.SC_TOO_MANY_TRANSFERS
 
 
-def test_prepare_transfer_invalid_recipient(db_session, current_ts):
+def test_prepare_transfer_invalid_recipient(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     q.update({Account.principal: 100, Account.pending_transfers_count: MAX_INT32})
@@ -681,7 +681,7 @@ def test_prepare_transfer_invalid_recipient(db_session, current_ts):
     assert rts.status_code == p.SC_RECIPIENT_IS_UNREACHABLE
 
 
-def test_prepare_transfer_interest_rate_too_low(db_session, current_ts):
+def test_prepare_transfer_interest_rate_too_low(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
@@ -703,7 +703,7 @@ def test_prepare_transfer_interest_rate_too_low(db_session, current_ts):
     assert rts.status_code == p.SC_TOO_LOW_INTEREST_RATE
 
 
-def test_prepare_transfer_success(db_session, current_ts):
+def test_prepare_transfer_success(db_session, current_ts, mock_account_is_reachable):
     assert 1234 != C_ID
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
@@ -792,7 +792,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert fpt_obj['prepared_at'] == fpt.prepared_at_ts.isoformat()
 
 
-def test_commit_prepared_transfer(db_session, current_ts):
+def test_commit_prepared_transfer(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
@@ -842,7 +842,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert cts2.acquired_amount == 40
 
 
-def test_commit_issuing_transfer(db_session, current_ts):
+def test_commit_issuing_transfer(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, 1234, current_ts, 0)
     p.configure_account(D_ID, ROOT_CREDITOR_ID, current_ts, 0)
     p.prepare_transfer(
@@ -877,7 +877,7 @@ def test_commit_issuing_transfer(db_session, current_ts):
     assert len(FinalizedTransferSignal.query.all()) == 1
 
 
-def test_zero_locked_amount_unsuccessful_commit(db_session, current_ts):
+def test_zero_locked_amount_unsuccessful_commit(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
     p.prepare_transfer(
@@ -909,7 +909,7 @@ def test_zero_locked_amount_unsuccessful_commit(db_session, current_ts):
     assert a2.principal == 0
 
 
-def test_zero_locked_amount_successful_commit(db_session, current_ts):
+def test_zero_locked_amount_successful_commit(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
     p.prepare_transfer(
@@ -943,7 +943,7 @@ def test_zero_locked_amount_successful_commit(db_session, current_ts):
     assert a2.principal == 60
 
 
-def test_prepared_transfer_commit_timeout(db_session, current_ts):
+def test_prepared_transfer_commit_timeout(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
@@ -971,7 +971,7 @@ def test_prepared_transfer_commit_timeout(db_session, current_ts):
     assert fts.committed_amount == 0
 
 
-def test_prepared_transfer_too_big_committed_amount(db_session, current_ts):
+def test_prepared_transfer_too_big_committed_amount(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
@@ -996,7 +996,7 @@ def test_prepared_transfer_too_big_committed_amount(db_session, current_ts):
     assert fts.committed_amount == 0
 
 
-def test_commit_to_debtor_account(db_session, current_ts):
+def test_commit_to_debtor_account(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
@@ -1033,7 +1033,7 @@ def test_marshmallow_auto_generated_classes(db_session):
     assert hasattr(AccountTransferSignal, '__marshmallow_schema__')
 
 
-def test_delayed_direct_transfer(db_session, current_ts):
+def test_delayed_direct_transfer(db_session, current_ts, mock_account_is_reachable):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)

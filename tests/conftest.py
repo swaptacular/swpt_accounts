@@ -71,3 +71,10 @@ def db_session(app):
         transaction.rollback()
     for connection in connections_by_engine.values():
         connection.close()
+
+
+@pytest.fixture(scope='function')
+def mock_account_is_reachable(mocker):
+    from swpt_accounts.procedures import is_reachable_account
+
+    mocker.patch('swpt_accounts.procedures.get_if_account_is_reachable', is_reachable_account)
