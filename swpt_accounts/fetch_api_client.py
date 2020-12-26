@@ -130,12 +130,11 @@ def get_if_account_is_reachable(debtor_id: int, creditor_id: int) -> bool:
         status_code = response.status_code
         if status_code == 204:
             return True
-        if status_code != 404:  # pragma: no cover
-            response.raise_for_status()
+        if status_code != 404:
+            response.raise_for_status()  # pragma: no cover
 
-    except requests.RequestException:  # pragma: no cover
-        logger = logging.getLogger(__name__)
-        logger.exception('Caught error while making a fetch request.')
+    except requests.RequestException as e:
+        _log_error(e)
 
     return False
 
@@ -145,7 +144,7 @@ def get_root_config_data_dict(debtor_ids: Iterable[int]) -> Dict[int, Optional[s
     results = asyncio_loop.run_until_complete(_fetch_root_config_data_list(debtor_ids))
 
     for debtor_id, result in zip(debtor_ids, results):
-        if isinstance(result, Exception):  # pragma: no cover
+        if isinstance(result, Exception):
             _log_error(result)
         else:
             result_dict[debtor_id] = result
@@ -153,7 +152,7 @@ def get_root_config_data_dict(debtor_ids: Iterable[int]) -> Dict[int, Optional[s
     return result_dict
 
 
-def _log_error(e):  # pragma: no cover
+def _log_error(e):
     try:
         raise e
     except Exception:
