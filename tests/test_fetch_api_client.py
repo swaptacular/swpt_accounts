@@ -11,13 +11,13 @@ def test_parse_root_config_data():
     assert parse_root_config_data('{"rate": -49.0}') == RootConfigData(-49.0)
     assert parse_root_config_data('{"type": "RootConfigData", "rate": 0.0}') == RootConfigData(0.0)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="invalid root config data: 'NOT JSON'"):
         parse_root_config_data('NOT JSON')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="invalid root config data: '{\"rate\": NaN}'"):
         parse_root_config_data('{"rate": NaN}')
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="invalid root config data: '{\"rate\": -51}'"):
         parse_root_config_data('{"rate": -51}')
 
     with pytest.raises(ValueError):

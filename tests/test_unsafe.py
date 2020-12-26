@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone, timedelta
 from flask import current_app
 from swpt_accounts.extensions import db
 from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict, \
-    get_parsed_root_config_data_dict, RootConfigData
+    RootConfigData
 from swpt_accounts import procedures as p
 
 
@@ -243,8 +243,7 @@ def test_get_root_config_data_dict(app_unsafe_session, caplog):
 
     current_ts = datetime.now(tz=timezone.utc)
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 2.0}')
-    assert get_root_config_data_dict([D_ID, 666]) == {D_ID: '{"rate": 2.0}', 666: None}
-    assert get_parsed_root_config_data_dict([D_ID, 666]) == {D_ID: RootConfigData(2.0), 666: None}
+    assert get_root_config_data_dict([D_ID, 666]) == {D_ID: RootConfigData(2.0), 666: None}
 
     current_app.config['APP_FETCH_API_URL'] = 'localhost:1111'
     with caplog.at_level(logging.ERROR):
@@ -254,7 +253,7 @@ def test_get_root_config_data_dict(app_unsafe_session, caplog):
     current_app.config['APP_FETCH_API_URL'] = app_fetch_api_url
     caplog.clear()
     with caplog.at_level(logging.ERROR):
-        assert get_root_config_data_dict([D_ID, 666, 777]) == {D_ID: '{"rate": 2.0}', 666: None, 777: None}
+        assert get_root_config_data_dict([D_ID, 666, 777]) == {D_ID: RootConfigData(2.0), 666: None, 777: None}
         assert len(caplog.records) == 0
 
     Account.query.delete()
