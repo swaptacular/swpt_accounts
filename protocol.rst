@@ -581,9 +581,6 @@ ts : date-time
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
      account does not exist, or does not accept incoming transfers.
 
-   * ``"NO_RECIPIENT_CONFIRMATION"`` signifies that a confirmation
-     from the recipient is required, but has not been obtained.
-
    * ``"TERMINATED"`` or anything that starts with "TERMINATED",
      signifies that the transfer has been terminated due to expired
      deadline or unapproved interest rate change.
