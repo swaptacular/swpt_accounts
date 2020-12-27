@@ -20,9 +20,6 @@ BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 PRISTINE_ACCOUNT_STATUS_FLAGS = 0
 CONFIG_DATA_MAX_BYTES = 2000
 
-# `FinalizeTransfer` finalization flags:
-FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG = 1
-
 # Reserved coordinator types:
 CT_INTEREST = 'interest'
 CT_DELETE = 'delete'
@@ -33,7 +30,6 @@ SC_OK = 'OK'
 SC_TIMEOUT = 'TERMINATED'
 SC_SENDER_DOES_NOT_EXIST = 'SENDER_DOES_NOT_EXIST'
 SC_RECIPIENT_IS_UNREACHABLE = 'RECIPIENT_IS_UNREACHABLE'
-SC_NO_RECIPIENT_CONFIRMATION = 'NO_RECIPIENT_CONFIRMATION'
 SC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
 SC_RECIPIENT_SAME_AS_SENDER = 'RC_RECIPIENT_IS_UNREACHABLE'
 SC_TOO_MANY_TRANSFERS = 'TOO_MANY_TRANSFERS'
@@ -239,7 +235,6 @@ class FinalizationRequest(db.Model):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note_format = db.Column(pg.TEXT, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
-    finalization_flags = db.Column(db.Integer, nullable=False)
     ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     __table_args__ = (
@@ -291,7 +286,6 @@ class PreparedTransfer(db.Model):
 
     def calc_status_code(
             self,
-            finalization_flags: int,
             committed_amount: int,
             expendable_amount: int,
             interest_rate: float,
@@ -325,16 +319,6 @@ class PreparedTransfer(db.Model):
 
             if interest_rate < self.min_interest_rate:
                 return SC_TOO_LOW_INTEREST_RATE
-
-            if finalization_flags & FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG:
-                # TODO: This functionality is not implemented
-                # yet. Several new message types would be needed for
-                # this: one outgoing message for transfer approval
-                # requests, one (or two) incoming message types for
-                # approving and rejecting transfers, and one outgoing
-                # message to inform whether the transfer has been
-                # performed or not.
-                return SC_NO_RECIPIENT_CONFIRMATION
 
             if not (get_is_expendable() or get_is_reserved()):
                 return SC_INSUFFICIENT_AVAILABLE_AMOUNT

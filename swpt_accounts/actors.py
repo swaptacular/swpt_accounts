@@ -92,7 +92,6 @@ def finalize_transfer(
         coordinator_id: int,
         coordinator_request_id: int,
         committed_amount: int,
-        finalization_flags: int,
         transfer_note_format: str,
         transfer_note: str,
         ts: str) -> None:
@@ -108,7 +107,6 @@ def finalize_transfer(
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 <= committed_amount <= MAX_INT64
-    assert MIN_INT32 <= finalization_flags <= MAX_INT32
     assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
     assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
     assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
@@ -122,7 +120,6 @@ def finalize_transfer(
         coordinator_id,
         coordinator_request_id,
         committed_amount,
-        finalization_flags,
         transfer_note_format,
         transfer_note,
         parsed_ts,

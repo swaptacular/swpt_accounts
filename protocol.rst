@@ -429,20 +429,6 @@ transfer_note_format : string
    dismissed, this field will be ignored, and therefore SHOULD contain
    an empty string.
 
-finalization_flags : int32
-   Various bit-flags that may affect the behavior of the server when
-   it commits the transfer. Different server implementations may use
-   these flags for different purposes. The lowest 16 bits are
-   reserved. Bit ``0`` has the meaning "require recipient
-   confirmation", indicating that the transfer MUST NOT be committed
-   until a confirmation from the recipient has been received. (This
-   might be useful for implementing exchanges -- when money is sent
-   for an accepted bid, the exchange would be able to reject the
-   transfer if the bid is already off at that time.)
-
-   If the transfer is being dismissed, this field will be ignored, and
-   therefore SHOULD contain ``0``.
-
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
