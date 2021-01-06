@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: ddbae89b46c2
+Revision ID: 822cb7f517e0
 Revises: 
-Create Date: 2020-12-27 18:30:40.099760
+Create Date: 2021-01-06 16:23:17.937557
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'ddbae89b46c2'
+revision = '822cb7f517e0'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -44,6 +44,8 @@ def upgrade():
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
     sa.Column('previous_interest_rate', sa.REAL(), nullable=False, comment='The annual interest rate (in percents) as it was before the last change of the interest rate happened (see `last_interest_rate_change_ts`).'),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdateSignal` was sent.'),
+    sa.Column('last_interest_capitalization_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last interest capitalization was triggered. It is used to avoid capitalizing interest too often.'),
+    sa.Column('last_deletion_attempt_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last deletion attempt was made. It is used to avoid trying to delete the account too often.'),
     sa.Column('pending_account_update', sa.BOOLEAN(), nullable=False, comment='Whether there has been a change in the record that requires an `AccountUpdate` message to be send.'),
     sa.CheckConstraint('debtor_info_sha256 IS NULL OR octet_length(debtor_info_sha256) = 32'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
@@ -56,14 +58,6 @@ def upgrade():
     sa.CheckConstraint('total_locked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id'),
     comment='Tells who owes what to whom.'
-    )
-    op.create_table('account_maintenance_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('request_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
     op.create_table('account_purge_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -256,6 +250,5 @@ def downgrade():
     op.drop_table('account_update_signal')
     op.drop_table('account_transfer_signal')
     op.drop_table('account_purge_signal')
-    op.drop_table('account_maintenance_signal')
     op.drop_table('account')
     # ### end Alembic commands ###

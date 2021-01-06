@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
 from swpt_lib.utils import i64_to_u64
-from .extensions import db, broker, MAIN_EXCHANGE_NAME
+from .extensions import db, protocol_broker, MAIN_EXCHANGE_NAME
 
 __all__ = [
     'RejectedTransferSignal',
@@ -15,7 +15,6 @@ __all__ = [
     'AccountUpdateSignal',
     'AccountPurgeSignal',
     'RejectedConfigSignal',
-    'AccountMaintenanceSignal',
 ]
 
 INTEREST_RATE_FLOOR = -50.0
@@ -63,7 +62,7 @@ class Signal(db.Model):
             kwargs=data,
             options={},
         )
-        broker.publish_message(message, exchange=MAIN_EXCHANGE_NAME, routing_key=routing_key)
+        protocol_broker.publish_message(message, exchange=MAIN_EXCHANGE_NAME, routing_key=routing_key)
 
     inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
@@ -307,41 +306,3 @@ class RejectedConfigSignal(Signal):
     config_data = db.Column(db.String, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
-
-
-class AccountMaintenanceSignal(Signal):
-    """"Emitted when a maintenance operation request is received for a
-    given account.
-
-    Maintenance operations are:
-
-    - `actor.capitalize_interest`
-    - `actor.try_to_delete_account`
-    - `actor.try_to_change_interest_rate`
-
-    The event indicates that more maintenance operation requests can
-    be made for the given account, without the risk of flooding the
-    signal bus with account maintenance requests.
-
-    * `debtor_id` and `creditor_id` identify the account.
-
-    * `request_ts` is the timestamp of the received maintenance
-      operation request. It can be used to the match the
-      `AccountMaintenanceSignal` with the originating request.
-
-    * `ts` is the moment at which message was sent. (Note that
-      `request_ts` and `ts` are generated on different servers, so
-      there might be some discrepancies.)
-
-    """
-
-    class __marshmallow__(Schema):
-        debtor_id = fields.Integer()
-        creditor_id = fields.Integer()
-        request_ts = fields.DateTime()
-        inserted_at_ts = fields.DateTime(data_key='ts')
-
-    debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
-    signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    request_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)

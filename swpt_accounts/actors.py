@@ -1,7 +1,7 @@
 import re
 import math
 import iso8601
-from .extensions import broker, APP_QUEUE_NAME
+from .extensions import protocol_broker, chores_broker, APP_QUEUE_NAME
 from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, TRANSFER_NOTE_MAX_BYTES, \
     CONFIG_DATA_MAX_BYTES
 from . import procedures
@@ -9,7 +9,7 @@ from . import procedures
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME)
 def configure_account(
         debtor_id: int,
         creditor_id: int,
@@ -41,7 +41,7 @@ def configure_account(
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME)
 def prepare_transfer(
         coordinator_type: str,
         coordinator_id: int,
@@ -83,7 +83,7 @@ def prepare_transfer(
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME)
 def finalize_transfer(
         debtor_id: int,
         creditor_id: int,
@@ -129,8 +129,8 @@ def finalize_transfer(
 # TODO: Consider passing a `demurrage_rate` argument here as
 #       well. This would allow us to more accurately set the
 #       `demurrage_rate` field in `AccountUpdate` messages.
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def try_to_change_interest_rate(
+@chores_broker.actor(queue_name='change_interest_rate', max_retries=0)
+def change_interest_rate(
         debtor_id: int,
         creditor_id: int,
         interest_rate: float,
@@ -138,8 +138,9 @@ def try_to_change_interest_rate(
 
     """Try to change the interest rate on the account.
 
-    The interest rate will not be changed if not enough time has
-    passed since the previous change in the interest rate.
+    The interest rate will not be changed if the request is too old,
+    or not enough time has passed since the previous change in the
+    interest rate.
 
     """
 
@@ -147,7 +148,7 @@ def try_to_change_interest_rate(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert not math.isnan(interest_rate)
 
-    procedures.try_to_change_interest_rate(
+    procedures.change_interest_rate(
         debtor_id,
         creditor_id,
         interest_rate,
@@ -155,14 +156,14 @@ def try_to_change_interest_rate(
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
+@chores_broker.actor(queue_name='capitalize_interest', max_retries=0)
 def capitalize_interest(
         debtor_id: int,
         creditor_id: int,
         accumulated_interest_threshold: int,
         request_ts: str) -> None:
 
-    """Clear the interest accumulated on the account, adding it to the principal.
+    """Add the interest accumulated on the account to the principal.
 
     Does nothing if the absolute value of the accumulated interest is
     smaller than `abs(accumulated_interest_threshold)`.
@@ -181,7 +182,7 @@ def capitalize_interest(
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
+@chores_broker.actor(queue_name='delete_account', max_retries=0)
 def try_to_delete_account(
         debtor_id: int,
         creditor_id: int,

@@ -20,7 +20,8 @@ services:
     env_file: .env
     environment:
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@pg:5432/${POSTGRES_DB}'
-      - 'DRAMATIQ_BROKER_URL=amqp://guest:guest@localhost:5672'
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@localhost:5672'
+      - 'CHORES_BROKER_URL=amqp://guest:guest@localhost:5672'
     depends_on:
       - pg
 
@@ -31,7 +32,8 @@ services:
       dockerfile: Dockerfile
     environment:
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@pg:5432/${POSTGRES_DB}'
-      - 'DRAMATIQ_BROKER_URL=amqp://guest:guest@localhost:5672'
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@localhost:5672'
+      - 'CHORES_BROKER_URL=amqp://guest:guest@localhost:5672'
     command: configure
     depends_on:
       - pg

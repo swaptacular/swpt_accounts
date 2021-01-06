@@ -57,9 +57,10 @@ How to setup a development environment
      $ poetry install
 
 4. You can use ``flask swpt_accounts`` to run management commands,
-   ``dramatiq --watch . swpt_accounts tasks:broker`` to spawn local
-   task workers, and ``pytest --cov=swpt_accounts --cov-report=html``
-   to run the tests and generate a test coverage report..
+   ``dramatiq --watch . tasks:protocol_broker`` and ``dramatiq --watch
+   . tasks:chores_broker`` to spawn local task workers, and
+   ``pytest --cov=swpt_accounts --cov-report=html`` to run the tests
+   and generate a test coverage report..
 
 
 How to run all services (production-like)

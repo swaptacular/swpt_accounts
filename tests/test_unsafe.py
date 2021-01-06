@@ -234,6 +234,8 @@ def test_get_if_account_is_reachable(app_unsafe_session, caplog):
 
 def test_get_root_config_data_dict(app_unsafe_session, caplog):
     from swpt_accounts.models import Account, AccountUpdateSignal
+    from swpt_accounts.fetch_api_client import _fetch_root_config_data
+    _fetch_root_config_data.cache_clear()
 
     app_fetch_api_url = current_app.config['APP_FETCH_API_URL']
 

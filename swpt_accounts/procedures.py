@@ -11,7 +11,7 @@ from .fetch_api_client import parse_root_config_data, get_if_account_is_reachabl
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
-    AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal, FinalizationRequest,
+    AccountUpdateSignal, AccountTransferSignal, FinalizationRequest,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MIN_INT64, MAX_INT64,
     SECONDS_IN_DAY, CT_INTEREST, CT_DELETE, CT_DIRECT, SC_OK, SC_SENDER_DOES_NOT_EXIST,
     SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_RECIPIENT_SAME_AS_SENDER,
@@ -218,11 +218,11 @@ def get_account_config_data(debtor_id: int, creditor_id: int) -> Optional[str]:
 
 
 @atomic
-def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
+def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
     current_ts = datetime.now(tz=timezone.utc)
-    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-    is_valid_request = (current_ts - request_ts).total_seconds() <= signalbus_max_delay_seconds
-    account = get_account(debtor_id, creditor_id, lock=True) if is_valid_request else None
+    min_change_interval_seconds = (current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] + 1.0) * SECONDS_IN_DAY
+    is_old_request = (current_ts - request_ts).total_seconds() > min_change_interval_seconds
+    account = None if is_old_request else get_account(debtor_id, creditor_id, lock=True)
     if account:
         # NOTE: Too big positive interest rates can cause account
         # balance overflows. To prevent this, the interest rates
@@ -242,7 +242,7 @@ def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate:
         has_established_interest_rate = account.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         has_incorrect_interest_rate = not has_established_interest_rate or account.interest_rate != interest_rate
         seconds_since_last_change = (current_ts - account.last_interest_rate_change_ts).total_seconds()
-        if seconds_since_last_change > signalbus_max_delay_seconds + SECONDS_IN_DAY and has_incorrect_interest_rate:
+        if seconds_since_last_change >= min_change_interval_seconds and has_incorrect_interest_rate:
             assert current_ts >= account.last_interest_rate_change_ts
             account.interest = float(_calc_account_accumulated_interest(account, current_ts))
             account.previous_interest_rate = account.interest_rate
@@ -252,8 +252,6 @@ def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate:
             account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
             account.last_change_ts = max(account.last_change_ts, current_ts)
             _insert_account_update_signal(account, current_ts)
-
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
 
 
 @atomic
@@ -272,8 +270,6 @@ def capitalize_interest(
         if abs(accumulated_interest) >= positive_threshold:
             _make_debtor_payment(CT_INTEREST, account, accumulated_interest, current_ts)
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
-
 
 @atomic
 def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime) -> None:
@@ -291,8 +287,6 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
             if account.principal != 0:
                 _make_debtor_payment(CT_DELETE, account, -account.principal, current_ts)
             _mark_account_as_deleted(account, current_ts)
-
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
 
 
 @atomic
@@ -797,20 +791,6 @@ def _finalize_prepared_transfer(
         status_code=status_code,
     ))
     return committed_amount
-
-
-def _insert_account_maintenance_signal(
-        debtor_id: int,
-        creditor_id: int,
-        request_ts: datetime,
-        current_ts: datetime) -> None:
-
-    db.session.add(AccountMaintenanceSignal(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-        request_ts=request_ts,
-        inserted_at_ts=current_ts,
-    ))
 
 
 def _get_min_account_balance(creditor_id):

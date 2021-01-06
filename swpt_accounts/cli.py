@@ -25,10 +25,10 @@ def subscribe(queue_name):  # pragma: no cover
 
     """
 
-    from .extensions import broker, MAIN_EXCHANGE_NAME
+    from .extensions import protocol_broker, MAIN_EXCHANGE_NAME
     from . import actors  # noqa
 
-    channel = broker.channel
+    channel = protocol_broker.channel
     channel.exchange_declare(MAIN_EXCHANGE_NAME)
     click.echo(f'Declared "{MAIN_EXCHANGE_NAME}" direct exchange.')
 
@@ -41,7 +41,7 @@ def subscribe(queue_name):  # pragma: no cover
     bind(queue_name, MAIN_EXCHANGE_NAME, queue_name)
     click.echo(f'Subscribed "{queue_name}" to "{MAIN_EXCHANGE_NAME}.{queue_name}".')
 
-    for actor in [broker.get_actor(actor_name) for actor_name in broker.get_declared_actors()]:
+    for actor in [protocol_broker.get_actor(actor_name) for actor_name in protocol_broker.get_declared_actors()]:
         if 'event_subscription' in actor.options:
             routing_key = f'events.{actor.actor_name}'
             if actor.options['event_subscription']:

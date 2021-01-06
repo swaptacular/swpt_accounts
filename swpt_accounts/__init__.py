@@ -56,8 +56,8 @@ class Configuration(metaclass=MetaEnvReader):
     SQLALCHEMY_MAX_OVERFLOW: int = None
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
-    DRAMATIQ_BROKER_CLASS = 'RabbitmqBroker'
-    DRAMATIQ_BROKER_URL = 'amqp://guest:guest@localhost:5672'
+    PROTOCOL_BROKER_URL = 'amqp://guest:guest@localhost:5672'
+    CHORES_BROKER_URL: str = None
     APP_ACCOUNTS_SCAN_HOURS = 8.0
     APP_PREPARED_TRANSFERS_SCAN_DAYS = 1.0
     APP_SIGNALBUS_MAX_DELAY_DAYS = 7.0
@@ -68,13 +68,20 @@ class Configuration(metaclass=MetaEnvReader):
     APP_FETCH_API_TIMEOUT_SECONDS = 5.0
     APP_FETCH_DNS_CACHE_SECONDS = 10.0
     APP_FETCH_CONNECTIONS = 100
+    APP_MIN_INTEREST_CAPITALIZATION_DAYS = 14.0
+    APP_MAX_INTEREST_TO_PRINCIPAL_RATIO = 0.01
+    APP_DELETION_ATTEMPTS_MIN_DAYS = 14.0
+    APP_ACCOUNTS_SCAN_BLOCKS_PER_QUERY = 40
+    APP_ACCOUNTS_SCAN_BEAT_MILLISECS = 25
+    APP_PREPARED_TRANSFERS_SCAN_BLOCKS_PER_QUERY = 40
+    APP_PREPARED_TRANSFERS_SCAN_BEAT_MILLISECS = 25
 
 
 def create_app(config_dict={}):
     from werkzeug.middleware.proxy_fix import ProxyFix
     from flask import Flask
     from swpt_lib.utils import Int64Converter
-    from .extensions import db, migrate, broker
+    from .extensions import db, migrate, protocol_broker, chores_broker
     from .routes import fetch_api
     from .cli import swpt_accounts
     from . import models  # noqa
@@ -86,7 +93,8 @@ def create_app(config_dict={}):
     app.config.from_mapping(config_dict)
     db.init_app(app)
     migrate.init_app(app, db)
-    broker.init_app(app)
+    protocol_broker.init_app(app)
+    chores_broker.init_app(app)
     app.register_blueprint(fetch_api)
     app.cli.add_command(swpt_accounts)
     return app
