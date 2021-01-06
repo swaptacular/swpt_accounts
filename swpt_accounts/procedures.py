@@ -268,25 +268,29 @@ def capitalize_interest(
         accumulated_interest = math.floor(_calc_account_accumulated_interest(account, current_ts))
         accumulated_interest = _contain_principal_overflow(accumulated_interest)
         if abs(accumulated_interest) >= positive_threshold:
+            account.last_interest_capitalization_ts = current_ts
             _make_debtor_payment(CT_INTEREST, account, accumulated_interest, current_ts)
 
 
 @atomic
 def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime) -> None:
+    if creditor_id == ROOT_CREDITOR_ID:
+        # TODO: Allow the deletion of the debtor's account if there
+        #       are no other accounts with the given debtor.
+        return
+
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
-    if account and account.pending_transfers_count == 0:
-        if creditor_id == ROOT_CREDITOR_ID:
-            can_be_deleted = account.principal == 0
-        else:
-            has_negligible_balance = account.calc_current_balance(current_ts) <= max(2.0, account.negligible_amount)
-            is_scheduled_for_deletion = account.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-            can_be_deleted = has_negligible_balance and is_scheduled_for_deletion
+    if account:
+        account.last_deletion_attempt_ts = current_ts
 
-        if can_be_deleted:
-            if account.principal != 0:
-                _make_debtor_payment(CT_DELETE, account, -account.principal, current_ts)
-            _mark_account_as_deleted(account, current_ts)
+        is_scheduled_for_deletion = account.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+        if is_scheduled_for_deletion and account.pending_transfers_count == 0:
+            has_negligible_balance = account.calc_current_balance(current_ts) <= max(2.0, account.negligible_amount)
+            if has_negligible_balance:
+                if account.principal != 0:
+                    _make_debtor_payment(CT_DELETE, account, -account.principal, current_ts)
+                _mark_account_as_deleted(account, current_ts)
 
 
 @atomic

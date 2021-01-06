@@ -490,24 +490,15 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
 
 
 def test_delete_debtor_account(db_session, current_ts):
-    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     p.configure_account(D_ID, C_ID, current_ts, 0)
 
-    # The principal is not zero.
     p.make_debtor_payment('test', D_ID, C_ID, 1)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID, current_ts)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert not a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-
-    # The principal is zero.
-    p.make_debtor_payment('test', D_ID, C_ID, -1)
-    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
-    p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID, current_ts)
-    assert q.one().status_flags & Account.STATUS_DELETED_FLAG
-    assert not q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
 def test_resurrect_deleted_account_create(db_session, current_ts):

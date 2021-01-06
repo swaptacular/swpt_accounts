@@ -195,9 +195,8 @@ def try_to_delete_account(
     and the current balance is not bigger than `max(2.0,
     account.negligible_amount)`.
 
-    If it is the debtor's account, it will be marked as deleted if its
-    principal is zero (`account.negligible_amount` is ignored in this
-    case).
+    If it is a debtor's account, noting will be done. (Deleting
+    debtors' accounts is not implemented yet.)
 
     Note that when a "normal" account has been successfully marked as
     deleted, it could be "resurrected" (with "scheduled for deletion"
