@@ -356,10 +356,7 @@ def test_capitalize_positive_interest(db_session, current_ts):
         Account.last_change_ts: current_ts - timedelta(days=365),
         Account.last_change_seqnum: 666,
     })
-    p.capitalize_interest(D_ID, C_ID, 10000000, current_ts)
-    p.process_pending_account_changes(D_ID, C_ID)
-    assert p.get_account(D_ID, C_ID).interest == 100.0
-    p.capitalize_interest(D_ID, C_ID, 0, current_ts)
+    p.capitalize_interest(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert abs(a.interest) <= 1.0
@@ -377,10 +374,7 @@ def test_capitalize_negative_interest(db_session, current_ts):
         Account.last_change_ts: current_ts - timedelta(days=365),
         Account.last_change_seqnum: 666,
     })
-    p.capitalize_interest(D_ID, C_ID, 10000000, current_ts)
-    p.process_pending_account_changes(D_ID, C_ID)
-    assert p.get_account(D_ID, C_ID).interest == -100.0
-    p.capitalize_interest(D_ID, C_ID, 0, current_ts)
+    p.capitalize_interest(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert abs(a.interest) <= 1.0
@@ -391,7 +385,7 @@ def test_debtor_account_capitalization(db_session, current_ts):
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     q.update({Account.interest: 100.0, Account.principal: 50})
-    p.capitalize_interest(D_ID, p.ROOT_CREDITOR_ID, 0, current_ts)
+    p.capitalize_interest(D_ID, p.ROOT_CREDITOR_ID)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert a.principal == 50

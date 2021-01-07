@@ -12,10 +12,10 @@ from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
     AccountUpdateSignal, AccountTransferSignal, FinalizationRequest,
-    ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MIN_INT64, MAX_INT64,
+    ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MAX_INT64,
     SECONDS_IN_DAY, CT_INTEREST, CT_DELETE, CT_DIRECT, SC_OK, SC_SENDER_DOES_NOT_EXIST,
     SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_RECIPIENT_SAME_AS_SENDER,
-    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE,
+    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE, is_negligible_balance, contain_principal_overflow
 )
 
 T = TypeVar('T')
@@ -255,19 +255,14 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
 
 
 @atomic
-def capitalize_interest(
-        debtor_id: int,
-        creditor_id: int,
-        accumulated_interest_threshold: int,
-        request_ts: datetime) -> None:
-
+def capitalize_interest(debtor_id: int, creditor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
+    cutoff_ts = current_ts - timedelta(days=current_app.config['APP_MIN_INTEREST_CAPITALIZATION_DAYS'])
     account = get_account(debtor_id, creditor_id, lock=True)
-    if account:
-        positive_threshold = max(1, abs(accumulated_interest_threshold))
+    if account and account.last_interest_capitalization_ts <= cutoff_ts:
         accumulated_interest = math.floor(_calc_account_accumulated_interest(account, current_ts))
-        accumulated_interest = _contain_principal_overflow(accumulated_interest)
-        if abs(accumulated_interest) >= positive_threshold:
+        accumulated_interest = contain_principal_overflow(accumulated_interest)
+        if accumulated_interest != 0:
             account.last_interest_capitalization_ts = current_ts
             _make_debtor_payment(CT_INTEREST, account, accumulated_interest, current_ts)
 
@@ -284,13 +279,15 @@ def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime
     if account:
         account.last_deletion_attempt_ts = current_ts
 
-        is_scheduled_for_deletion = account.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-        if is_scheduled_for_deletion and account.pending_transfers_count == 0:
-            has_negligible_balance = account.calc_current_balance(current_ts) <= max(2.0, account.negligible_amount)
-            if has_negligible_balance:
-                if account.principal != 0:
-                    _make_debtor_payment(CT_DELETE, account, -account.principal, current_ts)
-                _mark_account_as_deleted(account, current_ts)
+        can_be_deleted = (
+            account.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+            and account.pending_transfers_count == 0
+            and is_negligible_balance(account.calc_current_balance(current_ts), account.negligible_amount)
+        )
+        if can_be_deleted:
+            if account.principal != 0:
+                _make_debtor_payment(CT_DELETE, account, -account.principal, current_ts)
+            _mark_account_as_deleted(account, current_ts)
 
 
 @atomic
@@ -407,7 +404,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 acquired_amount=change.principal_delta,
                 transfer_note_format=change.transfer_note_format,
                 transfer_note=change.transfer_note,
-                principal=_contain_principal_overflow(account.principal + principal_delta),
+                principal=contain_principal_overflow(account.principal + principal_delta),
             )
             db.session.delete(change)
 
@@ -443,14 +440,6 @@ def make_debtor_payment(
     current_ts = datetime.now(tz=timezone.utc)
     account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
     _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_note_format, transfer_note)
-
-
-def _contain_principal_overflow(value: int) -> int:
-    if value <= MIN_INT64:
-        return -MAX_INT64
-    if value > MAX_INT64:
-        return MAX_INT64
-    return value
 
 
 def _insert_account_update_signal(account: Account, current_ts: datetime) -> None:
@@ -518,7 +507,7 @@ def _lock_or_create_account(debtor_id: int, creditor_id: int, current_ts: dateti
 
 def _get_available_amount(account: Account, current_ts: datetime) -> int:
     current_balance = math.floor(account.calc_current_balance(current_ts))
-    return _contain_principal_overflow(current_balance - account.total_locked_amount)
+    return contain_principal_overflow(current_balance - account.total_locked_amount)
 
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
@@ -604,7 +593,7 @@ def _mark_account_as_deleted(account: Account, current_ts: datetime):
 def _apply_account_change(account: Account, principal_delta: int, interest_delta: float, current_ts: datetime) -> None:
     account.interest = float(_calc_account_accumulated_interest(account, current_ts)) + interest_delta
     principal_possibly_overflown = account.principal + principal_delta
-    principal = _contain_principal_overflow(principal_possibly_overflown)
+    principal = contain_principal_overflow(principal_possibly_overflown)
     if principal != principal_possibly_overflown:
         account.status_flags |= Account.STATUS_OVERFLOWN_FLAG
     account.principal = principal
@@ -643,7 +632,7 @@ def _make_debtor_payment(
             acquired_amount=amount,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
-            principal=_contain_principal_overflow(account.principal + amount),
+            principal=contain_principal_overflow(account.principal + amount),
         )
         principal_delta = amount
         interest_delta = -amount if coordinator_type == CT_INTEREST else 0
@@ -768,7 +757,7 @@ def _finalize_prepared_transfer(
             acquired_amount=-committed_amount,
             transfer_note_format=fr.transfer_note_format,
             transfer_note=fr.transfer_note,
-            principal=_contain_principal_overflow(sender_account.principal - committed_amount),
+            principal=contain_principal_overflow(sender_account.principal - committed_amount),
         )
         _insert_pending_account_change(
             debtor_id=pt.debtor_id,

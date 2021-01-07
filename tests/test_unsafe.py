@@ -1,7 +1,9 @@
 import logging
+import time
+import dramatiq
 from datetime import date, datetime, timezone, timedelta
 from flask import current_app
-from swpt_accounts.extensions import db
+from swpt_accounts.extensions import db, chores_broker
 from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict, \
     RootConfigData
 from swpt_accounts import procedures as p
@@ -12,7 +14,8 @@ C_ID = 1
 
 
 def test_scan_accounts(app_unsafe_session):
-    from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal
+    from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal, AccountTransferSignal, \
+        PendingAccountChange
 
     # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
@@ -21,6 +24,8 @@ def test_scan_accounts(app_unsafe_session):
     Account.query.delete()
     AccountUpdateSignal.query.delete()
     AccountPurgeSignal.query.delete()
+    AccountTransferSignal.query.delete()
+    PendingAccountChange.query.delete()
     db.session.commit()
     account = Account(
         debtor_id=D_ID,
@@ -52,6 +57,7 @@ def test_scan_accounts(app_unsafe_session):
         creditor_id=1234,
         creation_date=date(1970, 1, 1),
         principal=1000,
+        interest=20.0,
         total_locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=2,
@@ -71,13 +77,26 @@ def test_scan_accounts(app_unsafe_session):
         last_change_ts=past_ts,
         last_heartbeat_ts=current_ts - timedelta(seconds=10),
     ))
+    db.session.add(Account(
+        debtor_id=D_ID,
+        creditor_id=123456,
+        creation_date=date(1970, 1, 1),
+        principal=0,
+        total_locked_amount=0,
+        pending_transfers_count=0,
+        last_transfer_id=0,
+        config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
+        status_flags=0,
+        last_change_ts=current_ts,
+        last_heartbeat_ts=current_ts,
+    ))
     db.session.commit()
     db.engine.execute('ANALYZE account')
-    assert len(Account.query.all()) == 4
+    assert len(Account.query.all()) == 5
     runner = app.test_cli_runner()
     result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--hours', '0.000024', '--quit-early'])
     assert result.exit_code == 0
-    assert len(Account.query.all()) == 3
+    assert len(Account.query.all()) == 4
     assert len(AccountUpdateSignal.query.all()) == 1
     acs = AccountUpdateSignal.query.one()
     assert acs.debtor_id == account.debtor_id
@@ -96,24 +115,40 @@ def test_scan_accounts(app_unsafe_session):
     assert acs.config_flags == account.config_flags
     assert acs.status_flags == account.status_flags
 
+    assert len(Account.query.all()) == 4
     assert len(Account.query.filter_by(creditor_id=123).all()) == 0
     aps = AccountPurgeSignal.query.filter_by(debtor_id=D_ID, creditor_id=123).one()
     assert aps.creation_date == date(1970, 1, 1)
+
+    assert len(AccountTransferSignal.query.all()) == 0
+    assert len(PendingAccountChange.query.all()) == 0
+
+    db.session.commit()
+    worker = dramatiq.Worker(chores_broker)
+    worker.start()
+    time.sleep(2.0)
+    worker.join()
 
     accounts = Account.query.order_by(Account.creditor_id).all()
     assert accounts[0].last_heartbeat_ts >= current_ts
     assert accounts[1].last_heartbeat_ts < current_ts
     assert accounts[2].last_heartbeat_ts < current_ts
+    assert accounts[3].status_flags & Account.STATUS_DELETED_FLAG
+
+    assert AccountTransferSignal.query.one().creditor_id == 1234
+    assert PendingAccountChange.query.one().creditor_id == p.ROOT_CREDITOR_ID
 
     db.engine.execute('ANALYZE account')
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])
     assert result.exit_code == 0
-    assert len(Account.query.all()) == 3
-    assert len(AccountUpdateSignal.query.all()) == 1
+    assert len(Account.query.all()) == 4
+    assert len(AccountUpdateSignal.query.all()) == 2
 
     Account.query.delete()
     AccountUpdateSignal.query.delete()
     AccountPurgeSignal.query.delete()
+    AccountTransferSignal.query.delete()
+    PendingAccountChange.query.delete()
     db.session.commit()
 
 

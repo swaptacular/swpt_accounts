@@ -157,29 +157,14 @@ def change_interest_rate(
 
 
 @chores_broker.actor(queue_name='capitalize_interest', max_retries=0)
-def capitalize_interest(
-        debtor_id: int,
-        creditor_id: int,
-        accumulated_interest_threshold: int,
-        request_ts: str) -> None:
+def capitalize_interest(debtor_id: int, creditor_id: int) -> None:
 
-    """Add the interest accumulated on the account to the principal.
-
-    Does nothing if the absolute value of the accumulated interest is
-    smaller than `abs(accumulated_interest_threshold)`.
-
-    """
+    """Add the interest accumulated on the account to the principal."""
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= accumulated_interest_threshold <= MAX_INT64
 
-    procedures.capitalize_interest(
-        debtor_id,
-        creditor_id,
-        accumulated_interest_threshold,
-        iso8601.parse_date(request_ts),
-    )
+    procedures.capitalize_interest(debtor_id, creditor_id)
 
 
 @chores_broker.actor(queue_name='delete_account', max_retries=0)

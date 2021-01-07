@@ -49,6 +49,42 @@ def calc_k(interest_rate: float) -> float:
     return math.log(1.0 + interest_rate / 100.0) / SECONDS_IN_YEAR
 
 
+def contain_principal_overflow(value: int) -> int:
+    if value <= MIN_INT64:
+        return -MAX_INT64
+    if value > MAX_INT64:
+        return MAX_INT64
+    return value
+
+
+def calc_current_balance(
+        *,
+        creditor_id: int,
+        principal: int,
+        interest: float,
+        interest_rate: float,
+        last_change_ts: datetime,
+        current_ts: datetime) -> Decimal:
+
+    current_balance = Decimal(principal)
+
+    # NOTE: Any interest accumulated on the debtor's account will
+    # not be included in the current balance. Thus, accumulating
+    # interest on the debtor's account has no effect.
+    if creditor_id != ROOT_CREDITOR_ID:
+        current_balance += Decimal.from_float(interest)
+        if current_balance > 0:
+            k = calc_k(interest_rate)
+            passed_seconds = max(0.0, (current_ts - last_change_ts).total_seconds())
+            current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
+
+    return current_balance
+
+
+def is_negligible_balance(balance, negligible_amount):
+    return balance <= negligible_amount or balance <= 2.0
+
+
 class Account(db.Model):
     CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
 
@@ -167,19 +203,14 @@ class Account(db.Model):
     )
 
     def calc_current_balance(self, current_ts: datetime) -> Decimal:
-        current_balance = Decimal(self.principal)
-
-        # NOTE: Any interest accumulated on the debtor's account will
-        # not be included in the current balance. Thus, accumulating
-        # interest on the debtor's account has no effect.
-        if self.creditor_id != ROOT_CREDITOR_ID:
-            current_balance += Decimal.from_float(self.interest)
-            if current_balance > 0:
-                k = calc_k(self.interest_rate)
-                passed_seconds = max(0.0, (current_ts - self.last_change_ts).total_seconds())
-                current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
-
-        return current_balance
+        return calc_current_balance(
+            creditor_id=self.creditor_id,
+            principal=self.principal,
+            interest=self.interest,
+            interest_rate=self.interest_rate,
+            last_change_ts=self.last_change_ts,
+            current_ts=current_ts,
+        )
 
     def calc_due_interest(self, amount: int, due_ts: datetime, current_ts: datetime) -> float:
         """Return the accumulated interest between `due_ts` and `current_ts`.

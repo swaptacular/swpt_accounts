@@ -1,5 +1,4 @@
 import math
-from decimal import Decimal
 from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from swpt_lib.scan_table import TableScanner
@@ -7,7 +6,7 @@ from sqlalchemy.sql.expression import true, tuple_, or_
 from flask import current_app
 from .extensions import db
 from .models import Account, AccountUpdateSignal, AccountPurgeSignal, PreparedTransfer, PreparedTransferSignal, \
-    ROOT_CREDITOR_ID, MAX_INT64
+    ROOT_CREDITOR_ID, calc_current_balance, is_negligible_balance, contain_principal_overflow
 from .fetch_api_client import get_root_config_data_dict
 from .actors import change_interest_rate, capitalize_interest, try_to_delete_account
 
@@ -48,6 +47,8 @@ class AccountScanner(TableScanner):
         # signals, we ensure that the account heartbeat interval is
         # not shorter than the allowed delay in the signal bus.
         self.account_heartbeat_interval = max(account_heartbeat_interval, signalbus_max_delay)
+
+        assert self.max_interest_to_principal_ratio > 0.0
 
     @property
     def blocks_per_query(self) -> int:
@@ -158,51 +159,73 @@ class AccountScanner(TableScanner):
                 ])
 
     def _delete_accounts(self, rows, current_ts):
-        # TODO: Is this correct?
-
         c = self.table.c
+        c_debtor_id = c.debtor_id
+        c_creditor_id = c.creditor_id
+        c_last_deletion_attempt_ts = c.last_deletion_attempt_ts
+        c_config_flags = c.config_flags
+        c_negligible_amount = c.negligible_amount
+        c_principal = c.principal
+        c_interest = c.interest
+        c_interest_rate = c.interest_rate
+        c_last_change_ts = c.last_change_ts
         scheduled_for_deletion_flag = Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
         cutoff_ts = current_ts - self.deletion_attempts_min_interval
+
         for row in rows:
-            if row[c.last_deletion_attempt_ts] > cutoff_ts:
-                continue
-            if (row[c.config_flags] & scheduled_for_deletion_flag
-                    and self._calc_current_balance(row, current_ts) <= max(2.0, row[c.negligible_amount])):
+            creditor_id = row[c_creditor_id]
+            should_be_deleted = (
+                creditor_id != ROOT_CREDITOR_ID
+                and row[c_last_deletion_attempt_ts] <= cutoff_ts
+                and row[c_config_flags] & scheduled_for_deletion_flag
+                and is_negligible_balance(
+                    calc_current_balance(
+                        creditor_id=creditor_id,
+                        principal=row[c_principal],
+                        interest=row[c_interest],
+                        interest_rate=row[c_interest_rate],
+                        last_change_ts=row[c_last_change_ts],
+                        current_ts=current_ts,
+                    ),
+                    row[c_negligible_amount],
+                )
+            )
+            if should_be_deleted:
                 try_to_delete_account.send(
-                    debtor_id=row[c.debtor_id],
-                    creditor_id=row[c.creditor_id],
-                    request_ts=current_ts,
+                    debtor_id=row[c_debtor_id],
+                    creditor_id=creditor_id,
+                    request_ts=current_ts.isoformat(),
                 )
 
     def _capitalize_interests(self, rows, current_ts):
-        # TODO: Is this correct?
-
         c = self.table.c
         c_debtor_id = c.debtor_id
         c_creditor_id = c.creditor_id
         c_last_interest_capitalization_ts = c.last_interest_capitalization_ts
         c_principal = c.principal
-
-        max_ratio = self.max_interest_to_principal_ratio
+        c_interest = c.interest
+        c_interest_rate = c.interest_rate
+        c_last_change_ts = c.last_change_ts
         cutoff_ts = current_ts - self.min_interest_cap_interval
+        max_ratio = self.max_interest_to_principal_ratio
 
         for row in rows:
             creditor_id = row[c_creditor_id]
-            if creditor_id == ROOT_CREDITOR_ID:
-                continue
 
-            if row[c_last_interest_capitalization_ts] > cutoff_ts:
-                continue
-
-            accumulated_interest = self._calc_accumulated_interest(row, current_ts)
-            ratio = abs(accumulated_interest) / (1 + abs(row[c_principal]))
-            if abs(accumulated_interest) > 1 and ratio > max_ratio:
-                capitalize_interest.send(
-                    debtor_id=row[c_debtor_id],
+            if creditor_id != ROOT_CREDITOR_ID and row[c_last_interest_capitalization_ts] <= cutoff_ts:
+                current_balance = calc_current_balance(
                     creditor_id=creditor_id,
-                    accumulated_interest_threshold=accumulated_interest // 2,
-                    request_ts=current_ts,
+                    principal=row[c_principal],
+                    interest=row[c_interest],
+                    interest_rate=row[c_interest_rate],
+                    last_change_ts=row[c_last_change_ts],
+                    current_ts=current_ts,
                 )
+                accumulated_interest = abs(contain_principal_overflow(math.floor(current_balance - row[c_principal])))
+                ratio = accumulated_interest / (1 + abs(row[c_principal]))
+
+                if ratio > max_ratio:
+                    capitalize_interest.send(debtor_id=row[c_debtor_id], creditor_id=creditor_id)
 
     def _change_interest_rates(self, rows, current_ts):
         # TODO: Is this correct?
@@ -237,26 +260,8 @@ class AccountScanner(TableScanner):
                     debtor_id=debtor_id,
                     creditor_id=creditor_id,
                     interest_rate=interest_rate,
-                    request_ts=current_ts,
+                    request_ts=current_ts.isoformat(),
                 )
-
-    def _calc_current_balance(self, row, current_ts) -> Decimal:
-        c = self.table.c
-        assert row[c.creditor_id] != ROOT_CREDITOR_ID
-        current_balance = row[c.principal] + Decimal.from_float(row[c.interest])
-        if current_balance > 0:
-            k = math.log(1.0 + row[c.interest_rate] / 100.0) / SECONDS_IN_YEAR
-            passed_seconds = max(0.0, (current_ts - row[c.last_change_ts]).total_seconds())
-            current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
-        return current_balance
-
-    def _calc_accumulated_interest(self, row, current_ts) -> int:
-        c = self.table.c
-        current_balance = self._calc_current_balance(row, current_ts)
-        accumulated_interest = math.floor(current_balance - row[c.principal])
-        accumulated_interest = min(accumulated_interest, MAX_INT64)
-        accumulated_interest = max(-MAX_INT64, accumulated_interest)
-        return accumulated_interest
 
 
 class PreparedTransferScanner(TableScanner):

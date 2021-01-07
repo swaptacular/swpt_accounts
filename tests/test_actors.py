@@ -49,8 +49,6 @@ def test_capitalize_interest(db_session):
     a.capitalize_interest(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        accumulated_interest_threshold=0,
-        request_ts='2019-12-31T00:00:00Z',
     )
 
 
