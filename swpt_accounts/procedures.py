@@ -2,12 +2,11 @@ import math
 from datetime import datetime, timezone, timedelta
 from typing import TypeVar, Iterable, Tuple, Union, Optional, Callable
 from decimal import Decimal
-from flask import current_app
 from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
-from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64
+from swpt_lib.utils import Seqnum, increment_seqnum
 from .extensions import db
-from .fetch_api_client import parse_root_config_data, get_if_account_is_reachable
+from .fetch_api_client import parse_root_config_data
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
@@ -41,7 +40,8 @@ def configure_account(
         seqnum: int,
         negligible_amount: float = 0.0,
         config_flags: int = 0,
-        config_data: str = '') -> bool:
+        config_data: str = '',
+        signalbus_max_delay_seconds: float = 1e30) -> bool:
 
     # TODO: Consider using a `ConfigureRequest` buffer table, to
     #       reduce lock contention on `account` table rows. This might
@@ -115,7 +115,6 @@ def configure_account(
         if this_event > last_event:
             try_to_configure(account)
     else:
-        signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
         signal_age_seconds = (current_ts - ts).total_seconds()
         if signal_age_seconds <= signalbus_max_delay_seconds:
             try_to_configure(account)
@@ -132,19 +131,12 @@ def prepare_transfer(
         max_locked_amount: int,
         debtor_id: int,
         creditor_id: int,
-        recipient: str,
+        recipient_creditor_id: Optional[int],
         ts: datetime,
         max_commit_delay: int = MAX_INT32,
         min_interest_rate: float = -100.0) -> None:
 
-    try:
-        recipient_creditor_id = u64_to_i64(int(recipient))
-    except ValueError:
-        is_reachable = False
-    else:
-        is_reachable = get_if_account_is_reachable(debtor_id, recipient_creditor_id)
-
-    if is_reachable:
+    if recipient_creditor_id is not None:
         db.session.add(TransferRequest(
             debtor_id=debtor_id,
             coordinator_type=coordinator_type,
@@ -226,10 +218,16 @@ def get_account_config_data(debtor_id: int, creditor_id: int) -> Optional[str]:
 
 
 @atomic
-def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, ts: datetime = None) -> None:
+def change_interest_rate(
+        debtor_id: int,
+        creditor_id: int,
+        interest_rate: float,
+        ts: datetime = None,
+        signalbus_max_delay_seconds: float = 0.0) -> None:
+
     current_ts = datetime.now(tz=timezone.utc)
     ts = ts or current_ts
-    min_change_interval_seconds = (current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] + 1.0) * SECONDS_IN_DAY
+    min_change_interval_seconds = signalbus_max_delay_seconds + SECONDS_IN_DAY
     is_old_request = (current_ts - ts).total_seconds() > min_change_interval_seconds
     is_valid_request = creditor_id != ROOT_CREDITOR_ID and not is_old_request
     account = get_account(debtor_id, creditor_id, lock=True) if is_valid_request else None
@@ -263,9 +261,9 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
 
 
 @atomic
-def capitalize_interest(debtor_id: int, creditor_id: int) -> None:
+def capitalize_interest(debtor_id: int, creditor_id: int, min_capitalization_interval: datetime = timedelta()) -> None:
     current_ts = datetime.now(tz=timezone.utc)
-    cutoff_ts = current_ts - timedelta(days=current_app.config['APP_MIN_INTEREST_CAPITALIZATION_DAYS'])
+    cutoff_ts = current_ts - min_capitalization_interval
     account = get_account(debtor_id, creditor_id, lock=True)
     if account and account.last_interest_capitalization_ts <= cutoff_ts:
         accumulated_interest = math.floor(_calc_account_accumulated_interest(account, current_ts))

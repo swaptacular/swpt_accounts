@@ -1,11 +1,13 @@
 import re
 import math
 import iso8601
-from datetime import datetime, timezone
+from datetime import timedelta
+from flask import current_app
+from swpt_lib.utils import u64_to_i64
 from .extensions import protocol_broker, chores_broker, APP_QUEUE_NAME
 from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, TRANSFER_NOTE_MAX_BYTES, \
-    CONFIG_DATA_MAX_BYTES
-from .fetch_api_client import get_root_config_data_dict
+    CONFIG_DATA_MAX_BYTES, SECONDS_IN_DAY
+from .fetch_api_client import get_root_config_data_dict, get_if_account_is_reachable
 from . import procedures
 
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
@@ -33,19 +35,25 @@ def configure_account(
     assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
 
     is_new_account = procedures.configure_account(
-        debtor_id,
-        creditor_id,
-        parsed_ts,
-        seqnum,
-        negligible_amount,
-        config_flags,
-        config_data,
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        ts=parsed_ts,
+        seqnum=seqnum,
+        negligible_amount=negligible_amount,
+        config_flags=config_flags,
+        config_data=config_data,
+        signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
     )
     if is_new_account:
-        config_data = get_root_config_data_dict([debtor_id]).get(debtor_id)
+        root_config_data = get_root_config_data_dict([debtor_id]).get(debtor_id)
 
-        if config_data:
-            procedures.change_interest_rate(debtor_id, creditor_id, config_data.interest_rate)
+        if root_config_data:
+            procedures.change_interest_rate(
+                debtor_id=debtor_id,
+                creditor_id=creditor_id,
+                interest_rate=root_config_data.interest_rate,
+                signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
+            )
 
 
 @protocol_broker.actor(queue_name=APP_QUEUE_NAME)
@@ -75,6 +83,13 @@ def prepare_transfer(
     assert parsed_ts > BEGINNING_OF_TIME
     assert 0 <= max_commit_delay <= MAX_INT32
 
+    try:
+        recipient_creditor_id = u64_to_i64(int(recipient))
+    except ValueError:
+        is_reachable = False
+    else:
+        is_reachable = get_if_account_is_reachable(debtor_id, recipient_creditor_id)
+
     procedures.prepare_transfer(
         coordinator_type,
         coordinator_id,
@@ -83,7 +98,7 @@ def prepare_transfer(
         max_locked_amount,
         debtor_id,
         creditor_id,
-        recipient,
+        recipient_creditor_id if is_reachable else None,
         parsed_ts,
         max_commit_delay,
         min_interest_rate,
@@ -148,10 +163,11 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
     assert not math.isnan(interest_rate)
 
     procedures.change_interest_rate(
-        debtor_id,
-        creditor_id,
-        interest_rate,
-        iso8601.parse_date(ts),
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        interest_rate=interest_rate,
+        ts=iso8601.parse_date(ts),
+        signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
     )
 
 
@@ -162,7 +178,11 @@ def capitalize_interest(debtor_id: int, creditor_id: int) -> None:
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
-    procedures.capitalize_interest(debtor_id, creditor_id)
+    procedures.capitalize_interest(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        min_capitalization_interval=timedelta(days=current_app.config['APP_MIN_INTEREST_CAPITALIZATION_DAYS']),
+    )
 
 
 @chores_broker.actor(queue_name='delete_account', max_retries=0)
