@@ -163,6 +163,7 @@ class AccountScanner(TableScanner):
         c_debtor_id = c.debtor_id
         c_creditor_id = c.creditor_id
         c_last_deletion_attempt_ts = c.last_deletion_attempt_ts
+        c_status_flags = c.status_flags
         c_config_flags = c.config_flags
         c_negligible_amount = c.negligible_amount
         c_principal = c.principal
@@ -170,6 +171,7 @@ class AccountScanner(TableScanner):
         c_interest_rate = c.interest_rate
         c_last_change_ts = c.last_change_ts
         scheduled_for_deletion_flag = Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+        deleted_flag = Account.STATUS_DELETED_FLAG
         cutoff_ts = current_ts - self.deletion_attempts_min_interval
 
         for row in rows:
@@ -178,6 +180,7 @@ class AccountScanner(TableScanner):
                 creditor_id != ROOT_CREDITOR_ID
                 and row[c_last_deletion_attempt_ts] <= cutoff_ts
                 and row[c_config_flags] & scheduled_for_deletion_flag
+                and not row[c_status_flags] & deleted_flag
                 and is_negligible_balance(
                     calc_current_balance(
                         creditor_id=creditor_id,
@@ -202,13 +205,19 @@ class AccountScanner(TableScanner):
         c_interest = c.interest
         c_interest_rate = c.interest_rate
         c_last_change_ts = c.last_change_ts
+        c_status_flags = c.status_flags
+        deleted_flag = Account.STATUS_DELETED_FLAG
         cutoff_ts = current_ts - self.min_interest_cap_interval
         max_ratio = self.max_interest_to_principal_ratio
 
         for row in rows:
             creditor_id = row[c_creditor_id]
-
-            if creditor_id != ROOT_CREDITOR_ID and row[c_last_interest_capitalization_ts] <= cutoff_ts:
+            can_capitalize_interest = (
+                creditor_id != ROOT_CREDITOR_ID
+                and row[c_last_interest_capitalization_ts] <= cutoff_ts
+                and not row[c_status_flags] & deleted_flag
+            )
+            if can_capitalize_interest:
                 current_balance = calc_current_balance(
                     creditor_id=creditor_id,
                     principal=row[c_principal],
@@ -230,23 +239,31 @@ class AccountScanner(TableScanner):
         c_last_interest_rate_change_ts = c.last_interest_rate_change_ts
         c_status_flags = c.status_flags
         c_interest_rate = c.interest_rate
+        deleted_flag = Account.STATUS_DELETED_FLAG
         cutoff_ts = current_ts - self.interest_rate_change_min_interval
-        debtor_ids = {row[c_debtor_id] for row in rows if row[c_last_interest_rate_change_ts] <= cutoff_ts}
+
+        def can_change_interest_rate(row):
+            return (
+                row[c_creditor_id] != ROOT_CREDITOR_ID
+                and row[c_last_interest_rate_change_ts] <= cutoff_ts
+                and not row[c_status_flags] & deleted_flag
+            )
+
+        debtor_ids = {row[c_debtor_id] for row in rows if can_change_interest_rate(row)}
         config_data_dict = get_root_config_data_dict(debtor_ids)
         established_rate_flag = Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
 
         for row in rows:
             debtor_id = row[c_debtor_id]
-            creditor_id = row[c_creditor_id]
             config_data = config_data_dict.get(debtor_id)
 
-            if row[c_last_interest_rate_change_ts] <= cutoff_ts and creditor_id != ROOT_CREDITOR_ID and config_data:
+            if config_data and can_change_interest_rate(row):
                 interest_rate = config_data.interest_rate
                 has_established_interest_rate = row[c_status_flags] & established_rate_flag
                 has_incorrect_interest_rate = not has_established_interest_rate or row[c_interest_rate] != interest_rate
 
                 if has_incorrect_interest_rate:
-                    change_interest_rate.send(debtor_id, creditor_id, interest_rate, current_ts.isoformat())
+                    change_interest_rate.send(debtor_id, row[c_creditor_id], interest_rate, current_ts.isoformat())
 
 
 class PreparedTransferScanner(TableScanner):
