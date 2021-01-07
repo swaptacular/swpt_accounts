@@ -126,16 +126,8 @@ def finalize_transfer(
     )
 
 
-# TODO: Consider passing a `demurrage_rate` argument here as
-#       well. This would allow us to more accurately set the
-#       `demurrage_rate` field in `AccountUpdate` messages.
 @chores_broker.actor(queue_name='change_interest_rate', max_retries=0)
-def change_interest_rate(
-        debtor_id: int,
-        creditor_id: int,
-        interest_rate: float,
-        request_ts: str) -> None:
-
+def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, ts: str) -> None:
     """Try to change the interest rate on the account.
 
     The interest rate will not be changed if the request is too old,
@@ -152,13 +144,12 @@ def change_interest_rate(
         debtor_id,
         creditor_id,
         interest_rate,
-        iso8601.parse_date(request_ts),
+        iso8601.parse_date(ts),
     )
 
 
 @chores_broker.actor(queue_name='capitalize_interest', max_retries=0)
 def capitalize_interest(debtor_id: int, creditor_id: int) -> None:
-
     """Add the interest accumulated on the account to the principal."""
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
@@ -168,11 +159,7 @@ def capitalize_interest(debtor_id: int, creditor_id: int) -> None:
 
 
 @chores_broker.actor(queue_name='delete_account', max_retries=0)
-def try_to_delete_account(
-        debtor_id: int,
-        creditor_id: int,
-        request_ts: str) -> None:
-
+def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
     """Mark the account as deleted, if possible.
 
     If it is a "normal" account, it will be marked as deleted if it
@@ -197,8 +184,4 @@ def try_to_delete_account(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
-    procedures.try_to_delete_account(
-        debtor_id,
-        creditor_id,
-        iso8601.parse_date(request_ts),
-    )
+    procedures.try_to_delete_account(debtor_id, creditor_id)

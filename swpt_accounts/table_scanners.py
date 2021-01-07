@@ -39,7 +39,7 @@ class AccountScanner(TableScanner):
         self.few_days_interval = timedelta(days=3)
         self.account_purge_delay = 2 * signalbus_max_delay + max(prepared_transfer_max_delay, signalbus_max_delay)
         self.deletion_attempts_min_interval = timedelta(days=current_app.config['APP_DELETION_ATTEMPTS_MIN_DAYS'])
-        self.interest_rate_change_min_interval = signalbus_max_delay + timedelta(days=1.01)
+        self.interest_rate_change_min_interval = signalbus_max_delay + timedelta(days=1)
         self.max_interest_to_principal_ratio = current_app.config['APP_MAX_INTEREST_TO_PRINCIPAL_RATIO']
         self.min_interest_cap_interval = timedelta(days=current_app.config['APP_MIN_INTEREST_CAPITALIZATION_DAYS'])
 
@@ -191,11 +191,7 @@ class AccountScanner(TableScanner):
                 )
             )
             if should_be_deleted:
-                try_to_delete_account.send(
-                    debtor_id=row[c_debtor_id],
-                    creditor_id=creditor_id,
-                    request_ts=current_ts.isoformat(),
-                )
+                try_to_delete_account.send(row[c_debtor_id], creditor_id)
 
     def _capitalize_interests(self, rows, current_ts):
         c = self.table.c
@@ -225,43 +221,32 @@ class AccountScanner(TableScanner):
                 ratio = accumulated_interest / (1 + abs(row[c_principal]))
 
                 if ratio > max_ratio:
-                    capitalize_interest.send(debtor_id=row[c_debtor_id], creditor_id=creditor_id)
+                    capitalize_interest.send(row[c_debtor_id], creditor_id)
 
     def _change_interest_rates(self, rows, current_ts):
-        # TODO: Is this correct?
-
         c = self.table.c
         c_debtor_id = c.debtor_id
         c_creditor_id = c.creditor_id
         c_last_interest_rate_change_ts = c.last_interest_rate_change_ts
         c_status_flags = c.status_flags
         c_interest_rate = c.interest_rate
-
         cutoff_ts = current_ts - self.interest_rate_change_min_interval
         debtor_ids = {row[c_debtor_id] for row in rows if row[c_last_interest_rate_change_ts] <= cutoff_ts}
         config_data_dict = get_root_config_data_dict(debtor_ids)
         established_rate_flag = Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
 
         for row in rows:
-            creditor_id = row[c_creditor_id]
-            if creditor_id == ROOT_CREDITOR_ID:
-                continue
-
             debtor_id = row[c_debtor_id]
+            creditor_id = row[c_creditor_id]
             config_data = config_data_dict.get(debtor_id)
-            if config_data is None:
-                continue
 
-            interest_rate = config_data.interest_rate
-            has_established_interest_rate = row[c_status_flags] & established_rate_flag
-            has_incorrect_interest_rate = not has_established_interest_rate or row[c_interest_rate] != interest_rate
-            if row[c_last_interest_rate_change_ts] <= cutoff_ts and has_incorrect_interest_rate:
-                change_interest_rate.send(
-                    debtor_id=debtor_id,
-                    creditor_id=creditor_id,
-                    interest_rate=interest_rate,
-                    request_ts=current_ts.isoformat(),
-                )
+            if row[c_last_interest_rate_change_ts] <= cutoff_ts and creditor_id != ROOT_CREDITOR_ID and config_data:
+                interest_rate = config_data.interest_rate
+                has_established_interest_rate = row[c_status_flags] & established_rate_flag
+                has_incorrect_interest_rate = not has_established_interest_rate or row[c_interest_rate] != interest_rate
+
+                if has_incorrect_interest_rate:
+                    change_interest_rate.send(debtor_id, creditor_id, interest_rate, current_ts.isoformat())
 
 
 class PreparedTransferScanner(TableScanner):

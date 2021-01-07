@@ -27,6 +27,9 @@ def test_scan_accounts(app_unsafe_session):
     AccountTransferSignal.query.delete()
     PendingAccountChange.query.delete()
     db.session.commit()
+
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 0.0}')
+    AccountUpdateSignal.query.delete()
     account = Account(
         debtor_id=D_ID,
         creditor_id=12,
@@ -35,7 +38,7 @@ def test_scan_accounts(app_unsafe_session):
         total_locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=3,
-        status_flags=0,
+        status_flags=Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG,
         last_change_ts=past_ts,
         last_heartbeat_ts=past_ts,
     )
@@ -58,10 +61,11 @@ def test_scan_accounts(app_unsafe_session):
         creation_date=date(1970, 1, 1),
         principal=1000,
         interest=20.0,
+        interest_rate=2.0,
         total_locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=2,
-        status_flags=0,
+        status_flags=Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG,
         last_change_ts=current_ts - timedelta(seconds=10),
         last_heartbeat_ts=current_ts - timedelta(seconds=10),
     ))
@@ -73,7 +77,7 @@ def test_scan_accounts(app_unsafe_session):
         total_locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=1,
-        status_flags=0,
+        status_flags=Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG,
         last_change_ts=past_ts,
         last_heartbeat_ts=current_ts - timedelta(seconds=10),
     ))
@@ -86,17 +90,17 @@ def test_scan_accounts(app_unsafe_session):
         pending_transfers_count=0,
         last_transfer_id=0,
         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
-        status_flags=0,
+        status_flags=Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG,
         last_change_ts=current_ts,
         last_heartbeat_ts=current_ts,
     ))
     db.session.commit()
     db.engine.execute('ANALYZE account')
-    assert len(Account.query.all()) == 5
+    assert len(Account.query.all()) == 6
     runner = app.test_cli_runner()
     result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--hours', '0.000024', '--quit-early'])
     assert result.exit_code == 0
-    assert len(Account.query.all()) == 4
+    assert len(Account.query.all()) == 5
     assert len(AccountUpdateSignal.query.all()) == 1
     acs = AccountUpdateSignal.query.one()
     assert acs.debtor_id == account.debtor_id
@@ -115,7 +119,7 @@ def test_scan_accounts(app_unsafe_session):
     assert acs.config_flags == account.config_flags
     assert acs.status_flags == account.status_flags
 
-    assert len(Account.query.all()) == 4
+    assert len(Account.query.all()) == 5
     assert len(Account.query.filter_by(creditor_id=123).all()) == 0
     aps = AccountPurgeSignal.query.filter_by(debtor_id=D_ID, creditor_id=123).one()
     assert aps.creation_date == date(1970, 1, 1)
@@ -130,10 +134,11 @@ def test_scan_accounts(app_unsafe_session):
     worker.join()
 
     accounts = Account.query.order_by(Account.creditor_id).all()
-    assert accounts[0].last_heartbeat_ts >= current_ts
-    assert accounts[1].last_heartbeat_ts < current_ts
-    assert accounts[2].last_heartbeat_ts < current_ts
-    assert accounts[3].status_flags & Account.STATUS_DELETED_FLAG
+    assert accounts[0].creditor_id == 0
+    assert accounts[1].last_heartbeat_ts >= current_ts
+    assert accounts[2].last_heartbeat_ts >= current_ts and accounts[2].interest_rate == 0.0
+    assert accounts[3].last_heartbeat_ts < current_ts
+    assert accounts[4].status_flags & Account.STATUS_DELETED_FLAG
 
     assert AccountTransferSignal.query.one().creditor_id == 1234
     assert PendingAccountChange.query.one().creditor_id == p.ROOT_CREDITOR_ID
@@ -141,8 +146,8 @@ def test_scan_accounts(app_unsafe_session):
     db.engine.execute('ANALYZE account')
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])
     assert result.exit_code == 0
-    assert len(Account.query.all()) == 4
-    assert len(AccountUpdateSignal.query.all()) == 2
+    assert len(Account.query.all()) == 5
+    assert len(AccountUpdateSignal.query.all()) == 3
 
     Account.query.delete()
     AccountUpdateSignal.query.delete()

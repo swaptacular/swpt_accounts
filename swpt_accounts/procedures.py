@@ -218,11 +218,13 @@ def get_account_config_data(debtor_id: int, creditor_id: int) -> Optional[str]:
 
 
 @atomic
-def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
+def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, ts: datetime) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     min_change_interval_seconds = (current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] + 1.0) * SECONDS_IN_DAY
-    is_old_request = (current_ts - request_ts).total_seconds() > min_change_interval_seconds
-    account = None if is_old_request else get_account(debtor_id, creditor_id, lock=True)
+    is_old_request = (current_ts - ts).total_seconds() > min_change_interval_seconds
+    is_valid_request = creditor_id != ROOT_CREDITOR_ID and not is_old_request
+    account = get_account(debtor_id, creditor_id, lock=True) if is_valid_request else None
+
     if account:
         # NOTE: Too big positive interest rates can cause account
         # balance overflows. To prevent this, the interest rates
@@ -268,7 +270,7 @@ def capitalize_interest(debtor_id: int, creditor_id: int) -> None:
 
 
 @atomic
-def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime) -> None:
+def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
     if creditor_id == ROOT_CREDITOR_ID:
         # TODO: Allow the deletion of the debtor's account if there
         #       are no other accounts with the given debtor.

@@ -41,7 +41,7 @@ def test_set_interest_rate(db_session):
         debtor_id=D_ID,
         creditor_id=C_ID,
         interest_rate=10.0,
-        request_ts='2019-12-31T00:00:00Z',
+        ts='2019-12-31T00:00:00Z',
     )
 
 
@@ -68,5 +68,4 @@ def test_try_to_delete_account(db_session):
     a.try_to_delete_account(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        request_ts='2019-12-31T00:00:00Z',
     )
