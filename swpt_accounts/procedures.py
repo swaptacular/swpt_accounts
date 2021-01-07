@@ -226,8 +226,9 @@ def get_account_config_data(debtor_id: int, creditor_id: int) -> Optional[str]:
 
 
 @atomic
-def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, ts: datetime) -> None:
+def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, ts: datetime = None) -> None:
     current_ts = datetime.now(tz=timezone.utc)
+    ts = ts or current_ts
     min_change_interval_seconds = (current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] + 1.0) * SECONDS_IN_DAY
     is_old_request = (current_ts - ts).total_seconds() > min_change_interval_seconds
     is_valid_request = creditor_id != ROOT_CREDITOR_ID and not is_old_request

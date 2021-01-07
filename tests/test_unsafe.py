@@ -316,12 +316,6 @@ def test_set_interest_rate_on_new_accounts(app_unsafe_session):
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 3.567}')
     actors.configure_account(D_ID, C_ID, current_ts.isoformat(), 0)
 
-    worker = dramatiq.Worker(chores_broker)
-    worker.start()
-    time.sleep(2.0)
-    worker.join()
-    db.session.commit()
-
     signals = AccountUpdateSignal.query.filter_by(creditor_id=C_ID).all()
     assert any(s.interest_rate == 3.567 for s in signals)
 

@@ -43,13 +43,9 @@ def configure_account(
     )
     if is_new_account:
         config_data = get_root_config_data_dict([debtor_id]).get(debtor_id)
+
         if config_data:
-            change_interest_rate.send(
-                debtor_id,
-                creditor_id,
-                config_data.interest_rate,
-                datetime.now(tz=timezone.utc).isoformat(),
-            )
+            procedures.change_interest_rate(debtor_id, creditor_id, config_data.interest_rate)
 
 
 @protocol_broker.actor(queue_name=APP_QUEUE_NAME)
