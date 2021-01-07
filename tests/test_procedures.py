@@ -124,7 +124,6 @@ def test_set_interest_rate(db_session, current_ts):
     p.change_interest_rate(D_ID, C_ID, 7.0, current_ts)
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
-    assert a.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     assert len(AccountUpdateSignal.query.all()) == 2
 
     # Changing the interest rate too often.
@@ -504,7 +503,6 @@ def test_resurrect_deleted_account_create(db_session, current_ts):
     p.try_to_delete_account(D_ID, C_ID)
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
     assert q.one().interest_rate == 10.0
-    assert not q.one().status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     assert not q.one().status_flags & Account.STATUS_DELETED_FLAG
     assert not q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
@@ -522,7 +520,6 @@ def test_resurrect_deleted_account_transfer(db_session, current_ts):
     a = p.get_account(D_ID, C_ID)
     assert a is not None
     assert a.interest_rate == 10.0
-    assert not a.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 

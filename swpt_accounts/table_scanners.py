@@ -251,7 +251,6 @@ class AccountScanner(TableScanner):
 
         debtor_ids = {row[c_debtor_id] for row in rows if can_change_interest_rate(row)}
         config_data_dict = get_root_config_data_dict(debtor_ids)
-        established_rate_flag = Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
 
         for row in rows:
             debtor_id = row[c_debtor_id]
@@ -259,10 +258,8 @@ class AccountScanner(TableScanner):
 
             if config_data and can_change_interest_rate(row):
                 interest_rate = config_data.interest_rate
-                has_established_interest_rate = row[c_status_flags] & established_rate_flag
-                has_incorrect_interest_rate = not has_established_interest_rate or row[c_interest_rate] != interest_rate
 
-                if has_incorrect_interest_rate:
+                if row[c_interest_rate] != interest_rate:
                     change_interest_rate.send(debtor_id, row[c_creditor_id], interest_rate, current_ts.isoformat())
 
 

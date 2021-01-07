@@ -58,7 +58,6 @@ def configure_account(
         if account.status_flags & Account.STATUS_DELETED_FLAG:
             is_new_account = True
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
-            account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
 
         is_scheduled_for_deletion = config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
         is_unreachable = is_scheduled_for_deletion and creditor_id != ROOT_CREDITOR_ID
@@ -250,16 +249,13 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
         if interest_rate < INTEREST_RATE_FLOOR:
             interest_rate = INTEREST_RATE_FLOOR
 
-        has_established_interest_rate = account.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        has_incorrect_interest_rate = not has_established_interest_rate or account.interest_rate != interest_rate
         seconds_since_last_change = (current_ts - account.last_interest_rate_change_ts).total_seconds()
-        if seconds_since_last_change >= min_change_interval_seconds and has_incorrect_interest_rate:
+        if seconds_since_last_change >= min_change_interval_seconds and account.interest_rate != interest_rate:
             assert current_ts >= account.last_interest_rate_change_ts
             account.interest = float(_calc_account_accumulated_interest(account, current_ts))
             account.previous_interest_rate = account.interest_rate
             account.interest_rate = interest_rate
             account.last_interest_rate_change_ts = current_ts
-            account.status_flags |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
             account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
             account.last_change_ts = max(account.last_change_ts, current_ts)
             _insert_account_update_signal(account, current_ts)
@@ -508,7 +504,6 @@ def _lock_or_create_account(debtor_id: int, creditor_id: int, current_ts: dateti
 
     if account.status_flags & Account.STATUS_DELETED_FLAG:
         account.status_flags &= ~Account.STATUS_DELETED_FLAG
-        account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
         account.last_change_ts = max(account.last_change_ts, current_ts)
         _insert_account_update_signal(account, current_ts)

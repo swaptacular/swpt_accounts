@@ -40,7 +40,6 @@ def test_scan_accounts(app_unsafe_session):
         total_locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=3,
-        status_flags=Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG,
         last_change_ts=past_ts,
         last_heartbeat_ts=past_ts,
     )
@@ -67,7 +66,6 @@ def test_scan_accounts(app_unsafe_session):
         total_locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=2,
-        status_flags=Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG,
         last_change_ts=current_ts - timedelta(seconds=10),
         last_heartbeat_ts=current_ts - timedelta(seconds=10),
     ))
@@ -79,7 +77,6 @@ def test_scan_accounts(app_unsafe_session):
         total_locked_amount=500,
         pending_transfers_count=1,
         last_transfer_id=1,
-        status_flags=Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG,
         last_change_ts=past_ts,
         last_heartbeat_ts=current_ts - timedelta(seconds=10),
     ))
@@ -92,7 +89,6 @@ def test_scan_accounts(app_unsafe_session):
         pending_transfers_count=0,
         last_transfer_id=0,
         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
-        status_flags=Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG,
         last_change_ts=current_ts,
         last_heartbeat_ts=current_ts,
     ))

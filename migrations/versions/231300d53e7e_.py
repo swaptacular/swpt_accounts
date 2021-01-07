@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 822cb7f517e0
+Revision ID: 231300d53e7e
 Revises: 
-Create Date: 2021-01-06 16:23:17.937557
+Create Date: 2021-01-07 19:37:09.760296
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '822cb7f517e0'
+revision = '231300d53e7e'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -38,7 +38,7 @@ def upgrade():
     sa.Column('debtor_info_iri', sa.String(), nullable=True),
     sa.Column('debtor_info_content_type', sa.String(), nullable=True),
     sa.Column('debtor_info_sha256', sa.LargeBinary(), nullable=True),
-    sa.Column('status_flags', sa.Integer(), nullable=False, comment='Contain additional account status bits: 1 - unreachable, 2 - overflown, 65536 - deleted, 131072 - established interest rate.'),
+    sa.Column('status_flags', sa.Integer(), nullable=False, comment='Contain additional account status bits: 1 - unreachable, 2 - overflown, 65536 - deleted.'),
     sa.Column('total_locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
