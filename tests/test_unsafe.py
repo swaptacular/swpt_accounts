@@ -132,7 +132,7 @@ def test_scan_accounts(app_unsafe_session):
     db.session.commit()
     worker = dramatiq.Worker(chores_broker)
     worker.start()
-    time.sleep(5.0)
+    time.sleep(2.0)
     worker.join()
 
     accounts = Account.query.order_by(Account.creditor_id).all()
@@ -317,23 +317,17 @@ def test_set_interest_rate_on_new_accounts(app_unsafe_session):
     AccountUpdateSignal.query.delete()
     db.session.commit()
 
-    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 3.0}')
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 3.567}')
     actors.configure_account(D_ID, C_ID, current_ts.isoformat(), 0)
-    AccountUpdateSignal.query.delete()
-    db.session.commit()
 
-    assert len(Account.query.all()) == 2
-    assert len(AccountUpdateSignal.query.all()) == 0
-
-    db.session.commit()
     worker = dramatiq.Worker(chores_broker)
     worker.start()
-    time.sleep(5.0)
+    time.sleep(2.0)
     worker.join()
     db.session.commit()
 
-    aus = AccountUpdateSignal.query.one()
-    assert aus.interest_rate == 3.0
+    signals = AccountUpdateSignal.query.filter_by(creditor_id=C_ID).all()
+    assert any(s.interest_rate == 3.567 for s in signals)
 
     Account.query.delete()
     AccountUpdateSignal.query.delete()
