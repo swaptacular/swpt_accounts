@@ -53,6 +53,8 @@ def test_capitalize_interest(db_session):
 
 
 def test_configure_account(db_session):
+    from swpt_accounts.fetch_api_client import _fetch_root_config_data
+
     a.configure_account(
         debtor_id=D_ID,
         creditor_id=C_ID,
@@ -62,6 +64,7 @@ def test_configure_account(db_session):
         config_flags=0,
         config_data='',
     )
+    _fetch_root_config_data.cache_clear()
 
 
 def test_try_to_delete_account(db_session):

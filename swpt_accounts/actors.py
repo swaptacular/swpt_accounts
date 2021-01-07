@@ -1,9 +1,11 @@
 import re
 import math
 import iso8601
+from datetime import datetime, timezone
 from .extensions import protocol_broker, chores_broker, APP_QUEUE_NAME
 from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, TRANSFER_NOTE_MAX_BYTES, \
     CONFIG_DATA_MAX_BYTES
+from .fetch_api_client import get_root_config_data_dict
 from . import procedures
 
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
@@ -30,7 +32,7 @@ def configure_account(
     assert MIN_INT32 <= config_flags <= MAX_INT32
     assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
 
-    procedures.configure_account(
+    is_new_account = procedures.configure_account(
         debtor_id,
         creditor_id,
         parsed_ts,
@@ -39,6 +41,15 @@ def configure_account(
         config_flags,
         config_data,
     )
+    if is_new_account:
+        config_data = get_root_config_data_dict([debtor_id]).get(debtor_id)
+        if config_data:
+            change_interest_rate.send(
+                debtor_id,
+                creditor_id,
+                config_data.interest_rate,
+                datetime.now(tz=timezone.utc).isoformat(),
+            )
 
 
 @protocol_broker.actor(queue_name=APP_QUEUE_NAME)

@@ -7,6 +7,7 @@ from swpt_accounts.extensions import db, chores_broker
 from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict, \
     RootConfigData
 from swpt_accounts import procedures as p
+from swpt_accounts import actors
 
 
 D_ID = -1
@@ -16,6 +17,7 @@ C_ID = 1
 def test_scan_accounts(app_unsafe_session):
     from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal, AccountTransferSignal, \
         PendingAccountChange
+    from swpt_accounts.fetch_api_client import _fetch_root_config_data
 
     # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
@@ -130,7 +132,7 @@ def test_scan_accounts(app_unsafe_session):
     db.session.commit()
     worker = dramatiq.Worker(chores_broker)
     worker.start()
-    time.sleep(2.0)
+    time.sleep(5.0)
     worker.join()
 
     accounts = Account.query.order_by(Account.creditor_id).all()
@@ -155,6 +157,8 @@ def test_scan_accounts(app_unsafe_session):
     AccountTransferSignal.query.delete()
     PendingAccountChange.query.delete()
     db.session.commit()
+
+    _fetch_root_config_data.cache_clear()
 
 
 def test_scan_prepared_transfers(app_unsafe_session):
@@ -275,7 +279,6 @@ def test_get_if_account_is_reachable(app_unsafe_session, caplog):
 def test_get_root_config_data_dict(app_unsafe_session, caplog):
     from swpt_accounts.models import Account, AccountUpdateSignal
     from swpt_accounts.fetch_api_client import _fetch_root_config_data
-    _fetch_root_config_data.cache_clear()
 
     app_fetch_api_url = current_app.config['APP_FETCH_API_URL']
 
@@ -301,3 +304,39 @@ def test_get_root_config_data_dict(app_unsafe_session, caplog):
     Account.query.delete()
     AccountUpdateSignal.query.delete()
     db.session.commit()
+    _fetch_root_config_data.cache_clear()
+
+
+def test_set_interest_rate_on_new_accounts(app_unsafe_session):
+    from swpt_accounts.models import Account, AccountUpdateSignal
+    from swpt_accounts.fetch_api_client import _fetch_root_config_data
+
+    # db.signalbus.autoflush = False
+    current_ts = datetime.now(tz=timezone.utc)
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    db.session.commit()
+
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 3.0}')
+    actors.configure_account(D_ID, C_ID, current_ts.isoformat(), 0)
+    AccountUpdateSignal.query.delete()
+    db.session.commit()
+
+    assert len(Account.query.all()) == 2
+    assert len(AccountUpdateSignal.query.all()) == 0
+
+    db.session.commit()
+    worker = dramatiq.Worker(chores_broker)
+    worker.start()
+    time.sleep(5.0)
+    worker.join()
+    db.session.commit()
+
+    aus = AccountUpdateSignal.query.one()
+    assert aus.interest_rate == 3.0
+
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    db.session.commit()
+
+    _fetch_root_config_data.cache_clear()

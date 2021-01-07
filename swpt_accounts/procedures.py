@@ -41,7 +41,7 @@ def configure_account(
         seqnum: int,
         negligible_amount: float = 0.0,
         config_flags: int = 0,
-        config_data: str = '') -> None:
+        config_data: str = '') -> bool:
 
     # TODO: Consider using a `ConfigureRequest` buffer table, to
     #       reduce lock contention on `account` table rows. This might
@@ -49,10 +49,14 @@ def configure_account(
     #       messages for one account, in a short period of time
     #       (probably not a typical load).
 
+    is_new_account = False
     current_ts = datetime.now(tz=timezone.utc)
 
     def update_account_status_flags(account):
+        nonlocal is_new_account
+
         if account.status_flags & Account.STATUS_DELETED_FLAG:
+            is_new_account = True
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
             account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
 
@@ -79,8 +83,11 @@ def configure_account(
         return is_valid
 
     def try_to_configure(account):
+        nonlocal is_new_account
+
         if is_valid_config():
             if account is None:
+                is_new_account = True
                 account = _create_account(debtor_id, creditor_id, current_ts)
             update_account_status_flags(account)
             account.config_flags = config_flags
@@ -113,6 +120,8 @@ def configure_account(
         signal_age_seconds = (current_ts - ts).total_seconds()
         if signal_age_seconds <= signalbus_max_delay_seconds:
             try_to_configure(account)
+
+    return is_new_account
 
 
 @atomic
