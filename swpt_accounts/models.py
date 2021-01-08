@@ -162,7 +162,7 @@ class Account(db.Model):
         db.TIMESTAMP(timezone=True),
         nullable=False,
         default=BEGINNING_OF_TIME,
-        comment='The moment at which the last interest capitalization was triggered. It is '
+        comment='The moment at which the last interest capitalization was preformed. It is '
                 'used to avoid capitalizing interest too often.',
     )
     last_deletion_attempt_ts = db.Column(
