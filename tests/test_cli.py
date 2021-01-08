@@ -18,6 +18,8 @@ def test_process_transfers_pending_changes(app, db_session):
 
 
 def test_process_transfers_transfer_requests(app, db_session):
+    current_ts = datetime.now(tz=timezone.utc)
+    p.configure_account(D_ID, 1234, current_ts, 0)
     p.prepare_transfer(
         coordinator_type='test',
         coordinator_id=1,
@@ -26,8 +28,8 @@ def test_process_transfers_transfer_requests(app, db_session):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
-        ts=datetime.now(tz=timezone.utc),
+        recipient_creditor_id=1234,
+        ts=current_ts,
     )
     assert len(TransferRequest.query.all()) == 1
     runner = app.test_cli_runner()
@@ -48,7 +50,7 @@ def test_process_transfers_finalization_requests(app, db_session):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='0',
+        recipient_creditor_id=0,
         ts=datetime.now(tz=timezone.utc),
     )
     p.process_transfer_requests(D_ID, C_ID)

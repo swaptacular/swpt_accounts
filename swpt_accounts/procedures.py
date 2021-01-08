@@ -1,20 +1,20 @@
 import math
 from datetime import datetime, timezone, timedelta
-from typing import TypeVar, Iterable, List, Tuple, Union, Optional, Callable, Set
+from typing import TypeVar, Iterable, Tuple, Union, Optional, Callable
 from decimal import Decimal
-from flask import current_app
 from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
-from swpt_lib.utils import Seqnum, increment_seqnum, u64_to_i64, i64_to_u64
+from swpt_lib.utils import Seqnum, increment_seqnum
 from .extensions import db
+from .fetch_api_client import parse_root_config_data
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
-    AccountUpdateSignal, AccountTransferSignal, AccountMaintenanceSignal, FinalizationRequest,
-    ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MIN_INT64, MAX_INT64,
+    AccountUpdateSignal, AccountTransferSignal, FinalizationRequest,
+    ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MAX_INT64,
     SECONDS_IN_DAY, CT_INTEREST, CT_DELETE, CT_DIRECT, SC_OK, SC_SENDER_DOES_NOT_EXIST,
     SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_RECIPIENT_SAME_AS_SENDER,
-    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE,
+    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE, is_negligible_balance, contain_principal_overflow
 )
 
 T = TypeVar('T')
@@ -40,7 +40,8 @@ def configure_account(
         seqnum: int,
         negligible_amount: float = 0.0,
         config_flags: int = 0,
-        config: str = '') -> None:
+        config_data: str = '',
+        signalbus_max_delay_seconds: float = 1e30) -> bool:
 
     # TODO: Consider using a `ConfigureRequest` buffer table, to
     #       reduce lock contention on `account` table rows. This might
@@ -48,26 +49,48 @@ def configure_account(
     #       messages for one account, in a short period of time
     #       (probably not a typical load).
 
+    is_new_account = False
     current_ts = datetime.now(tz=timezone.utc)
 
     def update_account_status_flags(account):
+        nonlocal is_new_account
+
         if account.status_flags & Account.STATUS_DELETED_FLAG:
+            is_new_account = True
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
-            account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        if config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG:
+
+        is_scheduled_for_deletion = config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+        is_unreachable = is_scheduled_for_deletion and creditor_id != ROOT_CREDITOR_ID
+        if is_unreachable:
             account.status_flags |= Account.STATUS_UNREACHABLE_FLAG
         else:
             account.status_flags &= ~Account.STATUS_UNREACHABLE_FLAG
 
     def is_valid_config():
-        return negligible_amount >= 0.0 and config == ''
+        if not negligible_amount >= 0.0:
+            is_valid = False
+        elif config_data == '':
+            is_valid = True
+        elif creditor_id == ROOT_CREDITOR_ID:
+            try:
+                parse_root_config_data(config_data)
+            except ValueError:
+                is_valid = False
+            else:
+                is_valid = True
+
+        return is_valid
 
     def try_to_configure(account):
+        nonlocal is_new_account
+
         if is_valid_config():
             if account is None:
+                is_new_account = True
                 account = _create_account(debtor_id, creditor_id, current_ts)
             update_account_status_flags(account)
             account.config_flags = config_flags
+            account.config_data = config_data
             account.negligible_amount = negligible_amount
             account.last_config_ts = ts
             account.last_config_seqnum = seqnum
@@ -81,7 +104,7 @@ def configure_account(
                 config_seqnum=seqnum,
                 config_flags=config_flags,
                 negligible_amount=negligible_amount,
-                config=config,
+                config_data=config_data,
                 rejection_code=RC_INVALID_CONFIGURATION,
             ))
 
@@ -92,10 +115,11 @@ def configure_account(
         if this_event > last_event:
             try_to_configure(account)
     else:
-        signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
         signal_age_seconds = (current_ts - ts).total_seconds()
         if signal_age_seconds <= signalbus_max_delay_seconds:
             try_to_configure(account)
+
+    return is_new_account
 
 
 @atomic
@@ -107,32 +131,12 @@ def prepare_transfer(
         max_locked_amount: int,
         debtor_id: int,
         creditor_id: int,
-        recipient: str,
+        recipient_creditor_id: Optional[int],
         ts: datetime,
         max_commit_delay: int = MAX_INT32,
-        min_account_balance: int = 0,
         min_interest_rate: float = -100.0) -> None:
 
-    if creditor_id != ROOT_CREDITOR_ID:
-        # NOTE: Only the debtor's account is allowed to go
-        # deliberately negative. This is because only the debtor's
-        # account is allowed to issue money.
-        min_account_balance = max(0, min_account_balance)
-
-    try:
-        recipient_creditor_id = u64_to_i64(int(recipient))
-    except ValueError:
-        db.session.add(RejectedTransferSignal(
-            debtor_id=debtor_id,
-            coordinator_type=coordinator_type,
-            coordinator_id=coordinator_id,
-            coordinator_request_id=coordinator_request_id,
-            status_code=SC_RECIPIENT_IS_UNREACHABLE,
-            total_locked_amount=0,
-            sender_creditor_id=creditor_id,
-            recipient=recipient,
-        ))
-    else:
+    if recipient_creditor_id is not None:
         db.session.add(TransferRequest(
             debtor_id=debtor_id,
             coordinator_type=coordinator_type,
@@ -143,8 +147,17 @@ def prepare_transfer(
             sender_creditor_id=creditor_id,
             recipient_creditor_id=recipient_creditor_id,
             deadline=ts + timedelta(seconds=max_commit_delay),
-            min_account_balance=min_account_balance,
             min_interest_rate=min_interest_rate,
+        ))
+    else:
+        db.session.add(RejectedTransferSignal(
+            debtor_id=debtor_id,
+            coordinator_type=coordinator_type,
+            coordinator_id=coordinator_id,
+            coordinator_request_id=coordinator_request_id,
+            status_code=SC_RECIPIENT_IS_UNREACHABLE,
+            total_locked_amount=0,
+            sender_creditor_id=creditor_id,
         ))
 
 
@@ -157,7 +170,6 @@ def finalize_transfer(
         coordinator_id: int,
         coordinator_request_id: int,
         committed_amount: int,
-        finalization_flags: int = 0,
         transfer_note_format: str = '',
         transfer_note: str = '',
         ts: datetime = None) -> None:
@@ -172,7 +184,6 @@ def finalize_transfer(
         coordinator_id=coordinator_id,
         coordinator_request_id=coordinator_request_id,
         committed_amount=committed_amount,
-        finalization_flags=finalization_flags,
         transfer_note_format=transfer_note_format,
         transfer_note=transfer_note,
         ts=ts or datetime.now(tz=timezone.utc),
@@ -185,11 +196,42 @@ def finalize_transfer(
 
 
 @atomic
-def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, request_ts: datetime) -> None:
+def is_reachable_account(debtor_id: int, creditor_id: int) -> bool:
+    if creditor_id == ROOT_CREDITOR_ID:
+        return True
+
+    account_query = Account.query.\
+        filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
+        filter(Account.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
+        filter(Account.status_flags.op('&')(Account.STATUS_UNREACHABLE_FLAG) == 0)
+
+    return db.session.query(account_query.exists()).scalar()
+
+
+@atomic
+def get_account_config_data(debtor_id: int, creditor_id: int) -> Optional[str]:
+    return db.session.\
+        query(Account.config_data).\
+        filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
+        filter(Account.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
+        scalar()
+
+
+@atomic
+def change_interest_rate(
+        debtor_id: int,
+        creditor_id: int,
+        interest_rate: float,
+        ts: datetime = None,
+        signalbus_max_delay_seconds: float = 0.0) -> None:
+
     current_ts = datetime.now(tz=timezone.utc)
-    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-    is_valid_request = (current_ts - request_ts).total_seconds() <= signalbus_max_delay_seconds
+    ts = ts or current_ts
+    min_change_interval_seconds = signalbus_max_delay_seconds + SECONDS_IN_DAY
+    is_old_request = (current_ts - ts).total_seconds() > min_change_interval_seconds
+    is_valid_request = creditor_id != ROOT_CREDITOR_ID and not is_old_request
     account = get_account(debtor_id, creditor_id, lock=True) if is_valid_request else None
+
     if account:
         # NOTE: Too big positive interest rates can cause account
         # balance overflows. To prevent this, the interest rates
@@ -206,60 +248,52 @@ def try_to_change_interest_rate(debtor_id: int, creditor_id: int, interest_rate:
         if interest_rate < INTEREST_RATE_FLOOR:
             interest_rate = INTEREST_RATE_FLOOR
 
-        has_established_interest_rate = account.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
-        has_incorrect_interest_rate = not has_established_interest_rate or account.interest_rate != interest_rate
         seconds_since_last_change = (current_ts - account.last_interest_rate_change_ts).total_seconds()
-        if seconds_since_last_change > signalbus_max_delay_seconds + SECONDS_IN_DAY and has_incorrect_interest_rate:
+        if seconds_since_last_change >= min_change_interval_seconds and account.interest_rate != interest_rate:
             assert current_ts >= account.last_interest_rate_change_ts
             account.interest = float(_calc_account_accumulated_interest(account, current_ts))
             account.previous_interest_rate = account.interest_rate
             account.interest_rate = interest_rate
             account.last_interest_rate_change_ts = current_ts
-            account.status_flags |= Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
             account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
             account.last_change_ts = max(account.last_change_ts, current_ts)
             _insert_account_update_signal(account, current_ts)
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
+
+@atomic
+def capitalize_interest(debtor_id: int, creditor_id: int, min_capitalization_interval: datetime = timedelta()) -> None:
+    current_ts = datetime.now(tz=timezone.utc)
+    cutoff_ts = current_ts - min_capitalization_interval
+    account = get_account(debtor_id, creditor_id, lock=True)
+    if account and account.last_interest_capitalization_ts <= cutoff_ts:
+        accumulated_interest = math.floor(_calc_account_accumulated_interest(account, current_ts))
+        accumulated_interest = contain_principal_overflow(accumulated_interest)
+        if accumulated_interest != 0:
+            account.last_interest_capitalization_ts = current_ts
+            _make_debtor_payment(CT_INTEREST, account, accumulated_interest, current_ts)
 
 
 @atomic
-def capitalize_interest(
-        debtor_id: int,
-        creditor_id: int,
-        accumulated_interest_threshold: int,
-        request_ts: datetime) -> None:
+def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
+    if creditor_id == ROOT_CREDITOR_ID:
+        # TODO: Allow the deletion of the debtor's account if there
+        #       are no other accounts with the given debtor.
+        return
 
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
-        positive_threshold = max(1, abs(accumulated_interest_threshold))
-        accumulated_interest = math.floor(_calc_account_accumulated_interest(account, current_ts))
-        accumulated_interest = _contain_principal_overflow(accumulated_interest)
-        if abs(accumulated_interest) >= positive_threshold:
-            _make_debtor_payment(CT_INTEREST, account, accumulated_interest, current_ts)
+        account.last_deletion_attempt_ts = current_ts
 
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
-
-
-@atomic
-def try_to_delete_account(debtor_id: int, creditor_id: int, request_ts: datetime) -> None:
-    current_ts = datetime.now(tz=timezone.utc)
-    account = get_account(debtor_id, creditor_id, lock=True)
-    if account and account.pending_transfers_count == 0:
-        if creditor_id == ROOT_CREDITOR_ID:
-            can_be_deleted = account.principal == 0
-        else:
-            has_negligible_balance = account.calc_current_balance(current_ts) <= max(2.0, account.negligible_amount)
-            is_scheduled_for_deletion = account.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-            can_be_deleted = has_negligible_balance and is_scheduled_for_deletion
-
+        can_be_deleted = (
+            account.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+            and account.pending_transfers_count == 0
+            and is_negligible_balance(account.calc_current_balance(current_ts), account.negligible_amount)
+        )
         if can_be_deleted:
             if account.principal != 0:
                 _make_debtor_payment(CT_DELETE, account, -account.principal, current_ts)
             _mark_account_as_deleted(account, current_ts)
-
-    _insert_account_maintenance_signal(debtor_id, creditor_id, request_ts, current_ts)
 
 
 @atomic
@@ -277,13 +311,11 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
 
     if transfer_requests:
         sender_account = get_account(debtor_id, creditor_id, lock=True)
-        reachable_recipient_account_pks = _get_reachable_recipient_account_pks(transfer_requests)
         rejected_transfer_signals = []
         prepared_transfer_signals = []
 
         for tr in transfer_requests:
-            is_recipient_reachable = (debtor_id, tr.recipient_creditor_id) in reachable_recipient_account_pks
-            signal = _process_transfer_request(tr, sender_account, is_recipient_reachable, current_ts)
+            signal = _process_transfer_request(tr, sender_account, current_ts)
             if isinstance(signal, RejectedTransferSignal):
                 rejected_transfer_signals.append(signal)
             else:
@@ -324,11 +356,12 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
         principal_delta = 0
         for fr, pt in requests:
             if pt and sender_account:
+                min_account_balance = _get_min_account_balance(sender_creditor_id)
                 expendable_amount = (
                     + starting_balance
                     + principal_delta
                     - sender_account.total_locked_amount
-                    - pt.min_account_balance
+                    - min_account_balance
                 )
                 committed_amount = _finalize_prepared_transfer(pt, fr, sender_account, expendable_amount, current_ts)
                 assert committed_amount >= 0
@@ -377,7 +410,7 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
                 acquired_amount=change.principal_delta,
                 transfer_note_format=change.transfer_note_format,
                 transfer_note=change.transfer_note,
-                principal=_contain_principal_overflow(account.principal + principal_delta),
+                principal=contain_principal_overflow(account.principal + principal_delta),
             )
             db.session.delete(change)
 
@@ -415,14 +448,6 @@ def make_debtor_payment(
     _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_note_format, transfer_note)
 
 
-def _contain_principal_overflow(value: int) -> int:
-    if value <= MIN_INT64:
-        return -MAX_INT64
-    if value > MAX_INT64:
-        return MAX_INT64
-    return value
-
-
 def _insert_account_update_signal(account: Account, current_ts: datetime) -> None:
     account.last_heartbeat_ts = current_ts
     account.pending_account_update = False
@@ -441,7 +466,11 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
         last_config_seqnum=account.last_config_seqnum,
         creation_date=account.creation_date,
         negligible_amount=account.negligible_amount,
+        config_data=account.config_data,
         config_flags=account.config_flags,
+        debtor_info_iri=account.debtor_info_iri,
+        debtor_info_content_type=account.debtor_info_content_type,
+        debtor_info_sha256=account.debtor_info_sha256,
         status_flags=account.status_flags,
         inserted_at_ts=account.last_change_ts,
     ))
@@ -474,7 +503,6 @@ def _lock_or_create_account(debtor_id: int, creditor_id: int, current_ts: dateti
 
     if account.status_flags & Account.STATUS_DELETED_FLAG:
         account.status_flags &= ~Account.STATUS_DELETED_FLAG
-        account.status_flags &= ~Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
         account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
         account.last_change_ts = max(account.last_change_ts, current_ts)
         _insert_account_update_signal(account, current_ts)
@@ -484,7 +512,7 @@ def _lock_or_create_account(debtor_id: int, creditor_id: int, current_ts: dateti
 
 def _get_available_amount(account: Account, current_ts: datetime) -> int:
     current_balance = math.floor(account.calc_current_balance(current_ts))
-    return _contain_principal_overflow(current_balance - account.total_locked_amount)
+    return contain_principal_overflow(current_balance - account.total_locked_amount)
 
 
 def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -> Decimal:
@@ -570,7 +598,7 @@ def _mark_account_as_deleted(account: Account, current_ts: datetime):
 def _apply_account_change(account: Account, principal_delta: int, interest_delta: float, current_ts: datetime) -> None:
     account.interest = float(_calc_account_accumulated_interest(account, current_ts)) + interest_delta
     principal_possibly_overflown = account.principal + principal_delta
-    principal = _contain_principal_overflow(principal_possibly_overflown)
+    principal = contain_principal_overflow(principal_possibly_overflown)
     if principal != principal_possibly_overflown:
         account.status_flags |= Account.STATUS_OVERFLOWN_FLAG
     account.principal = principal
@@ -609,7 +637,7 @@ def _make_debtor_payment(
             acquired_amount=amount,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
-            principal=_contain_principal_overflow(account.principal + amount),
+            principal=contain_principal_overflow(account.principal + amount),
         )
         principal_delta = amount
         interest_delta = -amount if coordinator_type == CT_INTEREST else 0
@@ -619,7 +647,6 @@ def _make_debtor_payment(
 def _process_transfer_request(
         tr: TransferRequest,
         sender_account: Optional[Account],
-        is_recipient_reachable: bool,
         current_ts: datetime) -> Union[RejectedTransferSignal, PreparedTransferSignal]:
 
     def reject(status_code: str, total_locked_amount: int) -> RejectedTransferSignal:
@@ -632,7 +659,6 @@ def _process_transfer_request(
             status_code=status_code,
             total_locked_amount=total_locked_amount,
             sender_creditor_id=tr.sender_creditor_id,
-            recipient=str(i64_to_u64(tr.recipient_creditor_id)),
         )
 
     def prepare(amount: int) -> PreparedTransferSignal:
@@ -642,6 +668,16 @@ def _process_transfer_request(
         sender_account.last_transfer_id += 1
         demurrage_rate = INTEREST_RATE_FLOOR
         commit_period = AccountUpdateSignal.get_commit_period()
+        min_interest_rate = tr.min_interest_rate
+
+        # NOTE: When a meaningful minimal approved interest rate is
+        # set, we put a limit on the deadline to ensure that no more
+        # than one change in the interest rate will happen before the
+        # transfer gets finalized. This should be OK, because distant
+        # deadlines are not needed in this case.
+        if min_interest_rate > INTEREST_RATE_FLOOR:  # pragma: no cover
+            commit_period = min(commit_period, SECONDS_IN_DAY)
+
         deadline = min(current_ts + timedelta(seconds=commit_period), tr.deadline)
         db.session.add(PreparedTransfer(
             debtor_id=tr.debtor_id,
@@ -652,8 +688,7 @@ def _process_transfer_request(
             coordinator_request_id=tr.coordinator_request_id,
             locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
-            min_account_balance=tr.min_account_balance,
-            min_interest_rate=tr.min_interest_rate,
+            min_interest_rate=min_interest_rate,
             demurrage_rate=demurrage_rate,
             deadline=deadline,
             prepared_at_ts=current_ts,
@@ -670,6 +705,7 @@ def _process_transfer_request(
             prepared_at_ts=current_ts,
             demurrage_rate=demurrage_rate,
             deadline=deadline,
+            min_interest_rate=min_interest_rate,
             inserted_at_ts=current_ts,
         )
 
@@ -687,12 +723,6 @@ def _process_transfer_request(
     if tr.sender_creditor_id == tr.recipient_creditor_id:
         return reject(SC_RECIPIENT_SAME_AS_SENDER, sender_account.total_locked_amount)
 
-    # NOTE: Transfers to the debtor's account must be allowed even
-    # when the debtor's account does not exist. In this case, it will
-    # be created when the transfer is committed.
-    if tr.recipient_creditor_id != ROOT_CREDITOR_ID and not is_recipient_reachable:
-        return reject(SC_RECIPIENT_IS_UNREACHABLE, sender_account.total_locked_amount)
-
     if sender_account.interest_rate < tr.min_interest_rate:
         return reject(SC_TOO_LOW_INTEREST_RATE, sender_account.total_locked_amount)
 
@@ -702,7 +732,7 @@ def _process_transfer_request(
     # small enough amount, we want it to succeed, and not fail for
     # some of the other possible reasons.
     available_amount = _get_available_amount(sender_account, current_ts)
-    expendable_amount = available_amount - tr.min_account_balance
+    expendable_amount = available_amount - _get_min_account_balance(tr.sender_creditor_id)
     expendable_amount = min(expendable_amount, tr.max_locked_amount)
     expendable_amount = max(0, expendable_amount)
     if expendable_amount < tr.min_locked_amount:
@@ -721,13 +751,7 @@ def _finalize_prepared_transfer(
     sender_account.total_locked_amount = max(0, sender_account.total_locked_amount - pt.locked_amount)
     sender_account.pending_transfers_count = max(0, sender_account.pending_transfers_count - 1)
     interest_rate = sender_account.interest_rate
-    status_code = pt.calc_status_code(
-        fr.finalization_flags,
-        fr.committed_amount,
-        expendable_amount,
-        interest_rate,
-        current_ts,
-    )
+    status_code = pt.calc_status_code(fr.committed_amount, expendable_amount, interest_rate, current_ts)
     committed_amount = fr.committed_amount if status_code == SC_OK else 0
     if committed_amount > 0:
         _insert_account_transfer_signal(
@@ -738,7 +762,7 @@ def _finalize_prepared_transfer(
             acquired_amount=-committed_amount,
             transfer_note_format=fr.transfer_note_format,
             transfer_note=fr.transfer_note,
-            principal=_contain_principal_overflow(sender_account.principal - committed_amount),
+            principal=contain_principal_overflow(sender_account.principal - committed_amount),
         )
         _insert_pending_account_change(
             debtor_id=pt.debtor_id,
@@ -758,7 +782,6 @@ def _finalize_prepared_transfer(
         coordinator_type=pt.coordinator_type,
         coordinator_id=pt.coordinator_id,
         coordinator_request_id=pt.coordinator_request_id,
-        recipient_creditor_id=pt.recipient_creditor_id,
         prepared_at_ts=pt.prepared_at_ts,
         finalized_at_ts=current_ts,
         committed_amount=committed_amount,
@@ -768,30 +791,5 @@ def _finalize_prepared_transfer(
     return committed_amount
 
 
-def _insert_account_maintenance_signal(
-        debtor_id: int,
-        creditor_id: int,
-        request_ts: datetime,
-        current_ts: datetime) -> None:
-
-    db.session.add(AccountMaintenanceSignal(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-        request_ts=request_ts,
-        inserted_at_ts=current_ts,
-    ))
-
-
-def _get_reachable_recipient_account_pks(transfer_requests: List[TransferRequest]) -> Set[Tuple[int, int]]:
-    # TODO: To achieve better scalability, consider using some fast
-    #       distributed key-store (Redis?) containing the (debtor_id,
-    #       creditor_id) tuples for all accessible accounts.
-
-    account_pks = [(tr.debtor_id, tr.recipient_creditor_id) for tr in transfer_requests]
-    account_pks = db.session.\
-        query(Account.debtor_id, Account.creditor_id).\
-        filter(ACCOUNT_PK.in_(account_pks)).\
-        filter(Account.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
-        filter(Account.status_flags.op('&')(Account.STATUS_UNREACHABLE_FLAG) == 0).\
-        all()
-    return set(account_pks)
+def _get_min_account_balance(creditor_id):
+    return 0 if creditor_id != ROOT_CREDITOR_ID else -MAX_INT64

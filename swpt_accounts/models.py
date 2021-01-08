@@ -2,7 +2,7 @@ import math
 from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy.dialects import postgresql as pg
-from sqlalchemy.sql.expression import and_
+from sqlalchemy.sql.expression import func, null, or_, and_
 from swpt_lib.utils import date_to_int24
 from .extensions import db
 from .events import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, TRANSFER_NOTE_MAX_BYTES  # noqa
@@ -18,9 +18,7 @@ SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
 PRISTINE_ACCOUNT_STATUS_FLAGS = 0
-
-# `FinalizeTransfer` finalization flags:
-FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG = 1
+CONFIG_DATA_MAX_BYTES = 2000
 
 # Reserved coordinator types:
 CT_INTEREST = 'interest'
@@ -32,7 +30,6 @@ SC_OK = 'OK'
 SC_TIMEOUT = 'TERMINATED'
 SC_SENDER_DOES_NOT_EXIST = 'SENDER_DOES_NOT_EXIST'
 SC_RECIPIENT_IS_UNREACHABLE = 'RECIPIENT_IS_UNREACHABLE'
-SC_NO_RECIPIENT_CONFIRMATION = 'NO_RECIPIENT_CONFIRMATION'
 SC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
 SC_RECIPIENT_SAME_AS_SENDER = 'RC_RECIPIENT_IS_UNREACHABLE'
 SC_TOO_MANY_TRANSFERS = 'TOO_MANY_TRANSFERS'
@@ -52,13 +49,48 @@ def calc_k(interest_rate: float) -> float:
     return math.log(1.0 + interest_rate / 100.0) / SECONDS_IN_YEAR
 
 
+def contain_principal_overflow(value: int) -> int:
+    if value <= MIN_INT64:
+        return -MAX_INT64
+    if value > MAX_INT64:
+        return MAX_INT64
+    return value
+
+
+def calc_current_balance(
+        *,
+        creditor_id: int,
+        principal: int,
+        interest: float,
+        interest_rate: float,
+        last_change_ts: datetime,
+        current_ts: datetime) -> Decimal:
+
+    current_balance = Decimal(principal)
+
+    # NOTE: Any interest accumulated on the debtor's account will
+    # not be included in the current balance. Thus, accumulating
+    # interest on the debtor's account has no effect.
+    if creditor_id != ROOT_CREDITOR_ID:
+        current_balance += Decimal.from_float(interest)
+        if current_balance > 0:
+            k = calc_k(interest_rate)
+            passed_seconds = max(0.0, (current_ts - last_change_ts).total_seconds())
+            current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
+
+    return current_balance
+
+
+def is_negligible_balance(balance, negligible_amount):
+    return balance <= negligible_amount or balance <= 2.0
+
+
 class Account(db.Model):
     CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
 
     STATUS_UNREACHABLE_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1
     STATUS_DELETED_FLAG = 1 << 16
-    STATUS_ESTABLISHED_INTEREST_RATE_FLAG = 1 << 17
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -75,6 +107,10 @@ class Account(db.Model):
     last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
     config_flags = db.Column(db.Integer, nullable=False, default=0)
+    config_data = db.Column(db.String, nullable=False, default='')
+    debtor_info_iri = db.Column(db.String)
+    debtor_info_content_type = db.Column(db.String)
+    debtor_info_sha256 = db.Column(db.LargeBinary)
     status_flags = db.Column(
         db.Integer,
         nullable=False,
@@ -82,8 +118,7 @@ class Account(db.Model):
         comment="Contain additional account status bits: "
                 f"{STATUS_UNREACHABLE_FLAG} - unreachable, "
                 f"{STATUS_OVERFLOWN_FLAG} - overflown, "
-                f"{STATUS_DELETED_FLAG} - deleted, "
-                f"{STATUS_ESTABLISHED_INTEREST_RATE_FLAG} - established interest rate."
+                f"{STATUS_DELETED_FLAG} - deleted."
     )
     total_locked_amount = db.Column(
         db.BigInteger,
@@ -123,6 +158,20 @@ class Account(db.Model):
         default=get_now_utc,
         comment='The moment at which the last `AccountUpdateSignal` was sent.',
     )
+    last_interest_capitalization_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=BEGINNING_OF_TIME,
+        comment='The moment at which the last interest capitalization was preformed. It is '
+                'used to avoid capitalizing interest too often.',
+    )
+    last_deletion_attempt_ts = db.Column(
+        db.TIMESTAMP(timezone=True),
+        nullable=False,
+        default=BEGINNING_OF_TIME,
+        comment='The moment at which the last deletion attempt was made. It is used to '
+                'avoid trying to delete the account too often.',
+    )
     pending_account_update = db.Column(
         db.BOOLEAN,
         nullable=False,
@@ -145,25 +194,21 @@ class Account(db.Model):
         db.CheckConstraint(last_transfer_id >= 0),
         db.CheckConstraint(last_transfer_number >= 0),
         db.CheckConstraint(negligible_amount >= 0.0),
+        db.CheckConstraint(or_(debtor_info_sha256 == null(), func.octet_length(debtor_info_sha256) == 32)),
         {
             'comment': 'Tells who owes what to whom.',
         }
     )
 
     def calc_current_balance(self, current_ts: datetime) -> Decimal:
-        current_balance = Decimal(self.principal)
-
-        # NOTE: Any interest accumulated on the debtor's account will
-        # not be included in the current balance. Thus, accumulating
-        # interest on the debtor's account has no effect.
-        if self.creditor_id != ROOT_CREDITOR_ID:
-            current_balance += Decimal.from_float(self.interest)
-            if current_balance > 0:
-                k = calc_k(self.interest_rate)
-                passed_seconds = max(0.0, (current_ts - self.last_change_ts).total_seconds())
-                current_balance *= Decimal.from_float(math.exp(k * passed_seconds))
-
-        return current_balance
+        return calc_current_balance(
+            creditor_id=self.creditor_id,
+            principal=self.principal,
+            interest=self.interest,
+            interest_rate=self.interest_rate,
+            last_change_ts=self.last_change_ts,
+            current_ts=current_ts,
+        )
 
     def calc_due_interest(self, amount: int, due_ts: datetime, current_ts: datetime) -> float:
         """Return the accumulated interest between `due_ts` and `current_ts`.
@@ -205,7 +250,6 @@ class TransferRequest(db.Model):
     min_locked_amount = db.Column(db.BigInteger, nullable=False)
     max_locked_amount = db.Column(db.BigInteger, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    min_account_balance = db.Column(db.BigInteger, nullable=False)
     min_interest_rate = db.Column(db.REAL, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
 
@@ -234,7 +278,6 @@ class FinalizationRequest(db.Model):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     transfer_note_format = db.Column(pg.TEXT, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
-    finalization_flags = db.Column(db.Integer, nullable=False)
     ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
 
     __table_args__ = (
@@ -257,7 +300,6 @@ class PreparedTransfer(db.Model):
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-    min_account_balance = db.Column(db.BigInteger, nullable=False)
     min_interest_rate = db.Column(db.REAL, nullable=False)
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
@@ -287,7 +329,6 @@ class PreparedTransfer(db.Model):
 
     def calc_status_code(
             self,
-            finalization_flags: int,
             committed_amount: int,
             expendable_amount: int,
             interest_rate: float,
@@ -321,14 +362,6 @@ class PreparedTransfer(db.Model):
 
             if interest_rate < self.min_interest_rate:
                 return SC_TOO_LOW_INTEREST_RATE
-
-            if finalization_flags & FF_REQUIRED_RECIPIENT_CONFIRMATION_FLAG:
-                # TODO: This finctionality is not implemented
-                # yet. Three new message types would be needed for
-                # this: one outgoing message for transfer approval
-                # requests, and two incoming message types for
-                # approved and rejected transfers.
-                return SC_NO_RECIPIENT_CONFIRMATION
 
             if not (get_is_expendable() or get_is_reserved()):
                 return SC_INSUFFICIENT_AVAILABLE_AMOUNT

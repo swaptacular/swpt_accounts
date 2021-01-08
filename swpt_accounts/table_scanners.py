@@ -1,10 +1,14 @@
+import math
 from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from swpt_lib.scan_table import TableScanner
 from sqlalchemy.sql.expression import true, tuple_, or_
 from flask import current_app
 from .extensions import db
-from .models import Account, AccountUpdateSignal, AccountPurgeSignal, PreparedTransfer, PreparedTransferSignal
+from .models import Account, AccountUpdateSignal, AccountPurgeSignal, PreparedTransfer, PreparedTransferSignal, \
+    ROOT_CREDITOR_ID, calc_current_balance, is_negligible_balance, contain_principal_overflow
+from .fetch_api_client import get_root_config_data_dict
+from .actors import change_interest_rate, capitalize_interest, try_to_delete_account
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -34,26 +38,46 @@ class AccountScanner(TableScanner):
 
         self.few_days_interval = timedelta(days=3)
         self.account_purge_delay = 2 * signalbus_max_delay + max(prepared_transfer_max_delay, signalbus_max_delay)
+        self.deletion_attempts_min_interval = timedelta(days=current_app.config['APP_DELETION_ATTEMPTS_MIN_DAYS'])
+        self.interest_rate_change_min_interval = signalbus_max_delay + timedelta(days=1)
+        self.max_interest_to_principal_ratio = current_app.config['APP_MAX_INTEREST_TO_PRINCIPAL_RATIO']
+        self.min_interest_cap_interval = timedelta(days=current_app.config['APP_MIN_INTEREST_CAPITALIZATION_DAYS'])
 
         # NOTE: To prevent clogging the signal bus with heartbeat
         # signals, we ensure that the account heartbeat interval is
         # not shorter than the allowed delay in the signal bus.
         self.account_heartbeat_interval = max(account_heartbeat_interval, signalbus_max_delay)
 
+        assert self.max_interest_to_principal_ratio > 0.0
+
+    @property
+    def blocks_per_query(self) -> int:
+        return current_app.config['APP_ACCOUNTS_SCAN_BLOCKS_PER_QUERY']
+
+    @property
+    def target_beat_duration(self) -> int:
+        return current_app.config['APP_ACCOUNTS_SCAN_BEAT_MILLISECS']
+
     @atomic
     def process_rows(self, rows):
-        c = self.table.c
         current_ts = datetime.now(tz=timezone.utc)
+        self._purge_accounts(rows, current_ts)
+        self._send_heartbeats(rows, current_ts)
+        self._delete_accounts(rows, current_ts)
+        self._capitalize_interests(rows, current_ts)
+        self._change_interest_rates(rows, current_ts)
+
+    def _purge_accounts(self, rows, current_ts):
+        c = self.table.c
         deleted_flag = Account.STATUS_DELETED_FLAG
         date_few_days_ago = (current_ts - self.few_days_interval).date()
         purge_cutoff_ts = current_ts - self.account_purge_delay
-        heartbeat_cutoff_ts = current_ts - self.account_heartbeat_interval
 
+        # NOTE: If an account is created, deleted, purged, and
+        # re-created in a single day, the `creation_date` of the new
+        # account will be the same as the `creation_date` of the old
+        # account. We need to make sure this never happens.
         pks_to_purge = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
-            # NOTE: If an account is created, deleted, purged, and
-            # re-created in a single day, the `creation_date` of the
-            # new account will be the same as the `creation_date` of
-            # the old account. We need to make sure this never happens.
             row[c.status_flags] & deleted_flag
             and row[c.last_change_ts] < purge_cutoff_ts
             and row[c.creation_date] < date_few_days_ago)
@@ -79,6 +103,11 @@ class AccountScanner(TableScanner):
                     )
                     for debtor_id, creditor_id, creation_date in to_purge
                 ])
+
+    def _send_heartbeats(self, rows, current_ts):
+        c = self.table.c
+        deleted_flag = Account.STATUS_DELETED_FLAG
+        heartbeat_cutoff_ts = current_ts - self.account_heartbeat_interval
 
         pks_to_heartbeat = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
             not row[c.status_flags] & deleted_flag
@@ -118,12 +147,120 @@ class AccountScanner(TableScanner):
                         last_config_seqnum=account.last_config_seqnum,
                         creation_date=account.creation_date,
                         negligible_amount=account.negligible_amount,
+                        config_data=account.config_data,
                         config_flags=account.config_flags,
+                        debtor_info_iri=account.debtor_info_iri,
+                        debtor_info_content_type=account.debtor_info_content_type,
+                        debtor_info_sha256=account.debtor_info_sha256,
                         status_flags=account.status_flags,
                         inserted_at_ts=max(current_ts, account.last_change_ts),
                     )
                     for account in to_heartbeat
                 ])
+
+    def _delete_accounts(self, rows, current_ts):
+        c = self.table.c
+        c_debtor_id = c.debtor_id
+        c_creditor_id = c.creditor_id
+        c_last_deletion_attempt_ts = c.last_deletion_attempt_ts
+        c_status_flags = c.status_flags
+        c_config_flags = c.config_flags
+        c_negligible_amount = c.negligible_amount
+        c_principal = c.principal
+        c_interest = c.interest
+        c_interest_rate = c.interest_rate
+        c_last_change_ts = c.last_change_ts
+        scheduled_for_deletion_flag = Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+        deleted_flag = Account.STATUS_DELETED_FLAG
+        cutoff_ts = current_ts - self.deletion_attempts_min_interval
+
+        for row in rows:
+            creditor_id = row[c_creditor_id]
+            should_be_deleted = (
+                creditor_id != ROOT_CREDITOR_ID
+                and row[c_last_deletion_attempt_ts] <= cutoff_ts
+                and row[c_config_flags] & scheduled_for_deletion_flag
+                and not row[c_status_flags] & deleted_flag
+                and is_negligible_balance(
+                    calc_current_balance(
+                        creditor_id=creditor_id,
+                        principal=row[c_principal],
+                        interest=row[c_interest],
+                        interest_rate=row[c_interest_rate],
+                        last_change_ts=row[c_last_change_ts],
+                        current_ts=current_ts,
+                    ),
+                    row[c_negligible_amount],
+                )
+            )
+            if should_be_deleted:
+                try_to_delete_account.send(row[c_debtor_id], creditor_id)
+
+    def _capitalize_interests(self, rows, current_ts):
+        c = self.table.c
+        c_debtor_id = c.debtor_id
+        c_creditor_id = c.creditor_id
+        c_last_interest_capitalization_ts = c.last_interest_capitalization_ts
+        c_principal = c.principal
+        c_interest = c.interest
+        c_interest_rate = c.interest_rate
+        c_last_change_ts = c.last_change_ts
+        c_status_flags = c.status_flags
+        deleted_flag = Account.STATUS_DELETED_FLAG
+        cutoff_ts = current_ts - self.min_interest_cap_interval
+        max_ratio = self.max_interest_to_principal_ratio
+
+        for row in rows:
+            creditor_id = row[c_creditor_id]
+            can_capitalize_interest = (
+                creditor_id != ROOT_CREDITOR_ID
+                and row[c_last_interest_capitalization_ts] <= cutoff_ts
+                and not row[c_status_flags] & deleted_flag
+            )
+            if can_capitalize_interest:
+                current_balance = calc_current_balance(
+                    creditor_id=creditor_id,
+                    principal=row[c_principal],
+                    interest=row[c_interest],
+                    interest_rate=row[c_interest_rate],
+                    last_change_ts=row[c_last_change_ts],
+                    current_ts=current_ts,
+                )
+                accumulated_interest = abs(contain_principal_overflow(math.floor(current_balance - row[c_principal])))
+                ratio = accumulated_interest / (1 + abs(row[c_principal]))
+
+                if ratio > max_ratio:
+                    capitalize_interest.send(row[c_debtor_id], creditor_id)
+
+    def _change_interest_rates(self, rows, current_ts):
+        c = self.table.c
+        c_debtor_id = c.debtor_id
+        c_creditor_id = c.creditor_id
+        c_last_interest_rate_change_ts = c.last_interest_rate_change_ts
+        c_status_flags = c.status_flags
+        c_interest_rate = c.interest_rate
+        deleted_flag = Account.STATUS_DELETED_FLAG
+        cutoff_ts = current_ts - self.interest_rate_change_min_interval
+
+        def can_change_interest_rate(row):
+            return (
+                row[c_creditor_id] != ROOT_CREDITOR_ID
+                and row[c_last_interest_rate_change_ts] <= cutoff_ts
+                and not row[c_status_flags] & deleted_flag
+            )
+
+        debtor_ids = {row[c_debtor_id] for row in rows if can_change_interest_rate(row)}
+        config_data_dict = get_root_config_data_dict(debtor_ids)
+
+        for row in rows:
+            debtor_id = row[c_debtor_id]
+            config_data = config_data_dict.get(debtor_id)
+
+            if config_data and can_change_interest_rate(row):
+                interest_rate = config_data.interest_rate
+
+                if row[c_interest_rate] != interest_rate:
+                    change_interest_rate.send(debtor_id, row[c_creditor_id], interest_rate, current_ts.isoformat())
 
 
 class PreparedTransferScanner(TableScanner):
@@ -142,6 +279,14 @@ class PreparedTransferScanner(TableScanner):
             timedelta(days=current_app.config['APP_PREPARED_TRANSFER_REMAINDER_DAYS']),
             timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS']),
         )
+
+    @property
+    def blocks_per_query(self) -> int:
+        return current_app.config['APP_PREPARED_TRANSFERS_SCAN_BLOCKS_PER_QUERY']
+
+    @property
+    def target_beat_duration(self) -> int:
+        return current_app.config['APP_PREPARED_TRANSFERS_SCAN_BEAT_MILLISECS']
 
     @atomic
     def process_rows(self, rows):
@@ -167,6 +312,7 @@ class PreparedTransferScanner(TableScanner):
                     prepared_at_ts=row[c.prepared_at_ts],
                     demurrage_rate=row[c.demurrage_rate],
                     deadline=row[c.deadline],
+                    min_interest_rate=row[c.min_interest_rate],
                     inserted_at_ts=max(current_ts, row[c.prepared_at_ts]),
                 ))
                 reminded_pks.append((row[c.debtor_id], row[c.sender_creditor_id], row[c.transfer_id]))

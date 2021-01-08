@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2020-09-20
-:Version: 0.4.1
+:Date: 2020-12-11
+:Version: 0.4.2
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -105,7 +105,8 @@ debtor_id : int64
    The ID of the debtor.
 
 creditor_id : int64
-   Along with ``debtor_id``, identifies the account.
+   Along with ``debtor_id``, identifies the
+   account. [#debtor-creditor-id]_
 
 negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
@@ -118,7 +119,8 @@ config_flags : int32
    may use these flags for different purposes. The lowest 16 bits are
    reserved. Bit ``0`` has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
-   are met, an account SHOULD be removed from the server's database:
+   are met, an account SHOULD be eventually removed from the server's
+   database:
 
    * The account is "scheduled for deletion".
 
@@ -140,11 +142,12 @@ config_flags : int32
    server's database, an `AccountPurge`_ message MUST be sent to
    inform about that. [#purge-delay]_
 
-config : string
+config_data : string
    Additional account configuration settings. Different server
-   implementations may use different formats for this field. An empty
-   string MUST always be a valid value, which represents the default
-   configuration settings. [#config-limitations]_
+   implementations may use different formats for this field. For
+   creditor's accounts, an empty string MUST always be a valid value,
+   which represents the default configuration
+   settings. [#config-data-limitations]_ [#debtor-creditor-id]_
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -178,6 +181,30 @@ they MUST first verify whether the specified account already exists:
    [#for-deletion]_ [#creation-date]_ If a new account has been
    successfully created, an `AccountUpdate`_ message MUST be sent;
    otherwise a `RejectedConfig`_ message MUST be sent.
+
+.. [#debtor-creditor-id] To issue new tokens into existence, the
+  server MAY use a special account called "*the debtor's account*" (or
+  "*the root account*"):
+
+  * The balance on the debtor's account SHOULD be allowed to go
+    negative.
+
+  * The debtor's account SHOULD always be able to receive incoming
+    transfers.
+
+  * Interest paid to/from creditor's accounts SHOULD come from/to the
+    debtor's account.
+
+  * Interest SHOULD NOT be accumulated on the debtor's account.
+
+  * When the debtor's account is being created or scheduled for
+    deletion, an empty string SHOULD always be allowed as value of the
+    ``config_data`` field in the `ConfigureAccount`_ message.
+
+  * The ``creditor_id`` for the debtor's account SHOULD be ``0``.
+
+  * Sending `AccountTransfer`_ messages for the debtor's account is
+    OPTIONAL.
 
 .. [#forbid-transfers] Server implementations must not accept incoming
   transfers for "scheduled for deletion" accounts. That is:
@@ -213,8 +240,8 @@ they MUST first verify whether the specified account already exists:
   to receive old `AccountUpdate`_ messages for the purged account,
   those messages will be ignored (due to expired ``ttl``).
 
-.. [#config-limitations] The UTF-8 encoding of the ``config`` string
-  MUST NOT be longer than 2000 bytes.
+.. [#config-data-limitations] The UTF-8 encoding of the
+  ``config_data`` string MUST NOT be longer than 2000 bytes.
 
 .. [#compare-config] To do this, server implementations MUST compare
   the values of ``ts`` and ``seqnum`` fields in the received message,
@@ -279,14 +306,6 @@ recipient : string
    A string which (along with ``debtor_id``) globally identifies the
    recipient's account. [#account-id]_
    
-min_account_balance : int64
-   Determines the amount that the coordinator wishes to remain
-   available on the sender's account after the transfer has been
-   committed. Server implementations are free to fulfill or ignore
-   this wish. Note that this can be a negative number. This is mainly
-   useful for issuing money into existence. Normally, this would be
-   ``0``.
-
 min_interest_rate : float
    Determines the minimal approved interest rate. This instructs the
    server that if the interest rate on the account becomes lower than
@@ -411,20 +430,6 @@ transfer_note_format : string
    dismissed, this field will be ignored, and therefore SHOULD contain
    an empty string.
 
-finalization_flags : int32
-   Various bit-flags that may affect the behavior of the server when
-   it commits the transfer. Different server implementations may use
-   these flags for different purposes. The lowest 16 bits are
-   reserved. Bit ``0`` has the meaning "require recipient
-   confirmation", indicating that the transfer MUST NOT be committed
-   until a confirmation from the recipient has been received. (This
-   might be useful for implementing exchanges -- when money is sent
-   for an accepted bid, the exchange would be able to reject the
-   transfer if the bid is already off at that time.)
-
-   If the transfer is being dismissed, this field will be ignored, and
-   therefore SHOULD contain ``0``.
-
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
@@ -441,7 +446,7 @@ server's database: [#transfer-match]_
      [#locked-amount]_ The transfer SHOULD NOT be allowed if, after
      the transfer, the *available amount* [#avl-amount]_ on the
      sender's account would become negative. [#demurrage]_
-     [#creditor-trick]_
+     [#creditor-trick]_ [#debtor-creditor-id]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#locked-amount]_
@@ -516,9 +521,9 @@ negligible_amount : float
    The value of the ``negligible_amount`` field in the rejected
    message.
 
-config : string
-   The value of the ``config`` field in the rejected
-   message. [#config-limitations]_
+config_data : string
+   The value of the ``config_data`` field in the rejected
+   message. [#config-data-limitations]_
 
 rejection_code : string
    The reason for the rejection of the `ConfigureAccount`_
@@ -565,10 +570,6 @@ total_locked_amount : int64
    for prepared transfers on the account. This MUST be a non-negative
    number.
 
-recipient : string
-   The value of the ``recipient`` field in the corresponding
-   `PrepareTransfer`_ message.
-
 ts : date-time
    The moment at which this message was sent (the message's
    timestamp).
@@ -580,9 +581,6 @@ ts : date-time
 
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
      account does not exist, or does not accept incoming transfers.
-
-   * ``"NO_RECIPIENT_CONFIRMATION"`` signifies that a confirmation
-     from the recipient is required, but has not been obtained.
 
    * ``"TERMINATED"`` or anything that starts with "TERMINATED",
      signifies that the transfer has been terminated due to expired
@@ -647,6 +645,10 @@ deadline : date-time
    The prepared transfer can be committed successfully only before
    this moment. If the client ties to commit the prepared transfer
    after this moment, the commit MUST NOT be successful.
+
+min_interest_rate : float
+   The value of the ``min_interest_rate`` field in the corresponding
+   `PrepareTransfer`_ message.
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -744,10 +746,6 @@ committed_amount : int64
    transfer was dismissed, or that it was committed, but the commit
    was unsuccessful for some reason.
 
-recipient : string
-   The value of the ``recipient`` field in the corresponding
-   `PreparedTransfer`_ message.
-
 status_code : string
    The finalization status. MUST be between 0 and 30 symbols, ASCII
    only. If the prepared transfer was committed, but the commit was
@@ -838,9 +836,9 @@ status_flags : int32
    reserved:
 
    * Bit ``0`` has the meaning "unreachable account", indicating that
-     the account can not receive incoming transfers. Eeach "scheduled
-     for deletion" account MUST be indicated as "unreachable account"
-     as well.
+     the account can not receive incoming transfers. Creditor's
+     accounts that are "scheduled for deletion" MUST be indicated and
+     act as unreachable accounts. [#debtor-creditor-id]_
 
    * Bit ``1`` has the meaning "overflown account", indicating that
      the account's principal have breached the ``int64`` boundaries.
@@ -869,11 +867,11 @@ config_flags : int32
    `ConfigureAccount`_ messages yet, the value MUST represent the
    current configuration settings.
 
-config : string
-   The value of the ``config`` field in the latest applied
+config_data : string
+   The value of the ``config_data`` field in the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
    `ConfigureAccount`_ messages yet, the value MUST represent the
-   current configuration settings. [#config-limitations]_
+   current configuration settings. [#config-data-limitations]_
 
 account_id : string
    A string which (along with ``debtor_id``) globally identifies the
@@ -1029,8 +1027,8 @@ can safely remove a given account from their databases.
 AccountTransfer
 ---------------
 
-Emitted when a non-negligible committed transfer has affected a given
-account. [#negligible-transfer]_
+Emitted when a non-negligible committed transfer has affected a
+creditor's account. [#negligible-transfer]_ [#debtor-creditor-id]_
 
 debtor_id : int64
    The ID of the debtor.

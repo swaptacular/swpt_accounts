@@ -12,6 +12,7 @@ config_dict = {
     'TESTING': True,
     'SWPT_URL_SCHEME': 'https',
     'SWPT_SERVER_NAME': server_name,
+    'APP_MAX_INTEREST_TO_PRINCIPAL_RATIO': 0.01,
 }
 
 

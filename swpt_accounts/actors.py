@@ -1,15 +1,19 @@
 import re
 import math
 import iso8601
-from .extensions import broker, APP_QUEUE_NAME
-from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, TRANSFER_NOTE_MAX_BYTES
+from datetime import timedelta
+from flask import current_app
+from swpt_lib.utils import u64_to_i64
+from .extensions import protocol_broker, chores_broker, APP_QUEUE_NAME
+from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, TRANSFER_NOTE_MAX_BYTES, \
+    CONFIG_DATA_MAX_BYTES, SECONDS_IN_DAY
+from .fetch_api_client import get_root_config_data_dict, get_if_account_is_reachable
 from . import procedures
 
-CONFIG_MAX_BYTES = 2000
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME)
 def configure_account(
         debtor_id: int,
         creditor_id: int,
@@ -17,31 +21,42 @@ def configure_account(
         seqnum: int,
         negligible_amount: float = 0.0,
         config_flags: int = 0,
-        config: str = '') -> None:
+        config_data: str = '') -> None:
 
     """Make sure the account exists, and update its configuration settings."""
 
-    ts = iso8601.parse_date(ts)
+    parsed_ts = iso8601.parse_date(ts)
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert ts > BEGINNING_OF_TIME
+    assert parsed_ts > BEGINNING_OF_TIME
     assert MIN_INT32 <= seqnum <= MAX_INT32
     assert MIN_INT32 <= config_flags <= MAX_INT32
-    assert len(config) <= CONFIG_MAX_BYTES and len(config.encode('utf8')) <= CONFIG_MAX_BYTES
+    assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
 
-    procedures.configure_account(
-        debtor_id,
-        creditor_id,
-        ts,
-        seqnum,
-        negligible_amount,
-        config_flags,
-        config,
+    is_new_account = procedures.configure_account(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        ts=parsed_ts,
+        seqnum=seqnum,
+        negligible_amount=negligible_amount,
+        config_flags=config_flags,
+        config_data=config_data,
+        signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
     )
+    if is_new_account:
+        root_config_data = get_root_config_data_dict([debtor_id]).get(debtor_id)
+
+        if root_config_data:
+            procedures.change_interest_rate(
+                debtor_id=debtor_id,
+                creditor_id=creditor_id,
+                interest_rate=root_config_data.interest_rate,
+                signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
+            )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME)
 def prepare_transfer(
         coordinator_type: str,
         coordinator_id: int,
@@ -53,12 +68,11 @@ def prepare_transfer(
         recipient: str,
         ts: str,
         max_commit_delay: int,
-        min_account_balance: int = 0,
         min_interest_rate: float = -100.0) -> None:
 
     """Try to secure some amount, to eventually transfer it to another account."""
 
-    ts = iso8601.parse_date(ts)
+    parsed_ts = iso8601.parse_date(ts)
 
     assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
@@ -66,9 +80,15 @@ def prepare_transfer(
     assert 0 <= min_locked_amount <= max_locked_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert ts > BEGINNING_OF_TIME
+    assert parsed_ts > BEGINNING_OF_TIME
     assert 0 <= max_commit_delay <= MAX_INT32
-    assert MIN_INT64 <= min_account_balance <= MAX_INT64
+
+    try:
+        recipient_creditor_id = u64_to_i64(int(recipient))
+    except ValueError:
+        is_reachable = False
+    else:
+        is_reachable = get_if_account_is_reachable(debtor_id, recipient_creditor_id)
 
     procedures.prepare_transfer(
         coordinator_type,
@@ -78,15 +98,14 @@ def prepare_transfer(
         max_locked_amount,
         debtor_id,
         creditor_id,
-        recipient,
-        ts,
+        recipient_creditor_id if is_reachable else None,
+        parsed_ts,
         max_commit_delay,
-        min_account_balance,
         min_interest_rate,
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME)
 def finalize_transfer(
         debtor_id: int,
         creditor_id: int,
@@ -95,14 +114,13 @@ def finalize_transfer(
         coordinator_id: int,
         coordinator_request_id: int,
         committed_amount: int,
-        finalization_flags: int,
         transfer_note_format: str,
         transfer_note: str,
         ts: str) -> None:
 
     """Finalize a prepared transfer."""
 
-    ts = iso8601.parse_date(ts)
+    parsed_ts = iso8601.parse_date(ts)
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -111,11 +129,10 @@ def finalize_transfer(
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 <= committed_amount <= MAX_INT64
-    assert MIN_INT32 <= finalization_flags <= MAX_INT32
     assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
     assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
     assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
-    assert ts > BEGINNING_OF_TIME
+    assert parsed_ts > BEGINNING_OF_TIME
 
     procedures.finalize_transfer(
         debtor_id,
@@ -125,27 +142,19 @@ def finalize_transfer(
         coordinator_id,
         coordinator_request_id,
         committed_amount,
-        finalization_flags,
         transfer_note_format,
         transfer_note,
-        ts,
+        parsed_ts,
     )
 
 
-# TODO: Consider passing a `demurrage_rate` argument here as
-#       well. This would allow us to more accurately set the
-#       `demurrage_rate` field in `AccountUpdate` messages.
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def try_to_change_interest_rate(
-        debtor_id: int,
-        creditor_id: int,
-        interest_rate: float,
-        request_ts: str) -> None:
-
+@chores_broker.actor(queue_name='change_interest_rate', max_retries=0)
+def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, ts: str) -> None:
     """Try to change the interest rate on the account.
 
-    The interest rate will not be changed if not enough time has
-    passed since the previous change in the interest rate.
+    The interest rate will not be changed if the request is too old,
+    or not enough time has passed since the previous change in the
+    interest rate.
 
     """
 
@@ -153,46 +162,31 @@ def try_to_change_interest_rate(
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert not math.isnan(interest_rate)
 
-    procedures.try_to_change_interest_rate(
-        debtor_id,
-        creditor_id,
-        interest_rate,
-        iso8601.parse_date(request_ts),
+    procedures.change_interest_rate(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        interest_rate=interest_rate,
+        ts=iso8601.parse_date(ts),
+        signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def capitalize_interest(
-        debtor_id: int,
-        creditor_id: int,
-        accumulated_interest_threshold: int,
-        request_ts: str) -> None:
-
-    """Clear the interest accumulated on the account, adding it to the principal.
-
-    Does nothing if the absolute value of the accumulated interest is
-    smaller than `abs(accumulated_interest_threshold)`.
-
-    """
+@chores_broker.actor(queue_name='capitalize_interest', max_retries=0)
+def capitalize_interest(debtor_id: int, creditor_id: int) -> None:
+    """Add the interest accumulated on the account to the principal."""
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert MIN_INT64 <= accumulated_interest_threshold <= MAX_INT64
 
     procedures.capitalize_interest(
-        debtor_id,
-        creditor_id,
-        accumulated_interest_threshold,
-        iso8601.parse_date(request_ts),
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        min_capitalization_interval=timedelta(days=current_app.config['APP_MIN_INTEREST_CAPITALIZATION_DAYS']),
     )
 
 
-@broker.actor(queue_name=APP_QUEUE_NAME)
-def try_to_delete_account(
-        debtor_id: int,
-        creditor_id: int,
-        request_ts: str) -> None:
-
+@chores_broker.actor(queue_name='delete_account', max_retries=0)
+def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
     """Mark the account as deleted, if possible.
 
     If it is a "normal" account, it will be marked as deleted if it
@@ -200,9 +194,8 @@ def try_to_delete_account(
     and the current balance is not bigger than `max(2.0,
     account.negligible_amount)`.
 
-    If it is the debtor's account, it will be marked as deleted if its
-    principal is zero (`account.negligible_amount` is ignored in this
-    case).
+    If it is a debtor's account, noting will be done. (Deleting
+    debtors' accounts is not implemented yet.)
 
     Note that when a "normal" account has been successfully marked as
     deleted, it could be "resurrected" (with "scheduled for deletion"
@@ -218,8 +211,4 @@ def try_to_delete_account(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
-    procedures.try_to_delete_account(
-        debtor_id,
-        creditor_id,
-        iso8601.parse_date(request_ts),
-    )
+    procedures.try_to_delete_account(debtor_id, creditor_id)

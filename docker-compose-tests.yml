@@ -8,23 +8,57 @@ services:
       - 'POSTGRES_DB=$POSTGRES_DB'
       - 'POSTGRES_USER=$POSTGRES_USER'
       - 'POSTGRES_PASSWORD=$POSTGRES_PASSWORD'
+    volumes:
+      - ./docker/pg/create-users.sql:/docker-entrypoint-initdb.d/create-users.sql
     ports:
       - $POSTGRES_LOCAL_PORT:5432
 
 
-  tests-server:
+  tests-config:
     build:
       context: .
       dockerfile: Dockerfile
     volumes:
       - './swpt_accounts:/usr/src/app/swpt_accounts'
-    ports:
-      - 2$PORT:5555
     env_file: .env
     environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - PYTHONBREAKPOINT=web_pdb.set_trace
-      - SQLALCHEMY_DATABASE_URI=postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@tests-pg:5432/${POSTGRES_DB}
-    command: develop-run-tasks --watch '/usr/src/app/swpt_accounts' tasks:broker
+      - 'PYTHONDONTWRITEBYTECODE=1'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_debtors:swpt_debtors@tests-pg:5432/${POSTGRES_DB}'
+    command: configure
     depends_on:
       - tests-pg
+
+
+  tests-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - './swpt_accounts:/usr/src/app/swpt_accounts'
+    env_file: .env
+    environment:
+      - 'PORT=8080'
+      - 'PYTHONDONTWRITEBYTECODE=1'
+      - 'PYTHONBREAKPOINT=web_pdb.set_trace'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@tests-pg:5432/${POSTGRES_DB}'
+    ports:
+      - $PORT:8080
+    command: develop-run-flask
+    depends_on:
+      - tests-config
+
+
+  tests-dummy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - './swpt_accounts:/usr/src/app/swpt_accounts'
+    env_file: .env
+    environment:
+      - 'PYTHONDONTWRITEBYTECODE=1'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@tests-pg:5432/${POSTGRES_DB}'
+      - 'APP_FETCH_API_URL=http://tests-web:8080'
+    command: echo This is a dummy container used only to run the tests.
+    depends_on:
+      - tests-web

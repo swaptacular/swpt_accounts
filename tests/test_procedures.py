@@ -1,13 +1,12 @@
 import pytest
 from datetime import datetime, timezone, timedelta
-from swpt_lib.utils import i64_to_u64
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingAccountChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountUpdateSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
-    AccountPurgeSignal, FinalizationRequest, \
-    CT_DIRECT, SC_OK, SC_TIMEOUT, SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_NO_RECIPIENT_CONFIRMATION
+    AccountPurgeSignal, FinalizationRequest, ROOT_CREDITOR_ID, \
+    CT_DIRECT, SC_OK, SC_TIMEOUT, SC_INSUFFICIENT_AVAILABLE_AMOUNT
 
 
 def test_version(db_session):
@@ -54,7 +53,7 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['last_config_ts'] == a.last_config_ts.isoformat()
     assert acs_obj['last_config_seqnum'] == a.last_config_seqnum
     assert acs_obj['negligible_amount'] == a.negligible_amount
-    assert acs_obj['config'] == ''
+    assert acs_obj['config_data'] == ''
     assert acs_obj['config_flags'] == a.config_flags
     assert acs_obj['status_flags'] == a.status_flags
     assert acs_obj['account_id'] == str(C_ID)
@@ -85,7 +84,7 @@ def test_ignored_config(db_session, current_ts):
 
 
 def test_invalid_config(db_session, current_ts):
-    p.configure_account(D_ID, C_ID, current_ts, 123, -10.0, config_flags=0x1fff, config='xxx')
+    p.configure_account(D_ID, C_ID, current_ts, 123, -10.0, config_flags=0x1fff, config_data='xxx')
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountUpdateSignal.query.all()) == 0
     rcs = RejectedConfigSignal.query.one()
@@ -96,7 +95,7 @@ def test_invalid_config(db_session, current_ts):
     assert rcs.config_seqnum == 123
     assert rcs.config_flags == 0x1fff
     assert rcs.negligible_amount == -10.0
-    assert rcs.config == 'xxx'
+    assert rcs.config_data == 'xxx'
     rcs_obj = rcs.__marshmallow_schema__.dump(rcs)
     assert rcs_obj['debtor_id'] == D_ID
     assert rcs_obj['creditor_id'] == C_ID
@@ -104,11 +103,11 @@ def test_invalid_config(db_session, current_ts):
     assert rcs_obj['config_seqnum'] == 123
     assert rcs_obj['config_flags'] == rcs.config_flags
     assert rcs_obj['negligible_amount'] == rcs.negligible_amount
-    assert rcs_obj['config'] == 'xxx'
+    assert rcs_obj['config_data'] == 'xxx'
     assert rcs_obj['rejection_code'] == p.RC_INVALID_CONFIGURATION
     assert isinstance(rcs_obj['ts'], str)
 
-    p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123)
+    p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123, signalbus_max_delay_seconds=900*24*60*60)
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountUpdateSignal.query.all()) == 0
     assert len(RejectedConfigSignal.query.all()) == 1
@@ -116,33 +115,32 @@ def test_invalid_config(db_session, current_ts):
 
 def test_set_interest_rate(db_session, current_ts):
     # The account does not exist.
-    p.try_to_change_interest_rate(D_ID, C_ID, 7.0, current_ts)
+    p.change_interest_rate(D_ID, C_ID, 7.0, current_ts)
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountUpdateSignal.query.all()) == 0
 
     # The account does exist.
     p.configure_account(D_ID, C_ID, current_ts, 0)
-    p.try_to_change_interest_rate(D_ID, C_ID, 7.0, current_ts)
+    p.change_interest_rate(D_ID, C_ID, 7.0, current_ts)
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
-    assert a.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     assert len(AccountUpdateSignal.query.all()) == 2
 
     # Changing the interest rate too often.
-    p.try_to_change_interest_rate(D_ID, C_ID, 1.0, current_ts)
+    p.change_interest_rate(D_ID, C_ID, 1.0, current_ts)
     a = p.get_account(D_ID, C_ID)
     assert a.interest_rate == 7.0
 
 
 def test_too_big_interest_rate(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
-    p.try_to_change_interest_rate(D_ID, C_ID, 1e9, current_ts)
+    p.change_interest_rate(D_ID, C_ID, 1e9, current_ts)
     assert p.get_account(D_ID, C_ID).interest_rate == INTEREST_RATE_CEIL
 
 
 def test_too_small_interest_rate(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
-    p.try_to_change_interest_rate(D_ID, C_ID, -99.9999999999, current_ts)
+    p.change_interest_rate(D_ID, C_ID, -99.9999999999, current_ts)
     assert p.get_account(D_ID, C_ID).interest_rate == INTEREST_RATE_FLOOR
 
 
@@ -357,10 +355,7 @@ def test_capitalize_positive_interest(db_session, current_ts):
         Account.last_change_ts: current_ts - timedelta(days=365),
         Account.last_change_seqnum: 666,
     })
-    p.capitalize_interest(D_ID, C_ID, 10000000, current_ts)
-    p.process_pending_account_changes(D_ID, C_ID)
-    assert p.get_account(D_ID, C_ID).interest == 100.0
-    p.capitalize_interest(D_ID, C_ID, 0, current_ts)
+    p.capitalize_interest(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert abs(a.interest) <= 1.0
@@ -378,10 +373,7 @@ def test_capitalize_negative_interest(db_session, current_ts):
         Account.last_change_ts: current_ts - timedelta(days=365),
         Account.last_change_seqnum: 666,
     })
-    p.capitalize_interest(D_ID, C_ID, 10000000, current_ts)
-    p.process_pending_account_changes(D_ID, C_ID)
-    assert p.get_account(D_ID, C_ID).interest == -100.0
-    p.capitalize_interest(D_ID, C_ID, 0, current_ts)
+    p.capitalize_interest(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert abs(a.interest) <= 1.0
@@ -392,7 +384,7 @@ def test_debtor_account_capitalization(db_session, current_ts):
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     q.update({Account.interest: 100.0, Account.principal: 50})
-    p.capitalize_interest(D_ID, p.ROOT_CREDITOR_ID, 0, current_ts)
+    p.capitalize_interest(D_ID, p.ROOT_CREDITOR_ID)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert a.principal == 50
@@ -407,7 +399,7 @@ def test_delete_account(db_session, current_ts):
     assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert not a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
     p.configure_account(D_ID, C_ID, current_ts, 1, config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
-    p.try_to_delete_account(D_ID, C_ID, current_ts)
+    p.try_to_delete_account(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID) is None
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     assert q.one().status_flags & Account.STATUS_DELETED_FLAG
@@ -426,27 +418,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 1,
                         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=MAX_INT64)
 
-    # Verify that incoming transfers are not allowed:
-    p.configure_account(D_ID, 1234, current_ts, 0)
-    Account.query.filter_by(debtor_id=D_ID, creditor_id=1234).update({Account.principal: 10})
-    p.prepare_transfer(
-        coordinator_type='test',
-        coordinator_id=1,
-        coordinator_request_id=2,
-        min_locked_amount=1,
-        max_locked_amount=200,
-        debtor_id=D_ID,
-        creditor_id=1234,
-        recipient=str(C_ID),
-        ts=current_ts,
-    )
-    p.process_transfer_requests(D_ID, 1234)
-    rts = RejectedTransferSignal.query.one()
-    assert rts.debtor_id == D_ID
-    assert rts.coordinator_type == 'test'
-    assert rts.coordinator_id == 1
-    assert rts.coordinator_request_id == 2
-    assert rts.status_code == p.SC_RECIPIENT_IS_UNREACHABLE
+    assert not p.is_reachable_account(D_ID, C_ID)
 
     # Verify that re-creating the account clears CONFIG_SCHEDULED_FOR_DELETION_FLAG:
     p.configure_account(D_ID, C_ID, current_ts, 2)
@@ -455,7 +427,7 @@ def test_delete_account_negative_balance(db_session, current_ts):
 
     # Try to delete the account.
     p.configure_account(D_ID, C_ID, current_ts, 3, config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
-    p.try_to_delete_account(D_ID, C_ID, current_ts)
+    p.try_to_delete_account(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a is None
 
@@ -466,7 +438,7 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     q.update({Account.principal: 2, Account.interest: -1.0})
     p.configure_account(D_ID, C_ID, current_ts, 1,
                         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=2.0)
-    p.try_to_delete_account(D_ID, C_ID, current_ts)
+    p.try_to_delete_account(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID) is None
     a = q.one()
     assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
@@ -491,24 +463,15 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
 
 
 def test_delete_debtor_account(db_session, current_ts):
-    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0)
     p.configure_account(D_ID, C_ID, current_ts, 0)
 
-    # The principal is not zero.
     p.make_debtor_payment('test', D_ID, C_ID, 1)
     p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
-    p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID, current_ts)
+    p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert not a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-
-    # The principal is zero.
-    p.make_debtor_payment('test', D_ID, C_ID, -1)
-    p.process_pending_account_changes(D_ID, p.ROOT_CREDITOR_ID)
-    p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID, current_ts)
-    assert q.one().status_flags & Account.STATUS_DELETED_FLAG
-    assert not q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
 def test_resurrect_deleted_account_create(db_session, current_ts):
@@ -517,10 +480,9 @@ def test_resurrect_deleted_account_create(db_session, current_ts):
     q.update({Account.interest_rate: 10.0})
     p.configure_account(D_ID, C_ID, current_ts, 1,
                         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=10.0)
-    p.try_to_delete_account(D_ID, C_ID, current_ts)
+    p.try_to_delete_account(D_ID, C_ID)
     p.configure_account(D_ID, C_ID, current_ts + timedelta(days=1000), 0)
     assert q.one().interest_rate == 10.0
-    assert not q.one().status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     assert not q.one().status_flags & Account.STATUS_DELETED_FLAG
     assert not q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
@@ -531,14 +493,13 @@ def test_resurrect_deleted_account_transfer(db_session, current_ts):
     q.update({Account.interest_rate: 10.0})
     p.configure_account(D_ID, C_ID, current_ts, 1,
                         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=10.0)
-    p.try_to_delete_account(D_ID, C_ID, current_ts)
+    p.try_to_delete_account(D_ID, C_ID)
     assert not p.get_account(D_ID, C_ID)
     p.make_debtor_payment('test', D_ID, C_ID, 1)
     p.process_pending_account_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
     assert a.interest_rate == 10.0
-    assert not a.status_flags & Account.STATUS_ESTABLISHED_INTEREST_RATE_FLAG
     assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
@@ -555,7 +516,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
+        recipient_creditor_id=1234,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -582,32 +543,8 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     assert rts_obj['coordinator_id'] == 1
     assert rts_obj['coordinator_request_id'] == 2
     assert rts_obj['total_locked_amount'] == 0
-    assert rts_obj['recipient'] == '1234'
     assert isinstance(rts_obj['ts'], str)
 
-
-def test_prepare_transfer_account_does_not_exist(db_session, current_ts):
-    p.configure_account(D_ID, C_ID, current_ts, 0)
-    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
-    q.update({Account.principal: 100})
-    p.prepare_transfer(
-        coordinator_type='test',
-        coordinator_id=1,
-        coordinator_request_id=2,
-        min_locked_amount=1,
-        max_locked_amount=200,
-        debtor_id=D_ID,
-        creditor_id=C_ID,
-        recipient='1234',
-        ts=current_ts,
-    )
-    p.process_transfer_requests(D_ID, C_ID)
-    rts = RejectedTransferSignal.query.one()
-    assert rts.debtor_id == D_ID
-    assert rts.coordinator_type == 'test'
-    assert rts.coordinator_id == 1
-    assert rts.coordinator_request_id == 2
-    assert rts.status_code == p.SC_RECIPIENT_IS_UNREACHABLE
 
 
 def test_prepare_transfer_to_self(db_session, current_ts):
@@ -622,7 +559,7 @@ def test_prepare_transfer_to_self(db_session, current_ts):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient=str(C_ID),
+        recipient_creditor_id=C_ID,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -647,7 +584,7 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
+        recipient_creditor_id=1234,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -671,7 +608,7 @@ def test_prepare_transfer_invalid_recipient(db_session, current_ts):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='invalid',
+        recipient_creditor_id=None,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -696,8 +633,7 @@ def test_prepare_transfer_interest_rate_too_low(db_session, current_ts):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
-        min_account_balance=-1,
+        recipient_creditor_id=1234,
         min_interest_rate=-9.99999,
         ts=current_ts,
     )
@@ -721,8 +657,7 @@ def test_prepare_transfer_success(db_session, current_ts):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
-        min_account_balance=-1,
+        recipient_creditor_id=1234,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -749,7 +684,6 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pt.coordinator_type == 'test'
     assert pt.recipient_creditor_id == 1234
     assert pt.locked_amount == pts.locked_amount
-    assert pt.min_account_balance == 0
 
     pts_obj = pts.__marshmallow_schema__.dump(pts)
     assert pts_obj['debtor_id'] == D_ID
@@ -762,6 +696,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pts_obj['recipient'] == '1234'
     assert pts_obj['prepared_at'] == pts_obj['ts']
     assert pts_obj['deadline'] == pts.deadline.isoformat()
+    assert pts_obj['min_interest_rate'] == pts.min_interest_rate
     assert pts_obj['demurrage_rate'] == -50.0
     assert isinstance(pts_obj['ts'], str)
 
@@ -791,7 +726,6 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert fpt_obj['coordinator_request_id'] == 2
     assert fpt_obj['committed_amount'] == 0
     assert fpt_obj['total_locked_amount'] == 0
-    assert fpt_obj['recipient'] == '1234'
     assert fpt_obj['status_code'] == 'OK'
     assert isinstance(fpt_obj['ts'], str)
     assert fpt_obj['prepared_at'] == fpt.prepared_at_ts.isoformat()
@@ -810,7 +744,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
+        recipient_creditor_id=1234,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -847,6 +781,41 @@ def test_commit_prepared_transfer(db_session, current_ts):
     assert cts2.acquired_amount == 40
 
 
+def test_commit_issuing_transfer(db_session, current_ts):
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    p.configure_account(D_ID, ROOT_CREDITOR_ID, current_ts, 0)
+    p.prepare_transfer(
+        coordinator_type='issuing',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=200,
+        max_locked_amount=200,
+        debtor_id=D_ID,
+        creditor_id=ROOT_CREDITOR_ID,
+        recipient_creditor_id=1234,
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, ROOT_CREDITOR_ID)
+    pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=ROOT_CREDITOR_ID).one()
+    p.finalize_transfer(D_ID, ROOT_CREDITOR_ID, pt.transfer_id, 'issuing', 1, 2, 200)
+    p.process_finalization_requests(D_ID, ROOT_CREDITOR_ID)
+    p.process_pending_account_changes(D_ID, 1234)
+    p.process_pending_account_changes(D_ID, ROOT_CREDITOR_ID)
+    a1 = p.get_account(D_ID, 1234)
+    assert a1.total_locked_amount == 0
+    assert a1.pending_transfers_count == 0
+    assert a1.principal == 200
+    a2 = p.get_account(D_ID, ROOT_CREDITOR_ID)
+    assert a2.total_locked_amount == 0
+    assert a2.pending_transfers_count == 0
+    assert a2.principal == -200
+    assert a2.interest == 0.0
+    assert not PreparedTransfer.query.one_or_none()
+    assert len(AccountUpdateSignal.query.all()) >= 2
+    assert len(RejectedTransferSignal.query.all()) == 0
+    assert len(FinalizedTransferSignal.query.all()) == 1
+
+
 def test_zero_locked_amount_unsuccessful_commit(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.configure_account(D_ID, 1234, current_ts, 0)
@@ -858,7 +827,7 @@ def test_zero_locked_amount_unsuccessful_commit(db_session, current_ts):
         max_locked_amount=0,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
+        recipient_creditor_id=1234,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -890,7 +859,7 @@ def test_zero_locked_amount_successful_commit(db_session, current_ts):
         max_locked_amount=0,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
+        recipient_creditor_id=1234,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -926,13 +895,11 @@ def test_prepared_transfer_commit_timeout(db_session, current_ts):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
-        min_account_balance=3,
+        recipient_creditor_id=1234,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
-    assert pt.min_account_balance == 3
     pt.prepared_at_ts = pt.prepared_at_ts - timedelta(days=100)
     pt.deadline = pt.prepared_at_ts + timedelta(days=30)
     db_session.commit()
@@ -956,7 +923,7 @@ def test_prepared_transfer_too_big_committed_amount(db_session, current_ts):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
+        recipient_creditor_id=1234,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -981,7 +948,7 @@ def test_commit_to_debtor_account(db_session, current_ts):
         max_locked_amount=200,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient=str(p.ROOT_CREDITOR_ID),
+        recipient_creditor_id=p.ROOT_CREDITOR_ID,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
@@ -1018,13 +985,13 @@ def test_delayed_direct_transfer(db_session, current_ts):
         max_locked_amount=1000,
         debtor_id=D_ID,
         creditor_id=C_ID,
-        recipient='1234',
+        recipient_creditor_id=1234,
         ts=current_ts,
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.one()
-    assert pt.calc_status_code(0, 1000, 0, -100.0, current_ts) == SC_OK
-    assert pt.calc_status_code(0, 1000, 0, -100.0, current_ts + timedelta(days=31)) != SC_OK
+    assert pt.calc_status_code(1000, 0, -100.0, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, 0, -100.0, current_ts + timedelta(days=31)) != SC_OK
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, CT_DIRECT, 1, 2, 9999999)
     p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
@@ -1042,26 +1009,24 @@ def test_calc_status_code(db_session, current_ts):
         coordinator_request_id=22,
         recipient_creditor_id=1,
         prepared_at_ts=current_ts,
-        min_account_balance=10,
         min_interest_rate=-10.0,
         demurrage_rate=-50,
         deadline=current_ts + timedelta(days=10000),
         locked_amount=1000,
     )
-    assert pt.calc_status_code(0, 1000, 0, -10.0001, current_ts) != SC_OK
-    assert pt.calc_status_code(0, 1000, 0, -10.0, current_ts) == SC_OK
-    assert pt.calc_status_code(0, 1000, 0, -10.0, current_ts - timedelta(days=10)) == SC_OK
-    assert pt.calc_status_code(0, 1000, 0, -10.0, current_ts + timedelta(days=10)) == SC_OK
-    assert pt.calc_status_code(0, 1000, -1, -10.0, current_ts) == SC_OK
-    assert pt.calc_status_code(0, 1000, -1, -10.0, current_ts + timedelta(seconds=1)) != SC_OK
-    assert pt.calc_status_code(0, 1000, -1, -10.0, current_ts - timedelta(days=10)) == SC_OK
-    assert pt.calc_status_code(0, 999, -5, -10.0, current_ts + timedelta(days=10)) != SC_OK
-    assert pt.calc_status_code(0, 995, -5, -10.0, current_ts + timedelta(days=10)) == SC_OK
-    assert pt.calc_status_code(0, 995, -50000, -10.0, current_ts + timedelta(days=10)) != SC_OK
-    assert pt.calc_status_code(0, 980, -50000, -10.0, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, 0, -10.0001, current_ts) != SC_OK
+    assert pt.calc_status_code(1000, 0, -10.0, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, 0, -10.0, current_ts - timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, 0, -10.0, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(1000, -1, -10.0, current_ts) == SC_OK
+    assert pt.calc_status_code(1000, -1, -10.0, current_ts + timedelta(seconds=1)) != SC_OK
+    assert pt.calc_status_code(1000, -1, -10.0, current_ts - timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(999, -5, -10.0, current_ts + timedelta(days=10)) != SC_OK
+    assert pt.calc_status_code(995, -5, -10.0, current_ts + timedelta(days=10)) == SC_OK
+    assert pt.calc_status_code(995, -50000, -10.0, current_ts + timedelta(days=10)) != SC_OK
+    assert pt.calc_status_code(980, -50000, -10.0, current_ts + timedelta(days=10)) == SC_OK
     pt.recipient_creditor_id = 0
-    assert pt.calc_status_code(0, 1000, -50000, -10.0, current_ts + timedelta(days=10)) == SC_OK
-    assert pt.calc_status_code(1, 1000, -50000, -10.0, current_ts + timedelta(days=10)) == SC_NO_RECIPIENT_CONFIRMATION
+    assert pt.calc_status_code(1000, -50000, -10.0, current_ts + timedelta(days=10)) == SC_OK
 
 
 def test_finalize_transfer_twice(db_session):

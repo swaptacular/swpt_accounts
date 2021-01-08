@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 3f63907dd5cd
+Revision ID: 5caee1980681
 Revises: 
-Create Date: 2020-09-12 14:07:03.068451
+Create Date: 2021-01-08 15:30:21.921121
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '3f63907dd5cd'
+revision = '5caee1980681'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -34,13 +34,20 @@ def upgrade():
     sa.Column('last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
-    sa.Column('status_flags', sa.Integer(), nullable=False, comment='Contain additional account status bits: 1 - unreachable, 2 - overflown, 65536 - deleted, 131072 - established interest rate.'),
+    sa.Column('config_data', sa.String(), nullable=False),
+    sa.Column('debtor_info_iri', sa.String(), nullable=True),
+    sa.Column('debtor_info_content_type', sa.String(), nullable=True),
+    sa.Column('debtor_info_sha256', sa.LargeBinary(), nullable=True),
+    sa.Column('status_flags', sa.Integer(), nullable=False, comment='Contain additional account status bits: 1 - unreachable, 2 - overflown, 65536 - deleted.'),
     sa.Column('total_locked_amount', sa.BigInteger(), nullable=False, comment='The total sum of all pending transfer locks (the total sum of the values of the `pending_transfer.locked_amount` column) for this account. This value has been reserved and must be subtracted from the available amount, to avoid double-spending.'),
     sa.Column('pending_transfers_count', sa.Integer(), nullable=False, comment='The number of `pending_transfer` records for this account.'),
     sa.Column('last_transfer_id', sa.BigInteger(), nullable=False, comment='Incremented when a new `prepared_transfer` record is inserted. It is used to generate sequential numbers for the `prepared_transfer.transfer_id` column. When the account is created, `last_transfer_id` has its lower 40 bits set to zero, and its higher 24 bits calculated from the value of `creation_date` (the number of days since Jan 1st, 1970).'),
     sa.Column('previous_interest_rate', sa.REAL(), nullable=False, comment='The annual interest rate (in percents) as it was before the last change of the interest rate happened (see `last_interest_rate_change_ts`).'),
     sa.Column('last_heartbeat_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last `AccountUpdateSignal` was sent.'),
+    sa.Column('last_interest_capitalization_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last interest capitalization was preformed. It is used to avoid capitalizing interest too often.'),
+    sa.Column('last_deletion_attempt_ts', sa.TIMESTAMP(timezone=True), nullable=False, comment='The moment at which the last deletion attempt was made. It is used to avoid trying to delete the account too often.'),
     sa.Column('pending_account_update', sa.BOOLEAN(), nullable=False, comment='Whether there has been a change in the record that requires an `AccountUpdate` message to be send.'),
+    sa.CheckConstraint('debtor_info_sha256 IS NULL OR octet_length(debtor_info_sha256) = 32'),
     sa.CheckConstraint('interest_rate >= -50.0 AND interest_rate <= 100.0'),
     sa.CheckConstraint('last_transfer_id >= 0'),
     sa.CheckConstraint('last_transfer_number >= 0'),
@@ -51,14 +58,6 @@ def upgrade():
     sa.CheckConstraint('total_locked_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id'),
     comment='Tells who owes what to whom.'
-    )
-    op.create_table('account_maintenance_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('request_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
     op.create_table('account_purge_signal',
     sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -100,7 +99,11 @@ def upgrade():
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
+    sa.Column('config_data', sa.String(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
+    sa.Column('debtor_info_iri', sa.String(), nullable=True),
+    sa.Column('debtor_info_content_type', sa.String(), nullable=True),
+    sa.Column('debtor_info_sha256', sa.LargeBinary(), nullable=True),
     sa.Column('status_flags', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
@@ -114,7 +117,6 @@ def upgrade():
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note_format', sa.TEXT(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
-    sa.Column('finalization_flags', sa.Integer(), nullable=False),
     sa.Column('ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('committed_amount >= 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'transfer_id'),
@@ -128,7 +130,6 @@ def upgrade():
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
-    sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
@@ -165,6 +166,7 @@ def upgrade():
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('demurrage_rate', sa.FLOAT(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'signal_id')
     )
     op.create_table('rejected_config_signal',
@@ -175,8 +177,8 @@ def upgrade():
     sa.Column('config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('config_seqnum', sa.Integer(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
+    sa.Column('config_data', sa.String(), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
-    sa.Column('config', sa.String(), nullable=False),
     sa.Column('rejection_code', sa.String(length=30), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
@@ -190,7 +192,6 @@ def upgrade():
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('status_code', sa.String(length=30), nullable=False),
     sa.Column('total_locked_amount', sa.BigInteger(), nullable=False),
-    sa.Column('recipient', sa.String(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'signal_id')
     )
     op.create_table('transfer_request',
@@ -203,7 +204,6 @@ def upgrade():
     sa.Column('min_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('max_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('min_account_balance', sa.BigInteger(), nullable=False),
     sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.CheckConstraint('min_interest_rate >= -100.0'),
@@ -221,7 +221,6 @@ def upgrade():
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('min_account_balance', sa.BigInteger(), nullable=False),
     sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.Column('demurrage_rate', sa.FLOAT(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -251,6 +250,5 @@ def downgrade():
     op.drop_table('account_update_signal')
     op.drop_table('account_transfer_signal')
     op.drop_table('account_purge_signal')
-    op.drop_table('account_maintenance_signal')
     op.drop_table('account')
     # ### end Alembic commands ###
