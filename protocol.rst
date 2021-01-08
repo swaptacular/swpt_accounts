@@ -119,7 +119,8 @@ config_flags : int32
    may use these flags for different purposes. The lowest 16 bits are
    reserved. Bit ``0`` has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
-   are met, an account SHOULD be removed from the server's database:
+   are met, an account SHOULD be eventually removed from the server's
+   database:
 
    * The account is "scheduled for deletion".
 
