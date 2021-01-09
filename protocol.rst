@@ -126,8 +126,8 @@ config_flags : int32
 
    * The account is "scheduled for deletion".
 
-   * Account's configuration have not been updated for some time.
-     [#config-delay]_
+   * Account's configuration have not been updated for at least
+     ``MAX_CONFIG_DELAY`` seconds.  [#config-delay]_
 
    * The account has no prepared transfers (incoming or outgoing) that
      await finalization.
@@ -177,12 +177,13 @@ they MUST first verify whether the specified account already exists:
    sent.
 
 2. If the specified account does not exist, the message's timestamp
-   MUST be checked. If it is too far in the past, the message MUST be
-   ignored. Otherwise, an attempt MUST be made to create a new account
-   with the requested configuration settings. [#zero-principal]_
-   [#for-deletion]_ [#creation-date]_ If a new account has been
-   successfully created, an `AccountUpdate`_ message MUST be sent;
-   otherwise a `RejectedConfig`_ message MUST be sent.
+   MUST be checked. If it is more that ``MAX_CONFIG_DELAY`` seconds in
+   the past, the message MUST be ignored. [#config-delay]_ Otherwise,
+   an attempt MUST be made to create a new account with the requested
+   configuration settings. [#zero-principal]_ [#for-deletion]_
+   [#creation-date]_ If a new account has been successfully created,
+   an `AccountUpdate`_ message MUST be sent; otherwise a
+   `RejectedConfig`_ message MUST be sent.
 
 .. [#debtor-creditor-id] To issue new tokens into existence, the
   server MAY use a special account called "*the debtor's account*" (or
@@ -213,10 +214,10 @@ they MUST first verify whether the specified account already exists:
   `PrepareTransfer`_ messages that has a "scheduled for deletion"
   account as a recipient MUST be rejected.
 
-.. [#config-delay] How long this time is, depends on how far in the
-  past a `ConfigureAccount`_ message has to be, in order to be
-  ignored. The goal is to avoid the scenario in which an account is
-  removed from server's database, but an old, wandering
+.. [#config-delay] How long ``MAX_CONFIG_DELAY`` is, determines how
+  far in the past a `ConfigureAccount`_ message should be in order to
+  be ignored. The intention is to avoid the scenario in which an
+  account is removed from server's database, but an old, wandering
   `ConfigureAccount`_ message "resurrects" it.
 
 .. [#implications] Note that unless the ``negligible_amount`` is huge,
