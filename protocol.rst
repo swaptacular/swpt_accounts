@@ -312,7 +312,7 @@ max_locked_amount : int64
 recipient : string
    A string which (along with ``debtor_id``) globally identifies the
    recipient's account. [#account-id]_
-   
+
 min_interest_rate : float
    Determines the minimal approved interest rate. This instructs the
    server that if the interest rate on the account becomes lower than
@@ -360,7 +360,7 @@ When server implementations process a `PrepareTransfer`_ message they:
 * If the requested transfer can not be prepared, MUST send a
   `RejectedTransfer`_ message.
 
-An important special case is when ``min_locked_amount`` and
+An important practical case is when ``min_locked_amount`` and
 ``max_locked_amount`` are both equal to zero. [#zero-min-amount]_ In
 this case no amount will be secured, and whether the transfer will be
 successful or not will depend on whether the ``committed_amount``,
@@ -368,12 +368,12 @@ sent with the `FinalizeTransfer`_ message, will be available at the
 time of the commit.
 
 
-.. [#coordinator-type] ``"direct"`` is reserved for payments initiated
-  directly by the owner of the account, ``"interest"`` MUST be used
-  for transfers initiated by the interest capitalization service,
-  ``"issuing"`` MUST be used for transfers which create new money into
-  existence, ``"delete"`` MUST be used for transfers which zero out
-  the principal on deleted accounts.
+.. [#coordinator-type] The coordinator type ``"direct"`` is reserved
+  for payments initiated directly by the owner of the account,
+  ``"interest"`` MUST be used for transfers initiated by the interest
+  capitalization service, ``"issuing"`` MUST be used for transfers
+  which create new money into existence, ``"delete"`` MUST be used for
+  transfers which zero out the principal on deleted accounts.
 
 .. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
   no other impediments to the transfer, the transfer MUST be prepared
@@ -995,13 +995,13 @@ allowing clients to detect "dead" account records in their databases.
   ``last_config_seqnum`` can be used to determine whether a sent
   `ConfigureAccount`_ message has been applied successfully.
 
-.. [#account-id] MUST have at most 100 symbols, ASCII only. Different
-   server implementations may use different formats for this
-   identifier. Note that ``creditor_id`` is an ID which is
-   recognizable only by the system that created the account. This
-   identifier (along with ``debtor_id``), on the other hand, MUST
-   provide enough information to globally identify the account (an
-   IBAN for example).
+.. [#account-id] The account identifier MUST have at most 100 symbols,
+   ASCII only. Different server implementations may use different
+   formats for this identifier. Note that ``creditor_id`` is an ID
+   which is recognizable only by the system that created the
+   account. The account identifier (along with ``debtor_id``), on the
+   other hand, MUST provide enough information to globally identify
+   the account (an IBAN for example).
 
 .. [#missing-identity] When the account does not have an identity yet,
   the ``status_flags`` field MUST indicate that the account is an
