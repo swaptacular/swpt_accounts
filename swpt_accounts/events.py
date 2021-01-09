@@ -261,14 +261,7 @@ class AccountUpdateSignal(Signal):
 
     @classmethod
     def get_commit_period(cls) -> int:
-        # To avoid timing out prepared transfers due to signal bus
-        # delays, here we ensure that prepared transfers' maximum
-        # delay is not smaller than the allowed signal bus delay.
-        days = max(
-            current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'],
-            current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'],
-        )
-        return int(86400 * days)
+        return int(86400 * current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
 
 
 class AccountPurgeSignal(Signal):

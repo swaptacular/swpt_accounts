@@ -34,11 +34,10 @@ class AccountScanner(TableScanner):
         super().__init__()
         signalbus_max_delay = timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'])
         account_heartbeat_interval = timedelta(days=current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS'])
-        prepared_transfer_max_delay = timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
 
         self.account_purge_delay = (
             2 * signalbus_max_delay
-            + max(prepared_transfer_max_delay, signalbus_max_delay)
+            + timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
             + timedelta(days=2)
         )
         self.few_days_interval = timedelta(days=3)

@@ -77,6 +77,22 @@ class Configuration(metaclass=MetaEnvReader):
     APP_PREPARED_TRANSFERS_SCAN_BEAT_MILLISECS = 25
 
 
+def _check_config_validity(c):
+    if (c['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'] < c['APP_SIGNALBUS_MAX_DELAY_DAYS']):
+        raise RuntimeError(
+            'The configured value for APP_PREPARED_TRANSFER_MAX_DELAY_DAYS is too '
+            'small. This may result in frequent timing out of prepared transfers due '
+            'to message delays. Chose more appropriate configuration values.'
+        )  # pragma: nocover
+
+    if not 0.0 < c['APP_MAX_INTEREST_TO_PRINCIPAL_RATIO'] <= 0.25:
+        raise RuntimeError(
+            'The configured value for APP_MAX_INTEREST_TO_PRINCIPAL_RATIO is outside '
+            'of the interval that is good for practical use. Chose a more appropriate '
+            'value.'
+        )  # pragma: nocover
+
+
 def create_app(config_dict={}):
     from werkzeug.middleware.proxy_fix import ProxyFix
     from flask import Flask
@@ -97,4 +113,6 @@ def create_app(config_dict={}):
     chores_broker.init_app(app)
     app.register_blueprint(fetch_api)
     app.cli.add_command(swpt_accounts)
+    _check_config_validity(app.config)
+
     return app
