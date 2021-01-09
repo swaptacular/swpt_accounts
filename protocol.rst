@@ -185,9 +185,9 @@ they MUST first verify whether the specified account already exists:
    MUST be checked. If it is more that ``MAX_CONFIG_DELAY`` seconds in
    the past, the message MUST be ignored. [#config-delay]_ Otherwise,
    an attempt MUST be made to create a new account with the requested
-   configuration settings. [#zero-principal]_ [#for-deletion]_
-   [#creation-date]_ If a new account has been successfully created,
-   an `AccountUpdate`_ message MUST be sent; otherwise a
+   configuration settings. [#creation-date]_ [#zero-principal]_
+   [#for-deletion]_ If a new account has been successfully created, an
+   `AccountUpdate`_ message MUST be sent; otherwise a
    `RejectedConfig`_ message MUST be sent.
 
 .. [#delete-transfer] When an account with a non-zero principal is
@@ -247,12 +247,12 @@ they MUST first verify whether the specified account already exists:
   * Sending `AccountTransfer`_ messages for the debtor's account is
     OPTIONAL.
 
-.. [#compare-config] To do this, server implementations MUST compare
-  the values of ``ts`` and ``seqnum`` fields in the received message,
-  to the values of these fields in the latest applied
-  `ConfigureAccount`_ message. ``ts`` fields MUST be compared first,
-  and only if they are equal, ``seqnum`` fields MUST be compared as
-  well.
+.. [#compare-config] To decide whether a `ConfigureAccount`_ message
+  has been applied already, server implementations MUST compare the
+  values of ``ts`` and ``seqnum`` fields in the received message, to
+  the values of these fields in the latest applied `ConfigureAccount`_
+  message. ``ts`` fields MUST be compared first, and only if they are
+  equal, ``seqnum`` fields MUST be compared as well.
 
 .. [#compare-seqnums] Note that when comparing "seqnum" fields, server
   implementations MUST correctly deal with the possible 32-bit integer
@@ -266,9 +266,10 @@ they MUST first verify whether the specified account already exists:
   the creditor, without the interest), and the accumulated interest on
   newly created accounts MUST be zero.
 
-.. [#for-deletion] Even when the account that needs to be created has
-  its "scheduled for deletion" flag set, server implementations MUST
-  NOT reject to create the account for this reason alone.
+.. [#for-deletion] If the client requests a new account to be created
+  with its "scheduled for deletion" flag being set, server
+  implementations MUST NOT reject to create the account solely for
+  this reason.
 
 
 PrepareTransfer
