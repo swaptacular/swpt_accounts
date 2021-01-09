@@ -422,18 +422,19 @@ committed_amount : int64
 transfer_note : string
    A string that the coordinator (the client that finalizes the
    prepared transfer) wants the recipient and the sender to
-   see. [#note-limitations]_ If the transfer is being dismissed, this
-   field will be ignored, and SHOULD contain an empty string.
+   see. [#note-limitations]_
 
-   Server implementations MAY further limit the maximal allowed
-   byte-length of the UTF-8 encoding of this string, as long as the
-   limit is correctly stated in the ``transfer_note_max_bytes`` field
-   in `AccountUpdate`_ messages.
+   Server implementations MAY impose additional limits on the maximal
+   allowed byte-length of the UTF-8 encoding of this string, as long
+   as the limit is correctly stated in the ``transfer_note_max_bytes``
+   field in `AccountUpdate`_ messages.
+
+   If the transfer is being dismissed, this field will be ignored, and
+   SHOULD contain an empty string.
 
 transfer_note_format : string
-   The format used for the ``transfer_note``
-   string. [#transfer-note-format]_ An empty string signifies
-   unstructured text.
+   The format used for the ``transfer_note`` string. An empty string
+   signifies unstructured text. [#transfer-note-format]_
 
    If the transfer is being dismissed, this field will be ignored, and
    SHOULD contain an empty string.
@@ -474,8 +475,8 @@ server's database: [#transfer-match]_
 .. [#note-limitations] The UTF-8 encoding of the ``transfer_note``
   string MUST NOT be longer than 500 bytes.
 
-.. [#transfer-note-format] The value of ``transfer_note_format`` MUST
-   match the regular expression ``^[0-9A-Za-z.-]{0,8}$``.
+.. [#transfer-note-format] The value of the ``transfer_note_format``
+   field MUST match the regular expression ``^[0-9A-Za-z.-]{0,8}$``.
 
 .. [#transfer-match] The matching prepared transfer MUST have the same
   ``debtor_id``, ``creditor_id``, ``transfer_id``,
