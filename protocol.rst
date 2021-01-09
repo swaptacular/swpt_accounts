@@ -137,7 +137,7 @@ config_flags : int32
 
    * There are no incoming prepared transfers (for which the account
      is the recipient) that await finalization, and have not missed
-     their deadline already (see `PreparedTransfer`_).
+     their deadline already.
 
    * If the account gets removed from the server's database, it is not
      possible the owner of the account to lose an amount bigger than
