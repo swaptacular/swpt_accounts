@@ -455,7 +455,7 @@ server's database: [#transfer-match]_
      zero, this would be a no-op.) The transfer SHOULD NOT be allowed
      if, after the transfer, the *available amount* [#avl-amount]_ on
      the sender's account would become negative.
-     [#debtor-creditor-id]_ [#demurrage]_
+     [#debtor-creditor-id]_
 
    * Unlock the remainder of the secured (locked) amount, so that it
      becomes available for other transfers.
@@ -465,8 +465,8 @@ server's database: [#transfer-match]_
    * Send a `FinalizedTransfer`_ message. [#successful-commit]_ The
      value of the ``committed_amount`` field in the sent message MUST
      be either zero (when the transfer is unsuccessful), or equal to
-     the value of the ``committed_amount`` field in the processed
-     `FinalizeTransfer`_ message (when the transfer is successful).
+     the amount transferred to the recipient's account (when the
+     transfer is successful).
 
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
