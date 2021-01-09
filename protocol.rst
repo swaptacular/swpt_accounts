@@ -424,10 +424,10 @@ transfer_note : string
    prepared transfer) wants the recipient and the sender to
    see. [#note-limitations]_
 
-   Server implementations MAY impose additional limits on the maximal
-   allowed byte-length of the UTF-8 encoding of this string, as long
-   as the limit is correctly stated in the ``transfer_note_max_bytes``
-   field in `AccountUpdate`_ messages.
+   Server implementations MAY further limit on the maximal allowed
+   byte-length of the UTF-8 encoding of this string, as long as the
+   limit is correctly stated in the ``transfer_note_max_bytes`` field
+   in `AccountUpdate`_ messages.
 
    If the transfer is being dismissed, this field will be ignored, and
    SHOULD contain an empty string.
@@ -454,20 +454,19 @@ server's database: [#transfer-match]_
      account to the recipient's account. [#zero-commit]_
      [#locked-amount]_ The transfer SHOULD NOT be allowed if, after
      the transfer, the *available amount* [#avl-amount]_ on the
-     sender's account would become negative. [#demurrage]_
-     [#creditor-trick]_ [#debtor-creditor-id]_
+     sender's account would become negative.  [#debtor-creditor-id]_
+     [#demurrage]_ [#creditor-trick]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#locked-amount]_
 
-   * Remove the prepared transfer from server's database.
+   * Remove the prepared transfer from the server's database.
 
    * Send a `FinalizedTransfer`_ message with the appropriate
-     ``status_code``. [#successful-commit]_ Note that the value of the
-     ``committed_amount`` field in the sent `FinalizedTransfer`_
-     message MUST be either zero, or equal to the value of the
-     ``committed_amount`` field in the processed `FinalizeTransfer`_
-     message.
+     ``status_code``. Note that the value of the ``committed_amount``
+     field in that message MUST be either zero, or equal to the value
+     of the ``committed_amount`` field in the `FinalizeTransfer`_
+     message that is being processed. [#successful-commit]_
 
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
@@ -495,10 +494,10 @@ server's database: [#transfer-match]_
 .. [#locked-amount] Note that ``committed_amount`` can be smaller or
   bigger than the secured (locked) amount.
 
-.. [#successful-commit] If the commit has been successful,
-  `AccountUpdate`_ messages will be sent eventually, and for
-  non-negligible transfers `AccountTransfer`_ messages will be sent
-  eventually as well.
+.. [#successful-commit] If the prepared transfer has been committed
+  successfully, `AccountUpdate`_ messages will be sent eventually, and
+  for non-negligible transfers, `AccountTransfer`_ messages will be
+  sent eventually as well.
 
 
 Outgoing messages
