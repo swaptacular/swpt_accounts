@@ -43,9 +43,9 @@ class AccountScanner(TableScanner):
         self.max_interest_to_principal_ratio = current_app.config['APP_MAX_INTEREST_TO_PRINCIPAL_RATIO']
         self.min_interest_cap_interval = timedelta(days=current_app.config['APP_MIN_INTEREST_CAPITALIZATION_DAYS'])
 
-        # NOTE: To prevent clogging the signal bus with heartbeat
-        # signals, we ensure that the account heartbeat interval is
-        # not shorter than the allowed delay in the signal bus.
+        # To prevent clogging the signal bus with heartbeat signals,
+        # we ensure that the account heartbeat interval is not shorter
+        # than the allowed delay in the signal bus.
         self.account_heartbeat_interval = max(account_heartbeat_interval, signalbus_max_delay)
 
         assert self.max_interest_to_principal_ratio > 0.0
@@ -73,10 +73,10 @@ class AccountScanner(TableScanner):
         date_few_days_ago = (current_ts - self.few_days_interval).date()
         purge_cutoff_ts = current_ts - self.account_purge_delay
 
-        # NOTE: If an account is created, deleted, purged, and
-        # re-created in a single day, the `creation_date` of the new
-        # account will be the same as the `creation_date` of the old
-        # account. We need to make sure this never happens.
+        # If an account is created, deleted, purged, and re-created in
+        # a single day, the `creation_date` of the new account will be
+        # the same as the `creation_date` of the old account. We need
+        # to make sure this never happens.
         pks_to_purge = [(row[c.debtor_id], row[c.creditor_id]) for row in rows if (
             row[c.status_flags] & deleted_flag
             and row[c.last_change_ts] < purge_cutoff_ts
@@ -271,9 +271,9 @@ class PreparedTransferScanner(TableScanner):
     def __init__(self):
         super().__init__()
 
-        # NOTE: To prevent clogging the signal bus with remainder
-        # signals, we ensure that the remainder interval is not
-        # shorter than the allowed delay in the signal bus.
+        # To prevent clogging the signal bus with remainder signals,
+        # we ensure that the remainder interval is not shorter than
+        # the allowed delay in the signal bus.
         self.remainder_interval = max(
             timedelta(days=current_app.config['APP_PREPARED_TRANSFER_REMAINDER_DAYS']),
             timedelta(days=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS']),

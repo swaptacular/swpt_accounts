@@ -68,9 +68,9 @@ def calc_current_balance(
 
     current_balance = Decimal(principal)
 
-    # NOTE: Any interest accumulated on the debtor's account will
-    # not be included in the current balance. Thus, accumulating
-    # interest on the debtor's account has no effect.
+    # Any interest accumulated on the debtor's account will not be
+    # included in the current balance. Thus, accumulating interest on
+    # the debtor's account has no effect.
     if creditor_id != ROOT_CREDITOR_ID:
         current_balance += Decimal.from_float(interest)
         if current_balance > 0:

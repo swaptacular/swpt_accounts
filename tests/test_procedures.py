@@ -694,9 +694,6 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert pts_obj['demurrage_rate'] == -50.0
     assert isinstance(pts_obj['ts'], str)
 
-    # Discard the transfer.
-    with pytest.raises(AssertionError):
-        p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'test', 1, 2, -1)
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'test', 1, 2, 0)
     p.process_finalization_requests(D_ID, C_ID)
     p.process_pending_account_changes(D_ID, 1234)
