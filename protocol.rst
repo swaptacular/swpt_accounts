@@ -122,22 +122,27 @@ config_flags : int32
    reserved. Bit ``0`` has the meaning "scheduled for
    deletion". [#forbid-transfers]_ If all of the following conditions
    are met, an account SHOULD be eventually removed from the server's
-   database:
+   database: [#delete-transfer]_
 
    * The account is "scheduled for deletion".
 
    * Account's configuration have not been updated for at least
      ``MAX_CONFIG_DELAY`` seconds.  [#config-delay]_
 
+   * Enough time has passed since account's
+     creation. [#creation-date]_
+
    * The account has no prepared transfers (incoming or outgoing) that
      await finalization.
 
    * If the account gets removed from the server's database, it is not
      possible the owner of the account to lose an amount bigger than
-     the ``negligible_amount``. [#implications]_ [#delete-transfer]_
+     the ``negligible_amount``.
 
-   * Enough time has passed since account's
-     creation. [#creation-date]_
+     Note that unless the ``negligible_amount`` is huge, or the owner
+     of the account has an alternative way to access his funds, this
+     implies that the account can not receive incoming transfers after
+     being deleted.
 
    If those condition are *not met*, accounts MUST NOT be
    removed. Some time after an account has been removed from the
@@ -214,21 +219,16 @@ they MUST first verify whether the specified account already exists:
   `PrepareTransfer`_ messages that has a "scheduled for deletion"
   account as a recipient MUST be rejected.
 
-.. [#config-delay] How long ``MAX_CONFIG_DELAY`` is, determines how
-  far in the past a `ConfigureAccount`_ message should be in order to
-  be ignored. The intention is to avoid the scenario in which an
-  account is removed from server's database, but an old, wandering
-  `ConfigureAccount`_ message "resurrects" it.
-
-.. [#implications] Note that unless the ``negligible_amount`` is huge,
-  or the owner of the account has an alternative way to access his
-  funds, this implies that the account can not receive incoming
-  transfers after being deleted.
-
 .. [#delete-transfer] When an account which has a non-zero principal
   is being deleted, an `AccountTransfer`_ message SHOULD be sent,
   informing the owner of the account about the zeroing out of the
   account's principal before the deletion.
+
+.. [#config-delay] ``MAX_CONFIG_DELAY`` determines how far in the past
+  a `ConfigureAccount`_ message should be in order to be ignored. The
+  intention is to avoid the scenario in which an account is removed
+  from server's database, but an old, wandering `ConfigureAccount`_
+  message "resurrects" it.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
