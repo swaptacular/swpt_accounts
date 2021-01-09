@@ -266,12 +266,12 @@ they MUST first verify whether the specified account already exists:
   the creditor, without the interest), and the accumulated interest on
   newly created accounts MUST be zero.
 
-.. [#for-deletion] When messages arrive out-of-order it is possible to
-  recieve a `ConfigureAccount`_ message from a client which requests a
-  new account to be created with its "scheduled for deletion" flag
-  being set. When this happens, server implementations MUST NOT reject
-  to create the account solely for the reason that the "scheduled for
-  deletion" flag is set.
+.. [#for-deletion] When messages arrive out-of-order, it is possible
+  the server to receive a `ConfigureAccount`_ message from a client,
+  which requests a new account to be created with its "scheduled for
+  deletion" flag set. When this happens, server implementations MUST
+  NOT reject to create the account solely for the reason that the
+  "scheduled for deletion" flag is set.
 
 
 PrepareTransfer
