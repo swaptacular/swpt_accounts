@@ -118,11 +118,12 @@ negligible_amount : float
 
 config_flags : int32
    Account configuration bit-flags. Different server implementations
-   may use these flags for different purposes. The lowest 16 bits are
-   reserved. Bit ``0`` has the meaning "scheduled for
-   deletion". [#forbid-transfers]_ If all of the following conditions
-   are met, an account SHOULD be eventually removed from the server's
-   database: [#delete-transfer]_
+   may use these flags for different purposes.
+
+   The lowest 16 bits are reserved. Bit ``0`` has the meaning
+   "scheduled for deletion". [#forbid-transfers]_ If all of the
+   following conditions are met, an account SHOULD eventually be
+   removed from the server's database: [#delete-transfer]_
 
    * The account is "scheduled for deletion".
 
@@ -137,12 +138,10 @@ config_flags : int32
 
    * If the account gets removed from the server's database, it is not
      possible the owner of the account to lose an amount bigger than
-     the ``negligible_amount``.
-
-     Note that unless the ``negligible_amount`` is huge, or the owner
-     of the account has an alternative way to access his funds, this
-     implies that the account can not receive incoming transfers after
-     being deleted.
+     the ``negligible_amount``. Note that unless the negligible amount
+     is huge, or the owner of the account has an alternative way to
+     access his funds, this implies that the account can not receive
+     incoming transfers after being deleted.
 
    If those condition are *not met*, accounts MUST NOT be
    removed. Some time after an account has been removed from the
