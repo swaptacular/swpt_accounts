@@ -464,9 +464,9 @@ server's database: [#transfer-match]_
 
    * Send a `FinalizedTransfer`_ message. [#successful-commit]_ The
      value of the ``committed_amount`` field in the sent message MUST
-     be either zero (when the transfer is unsuccessful), or equal to
-     the amount transferred to the recipient's account (when the
-     transfer is successful).
+     be either zero (when the transfer has been unsuccessful), or
+     equal to the amount transferred to the recipient's account (when
+     the transfer has been successful).
 
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
@@ -481,9 +481,9 @@ server's database: [#transfer-match]_
    field MUST match the regular expression ``^[0-9A-Za-z.-]{0,8}$``.
 
 .. [#transfer-match] The matching prepared transfer MUST have the same
-  ``debtor_id``, ``creditor_id``, ``transfer_id``,
+  values for the ``debtor_id``, ``creditor_id``, ``transfer_id``,
   ``coordinator_type``, ``coordinator_id``, and
-  ``coordinator_request_id`` values as the received
+  ``coordinator_request_id`` fields as the received
   `FinalizeTransfer`_ message.
 
 .. [#avl-amount] The *available amount* is the amount that the debtor
