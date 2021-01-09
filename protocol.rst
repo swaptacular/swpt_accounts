@@ -369,10 +369,10 @@ time of the commit.
 
 
 .. [#coordinator-type] The coordinator type ``"direct"`` is reserved
-  for payments initiated directly by the owner of the account,
+  for payments initiated directly by the owner of the account;
   ``"interest"`` MUST be used for transfers initiated by the interest
-  capitalization service, ``"issuing"`` MUST be used for transfers
-  which create new money into existence, ``"delete"`` MUST be used for
+  capitalization service; ``"issuing"`` MUST be used for transfers
+  which create new money into existence; ``"delete"`` MUST be used for
   transfers which zero out the principal on deleted accounts.
 
 .. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
@@ -423,8 +423,7 @@ transfer_note : string
    A string that the coordinator (the client that finalizes the
    prepared transfer) wants the recipient and the sender to
    see. [#note-limitations]_ If the transfer is being dismissed, this
-   field will be ignored, and therefore SHOULD contain an empty
-   string.
+   field will be ignored, and SHOULD contain an empty string.
 
    Server implementations MAY further limit the maximal allowed
    byte-length of the UTF-8 encoding of this string, as long as the
@@ -433,9 +432,11 @@ transfer_note : string
 
 transfer_note_format : string
    The format used for the ``transfer_note``
-   string. [#transfer-note-format]_ If the transfer is being
-   dismissed, this field will be ignored, and therefore SHOULD contain
-   an empty string.
+   string. [#transfer-note-format]_ An empty string signifies
+   unstructured text.
+
+   If the transfer is being dismissed, this field will be ignored, and
+   SHOULD contain an empty string.
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -473,9 +474,8 @@ server's database: [#transfer-match]_
 .. [#note-limitations] The UTF-8 encoding of the ``transfer_note``
   string MUST NOT be longer than 500 bytes.
 
-.. [#transfer-note-format] MUST match the regular expression
-   ``^[0-9A-Za-z.-]{0,8}$``. An empty string signifies unstructured
-   text.
+.. [#transfer-note-format] The value of ``transfer_note_format`` MUST
+   match the regular expression ``^[0-9A-Za-z.-]{0,8}$``.
 
 .. [#transfer-match] The matching prepared transfer MUST have the same
   ``debtor_id``, ``creditor_id``, ``transfer_id``,
