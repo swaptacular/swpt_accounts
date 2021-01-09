@@ -455,10 +455,10 @@ server's database: [#transfer-match]_
      zero, this would be a no-op.) The transfer SHOULD NOT be allowed
      if, after the transfer, the *available amount* [#avl-amount]_ on
      the sender's account would become negative.
-     [#debtor-creditor-id]_ [#demurrage]_ [#creditor-trick]_
+     [#debtor-creditor-id]_ [#demurrage]_
 
-   * Unlock the remainder of the secured amount, so that it becomes
-     available for other transfers.
+   * Unlock the remainder of the secured (locked) amount, so that it
+     becomes available for other transfers.
 
    * Remove the prepared transfer from the server's database.
 
@@ -471,8 +471,8 @@ server's database: [#transfer-match]_
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
 
-.. [#locked-amount] The ``committed_amount`` can be smaller or bigger
-  than the secured (locked) amount.
+.. [#locked-amount] The ``committed_amount`` can be smaller, equal, or
+  bigger than the secured (locked) amount.
 
 .. [#note-limitations] The UTF-8 encoding of the ``transfer_note``
   string MUST NOT be longer than 500 bytes.
