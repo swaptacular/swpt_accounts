@@ -415,9 +415,9 @@ coordinator_request_id : int64
    transfer.
 
 committed_amount : int64
-   The amount that has to be transferred. This MUST be a non-negative
-   number. [#locked-amount]_ [#demurrage]_ A ``0`` signifies that the
-   transfer MUST be dismissed.
+   The amount that has to be transferred. [#locked-amount]_ This MUST
+   be a non-negative number. A ``0`` signifies that the transfer MUST
+   be dismissed.
 
 transfer_note : string
    A string that the coordinator (the client that finalizes the
@@ -450,13 +450,12 @@ server's database: [#transfer-match]_
 1. If the specified prepared transfer exists, server implementations
    MUST:
 
-   * Try to transfer the ``committed_amount`` [#locked-amount]_ from
-     the sender's account to the recipient's account. (When the
-     committed amount is zero, this would be a no-op.) The transfer
-     SHOULD NOT be allowed if, after the transfer, the *available
-     amount* [#avl-amount]_ on the sender's account would become
-     negative.  [#debtor-creditor-id]_ [#demurrage]_
-     [#creditor-trick]_
+   * Try to transfer the ``committed_amount`` from the sender's
+     account to the recipient's account. (When the committed amount is
+     zero, this would be a no-op.) The transfer SHOULD NOT be allowed
+     if, after the transfer, the *available amount* [#avl-amount]_ on
+     the sender's account would become negative.
+     [#debtor-creditor-id]_ [#demurrage]_ [#creditor-trick]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers.
@@ -489,8 +488,8 @@ server's database: [#transfer-match]_
   total sum secured (locked) for prepared transfers. Note that the
   available amount can be a negative number.
 
-.. [#locked-amount] Note that the ``committed_amount`` can be smaller
-  or bigger than the secured (locked) amount.
+.. [#locked-amount] The ``committed_amount`` can be smaller or bigger
+  than the secured (locked) amount.
 
 .. [#successful-commit] If the prepared transfer has been committed
   successfully, `AccountUpdate`_ messages will be sent eventually, and
