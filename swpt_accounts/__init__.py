@@ -77,20 +77,27 @@ class Configuration(metaclass=MetaEnvReader):
     APP_PREPARED_TRANSFERS_SCAN_BEAT_MILLISECS = 25
 
 
-def _check_config_validity(c):
+def _check_config_sanity(c):  # pragma: nocover
     if (c['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'] < c['APP_SIGNALBUS_MAX_DELAY_DAYS']):
         raise RuntimeError(
             'The configured value for APP_PREPARED_TRANSFER_MAX_DELAY_DAYS is too '
             'small. This may result in frequent timing out of prepared transfers due '
             'to message delays. Chose more appropriate configuration values.'
-        )  # pragma: nocover
+        )
 
-    if not 0.0 < c['APP_MAX_INTEREST_TO_PRINCIPAL_RATIO'] <= 0.25:
+    if not 0.0 < c['APP_MAX_INTEREST_TO_PRINCIPAL_RATIO'] <= 0.10:
         raise RuntimeError(
             'The configured value for APP_MAX_INTEREST_TO_PRINCIPAL_RATIO is outside '
             'of the interval that is good for practical use. Chose a more appropriate '
             'value.'
-        )  # pragma: nocover
+        )
+
+    if c['APP_MIN_INTEREST_CAPITALIZATION_DAYS'] > 92:
+        raise RuntimeError(
+            'The configured value for APP_MIN_INTEREST_CAPITALIZATION_DAYS is too '
+            'big. This may result in quirky capitalization of the accumulated '
+            'interest. Chose a more appropriate value.'
+        )
 
 
 def create_app(config_dict={}):
@@ -113,6 +120,6 @@ def create_app(config_dict={}):
     chores_broker.init_app(app)
     app.register_blueprint(fetch_api)
     app.cli.add_command(swpt_accounts)
-    _check_config_validity(app.config)
+    _check_config_sanity(app.config)
 
     return app
