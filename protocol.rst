@@ -465,9 +465,9 @@ server's database: [#transfer-match]_
 
    * Send a `FinalizedTransfer`_ message. [#successful-commit]_ The
      value of the ``committed_amount`` field in the sent message MUST
-     be either zero (when the commit is unsuccessful), or equal to the
-     value of the ``committed_amount`` field in the processed
-     `FinalizeTransfer`_ message (when the commit is successful).
+     be either zero (when the transfer is unsuccessful), or equal to
+     the value of the ``committed_amount`` field in the processed
+     `FinalizeTransfer`_ message (when the transfer is successful).
 
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
