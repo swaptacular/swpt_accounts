@@ -133,11 +133,11 @@ config_flags : int32
      ``MAX_CONFIG_DELAY`` seconds.  [#config-delay]_
 
    * There are no outgoing prepared transfers (for which the account
-     is the sender) that await finalization.
+     is the sender) that await finalization (see `PreparedTransfer`_).
 
    * There are no incoming prepared transfers (for which the account
      is the recipient) that await finalization, and have not missed
-     their deadline already.
+     their deadline already (see `PreparedTransfer`_).
 
    * If the account gets removed from the server's database, it is not
      possible the owner of the account to lose an amount bigger than
