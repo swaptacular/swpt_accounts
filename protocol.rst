@@ -463,12 +463,11 @@ server's database: [#transfer-match]_
 
    * Remove the prepared transfer from the server's database.
 
-   * Send a `FinalizedTransfer`_ message with the appropriate
-     ``status_code``. [#successful-commit]_ The value of the
-     ``committed_amount`` field in the sent message MUST be either
-     zero (unsuccessful commit), or equal to the value of the
-     ``committed_amount`` field in the `FinalizeTransfer`_ message
-     (successful commit).
+   * Send a `FinalizedTransfer`_ message. [#successful-commit]_ The
+     value of the ``committed_amount`` field in the sent message MUST
+     be either zero (when the commit is unsuccessful), or equal to the
+     value of the ``committed_amount`` field in the processed
+     `FinalizeTransfer`_ message (when the commit is successful).
 
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
