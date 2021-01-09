@@ -451,11 +451,12 @@ server's database: [#transfer-match]_
    MUST:
 
    * Try to transfer the ``committed_amount`` from the sender's
-     account to the recipient's account. [#zero-commit]_
-     [#locked-amount]_ The transfer SHOULD NOT be allowed if, after
-     the transfer, the *available amount* [#avl-amount]_ on the
-     sender's account would become negative.  [#debtor-creditor-id]_
-     [#demurrage]_ [#creditor-trick]_
+     account to the recipient's account. (When the committed amount is
+     zero, this would be a no-op.) [#locked-amount]_ The transfer
+     SHOULD NOT be allowed if, after the transfer, the *available
+     amount* [#avl-amount]_ on the sender's account would become
+     negative.  [#debtor-creditor-id]_ [#demurrage]_
+     [#creditor-trick]_
 
    * Unlock the remainder of the secured amount, so that it becomes
      available for other transfers. [#locked-amount]_
@@ -483,9 +484,6 @@ server's database: [#transfer-match]_
   ``coordinator_type``, ``coordinator_id``, and
   ``coordinator_request_id`` values as the received
   `FinalizeTransfer`_ message.
-
-.. [#zero-commit] When ``committed_amount`` is zero, this would be a
-  no-op.
 
 .. [#avl-amount] The *available amount* is the amount that the debtor
   owes to the creditor (including the accumulated interest), minis the
