@@ -115,7 +115,6 @@ def test_scan_accounts(app_unsafe_session):
     assert acs.negligible_amount == account.negligible_amount
     assert acs.config_data == ''
     assert acs.config_flags == account.config_flags
-    assert acs.status_flags == account.status_flags
 
     assert len(Account.query.all()) == 5
     assert len(Account.query.filter_by(creditor_id=123).all()) == 0

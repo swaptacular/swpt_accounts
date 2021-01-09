@@ -32,9 +32,7 @@ def test_configure_account(db_session, current_ts):
     assert a.total_locked_amount == 0
     assert a.pending_transfers_count == 0
     assert a.interest_rate == 0.0
-    assert not a.status_flags & Account.STATUS_UNREACHABLE_FLAG
     acs = AccountUpdateSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).one()
-    assert acs.status_flags == a.status_flags
     assert acs.principal == a.principal
     assert acs.interest == a.interest
     assert acs.interest_rate == a.interest_rate
@@ -55,7 +53,6 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['negligible_amount'] == a.negligible_amount
     assert acs_obj['config_data'] == ''
     assert acs_obj['config_flags'] == a.config_flags
-    assert acs_obj['status_flags'] == a.status_flags
     assert acs_obj['account_id'] == str(C_ID)
     assert acs_obj['last_transfer_number'] == 0
     assert acs_obj['last_transfer_committed_at'] == a.last_transfer_committed_at_ts.isoformat()
@@ -399,16 +396,13 @@ def test_delete_account(db_session, current_ts):
     assert not a.status_flags & Account.STATUS_DELETED_FLAG
     assert not a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
     p.configure_account(D_ID, C_ID, current_ts, 1, config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG)
+    assert len(AccountUpdateSignal.query.all()) == 2
     p.try_to_delete_account(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID) is None
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
     assert q.one().status_flags & Account.STATUS_DELETED_FLAG
     assert q.one().config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-    assert AccountUpdateSignal.query.\
-        filter(AccountUpdateSignal.debtor_id == D_ID).\
-        filter(AccountUpdateSignal.creditor_id == C_ID).\
-        filter(AccountUpdateSignal.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == Account.STATUS_DELETED_FLAG).\
-        one_or_none()
+    assert len(AccountUpdateSignal.query.all()) == 3
 
 
 def test_delete_account_negative_balance(db_session, current_ts):

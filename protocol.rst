@@ -834,19 +834,6 @@ last_interest_rate_change_ts : date-time
    changes in the interest rate yet, the value MUST be
    "1970-01-01T00:00:00+00:00".
 
-status_flags : int32
-   Account status bit-flags. Different server implementations may use
-   these flags for different purposes. The lowest 16 bits are
-   reserved:
-
-   * Bit ``0`` has the meaning "unreachable account", indicating that
-     the account can not receive incoming transfers. Creditor's
-     accounts that are "scheduled for deletion" MUST be indicated and
-     act as unreachable accounts. [#debtor-creditor-id]_
-
-   * Bit ``1`` has the meaning "overflown account", indicating that
-     the account's principal have breached the ``int64`` boundaries.
-
 last_config_ts : date-time
    MUST contain the value of the ``ts`` field in the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
@@ -1000,9 +987,8 @@ allowing clients to detect "dead" account records in their databases.
    other hand, MUST provide enough information to globally identify
    the account (an IBAN for example).
 
-.. [#missing-identity] When the account does not have an identity yet,
-  the ``status_flags`` field MUST indicate that the account is an
-  "unreachable account".
+.. [#missing-identity] When the account does not have an identity, it
+  can not accept incoming transfers.
 
 
 AccountPurge

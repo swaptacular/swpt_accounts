@@ -59,13 +59,6 @@ def configure_account(
             is_new_account = True
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
 
-        is_scheduled_for_deletion = config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-        is_unreachable = is_scheduled_for_deletion and creditor_id != ROOT_CREDITOR_ID
-        if is_unreachable:
-            account.status_flags |= Account.STATUS_UNREACHABLE_FLAG
-        else:
-            account.status_flags &= ~Account.STATUS_UNREACHABLE_FLAG
-
     def is_valid_config():
         if not negligible_amount >= 0.0:
             is_valid = False
@@ -203,7 +196,7 @@ def is_reachable_account(debtor_id: int, creditor_id: int) -> bool:
     account_query = Account.query.\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         filter(Account.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
-        filter(Account.status_flags.op('&')(Account.STATUS_UNREACHABLE_FLAG) == 0)
+        filter(Account.config_flags.op('&')(Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG) == 0)
 
     return db.session.query(account_query.exists()).scalar()
 
@@ -471,7 +464,6 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
         debtor_info_iri=account.debtor_info_iri,
         debtor_info_content_type=account.debtor_info_content_type,
         debtor_info_sha256=account.debtor_info_sha256,
-        status_flags=account.status_flags,
         inserted_at_ts=account.last_change_ts,
     ))
 

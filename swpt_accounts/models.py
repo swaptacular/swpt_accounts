@@ -88,9 +88,8 @@ def is_negligible_balance(balance, negligible_amount):
 class Account(db.Model):
     CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
 
-    STATUS_UNREACHABLE_FLAG = 1 << 0
+    STATUS_DELETED_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1
-    STATUS_DELETED_FLAG = 1 << 16
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -115,10 +114,9 @@ class Account(db.Model):
         db.Integer,
         nullable=False,
         default=PRISTINE_ACCOUNT_STATUS_FLAGS,
-        comment="Contain additional account status bits: "
-                f"{STATUS_UNREACHABLE_FLAG} - unreachable, "
-                f"{STATUS_OVERFLOWN_FLAG} - overflown, "
-                f"{STATUS_DELETED_FLAG} - deleted."
+        comment="Contain account status bits: "
+                f"{STATUS_DELETED_FLAG} - deleted,"
+                f"{STATUS_OVERFLOWN_FLAG} - overflown."
     )
     total_locked_amount = db.Column(
         db.BigInteger,

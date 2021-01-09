@@ -223,7 +223,6 @@ class AccountUpdateSignal(Signal):
         negligible_amount = fields.Float()
         config_data = fields.String()
         config_flags = fields.Integer()
-        status_flags = fields.Integer()
         inserted_at_ts = fields.DateTime(data_key='ts')
         ttl = fields.Integer()
         account_id = fields.Function(lambda obj: str(i64_to_u64(obj.creditor_id)))
@@ -251,7 +250,6 @@ class AccountUpdateSignal(Signal):
     debtor_info_iri = db.Column(db.String)
     debtor_info_content_type = db.Column(db.String)
     debtor_info_sha256 = db.Column(db.LargeBinary)
-    status_flags = db.Column(db.Integer, nullable=False)
 
     @property
     def ttl(self):
