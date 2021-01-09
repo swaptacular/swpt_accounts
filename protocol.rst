@@ -49,7 +49,8 @@ reverse direction. The protocol supports the following operations:
    successfully prepared transfer, gives a very high probability for
    the success of the eventual subsequent *commit*. This paradigm
    allows many transfers to be committed atomically. Enabling circular
-   exchanges between currencies is an important goal of this protocol.
+   exchanges between different currencies is an important goal of this
+   protocol.
 
 5. Actors other than creditors (called *coordinators*), can make
    transfers from one creditor's account to another creditor's
