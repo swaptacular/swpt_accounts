@@ -361,11 +361,11 @@ When server implementations process a `PrepareTransfer`_ message they:
   `RejectedTransfer`_ message.
 
 An important practical case is when ``min_locked_amount`` and
-``max_locked_amount`` are both equal to zero. [#zero-min-amount]_ In
-this case no amount will be secured, and whether the transfer will be
-successful or not will depend on whether the ``committed_amount``,
-sent with the `FinalizeTransfer`_ message, will be available at the
-time of the commit.
+``max_locked_amount`` are both equal to zero. In this case no amount
+will be secured, and whether the transfer will be successful or not
+will depend on whether the ``committed_amount``, sent with the
+`FinalizeTransfer`_ message, will be available at the time of the
+commit.
 
 
 .. [#coordinator-type] The coordinator type ``"direct"`` is reserved
@@ -471,6 +471,9 @@ server's database: [#transfer-match]_
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
 
+.. [#locked-amount] The ``committed_amount`` can be smaller or bigger
+  than the secured (locked) amount.
+
 .. [#note-limitations] The UTF-8 encoding of the ``transfer_note``
   string MUST NOT be longer than 500 bytes.
 
@@ -487,9 +490,6 @@ server's database: [#transfer-match]_
   owes to the creditor (including the accumulated interest), minis the
   total sum secured (locked) for prepared transfers. Note that the
   available amount can be a negative number.
-
-.. [#locked-amount] The ``committed_amount`` can be smaller or bigger
-  than the secured (locked) amount.
 
 .. [#successful-commit] If the prepared transfer has been committed
   successfully, `AccountUpdate`_ messages will be sent eventually, and
