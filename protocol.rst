@@ -120,13 +120,13 @@ config_flags : int32
    may use these flags for different purposes.
 
    The lowest 16 bits are reserved. Bit ``0`` has the meaning
-   "scheduled for deletion". [#forbid-transfers]_ If all of the
-   following conditions are met, an account SHOULD eventually be
-   removed from the server's database: [#delete-transfer]_
+   "scheduled for deletion". If all of the following conditions are
+   met, an account SHOULD eventually be removed from the server's
+   database: [#delete-transfer]_
 
-   * The account is "scheduled for deletion".
+   * The account is "scheduled for deletion". [#forbid-transfers]_
 
-   * Enough time has passed since account's
+   * At least one day has passed since account's
      creation. [#creation-date]_
 
    * Account's configuration have not been updated for at least
@@ -145,14 +145,16 @@ config_flags : int32
    If those condition are *not met*, accounts MUST NOT be
    removed. Some time after an account has been removed from the
    server's database, an `AccountPurge`_ message MUST be sent to
-   inform about that. [#purge-delay]_
+   inform about this. [#purge-delay]_
 
 config_data : string
    Additional account configuration settings. Different server
-   implementations may use different formats for this field. For
-   creditor's accounts, an empty string MUST always be a valid value,
-   which represents the default configuration
-   settings. [#config-data-limitations]_ [#debtor-creditor-id]_
+   implementations may use different formats for this
+   field. [#config-data-limitations]_
+
+   For creditor's accounts [#debtor-creditor-id]_, an empty string
+   MUST always be a valid value, which represents the default
+   configuration settings.
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -188,15 +190,15 @@ they MUST first verify whether the specified account already exists:
    an `AccountUpdate`_ message MUST be sent; otherwise a
    `RejectedConfig`_ message MUST be sent.
 
+.. [#delete-transfer] When an account with a non-zero principal is
+  being deleted, an `AccountTransfer`_ message SHOULD be sent,
+  informing the owner of the account about the zeroing out of the
+  account's principal before the deletion.
+
 .. [#forbid-transfers] Server implementations must not accept incoming
   transfers for "scheduled for deletion" accounts. That is:
   `PrepareTransfer`_ messages that has a "scheduled for deletion"
   account as a recipient MUST be rejected.
-
-.. [#delete-transfer] When an account which has a non-zero principal
-  is being deleted, an `AccountTransfer`_ message SHOULD be sent,
-  informing the owner of the account about the zeroing out of the
-  account's principal before the deletion.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
@@ -214,7 +216,7 @@ they MUST first verify whether the specified account already exists:
 
 .. [#purge-delay] The `AccountPurge`_ message delay MUST be long
   enough to ensure that after clients have received the
-  `AccountPurge`_ message, if they continue to receive old
+  `AccountPurge`_ message, if they continue to receive old, wandering
   `AccountUpdate`_ messages for the purged account, those messages
   will be ignored (due to expired ``ttl``).
 
