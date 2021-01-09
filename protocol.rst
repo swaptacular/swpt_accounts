@@ -107,8 +107,7 @@ debtor_id : int64
    The ID of the debtor.
 
 creditor_id : int64
-   Along with ``debtor_id``, identifies the
-   account. [#debtor-creditor-id]_
+   Along with ``debtor_id``, identifies the account.
 
 negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
@@ -189,30 +188,6 @@ they MUST first verify whether the specified account already exists:
    an `AccountUpdate`_ message MUST be sent; otherwise a
    `RejectedConfig`_ message MUST be sent.
 
-.. [#debtor-creditor-id] To issue new tokens into existence, the
-  server MAY use a special account called "*the debtor's account*" (or
-  "*the root account*"):
-
-  * The balance on the debtor's account SHOULD be allowed to go
-    negative.
-
-  * The debtor's account SHOULD always be able to receive incoming
-    transfers.
-
-  * Interest paid to/from creditor's accounts SHOULD come from/to the
-    debtor's account.
-
-  * Interest SHOULD NOT be accumulated on the debtor's account.
-
-  * When the debtor's account is being created or scheduled for
-    deletion, an empty string SHOULD always be allowed as value of the
-    ``config_data`` field in the `ConfigureAccount`_ message.
-
-  * The ``creditor_id`` for the debtor's account SHOULD be ``0``.
-
-  * Sending `AccountTransfer`_ messages for the debtor's account is
-    OPTIONAL.
-
 .. [#forbid-transfers] Server implementations must not accept incoming
   transfers for "scheduled for deletion" accounts. That is:
   `PrepareTransfer`_ messages that has a "scheduled for deletion"
@@ -245,6 +220,30 @@ they MUST first verify whether the specified account already exists:
 
 .. [#config-data-limitations] The UTF-8 encoding of the
   ``config_data`` string MUST NOT be longer than 2000 bytes.
+
+.. [#debtor-creditor-id] To issue new tokens into existence, the
+  server MAY use a special account called "*the debtor's account*" (or
+  "*the root account*"):
+
+  * The balance on the debtor's account SHOULD be allowed to go
+    negative.
+
+  * The debtor's account SHOULD always be able to receive incoming
+    transfers.
+
+  * Interest paid to/from creditor's accounts SHOULD come from/to the
+    debtor's account.
+
+  * Interest SHOULD NOT be accumulated on the debtor's account.
+
+  * When the debtor's account is being created or scheduled for
+    deletion, an empty string SHOULD always be allowed as value of the
+    ``config_data`` field in the `ConfigureAccount`_ message.
+
+  * The ``creditor_id`` for the debtor's account SHOULD be ``0``.
+
+  * Sending `AccountTransfer`_ messages for the debtor's account is
+    OPTIONAL.
 
 .. [#compare-config] To do this, server implementations MUST compare
   the values of ``ts`` and ``seqnum`` fields in the received message,
