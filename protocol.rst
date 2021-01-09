@@ -5,7 +5,7 @@ Swaptacular Messaging Protocol
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
 :Date: 2020-12-11
-:Version: 0.4.2
+:Version: 0.4.3
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -127,11 +127,11 @@ config_flags : int32
 
    * The account is "scheduled for deletion".
 
-   * Account's configuration have not been updated for at least
-     ``MAX_CONFIG_DELAY`` seconds.  [#config-delay]_
-
    * Enough time has passed since account's
      creation. [#creation-date]_
+
+   * Account's configuration have not been updated for at least
+     ``MAX_CONFIG_DELAY`` seconds.  [#config-delay]_
 
    * The account has no prepared transfers (incoming or outgoing) that
      await finalization.
@@ -223,12 +223,6 @@ they MUST first verify whether the specified account already exists:
   informing the owner of the account about the zeroing out of the
   account's principal before the deletion.
 
-.. [#config-delay] ``MAX_CONFIG_DELAY`` determines how far in the past
-  a `ConfigureAccount`_ message should be in order to be ignored. The
-  intention is to avoid the scenario in which an account is removed
-  from server's database, but an old, wandering `ConfigureAccount`_
-  message "resurrects" it.
-
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
   ``debtor_id`` and ``creditor_id`` can be created. In those cases
@@ -237,10 +231,17 @@ they MUST first verify whether the specified account already exists:
   straightforward way to achieve this is not to remove accounts on the
   same day on which they have been created.
 
-.. [#purge-delay] The delay MUST be long enough to ensure that after
-  clients have received the `AccountPurge`_ message, if they continue
-  to receive old `AccountUpdate`_ messages for the purged account,
-  those messages will be ignored (due to expired ``ttl``).
+.. [#config-delay] ``MAX_CONFIG_DELAY`` determines how far in the past
+  a `ConfigureAccount`_ message should be in order to be ignored. The
+  intention is to avoid the scenario in which an account is removed
+  from server's database, but an old, wandering `ConfigureAccount`_
+  message "resurrects" it.
+
+.. [#purge-delay] The `AccountPurge`_ message delay MUST be long
+  enough to ensure that after clients have received the
+  `AccountPurge`_ message, if they continue to receive old
+  `AccountUpdate`_ messages for the purged account, those messages
+  will be ignored (due to expired ``ttl``).
 
 .. [#config-data-limitations] The UTF-8 encoding of the
   ``config_data`` string MUST NOT be longer than 2000 bytes.
