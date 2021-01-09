@@ -44,11 +44,12 @@ reverse direction. The protocol supports the following operations:
 4. Creditors can transfer money from their account to other creditors'
    accounts. Transfers are possible only between account in the same
    currency (that is: same debtor). The execution of the transfer
-   follows the "two phase commit" paradigm. First the transfer should
-   be *prepared*, and then *finalized* (committed or dismissed). A
+   follows the "two phase commit" paradigm. First the transfer is
+   *prepared*, and then *finalized* (committed or dismissed). A
    successfully prepared transfer, gives a very high probability for
    the success of the eventual subsequent *commit*. This paradigm
-   allows many transfers to be committed atomically.
+   allows many transfers to be committed atomically. Enabling circular
+   exchanges between currencies is an important goal of this protocol.
 
 5. Actors other than creditors (called *coordinators*), can make
    transfers from one creditor's account to another creditor's
