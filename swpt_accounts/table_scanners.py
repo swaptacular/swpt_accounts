@@ -33,7 +33,7 @@ class AccountScanner(TableScanner):
         account_heartbeat_interval = timedelta(days=current_app.config['APP_ACCOUNT_HEARTBEAT_DAYS'])
 
         self.account_purge_delay = (
-            2 * signalbus_max_delay
+            timedelta(days=current_app.config['APP_INTRANET_EXTREME_DELAY_DAYS'])
             + timedelta(days=current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
             + timedelta(days=2)
         )
