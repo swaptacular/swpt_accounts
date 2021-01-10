@@ -584,8 +584,8 @@ ts : date-time
 
 .. [#status-codes] The mandatory status codes which MUST be used are:
 
-   * ``"SENDER_DOES_NOT_EXIST"`` signifies that the sender's account
-     does not exist.
+   * ``"SENDER_IS_UNREACHABLE"`` signifies that the sender's account
+     does not exist, or can not make outgoing transfers.
 
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
      account does not exist, or does not accept incoming transfers.
