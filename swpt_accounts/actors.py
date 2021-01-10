@@ -26,6 +26,7 @@ def configure_account(
     """Make sure the account exists, and update its configuration settings."""
 
     parsed_ts = iso8601.parse_date(ts)
+    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -42,7 +43,7 @@ def configure_account(
         negligible_amount=negligible_amount,
         config_flags=config_flags,
         config_data=config_data,
-        signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
+        signalbus_max_delay_seconds=signalbus_max_delay_seconds,
     )
     if should_change_interest_rate:
         root_config_data = get_root_config_data_dict([debtor_id]).get(debtor_id)
@@ -52,7 +53,7 @@ def configure_account(
                 debtor_id=debtor_id,
                 creditor_id=creditor_id,
                 interest_rate=root_config_data.interest_rate,
-                signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
+                signalbus_max_delay_seconds=signalbus_max_delay_seconds,
             )
 
 
