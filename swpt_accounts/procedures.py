@@ -262,7 +262,7 @@ def change_interest_rate(
 
 
 @atomic
-def capitalize_interest(debtor_id: int, creditor_id: int, min_capitalization_interval: datetime = timedelta()) -> None:
+def capitalize_interest(debtor_id: int, creditor_id: int, min_capitalization_interval: timedelta = timedelta()) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     capitalization_cutoff_ts = current_ts - min_capitalization_interval
     account = get_account(debtor_id, creditor_id, lock=True)
@@ -361,26 +361,34 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
     #       auto-generated `change_id`s would not be fetched
     #       separately for each inserted `PendingAccountChange` row.
     if requests:
-        sender_account = get_account(debtor_id, sender_creditor_id, lock=True)
-        starting_balance = math.floor(sender_account.calc_current_balance(current_ts)) if sender_account else 0
-        min_account_balance = _get_min_account_balance(sender_creditor_id)
         principal_delta = 0
 
-        for fr, pt in requests:
-            if pt and sender_account:
+        sender_account = get_account(debtor_id, sender_creditor_id, lock=True)
+        if sender_account:
+            starting_balance = math.floor(sender_account.calc_current_balance(current_ts))
+            min_account_balance = _get_min_account_balance(sender_creditor_id)
+
+        for finalization_request, prepared_transfer in requests:
+            if sender_account and prepared_transfer:
                 expendable_amount = (
                     + starting_balance
                     + principal_delta
                     - sender_account.total_locked_amount
                     - min_account_balance
                 )
-                committed_amount = _finalize_prepared_transfer(pt, fr, sender_account, expendable_amount, current_ts)
+                committed_amount = _finalize_prepared_transfer(
+                    prepared_transfer,
+                    finalization_request,
+                    sender_account,
+                    expendable_amount,
+                    current_ts,
+                )
                 principal_delta -= committed_amount
                 assert committed_amount >= 0
 
-                db.session.delete(pt)
+                db.session.delete(prepared_transfer)
 
-            db.session.delete(fr)
+            db.session.delete(finalization_request)
 
         if principal_delta != 0:
             assert sender_account
@@ -444,6 +452,7 @@ def get_account(debtor_id: int, creditor_id: int, lock: bool = False) -> Optiona
 @atomic
 def get_available_amount(debtor_id: int, creditor_id: int) -> Optional[int]:
     current_ts = datetime.now(tz=timezone.utc)
+
     account = get_account(debtor_id, creditor_id)
     if account:
         return _get_available_amount(account, current_ts)
@@ -587,10 +596,10 @@ def _insert_account_transfer_signal(
 
     is_negligible = 0 < acquired_amount <= account.negligible_amount
 
-    # Note that we do not send notifications for transfers from/to the
-    # debtor's account, because the debtor's account does not have a
-    # real owning creditor. Sending these notifications would consume
-    # a lot of resources for no good reason.
+    # We do not send notifications for transfers from/to the debtor's
+    # account, because the debtor's account does not have a real
+    # owning creditor. Sending these notifications would consume a lot
+    # of resources for no good reason.
     if account.creditor_id != ROOT_CREDITOR_ID and not is_negligible:
         previous_transfer_number = account.last_transfer_number
         account.last_transfer_number += 1
@@ -658,7 +667,6 @@ def _make_debtor_payment(
             transfer_note=transfer_note,
             principal_delta=-amount,
         )
-
         _insert_account_transfer_signal(
             account=account,
             coordinator_type=coordinator_type,
@@ -802,7 +810,6 @@ def _finalize_prepared_transfer(
             transfer_note=fr.transfer_note,
             principal=contain_principal_overflow(sender_account.principal - committed_amount),
         )
-
         _insert_pending_account_change(
             debtor_id=pt.debtor_id,
             creditor_id=pt.recipient_creditor_id,
@@ -831,5 +838,5 @@ def _finalize_prepared_transfer(
     return committed_amount
 
 
-def _get_min_account_balance(creditor_id):
+def _get_min_account_balance(creditor_id: int) -> int:
     return 0 if creditor_id != ROOT_CREDITOR_ID else -MAX_INT64

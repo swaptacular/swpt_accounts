@@ -339,18 +339,21 @@ class PreparedTransfer(db.Model):
         def get_is_reserved():
             if committed_amount > self.locked_amount:
                 return False
+
             elif self.sender_creditor_id == ROOT_CREDITOR_ID or self.recipient_creditor_id == ROOT_CREDITOR_ID:
                 # We do not need to calculate demurrage for transfers
                 # from/to the debtor's account, because all interest
                 # payments come from this account anyway.
                 return True
+
             else:
                 demurrage_seconds = max(0.0, (current_ts - self.prepared_at_ts).total_seconds())
                 ratio = math.exp(calc_k(self.demurrage_rate) * demurrage_seconds)
                 assert ratio <= 1.0
 
-                # Note that we must be careful when comparing big
-                # integers and floats.
+                # To avoid nasty surprises coming from precision loss,
+                # we multiply `committed_amount` (a 64-bit integer) to
+                # `1.0` before the comparison.
                 return committed_amount * 1.0 <= self.locked_amount * ratio
 
         if committed_amount != 0:
