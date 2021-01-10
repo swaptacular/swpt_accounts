@@ -12,7 +12,7 @@ from swpt_accounts.extensions import protocol_broker, chores_broker  # noqa
 import swpt_accounts.actors  # noqa
 
 app = create_app()
-chores_broker.set_default()
+protocol_broker.set_default()
 
 if __name__ == '__main__':
     import sys
