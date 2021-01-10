@@ -49,39 +49,41 @@ def configure_account(
     #       messages for one account, in a short period of time
     #       (probably not a typical load).
 
-    is_new_account = False
     current_ts = datetime.now(tz=timezone.utc)
+    should_change_interest_rate = False
 
     def clear_deleted_flag(account):
-        nonlocal is_new_account
+        nonlocal should_change_interest_rate
 
         if account.status_flags & Account.STATUS_DELETED_FLAG:
-            is_new_account = True
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
+            should_change_interest_rate = True
 
     def is_valid_config():
         if not negligible_amount >= 0.0:
-            is_valid = False
-        elif config_data == '':
-            is_valid = True
-        elif creditor_id == ROOT_CREDITOR_ID:
+            return False
+
+        if config_data == '':
+            return True
+
+        if creditor_id == ROOT_CREDITOR_ID:
             try:
                 parse_root_config_data(config_data)
             except ValueError:
-                is_valid = False
-            else:
-                is_valid = True
+                return False
 
-        return is_valid
+        return True
 
     def try_to_configure(account):
-        nonlocal is_new_account
+        nonlocal should_change_interest_rate
 
         if is_valid_config():
             if account is None:
-                is_new_account = True
                 account = _create_account(debtor_id, creditor_id, current_ts)
-            clear_deleted_flag(account)
+                should_change_interest_rate = True
+            else:
+                clear_deleted_flag(account)
+
             account.config_flags = config_flags
             account.config_data = config_data
             account.negligible_amount = negligible_amount
@@ -89,6 +91,7 @@ def configure_account(
             account.last_config_seqnum = seqnum
             _apply_account_change(account, 0, 0, current_ts)
             _insert_account_update_signal(account, current_ts)
+
         else:
             db.session.add(RejectedConfigSignal(
                 debtor_id=debtor_id,
@@ -112,7 +115,7 @@ def configure_account(
         if signal_age_seconds <= signalbus_max_delay_seconds:
             try_to_configure(account)
 
-    return is_new_account
+    return should_change_interest_rate
 
 
 @atomic
@@ -139,6 +142,7 @@ def prepare_transfer(
             total_locked_amount=0,
             sender_creditor_id=creditor_id,
         ))
+
     else:
         db.session.add(TransferRequest(
             debtor_id=debtor_id,
@@ -204,7 +208,6 @@ def get_account_config_data(debtor_id: int, creditor_id: int) -> Optional[str]:
     return db.session.\
         query(Account.config_data).\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
-        filter(Account.status_flags.op('&')(Account.STATUS_DELETED_FLAG) == 0).\
         scalar()
 
 
@@ -221,37 +224,35 @@ def change_interest_rate(
 
     current_ts = datetime.now(tz=timezone.utc)
     ts = ts or current_ts
-    min_change_interval_seconds = signalbus_max_delay_seconds + SECONDS_IN_DAY
+    change_min_interval_seconds = signalbus_max_delay_seconds + SECONDS_IN_DAY
 
     # If the scheduled "chores" have not been processed for a long
-    # time, a very old interest rate change request can arrive. In
-    # such cases, we simply ignore the request, avoiding setting a
-    # potentially very outdated interest rate.
-    is_old_request = (current_ts - ts).total_seconds() > min_change_interval_seconds
+    # time, an old interest rate change request can arrive. In such
+    # cases, the request will be ignored, avoiding setting a
+    # potentially outdated interest rate.
+    is_old_request = (current_ts - ts).total_seconds() > change_min_interval_seconds
     if is_old_request:
         return
 
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
-        # Too big positive interest rates can cause account balance
-        # overflows. To prevent this, the interest rates should be
-        # kept within reasonable limits, and the accumulated interest
-        # should be capitalized every once in a while (like once a
-        # month).
         if interest_rate > INTEREST_RATE_CEIL:
             interest_rate = INTEREST_RATE_CEIL
 
-        # Too big negative interest rates are dangerous too. Chances
-        # are that they have been entered either maliciously or by
-        # mistake. It is a good precaution to not allow them at all.
         if interest_rate < INTEREST_RATE_FLOOR:
             interest_rate = INTEREST_RATE_FLOOR
 
+        if math.isnan(interest_rate):  # pragma: nocover
+            return
+
+        old_interest_rate = account.interest_rate
         seconds_since_last_change = (current_ts - account.last_interest_rate_change_ts).total_seconds()
-        if seconds_since_last_change >= min_change_interval_seconds and account.interest_rate != interest_rate:
+
+        if old_interest_rate != interest_rate and seconds_since_last_change >= change_min_interval_seconds:
             assert current_ts >= account.last_interest_rate_change_ts
+
             account.interest = float(_calc_account_accumulated_interest(account, current_ts))
-            account.previous_interest_rate = account.interest_rate
+            account.previous_interest_rate = old_interest_rate
             account.interest_rate = interest_rate
             account.last_interest_rate_change_ts = current_ts
             account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
@@ -263,12 +264,13 @@ def change_interest_rate(
 @atomic
 def capitalize_interest(debtor_id: int, creditor_id: int, min_capitalization_interval: datetime = timedelta()) -> None:
     current_ts = datetime.now(tz=timezone.utc)
-    cutoff_ts = current_ts - min_capitalization_interval
+    capitalization_cutoff_ts = current_ts - min_capitalization_interval
     account = get_account(debtor_id, creditor_id, lock=True)
 
-    if account and account.last_interest_capitalization_ts <= cutoff_ts:
+    if account and account.last_interest_capitalization_ts <= capitalization_cutoff_ts:
         accumulated_interest = math.floor(_calc_account_accumulated_interest(account, current_ts))
         accumulated_interest = contain_principal_overflow(accumulated_interest)
+
         if accumulated_interest != 0:
             account.last_interest_capitalization_ts = current_ts
             _make_debtor_payment(CT_INTEREST, account, accumulated_interest, current_ts)
@@ -278,11 +280,12 @@ def capitalize_interest(debtor_id: int, creditor_id: int, min_capitalization_int
 def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
     if creditor_id == ROOT_CREDITOR_ID:
         # TODO: Allow the deletion of the debtor's account, but only
-        #       if there are no other accounts with the given debtor
-        #       in the system.
+        #       when there are no other accounts with the given debtor
+        #       in the whole system.
         return
 
     current_ts = datetime.now(tz=timezone.utc)
+
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
         account.last_deletion_attempt_ts = current_ts
@@ -295,6 +298,7 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
         if can_be_deleted:
             if account.principal != 0:
                 _make_debtor_payment(CT_DELETE, account, -account.principal, current_ts)
+
             _mark_account_as_deleted(account, current_ts)
 
 
@@ -455,6 +459,8 @@ def make_debtor_payment(
         amount: int,
         transfer_note_format: str = '',
         transfer_note: str = '') -> None:
+
+    assert coordinator_type != CT_DIRECT
 
     current_ts = datetime.now(tz=timezone.utc)
     account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
@@ -639,7 +645,6 @@ def _make_debtor_payment(
         transfer_note_format: str = '',
         transfer_note: str = '') -> None:
 
-    assert coordinator_type != CT_DIRECT
     assert -MAX_INT64 <= amount <= MAX_INT64
 
     if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:
@@ -690,6 +695,7 @@ def _process_transfer_request(
 
     def prepare(amount: int) -> PreparedTransferSignal:
         assert sender_account is not None
+
         sender_account.total_locked_amount = min(sender_account.total_locked_amount + amount, MAX_INT64)
         sender_account.pending_transfers_count += 1
         sender_account.last_transfer_id += 1
@@ -705,6 +711,7 @@ def _process_transfer_request(
             commit_period = min(commit_period, SECONDS_IN_DAY)
 
         deadline = min(current_ts + timedelta(seconds=commit_period), tr.deadline)
+
         db.session.add(PreparedTransfer(
             debtor_id=tr.debtor_id,
             sender_creditor_id=tr.sender_creditor_id,

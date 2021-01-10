@@ -34,7 +34,7 @@ def configure_account(
     assert MIN_INT32 <= config_flags <= MAX_INT32
     assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
 
-    is_new_account = procedures.configure_account(
+    should_change_interest_rate = procedures.configure_account(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         ts=parsed_ts,
@@ -44,7 +44,7 @@ def configure_account(
         config_data=config_data,
         signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
     )
-    if is_new_account:
+    if should_change_interest_rate:
         root_config_data = get_root_config_data_dict([debtor_id]).get(debtor_id)
 
         if root_config_data:
