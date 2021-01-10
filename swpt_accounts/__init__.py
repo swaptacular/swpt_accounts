@@ -87,13 +87,6 @@ def _check_config_sanity(c):  # pragma: nocover
             'delays. Choose more appropriate configuration values.'
         )
 
-    if (c['APP_INTRANET_EXTREME_DELAY_DAYS'] < c['APP_SIGNALBUS_MAX_DELAY_DAYS']):
-        raise RuntimeError(
-            'The configured value for APP_INTRANET_EXTREME_DELAY_DAYS is too small '
-            'compared to the configured value for APP_SIGNALBUS_MAX_DELAY_DAYS. Choose '
-            'more appropriate configuration values.'
-        )
-
     if not 0.0 < c['APP_MAX_INTEREST_TO_PRINCIPAL_RATIO'] <= 0.10:
         raise RuntimeError(
             'The configured value for APP_MAX_INTEREST_TO_PRINCIPAL_RATIO is outside '
