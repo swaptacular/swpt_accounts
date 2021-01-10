@@ -102,7 +102,7 @@ class Account(db.Model):
     last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
-    last_transfer_committed_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_transfer_committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
     negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
     config_flags = db.Column(db.Integer, nullable=False, default=0)
     config_data = db.Column(db.String, nullable=False, default='')
@@ -296,7 +296,7 @@ class PreparedTransfer(db.Model):
     coordinator_id = db.Column(db.BigInteger, nullable=False)
     coordinator_request_id = db.Column(db.BigInteger, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-    prepared_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    prepared_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
     min_interest_rate = db.Column(db.REAL, nullable=False)
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
@@ -347,7 +347,7 @@ class PreparedTransfer(db.Model):
                 return True
 
             else:
-                demurrage_seconds = max(0.0, (current_ts - self.prepared_at_ts).total_seconds())
+                demurrage_seconds = max(0.0, (current_ts - self.prepared_at).total_seconds())
                 ratio = math.exp(calc_k(self.demurrage_rate) * demurrage_seconds)
                 assert ratio <= 1.0
 
@@ -403,7 +403,7 @@ class PendingAccountChange(db.Model):
                 '`principal_delta` is zero, the value is irrelevant.',
     )
     coordinator_type = db.Column(db.String(30), nullable=False)
-    inserted_at_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    inserted_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     __table_args__ = (
         db.CheckConstraint(principal_delta != 0),

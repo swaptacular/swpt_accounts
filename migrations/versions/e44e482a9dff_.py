@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 48a447c7792c
+Revision ID: e44e482a9dff
 Revises: 
-Create Date: 2021-01-09 20:48:16.031714
+Create Date: 2021-01-10 18:10:09.511347
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '48a447c7792c'
+revision = 'e44e482a9dff'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -31,7 +31,7 @@ def upgrade():
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('last_transfer_committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('negligible_amount', sa.REAL(), nullable=False),
     sa.Column('config_flags', sa.Integer(), nullable=False),
     sa.Column('config_data', sa.String(), nullable=False),
@@ -60,20 +60,20 @@ def upgrade():
     comment='Tells who owes what to whom.'
     )
     op.create_table('account_purge_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'creation_date')
     )
     op.create_table('account_transfer_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
     sa.Column('transfer_number', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('acquired_amount', sa.BigInteger(), nullable=False),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_note_format', sa.TEXT(), nullable=False),
@@ -83,7 +83,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'creation_date', 'transfer_number')
     )
     op.create_table('account_update_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -94,7 +94,7 @@ def upgrade():
     sa.Column('interest_rate', sa.REAL(), nullable=False),
     sa.Column('last_interest_rate_change_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_transfer_number', sa.BigInteger(), nullable=False),
-    sa.Column('last_transfer_committed_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('last_transfer_committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_ts', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('last_config_seqnum', sa.Integer(), nullable=False),
     sa.Column('creation_date', sa.DATE(), nullable=False),
@@ -122,15 +122,15 @@ def upgrade():
     comment='Represents a request to finalize a prepared transfer. Requests are queued to the `finalization_request` table, before being processed, because this allows many requests from one sender to be processed at once, reducing the lock contention on `account` table rows.'
     )
     op.create_table('finalized_transfer_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('transfer_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
-    sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
-    sa.Column('finalized_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('prepared_at', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('finalized_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('committed_amount', sa.BigInteger(), nullable=False),
     sa.Column('total_locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('status_code', sa.String(length=30), nullable=False),
@@ -146,13 +146,13 @@ def upgrade():
     sa.Column('transfer_note', sa.TEXT(), nullable=False, comment='A note from the sender. Can be any string that the sender wants the recipient to see.'),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='If the account change represents a committed transfer, this is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, the value is irrelevant.'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('principal_delta != 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
     comment='Represents a pending change to a given account. Pending updates to `account.principal` and `account.interest` are queued to this table before being processed, because this allows multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'
     )
     op.create_table('prepared_transfer_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -162,14 +162,14 @@ def upgrade():
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('locked_amount', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('prepared_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('demurrage_rate', sa.FLOAT(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.PrimaryKeyConstraint('debtor_id', 'sender_creditor_id', 'signal_id')
     )
     op.create_table('rejected_config_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -182,7 +182,7 @@ def upgrade():
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'signal_id')
     )
     op.create_table('rejected_transfer_signal',
-    sa.Column('inserted_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('signal_id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -219,7 +219,7 @@ def upgrade():
     sa.Column('coordinator_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_request_id', sa.BigInteger(), nullable=False),
     sa.Column('recipient_creditor_id', sa.BigInteger(), nullable=False),
-    sa.Column('prepared_at_ts', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('prepared_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('min_interest_rate', sa.REAL(), nullable=False),
     sa.Column('demurrage_rate', sa.FLOAT(), nullable=False),
     sa.Column('deadline', sa.TIMESTAMP(timezone=True), nullable=False),

@@ -55,7 +55,7 @@ def test_configure_account(db_session, current_ts):
     assert acs_obj['config_flags'] == a.config_flags
     assert acs_obj['account_id'] == str(C_ID)
     assert acs_obj['last_transfer_number'] == 0
-    assert acs_obj['last_transfer_committed_at'] == a.last_transfer_committed_at_ts.isoformat()
+    assert acs_obj['last_transfer_committed_at'] == a.last_transfer_committed_at.isoformat()
     assert acs_obj['debtor_info_iri'] == ''
     assert acs_obj['debtor_info_content_type'] == ''
     assert acs_obj['debtor_info_sha256'] == ''
@@ -193,7 +193,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
         assert cts1_obj['recipient'] in [str(p.ROOT_CREDITOR_ID), str(C_ID)]
         assert cts1_obj['sender'] != cts1_obj['recipient']
         assert cts1_obj['acquired_amount'] == amount
-        assert cts1_obj['committed_at'] == cts1.committed_at_ts.isoformat()
+        assert cts1_obj['committed_at'] == cts1.committed_at.isoformat()
         assert cts1_obj['transfer_note_format'] == TRANSFER_NOTE_FORMAT
         assert cts1_obj['transfer_note'] == TRANSFER_NOTE
         assert isinstance(cts1_obj['ts'], str)
@@ -718,7 +718,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     assert fpt_obj['total_locked_amount'] == 0
     assert fpt_obj['status_code'] == 'OK'
     assert isinstance(fpt_obj['ts'], str)
-    assert fpt_obj['prepared_at'] == fpt.prepared_at_ts.isoformat()
+    assert fpt_obj['prepared_at'] == fpt.prepared_at.isoformat()
 
 
 def test_commit_prepared_transfer(db_session, current_ts):
@@ -890,8 +890,8 @@ def test_prepared_transfer_commit_timeout(db_session, current_ts):
     )
     p.process_transfer_requests(D_ID, C_ID)
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
-    pt.prepared_at_ts = pt.prepared_at_ts - timedelta(days=100)
-    pt.deadline = pt.prepared_at_ts + timedelta(days=30)
+    pt.prepared_at = pt.prepared_at - timedelta(days=100)
+    pt.deadline = pt.prepared_at + timedelta(days=30)
     db_session.commit()
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
     p.process_finalization_requests(D_ID, C_ID)
@@ -998,7 +998,7 @@ def test_calc_status_code(db_session, current_ts):
         coordinator_id=11,
         coordinator_request_id=22,
         recipient_creditor_id=1,
-        prepared_at_ts=current_ts,
+        prepared_at=current_ts,
         min_interest_rate=-10.0,
         demurrage_rate=-50,
         deadline=current_ts + timedelta(days=10000),

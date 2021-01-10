@@ -142,7 +142,7 @@ class AccountScanner(TableScanner):
                         interest_rate=account.interest_rate,
                         last_interest_rate_change_ts=account.last_interest_rate_change_ts,
                         last_transfer_number=account.last_transfer_number,
-                        last_transfer_committed_at_ts=account.last_transfer_committed_at_ts,
+                        last_transfer_committed_at=account.last_transfer_committed_at,
                         last_config_ts=account.last_config_ts,
                         last_config_seqnum=account.last_config_seqnum,
                         creation_date=account.creation_date,
@@ -152,7 +152,7 @@ class AccountScanner(TableScanner):
                         debtor_info_iri=account.debtor_info_iri,
                         debtor_info_content_type=account.debtor_info_content_type,
                         debtor_info_sha256=account.debtor_info_sha256,
-                        inserted_at_ts=max(current_ts, account.last_change_ts),
+                        inserted_at=max(current_ts, account.last_change_ts),
                     )
                     for account in to_heartbeat
                 ])
@@ -296,7 +296,7 @@ class PreparedTransferScanner(TableScanner):
 
         for row in rows:
             last_reminder_ts = row[c.last_reminder_ts]
-            has_big_delay = row[c.prepared_at_ts] < reminder_cutoff_ts
+            has_big_delay = row[c.prepared_at] < reminder_cutoff_ts
             has_recent_reminder = last_reminder_ts is not None and last_reminder_ts >= reminder_cutoff_ts
             if has_big_delay and not has_recent_reminder:
                 db.session.add(PreparedTransferSignal(
@@ -308,11 +308,11 @@ class PreparedTransferScanner(TableScanner):
                     coordinator_request_id=row[c.coordinator_request_id],
                     locked_amount=row[c.locked_amount],
                     recipient_creditor_id=row[c.recipient_creditor_id],
-                    prepared_at_ts=row[c.prepared_at_ts],
+                    prepared_at=row[c.prepared_at],
                     demurrage_rate=row[c.demurrage_rate],
                     deadline=row[c.deadline],
                     min_interest_rate=row[c.min_interest_rate],
-                    inserted_at_ts=max(current_ts, row[c.prepared_at_ts]),
+                    inserted_at=max(current_ts, row[c.prepared_at]),
                 ))
                 reminded_pks.append((row[c.debtor_id], row[c.sender_creditor_id], row[c.transfer_id]))
 

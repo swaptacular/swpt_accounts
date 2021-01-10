@@ -188,7 +188,7 @@ def test_scan_prepared_transfers(app_unsafe_session):
         locked_amount=400,
         recipient_creditor_id=1234,
         min_interest_rate=-100.0,
-        prepared_at_ts=current_ts,
+        prepared_at=current_ts,
         deadline=current_ts + timedelta(days=30),
         demurrage_rate=0.0,
     ))
@@ -202,7 +202,7 @@ def test_scan_prepared_transfers(app_unsafe_session):
         locked_amount=100,
         recipient_creditor_id=1234,
         min_interest_rate=-100.0,
-        prepared_at_ts=past_ts,
+        prepared_at=past_ts,
         deadline=current_ts + timedelta(days=30),
         demurrage_rate=0.0,
     ))
@@ -231,7 +231,7 @@ def test_scan_prepared_transfers(app_unsafe_session):
     assert pts.coordinator_request_id == 112
     assert pts.locked_amount == 100
     assert pts.recipient_creditor_id == 1234
-    assert pts.prepared_at_ts == past_ts
+    assert pts.prepared_at == past_ts
 
     db.engine.execute('ANALYZE account')
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])

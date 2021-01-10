@@ -419,16 +419,16 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
             interest_delta += change.interest_delta
 
             # We should compensate for the fact that the transfer was
-            # committed at `change.inserted_at_ts`, but the
-            # transferred amount is being added to the account's
-            # principal just now (`current_ts`).
-            interest_delta += account.calc_due_interest(change.principal_delta, change.inserted_at_ts, current_ts)
+            # committed at `change.inserted_at`, but the transferred
+            # amount is being added to the account's principal just
+            # now (`current_ts`).
+            interest_delta += account.calc_due_interest(change.principal_delta, change.inserted_at, current_ts)
 
             _insert_account_transfer_signal(
                 account=account,
                 coordinator_type=change.coordinator_type,
                 other_creditor_id=change.other_creditor_id,
-                committed_at_ts=change.inserted_at_ts,
+                committed_at=change.inserted_at,
                 acquired_amount=change.principal_delta,
                 transfer_note_format=change.transfer_note_format,
                 transfer_note=change.transfer_note,
@@ -490,7 +490,7 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
         interest_rate=account.interest_rate,
         last_interest_rate_change_ts=account.last_interest_rate_change_ts,
         last_transfer_number=account.last_transfer_number,
-        last_transfer_committed_at_ts=account.last_transfer_committed_at_ts,
+        last_transfer_committed_at=account.last_transfer_committed_at,
         last_config_ts=account.last_config_ts,
         last_config_seqnum=account.last_config_seqnum,
         creation_date=account.creation_date,
@@ -500,7 +500,7 @@ def _insert_account_update_signal(account: Account, current_ts: datetime) -> Non
         debtor_info_iri=account.debtor_info_iri,
         debtor_info_content_type=account.debtor_info_content_type,
         debtor_info_sha256=account.debtor_info_sha256,
-        inserted_at_ts=account.last_change_ts,
+        inserted_at=account.last_change_ts,
     ))
 
 
@@ -557,7 +557,7 @@ def _insert_pending_account_change(
         creditor_id: int,
         coordinator_type: str,
         other_creditor_id: int,
-        inserted_at_ts: datetime,
+        inserted_at: datetime,
         transfer_note_format: str,
         transfer_note: str,
         principal_delta: int = 0,
@@ -574,7 +574,7 @@ def _insert_pending_account_change(
         creditor_id=creditor_id,
         coordinator_type=coordinator_type,
         other_creditor_id=other_creditor_id,
-        inserted_at_ts=inserted_at_ts,
+        inserted_at=inserted_at,
         transfer_note_format=transfer_note_format,
         transfer_note=transfer_note,
         principal_delta=principal_delta,
@@ -586,7 +586,7 @@ def _insert_account_transfer_signal(
         account: Account,
         coordinator_type: str,
         other_creditor_id: int,
-        committed_at_ts: datetime,
+        committed_at: datetime,
         acquired_amount: int,
         transfer_note_format: str,
         transfer_note: str,
@@ -603,7 +603,7 @@ def _insert_account_transfer_signal(
     if account.creditor_id != ROOT_CREDITOR_ID and not is_negligible:
         previous_transfer_number = account.last_transfer_number
         account.last_transfer_number += 1
-        account.last_transfer_committed_at_ts = committed_at_ts
+        account.last_transfer_committed_at = committed_at
 
         db.session.add(AccountTransferSignal(
             debtor_id=account.debtor_id,
@@ -611,7 +611,7 @@ def _insert_account_transfer_signal(
             transfer_number=account.last_transfer_number,
             coordinator_type=coordinator_type,
             other_creditor_id=other_creditor_id,
-            committed_at_ts=committed_at_ts,
+            committed_at=committed_at,
             acquired_amount=acquired_amount,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
@@ -662,7 +662,7 @@ def _make_debtor_payment(
             creditor_id=ROOT_CREDITOR_ID,
             coordinator_type=coordinator_type,
             other_creditor_id=account.creditor_id,
-            inserted_at_ts=current_ts,
+            inserted_at=current_ts,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
             principal_delta=-amount,
@@ -671,7 +671,7 @@ def _make_debtor_payment(
             account=account,
             coordinator_type=coordinator_type,
             other_creditor_id=ROOT_CREDITOR_ID,
-            committed_at_ts=current_ts,
+            committed_at=current_ts,
             acquired_amount=amount,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
@@ -734,7 +734,7 @@ def _process_transfer_request(
             min_interest_rate=min_interest_rate,
             demurrage_rate=INTEREST_RATE_FLOOR,
             deadline=deadline,
-            prepared_at_ts=current_ts,
+            prepared_at=current_ts,
         ))
 
         return PreparedTransferSignal(
@@ -746,11 +746,11 @@ def _process_transfer_request(
             coordinator_request_id=tr.coordinator_request_id,
             locked_amount=amount,
             recipient_creditor_id=tr.recipient_creditor_id,
-            prepared_at_ts=current_ts,
+            prepared_at=current_ts,
             demurrage_rate=INTEREST_RATE_FLOOR,
             deadline=deadline,
             min_interest_rate=min_interest_rate,
-            inserted_at_ts=current_ts,
+            inserted_at=current_ts,
         )
 
     db.session.delete(tr)
@@ -804,7 +804,7 @@ def _finalize_prepared_transfer(
             account=sender_account,
             coordinator_type=pt.coordinator_type,
             other_creditor_id=pt.recipient_creditor_id,
-            committed_at_ts=current_ts,
+            committed_at=current_ts,
             acquired_amount=-committed_amount,
             transfer_note_format=fr.transfer_note_format,
             transfer_note=fr.transfer_note,
@@ -815,7 +815,7 @@ def _finalize_prepared_transfer(
             creditor_id=pt.recipient_creditor_id,
             coordinator_type=pt.coordinator_type,
             other_creditor_id=pt.sender_creditor_id,
-            inserted_at_ts=current_ts,
+            inserted_at=current_ts,
             transfer_note_format=fr.transfer_note_format,
             transfer_note=fr.transfer_note,
             principal_delta=committed_amount,
@@ -828,8 +828,8 @@ def _finalize_prepared_transfer(
         coordinator_type=pt.coordinator_type,
         coordinator_id=pt.coordinator_id,
         coordinator_request_id=pt.coordinator_request_id,
-        prepared_at_ts=pt.prepared_at_ts,
-        finalized_at_ts=current_ts,
+        prepared_at=pt.prepared_at,
+        finalized_at=current_ts,
         committed_amount=committed_amount,
         total_locked_amount=sender_account.total_locked_amount,
         status_code=status_code,
