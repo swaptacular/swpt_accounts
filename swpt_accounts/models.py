@@ -340,9 +340,9 @@ class PreparedTransfer(db.Model):
             if committed_amount > self.locked_amount:
                 return False
 
-            elif self.sender_creditor_id == ROOT_CREDITOR_ID or self.recipient_creditor_id == ROOT_CREDITOR_ID:
+            elif self.sender_creditor_id == ROOT_CREDITOR_ID:
                 # We do not need to calculate demurrage for transfers
-                # from/to the debtor's account, because all interest
+                # from the debtor's account, because all interest
                 # payments come from this account anyway.
                 return True
 

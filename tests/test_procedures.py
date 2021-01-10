@@ -104,7 +104,7 @@ def test_invalid_config(db_session, current_ts):
     assert rcs_obj['rejection_code'] == p.RC_INVALID_CONFIGURATION
     assert isinstance(rcs_obj['ts'], str)
 
-    p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123, signalbus_max_delay_seconds=900*24*60*60)
+    p.configure_account(D_ID, C_ID, current_ts - timedelta(days=1000), 123, signalbus_max_delay_seconds=900 * 86400)
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountUpdateSignal.query.all()) == 0
     assert len(RejectedConfigSignal.query.all()) == 1
@@ -538,7 +538,6 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     assert rts_obj['coordinator_request_id'] == 2
     assert rts_obj['total_locked_amount'] == 0
     assert isinstance(rts_obj['ts'], str)
-
 
 
 def test_prepare_transfer_to_self(db_session, current_ts):
@@ -1017,6 +1016,9 @@ def test_calc_status_code(db_session, current_ts):
     assert pt.calc_status_code(995, -50000, -10.0, current_ts + timedelta(days=10)) != SC_OK
     assert pt.calc_status_code(980, -50000, -10.0, current_ts + timedelta(days=10)) == SC_OK
     pt.recipient_creditor_id = 0
+    assert pt.calc_status_code(1000, -50000, -10.0, current_ts + timedelta(days=10)) != SC_OK
+    pt.recipient_creditor_id = 1
+    pt.sender_creditor_id = 0
     assert pt.calc_status_code(1000, -50000, -10.0, current_ts + timedelta(days=10)) == SC_OK
 
 
