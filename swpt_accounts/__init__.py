@@ -82,13 +82,13 @@ def _check_config_sanity(c):  # pragma: nocover
         raise RuntimeError(
             'The configured value for APP_PREPARED_TRANSFER_MAX_DELAY_DAYS is too '
             'small. This may result in frequent timing out of prepared transfers due '
-            'to message delays. Chose more appropriate configuration values.'
+            'to message delays. Choose more appropriate configuration values.'
         )
 
     if not 0.0 < c['APP_MAX_INTEREST_TO_PRINCIPAL_RATIO'] <= 0.10:
         raise RuntimeError(
             'The configured value for APP_MAX_INTEREST_TO_PRINCIPAL_RATIO is outside '
-            'of the interval that is good for practical use. Chose a more appropriate '
+            'of the interval that is good for practical use. Choose a more appropriate '
             'value.'
         )
 
@@ -96,13 +96,13 @@ def _check_config_sanity(c):  # pragma: nocover
         raise RuntimeError(
             'The configured value for APP_MIN_INTEREST_CAPITALIZATION_DAYS is too '
             'big. This may result in quirky capitalization of the accumulated '
-            'interest. Chose a more appropriate value.'
+            'interest. Choose a more appropriate value.'
         )
 
     if c['APP_ACCOUNTS_SCAN_HOURS'] > 48:
         raise RuntimeError(
             'The configured value for APP_ACCOUNTS_SCAN_HOURS is too big. This'
-            'may result in lagging account status updates. Chose a more appropriate '
+            'may result in lagging account status updates. Choose a more appropriate '
             'value.'
         )
 
