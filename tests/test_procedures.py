@@ -979,7 +979,7 @@ def test_delayed_direct_transfer(db_session, current_ts):
         recipient_creditor_id=1234,
         ts=current_ts,
     )
-    p.process_transfer_requests(D_ID, C_ID)
+    p.process_transfer_requests(D_ID, C_ID, 30 * 86400)
     pt = PreparedTransfer.query.one()
     assert pt.calc_status_code(1000, 0, -100.0, current_ts) == SC_OK
     assert pt.calc_status_code(1000, 0, -100.0, current_ts + timedelta(days=31)) != SC_OK

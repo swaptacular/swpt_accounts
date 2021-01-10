@@ -308,7 +308,7 @@ def get_accounts_with_transfer_requests() -> Iterable[Tuple[int, int]]:
 
 
 @atomic
-def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
+def process_transfer_requests(debtor_id: int, creditor_id: int, commit_period: int = MAX_INT32) -> None:
     current_ts = datetime.now(tz=timezone.utc)
 
     transfer_requests = TransferRequest.query.\
@@ -322,7 +322,7 @@ def process_transfer_requests(debtor_id: int, creditor_id: int) -> None:
         prepared_transfer_signals = []
 
         for tr in transfer_requests:
-            signal = _process_transfer_request(tr, sender_account, current_ts)
+            signal = _process_transfer_request(tr, sender_account, current_ts, commit_period)
 
             if isinstance(signal, RejectedTransferSignal):
                 rejected_transfer_signals.append(signal)
@@ -678,7 +678,8 @@ def _make_debtor_payment(
 def _process_transfer_request(
         tr: TransferRequest,
         sender_account: Optional[Account],
-        current_ts: datetime) -> Union[RejectedTransferSignal, PreparedTransferSignal]:
+        current_ts: datetime,
+        commit_period: int) -> Union[RejectedTransferSignal, PreparedTransferSignal]:
 
     def reject(status_code: str, total_locked_amount: int) -> RejectedTransferSignal:
         assert total_locked_amount >= 0
@@ -699,18 +700,19 @@ def _process_transfer_request(
         sender_account.total_locked_amount = min(sender_account.total_locked_amount + amount, MAX_INT64)
         sender_account.pending_transfers_count += 1
         sender_account.last_transfer_id += 1
-        commit_period = AccountUpdateSignal.get_commit_period()
         min_interest_rate = tr.min_interest_rate
 
-        # When a meaningful minimal approved interest rate is set, we
-        # put a limit on the deadline to ensure that no more than one
-        # change in the interest rate will happen before the transfer
-        # gets finalized. This should be OK, because distant deadlines
-        # are not needed in this case.
-        if min_interest_rate > INTEREST_RATE_FLOOR:  # pragma: no cover
-            commit_period = min(commit_period, SECONDS_IN_DAY)
+        # When a real interest rate constraint is set, we put an upper
+        # limit of one day on the deadline, to ensure that no more
+        # than one change in the interest rate will happen before the
+        # transfer gets finalized. This should be OK, because distant
+        # deadlines are not needed in this case.
+        if min_interest_rate > INTEREST_RATE_FLOOR:
+            transfer_commit_period = min(commit_period, SECONDS_IN_DAY)  # pragma: no cover
+        else:
+            transfer_commit_period = commit_period
 
-        deadline = min(current_ts + timedelta(seconds=commit_period), tr.deadline)
+        deadline = min(current_ts + timedelta(seconds=transfer_commit_period), tr.deadline)
 
         db.session.add(PreparedTransfer(
             debtor_id=tr.debtor_id,

@@ -7,6 +7,7 @@ from flask import current_app
 from flask.cli import with_appcontext
 from . import procedures
 from .extensions import db
+from .models import SECONDS_IN_DAY
 from .table_scanners import AccountScanner, PreparedTransferScanner
 
 
@@ -69,6 +70,7 @@ def process_transfers(threads):
     # to trigger them with different frequency.
 
     threads = threads or int(environ.get('APP_PROCESS_TRANSFERS_THREADS', '1'))
+    commit_period = int(current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'] * SECONDS_IN_DAY)
     app = current_app._get_current_object()
 
     def push_app_context():
@@ -89,8 +91,12 @@ def process_transfers(threads):
     pool1.join()
 
     pool2 = ThreadPool(threads, initializer=push_app_context)
-    for account_pk in procedures.get_accounts_with_transfer_requests():
-        pool2.apply_async(procedures.process_transfer_requests, account_pk, error_callback=log_error)
+    for debtor_id, creditor_id in procedures.get_accounts_with_transfer_requests():
+        pool2.apply_async(
+            procedures.process_transfer_requests,
+            (debtor_id, creditor_id, commit_period),
+            error_callback=log_error,
+        )
     pool2.close()
     pool2.join()
 

@@ -17,6 +17,7 @@ __all__ = [
     'RejectedConfigSignal',
 ]
 
+SECONDS_IN_DAY = 24 * 60 * 60
 INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 TRANSFER_NOTE_MAX_BYTES = 500
@@ -253,15 +254,11 @@ class AccountUpdateSignal(Signal):
 
     @property
     def ttl(self):
-        return int(current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * 86400)
+        return int(current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY)
 
     @property
     def commit_period(self):
-        return self.get_commit_period()
-
-    @classmethod
-    def get_commit_period(cls) -> int:
-        return int(86400 * current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'])
+        return int(current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'] * SECONDS_IN_DAY)
 
 
 class AccountPurgeSignal(Signal):
