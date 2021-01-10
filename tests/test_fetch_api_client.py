@@ -1,6 +1,7 @@
 import json
 import pytest
-from swpt_accounts.fetch_api_client import parse_root_config_data, RootConfigData
+from swpt_accounts.schemas import RootConfigData
+from swpt_accounts.fetch_api_client import parse_root_config_data
 
 
 def test_parse_root_config_data():

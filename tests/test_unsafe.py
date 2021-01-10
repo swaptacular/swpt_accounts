@@ -4,8 +4,8 @@ import dramatiq
 from datetime import date, datetime, timezone, timedelta
 from flask import current_app
 from swpt_accounts.extensions import db, chores_broker
-from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict, \
-    RootConfigData
+from swpt_accounts.schemas import RootConfigData
+from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict
 from swpt_accounts import procedures as p
 from swpt_accounts import actors
 

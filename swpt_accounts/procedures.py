@@ -6,7 +6,7 @@ from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
 from swpt_lib.utils import Seqnum, increment_seqnum
 from .extensions import db
-from .fetch_api_client import parse_root_config_data
+from .schemas import parse_root_config_data
 from .models import (
     Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
