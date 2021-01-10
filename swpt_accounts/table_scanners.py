@@ -20,9 +20,6 @@ SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 #       currently SQLAlchemy issues individual inserts with `RETURNING
 #       signal_id` to obtain the server generated primary key.
 
-# TODO: Consider making `TableScanner.blocks_per_query` and
-#       `TableScanner.target_beat_duration` configurable.
-
 
 class AccountScanner(TableScanner):
     """Sends account heartbeat signals, purge deleted accounts."""
