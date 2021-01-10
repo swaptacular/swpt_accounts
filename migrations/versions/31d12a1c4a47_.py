@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: e44e482a9dff
+Revision ID: 31d12a1c4a47
 Revises: 
-Create Date: 2021-01-10 18:10:09.511347
+Create Date: 2021-01-10 18:26:38.300771
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'e44e482a9dff'
+revision = '31d12a1c4a47'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -146,7 +146,7 @@ def upgrade():
     sa.Column('transfer_note', sa.TEXT(), nullable=False, comment='A note from the sender. Can be any string that the sender wants the recipient to see.'),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='If the account change represents a committed transfer, this is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, the value is irrelevant.'),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
-    sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
+    sa.Column('committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.CheckConstraint('principal_delta != 0'),
     sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
     comment='Represents a pending change to a given account. Pending updates to `account.principal` and `account.interest` are queued to this table before being processed, because this allows multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'

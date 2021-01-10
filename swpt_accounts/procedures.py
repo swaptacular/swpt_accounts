@@ -419,16 +419,16 @@ def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
             interest_delta += change.interest_delta
 
             # We should compensate for the fact that the transfer was
-            # committed at `change.inserted_at`, but the transferred
+            # committed at `change.committed_at`, but the transferred
             # amount is being added to the account's principal just
             # now (`current_ts`).
-            interest_delta += account.calc_due_interest(change.principal_delta, change.inserted_at, current_ts)
+            interest_delta += account.calc_due_interest(change.principal_delta, change.committed_at, current_ts)
 
             _insert_account_transfer_signal(
                 account=account,
                 coordinator_type=change.coordinator_type,
                 other_creditor_id=change.other_creditor_id,
-                committed_at=change.inserted_at,
+                committed_at=change.committed_at,
                 acquired_amount=change.principal_delta,
                 transfer_note_format=change.transfer_note_format,
                 transfer_note=change.transfer_note,
@@ -555,9 +555,9 @@ def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -
 def _insert_pending_account_change(
         debtor_id: int,
         creditor_id: int,
+        committed_at: datetime,
         coordinator_type: str,
         other_creditor_id: int,
-        inserted_at: datetime,
         transfer_note_format: str,
         transfer_note: str,
         principal_delta: int = 0,
@@ -572,9 +572,9 @@ def _insert_pending_account_change(
     db.session.add(PendingAccountChange(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
+        committed_at=committed_at,
         coordinator_type=coordinator_type,
         other_creditor_id=other_creditor_id,
-        inserted_at=inserted_at,
         transfer_note_format=transfer_note_format,
         transfer_note=transfer_note,
         principal_delta=principal_delta,
@@ -660,9 +660,9 @@ def _make_debtor_payment(
         _insert_pending_account_change(
             debtor_id=account.debtor_id,
             creditor_id=ROOT_CREDITOR_ID,
+            committed_at=current_ts,
             coordinator_type=coordinator_type,
             other_creditor_id=account.creditor_id,
-            inserted_at=current_ts,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
             principal_delta=-amount,
@@ -813,9 +813,9 @@ def _finalize_prepared_transfer(
         _insert_pending_account_change(
             debtor_id=pt.debtor_id,
             creditor_id=pt.recipient_creditor_id,
+            committed_at=current_ts,
             coordinator_type=pt.coordinator_type,
             other_creditor_id=pt.sender_creditor_id,
-            inserted_at=current_ts,
             transfer_note_format=fr.transfer_note_format,
             transfer_note=fr.transfer_note,
             principal_delta=committed_amount,

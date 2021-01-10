@@ -403,7 +403,7 @@ class PendingAccountChange(db.Model):
                 '`principal_delta` is zero, the value is irrelevant.',
     )
     coordinator_type = db.Column(db.String(30), nullable=False)
-    inserted_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
+    committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
     __table_args__ = (
         db.CheckConstraint(principal_delta != 0),
