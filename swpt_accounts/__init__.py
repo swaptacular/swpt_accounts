@@ -99,6 +99,13 @@ def _check_config_sanity(c):  # pragma: nocover
             'interest. Chose a more appropriate value.'
         )
 
+    if c['APP_ACCOUNTS_SCAN_HOURS'] > 48:
+        raise RuntimeError(
+            'The configured value for APP_ACCOUNTS_SCAN_HOURS is too big. This'
+            'may result in lagging account status updates. Chose a more appropriate '
+            'value.'
+        )
+
 
 def create_app(config_dict={}):
     from werkzeug.middleware.proxy_fix import ProxyFix
