@@ -51,10 +51,10 @@ case $1 in
         shift
         exec flask run --host=0.0.0.0 --port $PORT --without-threads "$@"
         ;;
-    develop-run-tasks)
+    develop-run-protocol)
         shift
         flask signalbus flush -w 0
-        exec dramatiq --processes ${DRAMATIQ_PROCESSES-4} --threads ${DRAMATIQ_THREADS-8} "$@"
+        exec dramatiq --processes ${PROTOCOL_PROCESSES-4} --threads ${PROTOCOL_THREADS-8} "$@"
         ;;
     test)
         perform_db_upgrade
