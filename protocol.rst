@@ -961,17 +961,17 @@ in the case of a lost message, or a complete database loss on the
 client's side. Also, this serves the purpose of a "heartbeat",
 allowing clients to detect "dead" account records in their databases.
 
-.. [#meaningful-change] For a given account, every change in the value
-  of one of the fields included in `AccountUpdate`_ messages (except
-  for the ``ts`` field) should be considered meaningful, and therefore
-  an `AccountUpdate`_ message MUST *eventually* be emitted to inform
-  about it. There is no requirement, though, `AccountUpdate`_ messages
-  to be emitted instantly, following each individual change. For
-  example, if a series of transactions are committed on an account in
-  a short period of time, the server SHOULD emit only one
+.. [#meaningful-change] Every change in the value of one of the fields
+  included in `AccountUpdate`_ messages (except for ``ts`` and ``ttl``
+  fields) should be considered meaningful, and therefore an
+  `AccountUpdate`_ message MUST *eventually* be emitted to inform
+  about the change. There is no requirement, though, `AccountUpdate`_
+  messages to be emitted instantly, following each individual
+  change. For example, if a series of transactions are committed on an
+  account in a short period of time, the server SHOULD emit only one
   `AccountUpdate`_ message, announcing only the final state of the
-  account. As a guideline, on average, `AccountUpdate`_ messages for
-  one account SHOULD NOT be sent more often than once per hour.
+  account. As a rough guideline, on average, `AccountUpdate`_ messages
+  for one account should not be sent more often than once per hour.
 
 .. [#compare-change] ``creation_date``, ``last_change_ts``, and
   ``last_change_seqnum`` can be used to reliably determine the correct
