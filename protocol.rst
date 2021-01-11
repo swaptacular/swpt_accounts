@@ -1104,7 +1104,7 @@ previous_transfer_number : int64
 
 Every committed transfer affects two accounts: the sender's, and the
 recipient's. Therefore, two separate `AccountTransfer`_ messages would
-be emitted for each committed transfer.
+be emitted for each committed non-negligible transfer.
 
 .. [#negligible-transfer] A *negligible transfer* is an incoming
    transfer for which the transferred amount does not exceed the
