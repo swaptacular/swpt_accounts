@@ -473,11 +473,11 @@ server's database: [#transfer-match]_
 
    * Remove the prepared transfer from the server's database.
 
-   * Send a `FinalizedTransfer`_ message. [#successful-commit]_ The
-     value of the ``committed_amount`` field in the sent message MUST
-     be either zero (when the transfer has been unsuccessful), or
-     equal to the amount transferred to the recipient's account (when
-     the transfer has been successful).
+   * Send a `FinalizedTransfer`_ message. [#successful-commit]_ Note
+     that the amount transferred to the recipient's account MUST be
+     either zero (when the transfer has been dismissed or
+     unsuccessful), or equal to ``committed_amount`` (when the
+     transfer has been successful).
 
 2. If the specified prepared transfer does not exist, the message MUST
    be ignored.
