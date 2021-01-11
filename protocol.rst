@@ -476,7 +476,7 @@ server's database: [#transfer-match]_
    * Send a `FinalizedTransfer`_ message. [#successful-commit]_ Note
      that the amount transferred to the recipient's account MUST be
      either zero (when the transfer has been dismissed or
-     unsuccessful), or equal to ``committed_amount`` (when the
+     unsuccessful), or equal to the ``committed_amount`` (when the
      transfer has been successful).
 
 2. If the specified prepared transfer does not exist, the message MUST
@@ -826,8 +826,8 @@ interest : float
    The amount of interest accumulated on the account up to the
    ``last_change_ts`` moment, which is not added to the ``principal``
    yet. Once in a while, the accumulated interest MUST be zeroed out
-   and added to the principal (an interest payment). This can be a
-   negative number. [#interest]_
+   and added to the principal (an interest payment). Note that the
+   accumulated interest can be a negative number. [#interest]_
 
 interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
@@ -889,18 +889,19 @@ debtor_info_iri : string
    way for creditors to get up-to-date information about the
    debtor. Note that changing the IRI will likely cause the clients to
    make requests to the new IRI, so as to obtain updated information
-   about the debtor. MUST have at most 200 Unicode characters. If no
-   link is available, the value SHOULD be an empty string.
+   about the debtor. The link MUST have at most 200 Unicode
+   characters. If no link is available, the value SHOULD be an empty
+   string.
 
 debtor_info_content_type : string
-   The content type of the document that the ``debtor_info_iri`` field
-   refers to. MUST have at most 100 symbols, ASCII only. If no link is
-   available, or the content type of the document is unknown, the
+   The content type of the document that the ``debtor_info_iri`` link
+   refers to. It MUST have at most 100 symbols, ASCII only. If no link
+   is available, or the content type of the document is unknown, the
    value SHOULD be an empty string.
 
 debtor_info_sha256 : bytes
    The SHA-256 cryptographic hash of the content of the document that
-   the ``debtor_info_iri`` field refers to. MUST contain exactly 0, or
+   the ``debtor_info_iri`` link refers to. MUST contain exactly 0, or
    exactly 32 bytes. If no link is available, or the SHA-256
    cryptographic hash of the document is unknown, the value SHOULD
    contain 0 bytes.
@@ -933,8 +934,8 @@ commit_period : int32
    `PreparedTransfer`_ messages will be calculated by adding
    ``commit_period`` seconds to the ``prepared_at`` timestamp. The
    value of this filed MUST be a non-negative number, SHOULD be the
-   same for all accounts with the given debtor, and SHOULD be equal or
-   bigger than ``86400`` (24 hours).
+   same for all accounts with the given debtor, and SHOULD be at least
+   ``86400`` (24 hours).
 
 transfer_note_max_bytes: int32
    The maximal number of bytes that the ``transfer_note`` field in
@@ -955,8 +956,8 @@ If for a given account, no `AccountUpdate`_ messages have been sent
 for a long while (1 week for example), the server MUST send a new
 `AccountUpdate`_ message identical to the previous one (except for the
 ``ts`` field), to remind that the account still exist. This guarantees
-that accounts will not be hanging in the server's database forever,
-even in the case of a lost message, or a complete database loss on the
+that accounts will not remain in the server's database forever, even
+in the case of a lost message, or a complete database loss on the
 client's side. Also, this serves the purpose of a "heartbeat",
 allowing clients to detect "dead" account records in their databases.
 
@@ -987,8 +988,8 @@ allowing clients to detect "dead" account records in their databases.
   accumulated negative interest MUST be subtracted from the account's
   available amount.
 
-.. [#verify-config] Note that ``last_config_ts`` and
-  ``last_config_seqnum`` can be used to determine whether a sent
+.. [#verify-config] Note that clents can use ``last_config_ts`` and
+  ``last_config_seqnum`` to determine whether a sent
   `ConfigureAccount`_ message has been applied successfully.
 
 .. [#account-id] The account identifier MUST have at most 100 symbols,
