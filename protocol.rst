@@ -628,7 +628,7 @@ transfer_id : int64
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
-   between 1 and 30 symbols, ASCII only. [#coordinator-type]_
+   between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
    Along with ``coordinator_type``, identifies the client that
@@ -743,7 +743,7 @@ transfer_id : int64
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
-   between 1 and 30 symbols, ASCII only. [#coordinator-type]_
+   between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
    Along with ``coordinator_type``, identifies the client that
@@ -1049,7 +1049,7 @@ transfer_number : int64
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
-   between 1 and 30 symbols, ASCII only. [#coordinator-type]_
+   between 1 and 30 symbols, ASCII only.
 
 sender : string
    A string which (along with ``debtor_id``) identifies the sender's
