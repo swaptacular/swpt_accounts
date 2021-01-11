@@ -674,7 +674,7 @@ for a long while (1 week for example), the server MUST send another
 `PreparedTransfer`_ message, identical to the previous one (except for
 the ``ts`` field), to remind that a transfer has been prepared and is
 waiting for a resolution. This guarantees that prepared transfers will
-not be hanging in the server's database forever, even in the case of a
+not remain in the server's database forever, even in the case of a
 lost message, or a complete database loss on the client's side.
 
 .. [#demurrage] Note that when the interest rate on a given account is
@@ -783,7 +783,8 @@ ts : date-time
    timestamp). This MUST be the moment at which the transfer was
    committed.
 
-.. [#failed-commit] In that case, ``committed_amount`` MUST be zero.
+.. [#failed-commit] When the value of the ``status_code`` field is
+   different from ``"OK"``, the ``committed_amount`` MUST be zero.
 
 
 AccountUpdate
