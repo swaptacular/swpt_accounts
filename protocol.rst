@@ -54,8 +54,8 @@ reverse direction. The protocol supports the following operations:
 
 5. Actors other than creditors (called *coordinators*), can make
    transfers from one creditor's account to another creditor's
-   account. This can be useful for implementing automated payment and
-   exchange systems.
+   account. This can be useful for implementing automated direct
+   debit, and automated exchange systems.
 
 6. Creditors receive notification events for every non-negligible
    transfer in which they participate (that is: all outgoing
@@ -81,6 +81,13 @@ mind:
 
 4. The protocol works well both with positive and negative interest
    rates on creditors' accounts.
+
+This document defines the high-level semantics of the protocol, the
+mandated behaviors in the protocol, and the structure of the protocol
+messages (names, types, and descriptions of the fields). This document
+does not define or mandate any particular method for message
+serialization and message transport. Those topics will be discussed in
+separate document(s).
 
 **Note:** The key words "MUST", "MUST NOT", "REQUIRED", "SHALL",
 "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
@@ -555,7 +562,7 @@ creditor_id : int64
 
 coordinator_type : string
    Indicates the subsystem which requested the transfer. MUST be
-   between 1 and 30 symbols, ASCII only. [#coordinator-type]_
+   between 1 and 30 symbols, ASCII only.
 
 coordinator_id : int64
    Along with ``coordinator_type``, identifies the client that
