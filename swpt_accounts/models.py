@@ -15,7 +15,7 @@ MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
-BEGINNING_OF_TIME = datetime(1970, 1, 1, tzinfo=timezone.utc)
+T0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
 PRISTINE_ACCOUNT_STATUS_FLAGS = 0
 CONFIG_DATA_MAX_BYTES = 2000
 
@@ -98,11 +98,11 @@ class Account(db.Model):
     principal = db.Column(db.BigInteger, nullable=False, default=0)
     interest_rate = db.Column(db.REAL, nullable=False, default=0.0)
     interest = db.Column(db.FLOAT, nullable=False, default=0.0)
-    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
-    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_interest_rate_change_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=T0)
+    last_config_ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=T0)
     last_config_seqnum = db.Column(db.Integer, nullable=False, default=0)
     last_transfer_number = db.Column(db.BigInteger, nullable=False, default=0)
-    last_transfer_committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=BEGINNING_OF_TIME)
+    last_transfer_committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=T0)
     negligible_amount = db.Column(db.REAL, nullable=False, default=0.0)
     config_flags = db.Column(db.Integer, nullable=False, default=0)
     config_data = db.Column(db.String, nullable=False, default='')
@@ -158,14 +158,14 @@ class Account(db.Model):
     last_interest_capitalization_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
-        default=BEGINNING_OF_TIME,
+        default=T0,
         comment='The moment at which the last interest capitalization was preformed. It is '
                 'used to avoid capitalizing interest too often.',
     )
     last_deletion_attempt_ts = db.Column(
         db.TIMESTAMP(timezone=True),
         nullable=False,
-        default=BEGINNING_OF_TIME,
+        default=T0,
         comment='The moment at which the last deletion attempt was made. It is used to '
                 'avoid trying to delete the account too often.',
     )

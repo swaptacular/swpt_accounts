@@ -5,7 +5,7 @@ from datetime import timedelta
 from flask import current_app
 from swpt_lib.utils import u64_to_i64
 from .extensions import protocol_broker, chores_broker, APP_QUEUE_NAME
-from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, BEGINNING_OF_TIME, TRANSFER_NOTE_MAX_BYTES, \
+from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, T0, TRANSFER_NOTE_MAX_BYTES, \
     CONFIG_DATA_MAX_BYTES, SECONDS_IN_DAY
 from .fetch_api_client import get_root_config_data_dict, get_if_account_is_reachable
 from . import procedures
@@ -30,7 +30,7 @@ def configure_account(
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert parsed_ts > BEGINNING_OF_TIME
+    assert parsed_ts > T0
     assert MIN_INT32 <= seqnum <= MAX_INT32
     assert MIN_INT32 <= config_flags <= MAX_INT32
     assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
@@ -81,7 +81,7 @@ def prepare_transfer(
     assert 0 <= min_locked_amount <= max_locked_amount <= MAX_INT64
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert parsed_ts > BEGINNING_OF_TIME
+    assert parsed_ts > T0
     assert 0 <= max_commit_delay <= MAX_INT32
 
     try:
@@ -133,7 +133,7 @@ def finalize_transfer(
     assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
     assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
     assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
-    assert parsed_ts > BEGINNING_OF_TIME
+    assert parsed_ts > T0
 
     procedures.finalize_transfer(
         debtor_id=debtor_id,
@@ -172,7 +172,7 @@ def on_pending_balance_change_signal(
     assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
     assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
     assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
-    assert parsed_committed_at > BEGINNING_OF_TIME
+    assert parsed_committed_at > T0
     assert -MAX_INT64 <= principal_delta <= MAX_INT64
     assert MIN_INT64 <= other_creditor_id <= MAX_INT64
 
