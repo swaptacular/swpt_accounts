@@ -243,7 +243,8 @@ they MUST first verify whether the specified account already exists:
     negative.
 
   * The debtor's account SHOULD always be able to receive incoming
-    transfers.
+    transfers, even if it does not exist yet, or is "scheduled for
+    deletion".
 
   * Interest paid to/from creditor's accounts SHOULD come from/to the
     debtor's account.
