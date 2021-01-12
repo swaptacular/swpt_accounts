@@ -75,7 +75,7 @@ def prepare_transfer(
 
     parsed_ts = iso8601.parse_date(ts)
 
-    assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
+    assert len(coordinator_type) <= 30 and coordinator_type.isascii()
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 <= min_locked_amount <= max_locked_amount <= MAX_INT64
@@ -126,7 +126,7 @@ def finalize_transfer(
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= transfer_id <= MAX_INT64
-    assert len(coordinator_type) <= 30 and coordinator_type.encode('ascii')
+    assert len(coordinator_type) <= 30 and coordinator_type.isascii()
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
     assert MIN_INT64 <= coordinator_request_id <= MAX_INT64
     assert 0 <= committed_amount <= MAX_INT64
@@ -136,16 +136,56 @@ def finalize_transfer(
     assert parsed_ts > BEGINNING_OF_TIME
 
     procedures.finalize_transfer(
-        debtor_id,
-        creditor_id,
-        transfer_id,
-        coordinator_type,
-        coordinator_id,
-        coordinator_request_id,
-        committed_amount,
-        transfer_note_format,
-        transfer_note,
-        parsed_ts,
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        transfer_id=transfer_id,
+        coordinator_type=coordinator_type,
+        coordinator_id=coordinator_id,
+        coordinator_request_id=coordinator_request_id,
+        committed_amount=committed_amount,
+        transfer_note_format=transfer_note_format,
+        transfer_note=transfer_note,
+        ts=parsed_ts,
+    )
+
+
+@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
+def on_pending_balance_change_signal(
+        debtor_id: int,
+        creditor_id: int,
+        change_id: int,
+        coordinator_type: str,
+        transfer_note_format: str,
+        transfer_note: str,
+        committed_at: str,
+        principal_delta: int,
+        other_creditor_id: int) -> None:
+
+    """Queue a pendding balance change."""
+
+    parsed_committed_at = iso8601.parse_date(committed_at)
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= change_id <= MAX_INT64
+    assert len(coordinator_type) <= 30 and coordinator_type.isascii()
+    assert RE_TRANSFER_NOTE_FORMAT.match(transfer_note_format)
+    assert len(transfer_note) <= TRANSFER_NOTE_MAX_BYTES
+    assert len(transfer_note.encode('utf8')) <= TRANSFER_NOTE_MAX_BYTES
+    assert parsed_committed_at > BEGINNING_OF_TIME
+    assert -MAX_INT64 <= principal_delta <= MAX_INT64
+    assert MIN_INT64 <= other_creditor_id <= MAX_INT64
+
+    procedures.insert_pending_balance_change(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        change_id=change_id,
+        coordinator_type=coordinator_type,
+        transfer_note_format=transfer_note_format,
+        transfer_note=transfer_note,
+        committed_at=parsed_committed_at,
+        principal_delta=principal_delta,
+        other_creditor_id=other_creditor_id,
     )
 
 

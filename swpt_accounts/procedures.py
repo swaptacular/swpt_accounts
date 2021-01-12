@@ -7,20 +7,27 @@ from sqlalchemy.exc import IntegrityError
 from swpt_lib.utils import Seqnum, increment_seqnum
 from .extensions import db
 from .schemas import parse_root_config_data
-from .models import (
-    Account, TransferRequest, PreparedTransfer, PendingBalanceChange, RejectedConfigSignal,
-    RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
-    AccountUpdateSignal, AccountTransferSignal, FinalizationRequest,
-    ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MIN_INT64, MAX_INT64,
-    SECONDS_IN_DAY, CT_INTEREST, CT_DELETE, CT_DIRECT, SC_OK, SC_SENDER_IS_UNREACHABLE,
-    SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_RECIPIENT_SAME_AS_SENDER,
-    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE, is_negligible_balance, contain_principal_overflow
-)
+from .models import Account, TransferRequest, PreparedTransfer, PendingBalanceChange, \
+    RegisteredBalanceChange, PendingBalanceChangeSignal, RejectedConfigSignal, RejectedTransferSignal, \
+    PreparedTransferSignal, FinalizedTransferSignal, AccountUpdateSignal, AccountTransferSignal, \
+    FinalizationRequest, ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MIN_INT64, \
+    MAX_INT64, SECONDS_IN_DAY, CT_INTEREST, CT_DELETE, CT_DIRECT, SC_OK, SC_SENDER_IS_UNREACHABLE, \
+    SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_RECIPIENT_SAME_AS_SENDER, \
+    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE, BEGINNING_OF_TIME, is_negligible_balance, \
+    contain_principal_overflow
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
-ACCOUNT_PK = tuple_(Account.debtor_id, Account.creditor_id)
+ACCOUNT_PK = tuple_(
+    Account.debtor_id,
+    Account.creditor_id,
+)
+REGISTERED_BALANCE_CHANGE_PK = tuple_(
+    RegisteredBalanceChange.debtor_id,
+    RegisteredBalanceChange.creditor_id,
+    RegisteredBalanceChange.change_id,
+)
 RC_INVALID_CONFIGURATION = 'INVALID_CONFIGURATION'
 PREPARED_TRANSFER_JOIN_CLAUSE = and_(
     FinalizationRequest.debtor_id == PreparedTransfer.debtor_id,
@@ -410,6 +417,7 @@ def process_pending_balance_changes(debtor_id: int, creditor_id: int) -> None:
         all()
 
     if changes:
+        applied_change_pks = []
         principal_delta = 0
         interest_delta = 0.0
         account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
@@ -434,9 +442,14 @@ def process_pending_balance_changes(debtor_id: int, creditor_id: int) -> None:
                 principal=contain_principal_overflow(account.principal + principal_delta),
             )
 
+            applied_change_pks.append((change.debtor_id, change.creditor_id, change.change_id))
             db.session.delete(change)
 
         _apply_account_change(account, principal_delta, interest_delta, current_ts)
+
+        RegisteredBalanceChange.query.\
+            filter(REGISTERED_BALANCE_CHANGE_PK.in_(applied_change_pks)).\
+            update({RegisteredBalanceChange.is_applied: True}, synchronize_session=False)
 
 
 @atomic
@@ -473,6 +486,50 @@ def make_debtor_payment(
     current_ts = datetime.now(tz=timezone.utc)
     account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
     _make_debtor_payment(coordinator_type, account, amount, current_ts, transfer_note_format, transfer_note)
+
+
+@atomic
+def insert_pending_balance_change(
+        debtor_id: int,
+        creditor_id: int,
+        change_id: int,
+        coordinator_type: str,
+        transfer_note_format: str,
+        transfer_note: str,
+        committed_at: datetime,
+        principal_delta: int,
+        other_creditor_id: int) -> None:
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= change_id <= MAX_INT64
+    assert committed_at is not None
+
+    registered_balance_change_query = RegisteredBalanceChange.query.filter_by(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        change_id=change_id,
+    )
+    if not db.session.query(registered_balance_change_query.exists()).scalar():
+        with db.retry_on_integrity_error():
+            db.session.add(RegisteredBalanceChange(
+                debtor_id=debtor_id,
+                creditor_id=creditor_id,
+                change_id=change_id,
+                committed_at=committed_at,
+            ))
+
+        db.session.add(PendingBalanceChange(
+            debtor_id=debtor_id,
+            creditor_id=creditor_id,
+            change_id=change_id,
+            coordinator_type=coordinator_type,
+            transfer_note_format=transfer_note_format,
+            transfer_note=transfer_note,
+            committed_at=committed_at,
+            principal_delta=principal_delta,
+            other_creditor_id=other_creditor_id,
+        ))
 
 
 def _insert_account_update_signal(account: Account, current_ts: datetime) -> None:
@@ -551,23 +608,17 @@ def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -
     return account.calc_current_balance(current_ts) - account.principal
 
 
-def _insert_pending_account_change(
+def _insert_pending_balance_change_signal(
         debtor_id: int,
         creditor_id: int,
         committed_at: datetime,
         coordinator_type: str,
-        other_creditor_id: int,
         transfer_note_format: str,
         transfer_note: str,
-        principal_delta: int) -> None:
+        principal_delta: int,
+        other_creditor_id: int) -> None:
 
-    # TODO: To achieve better scalability, consider emitting a
-    #       `PendingBalanceChangeSignal` instead (with a globally
-    #       unique ID), then implement an actor that reads those
-    #       signals and inserts `PendingBalanceChange` records for
-    #       them (correctly handling possible multiple deliveries).
-
-    db.session.add(PendingBalanceChange(
+    db.session.add(PendingBalanceChangeSignal(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         committed_at=committed_at,
@@ -654,15 +705,15 @@ def _make_debtor_payment(
     assert -MAX_INT64 <= amount <= MAX_INT64
 
     if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:
-        _insert_pending_account_change(
+        _insert_pending_balance_change_signal(
             debtor_id=account.debtor_id,
             creditor_id=ROOT_CREDITOR_ID,
             committed_at=current_ts,
             coordinator_type=coordinator_type,
-            other_creditor_id=account.creditor_id,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
             principal_delta=-amount,
+            other_creditor_id=account.creditor_id,
         )
         _insert_account_transfer_signal(
             account=account,
@@ -807,15 +858,15 @@ def _finalize_prepared_transfer(
             transfer_note=fr.transfer_note,
             principal=contain_principal_overflow(sender_account.principal - committed_amount),
         )
-        _insert_pending_account_change(
+        _insert_pending_balance_change_signal(
             debtor_id=pt.debtor_id,
             creditor_id=pt.recipient_creditor_id,
             committed_at=current_ts,
             coordinator_type=pt.coordinator_type,
-            other_creditor_id=pt.sender_creditor_id,
             transfer_note_format=fr.transfer_note_format,
             transfer_note=fr.transfer_note,
             principal_delta=committed_amount,
+            other_creditor_id=pt.sender_creditor_id,
         )
 
     db.session.add(FinalizedTransferSignal(

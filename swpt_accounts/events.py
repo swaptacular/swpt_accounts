@@ -15,6 +15,7 @@ __all__ = [
     'AccountUpdateSignal',
     'AccountPurgeSignal',
     'RejectedConfigSignal',
+    'PendingBalanceChangeSignal',
 ]
 
 SECONDS_IN_DAY = 24 * 60 * 60
@@ -294,3 +295,26 @@ class RejectedConfigSignal(Signal):
     config_data = db.Column(db.String, nullable=False)
     negligible_amount = db.Column(db.REAL, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
+
+
+class PendingBalanceChangeSignal(Signal):
+    class __marshmallow__(Schema):
+        debtor_id = fields.Integer()
+        creditor_id = fields.Integer()
+        change_id = fields.Integer()
+        coordinator_type = fields.String()
+        transfer_note_format = fields.String()
+        transfer_note = fields.String()
+        committed_at = fields.DateTime()
+        principal_delta = fields.Integer()
+        other_creditor_id = fields.Integer()
+
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    change_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    transfer_note_format = db.Column(pg.TEXT, nullable=False)
+    transfer_note = db.Column(pg.TEXT, nullable=False)
+    committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    principal_delta = db.Column(db.BigInteger, nullable=False)
+    other_creditor_id = db.Column(db.BigInteger, nullable=False)

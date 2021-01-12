@@ -149,3 +149,7 @@ def scan_prepared_transfers(days, quit_early):
     assert days > 0.0
     scanner = PreparedTransferScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
+
+
+# TODO: Implement a CLI command (or a table scanner) that *safely*
+#       deletes old applied `RegisteredBalanceChange` records.

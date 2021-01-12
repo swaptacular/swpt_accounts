@@ -23,7 +23,7 @@ services:
     env_file: .env
     environment:
       - 'PYTHONDONTWRITEBYTECODE=1'
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_debtors:swpt_debtors@tests-pg:5432/${POSTGRES_DB}'
+      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@tests-pg:5432/${POSTGRES_DB}'
     command: configure
     depends_on:
       - tests-pg

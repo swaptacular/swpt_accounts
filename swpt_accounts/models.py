@@ -176,6 +176,7 @@ class Account(db.Model):
         comment='Whether there has been a change in the record that requires an `AccountUpdate` message '
                 'to be send.',
     )
+
     __table_args__ = (
         db.CheckConstraint(and_(
             interest_rate >= INTEREST_RATE_FLOOR,
@@ -230,10 +231,12 @@ class Account(db.Model):
         t2 = min((end_ts - interest_rate_change_ts).total_seconds(), t)
         k1 = calc_k(self.previous_interest_rate)
         k2 = calc_k(self.interest_rate)
+
         assert t >= 0
         assert 0 <= t1 <= t
         assert 0 <= t2 <= t
         assert abs(t1 + t2 - t) <= t / 1000
+
         return amount * (math.exp(k1 * t1 + k2 * t2) - 1.0)
 
 
@@ -369,44 +372,57 @@ class PreparedTransfer(db.Model):
         return SC_OK
 
 
+class RegisteredBalanceChange(db.Model):
+    debtor_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    change_id = db.Column(db.BigInteger, primary_key=True)
+    committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    is_applied = db.Column(db.BOOLEAN, nullable=False, default=False)
+
+    __table_args__ = (
+        {
+            'comment': 'Represents the fact that a given pending balance change has been '
+                       'registered already. This is necessary in order to avoid applying '
+                       'one balance change more than once, when the corresponding '
+                       '`PendingBalanceChangeSignal`s is received multiple times.',
+        }
+    )
+
+
 class PendingBalanceChange(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
-    change_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
-    principal_delta = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The change in `account.principal`. Can not be zero.',
-    )
-    transfer_note_format = db.Column(
-        pg.TEXT,
-        nullable=False,
-        comment='The format used for the `transfer_note` string.',
-    )
-    transfer_note = db.Column(
-        pg.TEXT,
-        nullable=False,
-        comment='A note from the sender. Can be any string that the sender wants the '
-                'recipient to see.',
-    )
+    change_id = db.Column(db.BigInteger, primary_key=True)
+    coordinator_type = db.Column(db.String(30), nullable=False)
+    transfer_note_format = db.Column(pg.TEXT, nullable=False)
+    transfer_note = db.Column(pg.TEXT, nullable=False)
+    committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
+    principal_delta = db.Column(db.BigInteger, nullable=False)
     other_creditor_id = db.Column(
         db.BigInteger,
         nullable=False,
-        comment='If the account change represents a committed transfer, this is the other '
-                'party in the transfer. When `principal_delta` is positive, this is the '
-                'sender. When `principal_delta` is negative, this is the recipient. When '
-                '`principal_delta` is zero, the value is irrelevant.',
+        comment='This is the other party in the transfer. When `principal_delta` is '
+                'positive, this is the sender. When `principal_delta` is negative, this '
+                'is the recipient.',
     )
-    coordinator_type = db.Column(db.String(30), nullable=False)
-    committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
-
     __table_args__ = (
+        db.ForeignKeyConstraint(
+            [
+                'debtor_id',
+                'creditor_id',
+                'change_id',
+            ],
+            [
+                'registered_balance_change.debtor_id',
+                'registered_balance_change.creditor_id',
+                'registered_balance_change.change_id',
+            ],
+        ),
         db.CheckConstraint(principal_delta != 0),
         {
-            'comment': 'Represents a pending change to a given account. Pending updates to '
-                       '`account.principal` and `account.interest` are queued to this table '
-                       'before being processed, because this allows multiple updates to one '
-                       'account to coalesce, reducing the lock contention on `account` '
-                       'table rows.',
+            'comment': 'Represents a pending change in the balance of a given account. Pending '
+                       'updates to `account.principal` are queued to this table before being '
+                       'processed, thus allowing multiple updates to one account to coalesce, '
+                       'reducing the lock contention on `account` table rows.',
         }
     )

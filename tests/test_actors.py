@@ -97,3 +97,17 @@ def test_try_to_delete_account(db_session):
         debtor_id=D_ID,
         creditor_id=C_ID,
     )
+
+
+def test_on_pending_balance_change_signal(db_session):
+    a.on_pending_balance_change_signal(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        change_id=1,
+        coordinator_type='direct',
+        transfer_note_format='',
+        transfer_note='',
+        committed_at='2099-12-31T00:00:00Z',
+        principal_delta=1000,
+        other_creditor_id=123,
+    )

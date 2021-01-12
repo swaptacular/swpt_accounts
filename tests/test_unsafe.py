@@ -16,7 +16,7 @@ C_ID = 1
 
 def test_scan_accounts(app_unsafe_session):
     from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal, AccountTransferSignal, \
-        PendingBalanceChange
+        PendingBalanceChangeSignal
     from swpt_accounts.fetch_api_client import _fetch_root_config_data
 
     # db.signalbus.autoflush = False
@@ -27,7 +27,7 @@ def test_scan_accounts(app_unsafe_session):
     AccountUpdateSignal.query.delete()
     AccountPurgeSignal.query.delete()
     AccountTransferSignal.query.delete()
-    PendingBalanceChange.query.delete()
+    PendingBalanceChangeSignal.query.delete()
     db.session.commit()
 
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 0.0}')
@@ -122,7 +122,7 @@ def test_scan_accounts(app_unsafe_session):
     assert aps.creation_date == date(1970, 1, 1)
 
     assert len(AccountTransferSignal.query.all()) == 0
-    assert len(PendingBalanceChange.query.all()) == 0
+    assert len(PendingBalanceChangeSignal.query.all()) == 0
 
     db.session.commit()
     worker = dramatiq.Worker(chores_broker)
@@ -138,7 +138,7 @@ def test_scan_accounts(app_unsafe_session):
     assert accounts[4].status_flags & Account.STATUS_DELETED_FLAG
 
     assert AccountTransferSignal.query.one().creditor_id == 1234
-    assert PendingBalanceChange.query.one().creditor_id == p.ROOT_CREDITOR_ID
+    assert PendingBalanceChangeSignal.query.one().creditor_id == p.ROOT_CREDITOR_ID
 
     db.engine.execute('ANALYZE account')
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])
@@ -150,7 +150,7 @@ def test_scan_accounts(app_unsafe_session):
     AccountUpdateSignal.query.delete()
     AccountPurgeSignal.query.delete()
     AccountTransferSignal.query.delete()
-    PendingBalanceChange.query.delete()
+    PendingBalanceChangeSignal.query.delete()
     db.session.commit()
 
     _fetch_root_config_data.cache_clear()

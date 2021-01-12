@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
-    Account, PendingBalanceChange, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
+    Account, PendingBalanceChangeSignal, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountUpdateSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
     AccountPurgeSignal, FinalizationRequest, ROOT_CREDITOR_ID, \
     CT_DIRECT, SC_OK, SC_TIMEOUT, SC_INSUFFICIENT_AVAILABLE_AMOUNT
@@ -16,6 +16,22 @@ def test_version(db_session):
 @pytest.fixture(scope='function')
 def current_ts():
     return datetime.now(tz=timezone.utc)
+
+
+def _flush_balance_change_signals():
+    signals = PendingBalanceChangeSignal.query.all()
+    for s in signals:
+        p.insert_pending_balance_change(
+            debtor_id=s.debtor_id,
+            creditor_id=s.creditor_id,
+            change_id=s.change_id,
+            coordinator_type=s.coordinator_type,
+            transfer_note_format=s.transfer_note_format,
+            transfer_note=s.transfer_note,
+            committed_at=s.committed_at,
+            principal_delta=s.principal_delta,
+            other_creditor_id=s.other_creditor_id,
+        )
 
 
 D_ID = -1
@@ -160,13 +176,14 @@ def test_make_debtor_payment(db_session, current_ts, amount):
                         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG, negligible_amount=abs(amount))
     p.make_debtor_payment('test', D_ID, C_ID, amount, TRANSFER_NOTE_FORMAT, TRANSFER_NOTE)
 
-    root_change = PendingBalanceChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
+    root_change = PendingBalanceChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
-    assert len(PendingBalanceChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 0
+    assert len(PendingBalanceChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 0
     a = p.get_account(D_ID, C_ID)
     assert a.principal == amount
     assert a.interest == 0
 
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     p.process_pending_balance_changes(D_ID, p.ROOT_CREDITOR_ID)
     transfer_number1 = 0
@@ -202,6 +219,7 @@ def test_make_debtor_payment(db_session, current_ts, amount):
         assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 0
 
     p.make_debtor_payment('test', D_ID, C_ID, 2 * amount, TRANSFER_NOTE_FORMAT, TRANSFER_NOTE)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     cts = AccountTransferSignal.query.filter_by(
         debtor_id=D_ID, creditor_id=C_ID, transfer_number=transfer_number1 + 1).one()
@@ -212,7 +230,8 @@ def test_make_debtor_payment(db_session, current_ts, amount):
 def test_make_debtor_zero_payment(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.make_debtor_payment('interest', D_ID, C_ID, 0)
-    assert not PendingBalanceChange.query.all()
+    assert not PendingBalanceChangeSignal.query.all()
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     p.process_pending_balance_changes(D_ID, p.ROOT_CREDITOR_ID)
     assert not AccountTransferSignal.query.all()
@@ -228,11 +247,12 @@ def test_make_debtor_creditor_account_deletion(db_session, current_ts, amount):
     cts.other_creditor_id == p.ROOT_CREDITOR_ID
     cts.acquired_amount == amount
     cts.principal == 0
-    changes = PendingBalanceChange.query.all()
+    changes = PendingBalanceChangeSignal.query.all()
     assert len(changes) == 1
     root_change = changes[0]
     assert root_change.creditor_id == p.ROOT_CREDITOR_ID
     assert root_change.principal_delta == -amount
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     p.process_pending_balance_changes(D_ID, p.ROOT_CREDITOR_ID)
 
@@ -240,9 +260,9 @@ def test_make_debtor_creditor_account_deletion(db_session, current_ts, amount):
 def test_make_debtor_interest_payment(db_session, current_ts, amount):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     p.make_debtor_payment('interest', D_ID, C_ID, amount)
-    root_change = PendingBalanceChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
+    root_change = PendingBalanceChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
-    assert not PendingBalanceChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()
+    assert not PendingBalanceChangeSignal.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()
     assert p.get_account(D_ID, C_ID).principal == amount
     assert p.get_account(D_ID, C_ID).interest == -amount
     cts = AccountTransferSignal.query.filter_by(debtor_id=D_ID).one()
@@ -256,10 +276,13 @@ def test_make_debtor_interest_payment(db_session, current_ts, amount):
 
 def test_process_pending_balance_changes(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
+    _flush_balance_change_signals()
     assert len(p.get_accounts_with_pending_balance_changes()) == 0
     p.make_debtor_payment('test', D_ID, C_ID, 10000)
+    _flush_balance_change_signals()
     assert len(p.get_accounts_with_pending_balance_changes()) == 1
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID) is None
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, p.ROOT_CREDITOR_ID)
     assert AccountTransferSignal.query.filter_by(
         debtor_id=D_ID,
@@ -267,6 +290,7 @@ def test_process_pending_balance_changes(db_session, current_ts):
         acquired_amount=10000,
         principal=10000,
     ).one_or_none()
+    _flush_balance_change_signals()
     assert len(p.get_accounts_with_pending_balance_changes()) == 0
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID).principal == -10000
 
@@ -275,10 +299,12 @@ def test_positive_overflow(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
 
     p.make_debtor_payment('test', D_ID, C_ID, MAX_INT64)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     assert not p.get_account(D_ID, C_ID).status_flags & Account.STATUS_OVERFLOWN_FLAG
 
     p.make_debtor_payment('test', D_ID, C_ID, 1)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID).status_flags & Account.STATUS_OVERFLOWN_FLAG
 
@@ -287,10 +313,12 @@ def test_negative_overflow(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
 
     p.make_debtor_payment('test', D_ID, C_ID, -MAX_INT64)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     assert not p.get_account(D_ID, C_ID).status_flags & Account.STATUS_OVERFLOWN_FLAG
 
     p.make_debtor_payment('test', D_ID, C_ID, -2)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     assert p.get_account(D_ID, C_ID).status_flags & Account.STATUS_OVERFLOWN_FLAG
 
@@ -350,6 +378,7 @@ def test_capitalize_positive_interest(db_session, current_ts):
         Account.last_change_seqnum: 666,
     })
     p.capitalize_interest(D_ID, C_ID)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert abs(a.interest) <= 1.0
@@ -368,6 +397,7 @@ def test_capitalize_negative_interest(db_session, current_ts):
         Account.last_change_seqnum: 666,
     })
     p.capitalize_interest(D_ID, C_ID)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert abs(a.interest) <= 1.0
@@ -379,6 +409,7 @@ def test_debtor_account_capitalization(db_session, current_ts):
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID)
     q.update({Account.interest: 100.0, Account.principal: 50})
     p.capitalize_interest(D_ID, p.ROOT_CREDITOR_ID)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, p.ROOT_CREDITOR_ID)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
     assert a.principal == 50
@@ -436,9 +467,10 @@ def test_delete_account_tiny_positive_balance(db_session, current_ts):
     assert a.status_flags & Account.STATUS_DELETED_FLAG
     assert a.principal == 0
     assert a.interest == 0
-    changes = PendingBalanceChange.query.all()
+    changes = PendingBalanceChangeSignal.query.all()
     assert len(changes) == 1
     assert changes[0].creditor_id == p.ROOT_CREDITOR_ID
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     p.process_pending_balance_changes(D_ID, p.ROOT_CREDITOR_ID)
 
@@ -458,6 +490,7 @@ def test_delete_debtor_account(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
 
     p.make_debtor_payment('test', D_ID, C_ID, 1)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.try_to_delete_account(D_ID, p.ROOT_CREDITOR_ID)
     a = p.get_account(D_ID, p.ROOT_CREDITOR_ID)
@@ -487,6 +520,7 @@ def test_resurrect_deleted_account_transfer(db_session, current_ts):
     p.try_to_delete_account(D_ID, C_ID)
     assert not p.get_account(D_ID, C_ID)
     p.make_debtor_payment('test', D_ID, C_ID, 1)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
     assert a is not None
@@ -514,6 +548,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     a = p.get_account(D_ID, C_ID)
     assert a.total_locked_amount == 0
     assert a.pending_transfers_count == 0
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, 1234)
     p.process_pending_balance_changes(D_ID, C_ID)
     assert len(AccountUpdateSignal.query.all()) == 2
@@ -654,6 +689,7 @@ def test_prepare_transfer_success(db_session, current_ts):
     a = p.get_account(D_ID, C_ID)
     assert a.total_locked_amount == 100
     assert a.pending_transfers_count == 1
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, 1234)
     p.process_pending_balance_changes(D_ID, C_ID)
     assert len(AccountUpdateSignal.query.all()) == 2
@@ -692,6 +728,7 @@ def test_prepare_transfer_success(db_session, current_ts):
 
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'test', 1, 2, 0)
     p.process_finalization_requests(D_ID, C_ID)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, 1234)
     p.process_pending_balance_changes(D_ID, C_ID)
     a = p.get_account(D_ID, C_ID)
@@ -738,6 +775,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
     p.process_finalization_requests(D_ID, C_ID)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, 1234)
     p.process_pending_balance_changes(D_ID, C_ID)
     a1 = p.get_account(D_ID, 1234)
@@ -786,6 +824,7 @@ def test_commit_issuing_transfer(db_session, current_ts):
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=ROOT_CREDITOR_ID).one()
     p.finalize_transfer(D_ID, ROOT_CREDITOR_ID, pt.transfer_id, 'issuing', 1, 2, 200)
     p.process_finalization_requests(D_ID, ROOT_CREDITOR_ID)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, 1234)
     p.process_pending_balance_changes(D_ID, ROOT_CREDITOR_ID)
     a1 = p.get_account(D_ID, 1234)
@@ -827,6 +866,7 @@ def test_zero_locked_amount_unsuccessful_commit(db_session, current_ts):
     assert fts.status_code == SC_INSUFFICIENT_AVAILABLE_AMOUNT
     assert fts.committed_amount == 0
 
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, 1234)
     p.process_pending_balance_changes(D_ID, C_ID)
     a1 = p.get_account(D_ID, 1234)
@@ -861,6 +901,7 @@ def test_zero_locked_amount_successful_commit(db_session, current_ts):
     assert fts.status_code == SC_OK
     assert fts.committed_amount == 40
 
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, 1234)
     p.process_pending_balance_changes(D_ID, C_ID)
     a1 = p.get_account(D_ID, 1234)
@@ -943,6 +984,7 @@ def test_commit_to_debtor_account(db_session, current_ts):
     assert pt.locked_amount == 50
     p.finalize_transfer(pt.debtor_id, pt.sender_creditor_id, pt.transfer_id, 'test', 1, 2, 40)
     p.process_finalization_requests(D_ID, C_ID)
+    _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, p.ROOT_CREDITOR_ID)
     p.process_pending_balance_changes(D_ID, C_ID)
     assert len(AccountTransferSignal.query.filter_by(debtor_id=D_ID).all()) == 1

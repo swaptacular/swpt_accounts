@@ -1,7 +1,24 @@
 from datetime import datetime, timezone
+from sqlalchemy.sql.expression import true
 from swpt_accounts import procedures as p
 from swpt_accounts.models import RejectedTransferSignal, TransferRequest, FinalizationRequest, \
-    FinalizedTransferSignal, PreparedTransfer
+    FinalizedTransferSignal, PreparedTransfer, PendingBalanceChangeSignal, RegisteredBalanceChange
+
+
+def _flush_balance_change_signals():
+    signals = PendingBalanceChangeSignal.query.all()
+    for s in signals:
+        p.insert_pending_balance_change(
+            debtor_id=s.debtor_id,
+            creditor_id=s.creditor_id,
+            change_id=s.change_id,
+            coordinator_type=s.coordinator_type,
+            transfer_note_format=s.transfer_note_format,
+            transfer_note=s.transfer_note,
+            committed_at=s.committed_at,
+            principal_delta=s.principal_delta,
+            other_creditor_id=s.other_creditor_id,
+        )
 
 
 D_ID = -1
@@ -11,10 +28,14 @@ C_ID = 1
 def test_process_transfers_pending_balance_changes(app, db_session):
     p.make_debtor_payment('test', D_ID, C_ID, 1000)
     assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID) is None
+    _flush_balance_change_signals()
+    _flush_balance_change_signals()
+    _flush_balance_change_signals()
     runner = app.test_cli_runner()
     result = runner.invoke(args=['swpt_accounts', 'process_transfers'])
     assert not result.output
     assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID) == -1000
+    assert RegisteredBalanceChange.query.filter(RegisteredBalanceChange.is_applied == true()).all()
 
 
 def test_process_transfers_transfer_requests(app, db_session):
