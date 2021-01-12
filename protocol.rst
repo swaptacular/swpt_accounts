@@ -209,7 +209,8 @@ they MUST first verify whether the specified account already exists:
 .. [#forbid-transfers] Server implementations must not accept incoming
   transfers for "scheduled for deletion" accounts. That is:
   `PrepareTransfer`_ messages that has a "scheduled for deletion"
-  account as a recipient MUST be rejected.
+  creditor's account [#debtor-creditor-id]_ as a recipient MUST be
+  rejected.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
