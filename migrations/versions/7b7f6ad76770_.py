@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: b39f05c7d8ae
+Revision ID: 7b7f6ad76770
 Revises: 
-Create Date: 2021-01-12 14:04:07.514362
+Create Date: 2021-01-12 14:20:37.209183
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'b39f05c7d8ae'
+revision = '7b7f6ad76770'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -141,7 +141,6 @@ def upgrade():
     sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('change_id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('principal_delta', sa.BigInteger(), nullable=False, comment='The change in `account.principal`. Can not be zero.'),
-    sa.Column('interest_delta', sa.BigInteger(), nullable=False, comment='The change in `account.interest`.'),
     sa.Column('transfer_note_format', sa.TEXT(), nullable=False, comment='The format used for the `transfer_note` string.'),
     sa.Column('transfer_note', sa.TEXT(), nullable=False, comment='A note from the sender. Can be any string that the sender wants the recipient to see.'),
     sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='If the account change represents a committed transfer, this is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient. When `principal_delta` is zero, the value is irrelevant.'),

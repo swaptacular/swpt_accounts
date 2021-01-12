@@ -89,7 +89,7 @@ def configure_account(
             account.negligible_amount = negligible_amount
             account.last_config_ts = ts
             account.last_config_seqnum = seqnum
-            _apply_account_change(account, 0, 0, current_ts)
+            _apply_account_change(account, 0, 0.0, current_ts)
             _insert_account_update_signal(account, current_ts)
 
         else:
@@ -392,7 +392,7 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
 
         if principal_delta != 0:
             assert sender_account
-            _apply_account_change(sender_account, principal_delta, 0, current_ts)
+            _apply_account_change(sender_account, principal_delta, 0.0, current_ts)
 
 
 @atomic
@@ -416,7 +416,6 @@ def process_pending_balance_changes(debtor_id: int, creditor_id: int) -> None:
 
         for change in changes:
             principal_delta += change.principal_delta
-            interest_delta += change.interest_delta
 
             # We should compensate for the fact that the transfer was
             # committed at `change.committed_at`, but the transferred
@@ -560,8 +559,7 @@ def _insert_pending_account_change(
         other_creditor_id: int,
         transfer_note_format: str,
         transfer_note: str,
-        principal_delta: int = 0,
-        interest_delta: int = 0) -> None:
+        principal_delta: int) -> None:
 
     # TODO: To achieve better scalability, consider emitting a
     #       `PendingBalanceChangeSignal` instead (with a globally
@@ -578,7 +576,6 @@ def _insert_pending_account_change(
         transfer_note_format=transfer_note_format,
         transfer_note=transfer_note,
         principal_delta=principal_delta,
-        interest_delta=interest_delta,
     ))
 
 
@@ -679,7 +676,7 @@ def _make_debtor_payment(
         )
 
         principal_delta = amount
-        interest_delta = -amount if coordinator_type == CT_INTEREST else 0
+        interest_delta = float(-amount if coordinator_type == CT_INTEREST else 0)
         _apply_account_change(account, principal_delta, interest_delta, current_ts)
 
 

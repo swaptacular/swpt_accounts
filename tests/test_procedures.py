@@ -162,7 +162,6 @@ def test_make_debtor_payment(db_session, current_ts, amount):
 
     root_change = PendingBalanceChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
-    assert root_change.interest_delta == 0
     assert len(PendingBalanceChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()) == 0
     a = p.get_account(D_ID, C_ID)
     assert a.principal == amount
@@ -234,7 +233,6 @@ def test_make_debtor_creditor_account_deletion(db_session, current_ts, amount):
     root_change = changes[0]
     assert root_change.creditor_id == p.ROOT_CREDITOR_ID
     assert root_change.principal_delta == -amount
-    assert root_change.interest_delta == 0
     p.process_pending_balance_changes(D_ID, C_ID)
     p.process_pending_balance_changes(D_ID, p.ROOT_CREDITOR_ID)
 
@@ -244,7 +242,6 @@ def test_make_debtor_interest_payment(db_session, current_ts, amount):
     p.make_debtor_payment('interest', D_ID, C_ID, amount)
     root_change = PendingBalanceChange.query.filter_by(debtor_id=D_ID, creditor_id=p.ROOT_CREDITOR_ID).one()
     assert root_change.principal_delta == -amount
-    assert root_change.interest_delta == 0
     assert not PendingBalanceChange.query.filter_by(debtor_id=D_ID, creditor_id=C_ID).all()
     assert p.get_account(D_ID, C_ID).principal == amount
     assert p.get_account(D_ID, C_ID).interest == -amount

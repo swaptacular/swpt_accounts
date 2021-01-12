@@ -378,11 +378,6 @@ class PendingBalanceChange(db.Model):
         nullable=False,
         comment='The change in `account.principal`. Can not be zero.',
     )
-    interest_delta = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='The change in `account.interest`.',
-    )
     transfer_note_format = db.Column(
         pg.TEXT,
         nullable=False,
