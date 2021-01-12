@@ -8,7 +8,7 @@ from swpt_lib.utils import Seqnum, increment_seqnum
 from .extensions import db
 from .schemas import parse_root_config_data
 from .models import (
-    Account, TransferRequest, PreparedTransfer, PendingAccountChange, RejectedConfigSignal,
+    Account, TransferRequest, PreparedTransfer, PendingBalanceChange, RejectedConfigSignal,
     RejectedTransferSignal, PreparedTransferSignal, FinalizedTransferSignal,
     AccountUpdateSignal, AccountTransferSignal, FinalizationRequest,
     ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MIN_INT64, MAX_INT64,
@@ -359,7 +359,7 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
     # TODO: Use bulk-inserts when we decide to disable
     #       auto-flushing. This will be faster, because the useless
     #       auto-generated `change_id`s would not be fetched
-    #       separately for each inserted `PendingAccountChange` row.
+    #       separately for each inserted `PendingBalanceChange` row.
     if requests:
         principal_delta = 0
 
@@ -396,15 +396,15 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
 
 
 @atomic
-def get_accounts_with_pending_changes() -> Iterable[Tuple[int, int]]:
-    return set(db.session.query(PendingAccountChange.debtor_id, PendingAccountChange.creditor_id).all())
+def get_accounts_with_pending_balance_changes() -> Iterable[Tuple[int, int]]:
+    return set(db.session.query(PendingBalanceChange.debtor_id, PendingBalanceChange.creditor_id).all())
 
 
 @atomic
-def process_pending_account_changes(debtor_id: int, creditor_id: int) -> None:
+def process_pending_balance_changes(debtor_id: int, creditor_id: int) -> None:
     current_ts = datetime.now(tz=timezone.utc)
 
-    changes = PendingAccountChange.query.\
+    changes = PendingBalanceChange.query.\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         with_for_update(skip_locked=True).\
         all()
@@ -564,12 +564,12 @@ def _insert_pending_account_change(
         interest_delta: int = 0) -> None:
 
     # TODO: To achieve better scalability, consider emitting a
-    #       `PendingAccountChangeSignal` instead (with a globally unique
-    #       ID), then implement an actor that reads those signals and
-    #       inserts `PendingAccountChange` records for them (correctly
-    #       handling possible multiple deliveries).
+    #       `PendingBalanceChangeSignal` instead (with a globally
+    #       unique ID), then implement an actor that reads those
+    #       signals and inserts `PendingBalanceChange` records for
+    #       them (correctly handling possible multiple deliveries).
 
-    db.session.add(PendingAccountChange(
+    db.session.add(PendingBalanceChange(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         committed_at=committed_at,

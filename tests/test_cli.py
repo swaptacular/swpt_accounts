@@ -8,7 +8,7 @@ D_ID = -1
 C_ID = 1
 
 
-def test_process_transfers_pending_changes(app, db_session):
+def test_process_transfers_pending_balance_changes(app, db_session):
     p.make_debtor_payment('test', D_ID, C_ID, 1000)
     assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID) is None
     runner = app.test_cli_runner()
@@ -41,7 +41,7 @@ def test_process_transfers_transfer_requests(app, db_session):
 
 def test_process_transfers_finalization_requests(app, db_session):
     p.make_debtor_payment('test', D_ID, C_ID, 1000)
-    p.process_pending_account_changes(D_ID, C_ID)
+    p.process_pending_balance_changes(D_ID, C_ID)
     p.prepare_transfer(
         coordinator_type='test',
         coordinator_id=1,

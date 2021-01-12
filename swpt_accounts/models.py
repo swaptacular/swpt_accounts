@@ -369,7 +369,7 @@ class PreparedTransfer(db.Model):
         return SC_OK
 
 
-class PendingAccountChange(db.Model):
+class PendingBalanceChange(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     change_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
