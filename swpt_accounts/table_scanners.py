@@ -13,7 +13,6 @@ from swpt_accounts.actors import change_interest_rate, capitalize_interest, try_
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
-SECONDS_IN_YEAR = 365.25 * 24 * 60 * 60
 
 # TODO: Use bulk-inserts for `AccountUpdateSignal`s,
 #       `RejectedTransferSignal`s, and `PreparedTransferSignal`s when
