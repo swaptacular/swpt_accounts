@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
 from swpt_lib.utils import i64_to_u64
-from .extensions import db, protocol_broker, MAIN_EXCHANGE_NAME
+from swpt_accounts.extensions import db, protocol_broker, MAIN_EXCHANGE_NAME
 
 __all__ = [
     'RejectedTransferSignal',

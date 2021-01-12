@@ -4,11 +4,12 @@ from datetime import datetime, timedelta, timezone
 from swpt_lib.scan_table import TableScanner
 from sqlalchemy.sql.expression import true, tuple_, or_
 from flask import current_app
-from .extensions import db
-from .models import Account, AccountUpdateSignal, AccountPurgeSignal, PreparedTransfer, PreparedTransferSignal, \
-    ROOT_CREDITOR_ID, calc_current_balance, is_negligible_balance, contain_principal_overflow
-from .fetch_api_client import get_root_config_data_dict
-from .actors import change_interest_rate, capitalize_interest, try_to_delete_account
+from swpt_accounts.extensions import db
+from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal, PreparedTransfer, \
+    PreparedTransferSignal, ROOT_CREDITOR_ID, calc_current_balance, is_negligible_balance, \
+    contain_principal_overflow
+from swpt_accounts.fetch_api_client import get_root_config_data_dict
+from swpt_accounts.actors import change_interest_rate, capitalize_interest, try_to_delete_account
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic

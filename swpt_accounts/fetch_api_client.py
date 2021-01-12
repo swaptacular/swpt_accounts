@@ -7,9 +7,9 @@ from typing import Optional, Iterable, Dict, List, Union
 import requests
 from async_lru import alru_cache
 from flask import current_app, url_for
-from .extensions import requests_session, aiohttp_session, asyncio_loop
-from .models import ROOT_CREDITOR_ID
-from .schemas import RootConfigData, parse_root_config_data
+from swpt_accounts.extensions import requests_session, aiohttp_session, asyncio_loop
+from swpt_accounts.models import ROOT_CREDITOR_ID
+from swpt_accounts.schemas import RootConfigData, parse_root_config_data
 
 _fetch_conifg_path = partial(url_for, 'fetch.config', _external=False, creditorId=ROOT_CREDITOR_ID)
 

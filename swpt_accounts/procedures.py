@@ -5,16 +5,15 @@ from decimal import Decimal
 from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
 from swpt_lib.utils import Seqnum, increment_seqnum
-from .extensions import db
-from .schemas import parse_root_config_data
-from .models import Account, TransferRequest, PreparedTransfer, PendingBalanceChange, \
+from swpt_accounts.extensions import db
+from swpt_accounts.schemas import parse_root_config_data
+from swpt_accounts.models import Account, TransferRequest, PreparedTransfer, PendingBalanceChange, \
     RegisteredBalanceChange, PendingBalanceChangeSignal, RejectedConfigSignal, RejectedTransferSignal, \
     PreparedTransferSignal, FinalizedTransferSignal, AccountUpdateSignal, AccountTransferSignal, \
     FinalizationRequest, ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MIN_INT64, \
     MAX_INT64, SECONDS_IN_DAY, CT_INTEREST, CT_DELETE, CT_DIRECT, SC_OK, SC_SENDER_IS_UNREACHABLE, \
     SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_RECIPIENT_SAME_AS_SENDER, \
-    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE, T0, is_negligible_balance, \
-    contain_principal_overflow
+    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE, is_negligible_balance, contain_principal_overflow
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic

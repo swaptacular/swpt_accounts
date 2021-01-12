@@ -5,10 +5,10 @@ from datetime import timedelta
 from flask import current_app
 from swpt_lib.utils import u64_to_i64
 from .extensions import protocol_broker, chores_broker, APP_QUEUE_NAME
-from .models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, T0, TRANSFER_NOTE_MAX_BYTES, \
+from swpt_accounts.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, T0, TRANSFER_NOTE_MAX_BYTES, \
     CONFIG_DATA_MAX_BYTES, SECONDS_IN_DAY
-from .fetch_api_client import get_root_config_data_dict, get_if_account_is_reachable
-from . import procedures
+from swpt_accounts.fetch_api_client import get_root_config_data_dict, get_if_account_is_reachable
+from swpt_accounts import procedures
 
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 

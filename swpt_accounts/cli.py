@@ -5,10 +5,10 @@ from os import environ
 from multiprocessing.dummy import Pool as ThreadPool
 from flask import current_app
 from flask.cli import with_appcontext
-from . import procedures
-from .extensions import db
-from .models import SECONDS_IN_DAY
-from .table_scanners import AccountScanner, PreparedTransferScanner
+from swpt_accounts import procedures
+from swpt_accounts.extensions import db
+from swpt_accounts.models import SECONDS_IN_DAY
+from swpt_accounts.table_scanners import AccountScanner, PreparedTransferScanner
 
 
 @click.group('swpt_accounts')

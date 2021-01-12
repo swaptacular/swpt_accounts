@@ -1,7 +1,7 @@
 from base64 import b16decode
 from typing import NamedTuple, Optional
 from marshmallow import Schema, fields, validate, validates, ValidationError
-from .models import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+from swpt_accounts.models import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
 
 
 class RootConfigData(NamedTuple):
