@@ -14,9 +14,8 @@ MIN_INT32 = -1 << 31
 MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
-SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 T0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
-PRISTINE_ACCOUNT_STATUS_FLAGS = 0
+SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 CONFIG_DATA_MAX_BYTES = 2000
 
 # Reserved coordinator types:
@@ -112,7 +111,7 @@ class Account(db.Model):
     status_flags = db.Column(
         db.Integer,
         nullable=False,
-        default=PRISTINE_ACCOUNT_STATUS_FLAGS,
+        default=0,
         comment="Contain account status bits: "
                 f"{STATUS_DELETED_FLAG} - deleted,"
                 f"{STATUS_OVERFLOWN_FLAG} - overflown."
@@ -176,7 +175,6 @@ class Account(db.Model):
         comment='Whether there has been a change in the record that requires an `AccountUpdate` message '
                 'to be send.',
     )
-
     __table_args__ = (
         db.CheckConstraint(and_(
             interest_rate >= INTEREST_RATE_FLOOR,
@@ -252,7 +250,6 @@ class TransferRequest(db.Model):
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     min_interest_rate = db.Column(db.REAL, nullable=False)
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
-
     __table_args__ = (
         db.CheckConstraint(min_locked_amount >= 0),
         db.CheckConstraint(min_locked_amount <= max_locked_amount),
@@ -279,7 +276,6 @@ class FinalizationRequest(db.Model):
     transfer_note_format = db.Column(pg.TEXT, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
     ts = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-
     __table_args__ = (
         db.CheckConstraint(committed_amount >= 0),
         {
@@ -378,7 +374,6 @@ class RegisteredBalanceChange(db.Model):
     change_id = db.Column(db.BigInteger, primary_key=True)
     committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     is_applied = db.Column(db.BOOLEAN, nullable=False, default=False)
-
     __table_args__ = (
         {
             'comment': 'Represents the fact that a given pending balance change has been '
