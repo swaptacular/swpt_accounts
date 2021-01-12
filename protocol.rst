@@ -161,11 +161,8 @@ config_flags : int32
 config_data : string
    Additional account configuration settings. Different server
    implementations may use different formats for this
-   field. [#config-data-limitations]_
-
-   For creditor's accounts [#debtor-creditor-id]_, an empty string
-   MUST always be a valid value, which represents the default
-   configuration settings.
+   field. [#config-data-limitations]_ An empty string MUST always be a
+   valid value, which represents the default configuration settings.
 
 ts : date-time
    The moment at which this message was sent (the message's
@@ -250,10 +247,6 @@ they MUST first verify whether the specified account already exists:
     debtor's account.
 
   * Interest SHOULD NOT be accumulated on the debtor's account.
-
-  * When the debtor's account is being created or scheduled for
-    deletion, an empty string SHOULD always be allowed as value of the
-    ``config_data`` field in the `ConfigureAccount`_ message.
 
   * The ``creditor_id`` for the debtor's account SHOULD be ``0``.
 
