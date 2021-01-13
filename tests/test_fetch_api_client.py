@@ -1,7 +1,7 @@
 import json
 import pytest
 from swpt_accounts.schemas import RootConfigData
-from swpt_accounts.fetch_api_client import parse_root_config_data
+from swpt_accounts.fetch_api_client import parse_root_config_data, get_root_config_data_dict
 
 
 def test_parse_root_config_data():
@@ -48,3 +48,8 @@ def test_parse_root_config_data():
         },
     }))
     assert data == RootConfigData(1.0, 'http://example.com', 32 * b' ', 'text/plain')
+
+
+def test_get_root_config_data_dict(app):
+    assert get_root_config_data_dict(range(1, 12)) == {i: None for i in range(1, 12)}
+    assert get_root_config_data_dict(range(1, 12), cache_seconds=-1e6) == {i: None for i in range(1, 12)}

@@ -17,7 +17,7 @@ C_ID = 1
 def test_scan_accounts(app_unsafe_session):
     from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal, AccountTransferSignal, \
         PendingBalanceChangeSignal
-    from swpt_accounts.fetch_api_client import _fetch_root_config_data
+    from swpt_accounts.fetch_api_client import _clear_root_config_data
 
     # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
@@ -153,7 +153,7 @@ def test_scan_accounts(app_unsafe_session):
     PendingBalanceChangeSignal.query.delete()
     db.session.commit()
 
-    _fetch_root_config_data.cache_clear()
+    _clear_root_config_data()
 
 
 def test_scan_prepared_transfers(app_unsafe_session):
@@ -273,7 +273,7 @@ def test_get_if_account_is_reachable(app_unsafe_session, caplog):
 
 def test_get_root_config_data_dict(app_unsafe_session, caplog):
     from swpt_accounts.models import Account, AccountUpdateSignal
-    from swpt_accounts.fetch_api_client import _fetch_root_config_data
+    from swpt_accounts.fetch_api_client import _clear_root_config_data
 
     app_fetch_api_url = current_app.config['APP_FETCH_API_URL']
 
@@ -299,12 +299,12 @@ def test_get_root_config_data_dict(app_unsafe_session, caplog):
     Account.query.delete()
     AccountUpdateSignal.query.delete()
     db.session.commit()
-    _fetch_root_config_data.cache_clear()
+    _clear_root_config_data()
 
 
 def test_set_interest_rate_on_new_accounts(app_unsafe_session):
     from swpt_accounts.models import Account, AccountUpdateSignal
-    from swpt_accounts.fetch_api_client import _fetch_root_config_data
+    from swpt_accounts.fetch_api_client import _clear_root_config_data
 
     # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
@@ -322,4 +322,4 @@ def test_set_interest_rate_on_new_accounts(app_unsafe_session):
     AccountUpdateSignal.query.delete()
     db.session.commit()
 
-    _fetch_root_config_data.cache_clear()
+    _clear_root_config_data()

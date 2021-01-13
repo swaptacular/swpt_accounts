@@ -1,11 +1,11 @@
 import logging
 import time
 import asyncio
+from collections import OrderedDict
 from functools import partial
 from urllib.parse import urljoin
 from typing import Optional, Iterable, Dict, List, Union
 import requests
-from async_lru import alru_cache
 from flask import current_app, url_for
 from swpt_accounts.extensions import requests_session, aiohttp_session, asyncio_loop
 from swpt_accounts.models import ROOT_CREDITOR_ID
@@ -34,9 +34,13 @@ def get_if_account_is_reachable(debtor_id: int, creditor_id: int) -> bool:
     return False
 
 
-def get_root_config_data_dict(debtor_ids: Iterable[int]) -> Dict[int, Optional[RootConfigData]]:
+def get_root_config_data_dict(
+        debtor_ids: Iterable[int],
+        cache_seconds: float = 7200.0) -> Dict[int, Optional[RootConfigData]]:
+
+    cutoff_ts = time.time() - cache_seconds
     result_dict: Dict[int, Optional[RootConfigData]] = {debtor_id: None for debtor_id in debtor_ids}
-    results = asyncio_loop.run_until_complete(_fetch_root_config_data_list(debtor_ids))
+    results = asyncio_loop.run_until_complete(_fetch_root_config_data_list(debtor_ids, cutoff_ts))
 
     for debtor_id, result in zip(debtor_ids, results):
         if isinstance(result, Exception):
@@ -55,8 +59,7 @@ def _log_error(e):
         logger.exception('Caught error while making a fetch request.')
 
 
-@alru_cache(maxsize=50000, cache_exceptions=False)
-async def _fetch_root_config_data(debtor_id: int, ttl_hash: int) -> Optional[RootConfigData]:
+async def _make_root_config_data_request(debtor_id: int) -> Optional[RootConfigData]:
     fetch_api_url = current_app.config['APP_FETCH_API_URL']
     url = urljoin(fetch_api_url, _fetch_conifg_path(debtorId=debtor_id))
 
@@ -70,23 +73,49 @@ async def _fetch_root_config_data(debtor_id: int, ttl_hash: int) -> Optional[Roo
         raise RuntimeError(f'Got an unexpected status code ({status_code}) from fetch request.')  # pragma: no cover
 
 
-def _get_ttl_hash(debtor_id: int) -> int:
-    # For each `debtor_id`, every two hours, we produce a different
-    # "ttl_hash"` value, which invalidates the entry for the given
-    # debtor in `_fetch_root_config_data()`'s LRU cache. Note that the
-    # cache entries for different debtors are invalidated at different
-    # times, which prevents a momentary total invalidation of the
-    # cache.
-
-    max_retention_seconds = 7200
-    variation = (debtor_id * 2654435761) % max_retention_seconds  # a pseudo-random number
-    ttl_hash = int((time.time() + variation) / max_retention_seconds)
-    return ttl_hash
+_root_config_data_cache = OrderedDict()
 
 
-async def _fetch_root_config_data_list(debtor_ids: Iterable[int]) -> List[Union[RootConfigData, Exception]]:
+def _clear_root_config_data() -> None:
+    _root_config_data_cache.clear()
+
+
+def _lookup_root_config_data(debtor_id: int, cutoff_ts: float) -> Optional[RootConfigData]:
+    config_data, ts = _root_config_data_cache[debtor_id]
+    if ts < cutoff_ts:
+        raise KeyError
+
+    return config_data
+
+
+def _set_root_config_data(debtor_id: int, config_data: Optional[RootConfigData]) -> None:
+    max_size = current_app.config['APP_FETCH_DATA_CACHE_SIZE']
+
+    while len(_root_config_data_cache) >= max_size:
+        try:
+            _root_config_data_cache.popitem(last=False)
+        except KeyError:  # pragma: nocover
+            break
+
+    _root_config_data_cache[debtor_id] = (config_data, time.time())
+
+
+async def _fetch_root_config_data(debtor_id: int, cutoff_ts: float) -> Optional[RootConfigData]:
+    try:
+        config_data = _lookup_root_config_data(debtor_id, cutoff_ts)
+    except KeyError:
+        config_data = await _make_root_config_data_request(debtor_id)
+        _set_root_config_data(debtor_id, config_data)
+
+    return config_data
+
+
+async def _fetch_root_config_data_list(
+        debtor_ids: Iterable[int],
+        cutoff_ts: float) -> List[Union[RootConfigData, Exception]]:
+
     with current_app.test_request_context():
         return await asyncio.gather(
-            *(_fetch_root_config_data(debtor_id, _get_ttl_hash(debtor_id)) for debtor_id in debtor_ids),
+            *(_fetch_root_config_data(debtor_id, cutoff_ts) for debtor_id in debtor_ids),
             return_exceptions=True,
         )
