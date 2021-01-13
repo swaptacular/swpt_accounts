@@ -73,31 +73,31 @@ async def _make_root_config_data_request(debtor_id: int) -> Optional[RootConfigD
         raise RuntimeError(f'Got an unexpected status code ({status_code}) from fetch request.')  # pragma: no cover
 
 
-_root_config_data_cache = OrderedDict()
+_root_config_data_lru_cache = OrderedDict()
 
 
 def _clear_root_config_data() -> None:
-    _root_config_data_cache.clear()
+    _root_config_data_lru_cache.clear()
 
 
 def _lookup_root_config_data(debtor_id: int, cutoff_ts: float) -> Optional[RootConfigData]:
-    config_data, ts = _root_config_data_cache[debtor_id]
+    config_data, ts = _root_config_data_lru_cache[debtor_id]
     if ts < cutoff_ts:
         raise KeyError
 
     return config_data
 
 
-def _set_root_config_data(debtor_id: int, config_data: Optional[RootConfigData]) -> None:
+def _register_root_config_data(debtor_id: int, config_data: Optional[RootConfigData]) -> None:
     max_size = current_app.config['APP_FETCH_DATA_CACHE_SIZE']
 
-    while len(_root_config_data_cache) >= max_size:
+    while len(_root_config_data_lru_cache) >= max_size:
         try:
-            _root_config_data_cache.popitem(last=False)
+            _root_config_data_lru_cache.popitem(last=False)
         except KeyError:  # pragma: nocover
             break
 
-    _root_config_data_cache[debtor_id] = (config_data, time.time())
+    _root_config_data_lru_cache[debtor_id] = (config_data, time.time())
 
 
 async def _fetch_root_config_data(debtor_id: int, cutoff_ts: float) -> Optional[RootConfigData]:
@@ -105,7 +105,7 @@ async def _fetch_root_config_data(debtor_id: int, cutoff_ts: float) -> Optional[
         config_data = _lookup_root_config_data(debtor_id, cutoff_ts)
     except KeyError:
         config_data = await _make_root_config_data_request(debtor_id)
-        _set_root_config_data(debtor_id, config_data)
+        _register_root_config_data(debtor_id, config_data)
 
     return config_data
 
