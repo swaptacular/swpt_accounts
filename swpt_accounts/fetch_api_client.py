@@ -12,6 +12,7 @@ from swpt_accounts.models import ROOT_CREDITOR_ID
 from swpt_accounts.schemas import RootConfigData, parse_root_config_data
 
 _fetch_conifg_path = partial(url_for, 'fetch.config', _external=False, creditorId=ROOT_CREDITOR_ID)
+_root_config_data_lru_cache = OrderedDict()
 
 
 def get_if_account_is_reachable(debtor_id: int, creditor_id: int) -> bool:
@@ -71,9 +72,6 @@ async def _make_root_config_data_request(debtor_id: int) -> Optional[RootConfigD
             return None
 
         raise RuntimeError(f'Got an unexpected status code ({status_code}) from fetch request.')  # pragma: no cover
-
-
-_root_config_data_lru_cache = OrderedDict()
 
 
 def _clear_root_config_data() -> None:
