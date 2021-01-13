@@ -48,7 +48,7 @@ python-versions = ">=3.5.3"
 version = "3.0.1"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Asynchronous WSGI and WebSocket server based on asyncore module"
 name = "asyncore-wsgi"
 optional = false
@@ -78,7 +78,7 @@ tests = ["coverage (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six
 tests_no_zope = ["coverage (>=5.0.2)", "hypothesis", "pympler", "pytest (>=4.3.0)", "six"]
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Fast and simple WSGI-framework for small web-applications."
 name = "bottle"
 optional = false
@@ -145,8 +145,8 @@ optional = true
 version = ">=1.0,<2.0"
 
 [package.extras]
-all = ["redis (>=2.0,<4.0)", "pylibmc (>=1.5,<2.0)", "pika (>=1.0,<2.0)", "watchdog (>=0.8,<0.9)", "watchdog_gevent (0.1)"]
-dev = ["redis (>=2.0,<4.0)", "pylibmc (>=1.5,<2.0)", "pika (>=1.0,<2.0)", "watchdog (>=0.8,<0.9)", "watchdog_gevent (0.1)", "alabaster", "sphinx (<1.8)", "sphinxcontrib-napoleon", "flake8", "flake8-bugbear", "flake8-quotes", "isort", "bumpversion", "hiredis", "twine", "wheel", "pytest (<4)", "pytest-benchmark", "pytest-cov", "tox"]
+all = ["watchdog (>=0.8,<0.9)", "watchdog_gevent (0.1)", "redis (>=2.0,<4.0)", "pika (>=1.0,<2.0)", "pylibmc (>=1.5,<2.0)"]
+dev = ["watchdog (>=0.8,<0.9)", "watchdog_gevent (0.1)", "redis (>=2.0,<4.0)", "pika (>=1.0,<2.0)", "pylibmc (>=1.5,<2.0)", "alabaster", "sphinx (<1.8)", "sphinxcontrib-napoleon", "flake8", "flake8-bugbear", "flake8-quotes", "isort", "bumpversion", "hiredis", "twine", "wheel", "pytest (<4)", "pytest-benchmark", "pytest-cov", "tox"]
 memcached = ["pylibmc (>=1.5,<2.0)"]
 rabbitmq = ["pika (>=1.0,<2.0)"]
 redis = ["redis (>=2.0,<4.0)"]
@@ -478,7 +478,7 @@ python-versions = ">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*"
 version = "2.8.6"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "A full-screen, console-based Python debugger"
 name = "pudb"
 optional = false
@@ -514,7 +514,7 @@ python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*"
 version = "2.2.0"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Pygments is a syntax highlighting package written in Python."
 name = "pygments"
 optional = false
@@ -747,7 +747,7 @@ secure = ["pyOpenSSL (>=0.14)", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "cer
 socks = ["PySocks (>=1.5.6,<1.5.7 || >1.5.7,<2.0)"]
 
 [[package]]
-category = "main"
+category = "dev"
 description = "A full-featured console (xterm et al.) user interface library"
 name = "urwid"
 optional = false
@@ -763,7 +763,7 @@ python-versions = "*"
 version = "0.2.5"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Web interface for Python's built-in PDB debugger"
 name = "web-pdb"
 optional = false
@@ -816,7 +816,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pytest (>=3.5,<3.7.3 || >3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake8", "pytest-cov", "jaraco.test (>=3.2.0)", "jaraco.itertools", "func-timeout", "pytest-black (>=0.3.7)", "pytest-mypy"]
 
 [metadata]
-content-hash = "97f4d37209d58d09e6c8c987838c331eec82c50fe7c55cd872c08b67a9ac257f"
+content-hash = "1ed12bac7b1377200631f565c5d7d5e27aad6b3949342da54dfa709e67e3299f"
 lock-version = "1.0"
 python-versions = "^3.7"
 

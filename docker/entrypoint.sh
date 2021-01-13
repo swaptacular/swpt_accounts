@@ -54,7 +54,7 @@ case $1 in
     develop-run-protocol)
         shift
         flask signalbus flush -w 0
-        exec dramatiq --processes ${PROTOCOL_PROCESSES-4} --threads ${PROTOCOL_THREADS-8} "$@"
+        exec dramatiq --processes ${PROTOCOL_PROCESSES-1} --threads ${PROTOCOL_THREADS-3} "$@"
         ;;
     test)
         perform_db_upgrade
@@ -71,10 +71,10 @@ case $1 in
         exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
         ;;
     protocol)
-        exec dramatiq --processes ${PROTOCOL_PROCESSES-4} --threads ${PROTOCOL_THREADS-8} tasks:protocol_broker
+        exec dramatiq --processes ${PROTOCOL_PROCESSES-1} --threads ${PROTOCOL_THREADS-3} tasks:protocol_broker
         ;;
     chores)
-        exec dramatiq --processes ${CHORES_PROCESSES-4} --threads ${CHORES_THREADS-8} tasks:chores_broker
+        exec dramatiq --processes ${CHORES_PROCESSES-1} --threads ${CHORES_THREADS-3} tasks:chores_broker
         ;;
     *)
         exec "$@"
