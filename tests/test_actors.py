@@ -66,7 +66,7 @@ def test_set_interest_rate(db_session):
         debtor_id=D_ID,
         creditor_id=C_ID,
         interest_rate=10.0,
-        ts='2019-12-31T00:00:00Z',
+        ts='2019-12-31T00:00:00+00:00',
     )
 
 
@@ -83,7 +83,7 @@ def test_configure_account(db_session):
     a.configure_account(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        ts='2099-12-31T00:00:00Z',
+        ts='2099-12-31T00:00:00+00:00',
         seqnum=0,
         negligible_amount=500.0,
         config_flags=0,
@@ -107,7 +107,7 @@ def test_on_pending_balance_change_signal(db_session):
         coordinator_type='direct',
         transfer_note_format='',
         transfer_note='',
-        committed_at='2099-12-31T00:00:00Z',
+        committed_at='2099-12-31T00:00:00+00:00',
         principal_delta=1000,
         other_creditor_id=123,
     )

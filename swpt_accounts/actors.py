@@ -1,7 +1,6 @@
 import re
 import math
-import iso8601
-from datetime import timedelta
+from datetime import datetime, timedelta
 from flask import current_app
 from swpt_lib.utils import u64_to_i64
 from .extensions import protocol_broker, chores_broker, APP_QUEUE_NAME
@@ -25,7 +24,7 @@ def configure_account(
 
     """Make sure the account exists, and update its configuration settings."""
 
-    parsed_ts = iso8601.parse_date(ts)
+    parsed_ts = datetime.fromisoformat(ts)
     signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
@@ -73,7 +72,7 @@ def prepare_transfer(
 
     """Try to secure some amount, to eventually transfer it to another account."""
 
-    parsed_ts = iso8601.parse_date(ts)
+    parsed_ts = datetime.fromisoformat(ts)
 
     assert len(coordinator_type) <= 30 and coordinator_type.isascii()
     assert MIN_INT64 <= coordinator_id <= MAX_INT64
@@ -121,7 +120,7 @@ def finalize_transfer(
 
     """Finalize a prepared transfer."""
 
-    parsed_ts = iso8601.parse_date(ts)
+    parsed_ts = datetime.fromisoformat(ts)
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -163,7 +162,7 @@ def on_pending_balance_change_signal(
 
     """Queue a pendding balance change."""
 
-    parsed_committed_at = iso8601.parse_date(committed_at)
+    parsed_committed_at = datetime.fromisoformat(committed_at)
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -207,7 +206,7 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         interest_rate=interest_rate,
-        ts=iso8601.parse_date(ts),
+        ts=datetime.fromisoformat(ts),
         signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
     )
 

@@ -16,7 +16,6 @@ psycopg2-binary = "^2.8"
 dramatiq = {git = "https://github.com/epandurski/dramatiq.git", extras = ["rabbitmq"], branch = "set-queue-name-if-missing"}
 pytest = "^4.0"
 pytest-mock = "^1.10"
-iso8601 = "^0.1.12"
 marshmallow = "^3.0.1"
 swpt_lib = {git = "https://github.com/epandurski/swpt_lib.git"}
 requests = "^2.25.1"
