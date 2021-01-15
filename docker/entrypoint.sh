@@ -65,7 +65,7 @@ case $1 in
         setup_rabbitmq_bindings
         ;;
     gunicorn)
-        exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf" -b :$PORT wsgi:app
+        exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :$PORT wsgi:app
         ;;
     supervisord)
         exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"

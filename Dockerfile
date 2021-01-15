@@ -48,7 +48,7 @@ COPY --from=venv-image /opt/venv /opt/venv
 WORKDIR /usr/src/app
 
 COPY docker/entrypoint.sh \
-     docker/gunicorn.conf \
+     docker/gunicorn.conf.py \
      docker/supervisord.conf \
      docker/trigger_supervisor_process.py \
      wsgi.py \
