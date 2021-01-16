@@ -22,7 +22,7 @@ perform_db_upgrade() {
     echo -n 'Running database schema upgrade ...'
     while [[ $retry_after -lt $time_limit ]]; do
         if flask db upgrade 2>$error_file; then
-            perform_initializations
+            perform_db_initialization
             echo ' done.'
             return 0
         fi
@@ -39,10 +39,10 @@ setup_rabbitmq_bindings() {
     return 0
 }
 
-# This function is intended to perform additional one-time
-# initializations. Make sure that it is idempotent.
+# This function is intended to perform additional one-time database
+# initialization. Make sure that it is idempotent.
 # (https://en.wikipedia.org/wiki/Idempotence)
-perform_initializations() {
+perform_db_initialization() {
     return 0
 }
 
@@ -50,11 +50,6 @@ case $1 in
     develop-run-flask)
         shift
         exec flask run --host=0.0.0.0 --port $PORT --without-threads "$@"
-        ;;
-    develop-run-protocol)
-        shift
-        flask signalbus flush -w 0
-        exec dramatiq --processes ${PROTOCOL_PROCESSES-1} --threads ${PROTOCOL_THREADS-3} "$@"
         ;;
     test)
         perform_db_upgrade
@@ -64,17 +59,23 @@ case $1 in
         perform_db_upgrade
         setup_rabbitmq_bindings
         ;;
-    gunicorn)
+    webserver)
+        export GUNICORN_LOGLEVEL=${WEBSERVER_LOGLEVEL:-warning}
+        export GUNICORN_WORKERS=${WEBSERVER_WORKERS:-1}
+        export GUNICORN_THREADS=${WEBSERVER_THREADS:-3}
         exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :$PORT wsgi:app
-        ;;
-    supervisord)
-        exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
         ;;
     protocol)
         exec dramatiq --processes ${PROTOCOL_PROCESSES-1} --threads ${PROTOCOL_THREADS-3} tasks:protocol_broker
         ;;
-    chores)
+    process_chores)
         exec dramatiq --processes ${CHORES_PROCESSES-1} --threads ${CHORES_THREADS-3} tasks:chores_broker
+        ;;
+    process_transfers | scan_accounts | scan_prepared_transfers)
+        exec flask swpt_accounts "$@"
+        ;;
+    supervisord)
+        exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
         ;;
     *)
         exec "$@"
