@@ -74,7 +74,7 @@ case $1 in
     process_transfers | scan_accounts | scan_prepared_transfers)
         exec flask swpt_accounts "$@"
         ;;
-    supervisord)
+    all)
         exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
         ;;
     *)
