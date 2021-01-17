@@ -1,5 +1,7 @@
 import logging
 import click
+import time
+import threading
 from datetime import timedelta
 from os import environ
 from multiprocessing.dummy import Pool as ThreadPool
@@ -9,6 +11,64 @@ from swpt_accounts import procedures
 from swpt_accounts.extensions import db
 from swpt_accounts.models import SECONDS_IN_DAY
 from swpt_accounts.table_scanners import AccountScanner, PreparedTransferScanner
+
+
+class ThreadPoolProcessor:
+    def __init__(self, threads, *, get_args_collection, process_func, wait_seconds):
+        self.logger = logging.getLogger(__name__)
+        self.threads = threads
+        self.get_args_collection = get_args_collection
+        self.process_func = process_func
+        self.wait_seconds = wait_seconds
+        self.all_done = threading.Condition()
+        self.pending = 0
+
+    def _wait_until_all_done(self):
+        while self.pending > 0:
+            self.all_done.wait()
+        assert self.pending == 0
+
+    def _mark_done(self, result=None):
+        with self.all_done:
+            self.pending -= 1
+            if self.pending <= 0:
+                self.all_done.notify()
+
+    def _log_error(self, e):  # pragma: no cover
+        self._mark_done()
+        try:
+            raise e
+        except Exception:
+            self.logger.exception('Caught error while processing objects.')
+
+    def run(self, *, quit_early=False):
+        app = current_app._get_current_object()
+
+        def push_app_context():
+            ctx = app.app_context()
+            ctx.push()
+
+        pool = ThreadPool(self.threads, initializer=push_app_context)
+        iteration_counter = 0
+
+        while not (quit_early and iteration_counter > 0):
+            iteration_counter += 1
+            started_at = time.time()
+            args_collection = self.get_args_collection()
+
+            with self.all_done:
+                self.pending += len(args_collection)
+
+            for args in args_collection:
+                pool.apply_async(self.process_func, args, callback=self._mark_done, error_callback=self._log_error)
+
+            with self.all_done:
+                self._wait_until_all_done()
+
+            time.sleep(max(0.0, self.wait_seconds + started_at - time.time()))
+
+        pool.close()
+        pool.join()
 
 
 @click.group('swpt_accounts')
@@ -54,58 +114,111 @@ def subscribe(queue_name):  # pragma: no cover
                 logger.info(f'Unsubscribed "{queue_name}" from "{MAIN_EXCHANGE_NAME}.{routing_key}".')
 
 
-@swpt_accounts.command('process_transfers')
+@swpt_accounts.command('process_balance_changes')
 @with_appcontext
 @click.option('-t', '--threads', type=int, help='The number of worker threads.')
-def process_transfers(threads):
-    """Process all pending account changes and all transfer requests."""
+@click.option('-w', '--wait', type=float, help='The minimal number of seconds between'
+              ' the queries to obtain pending balance changes.')
+@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+def process_balance_changes(threads, wait, quit_early):
+    """Process pending balance changes.
 
-    # TODO: Python with SQLAlchemy can process about 1000 accounts per
-    # second. (It is CPU bound!) This might be insufficient if we have
-    # a highly perfomant database server. In this case we should
-    # either distribute the processing to several machines, or improve
-    # on python's code performance.
+    If --threads is not specified, the value of the configuration
+    variable APP_PROCESS_BALANCE_CHANGES_THREADS is taken. If it is
+    not set, the default number of threads is 1.
 
-    # TODO: Consider separating the processing of pending transfers
-    # from the processing of pending account changes. This would allow
-    # to trigger them with different frequency.
+    If --wait is not specified, the value of the configuration
+    variable APP_PROCESS_BALANCE_CHANGES_WAIT is taken. If it is not
+    set, the default number of seconds is 5.
 
-    threads = threads or int(environ.get('APP_PROCESS_TRANSFERS_THREADS', '1'))
-    commit_period = int(current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'] * SECONDS_IN_DAY)
-    app = current_app._get_current_object()
+    """
 
-    def push_app_context():
-        ctx = app.app_context()
-        ctx.push()
+    threads = threads or int(current_app.config['APP_PROCESS_BALANCE_CHANGES_THREADS'])
+    wait = wait if wait is not None else current_app.config['APP_PROCESS_BALANCE_CHANGES_WAIT']
 
-    def log_error(e):  # pragma: no cover
-        try:
-            raise e
-        except Exception:
-            logger = logging.getLogger(__name__)
-            logger.exception('Caught error while processing transfers.')
+    logger = logging.getLogger(__name__)
+    logger.info('Started balance changes processor.')
 
-    pool1 = ThreadPool(threads, initializer=push_app_context)
-    for account_pk in procedures.get_accounts_with_pending_balance_changes():
-        pool1.apply_async(procedures.process_pending_balance_changes, account_pk, error_callback=log_error)
-    pool1.close()
-    pool1.join()
+    ThreadPoolProcessor(
+        threads,
+        get_args_collection=procedures.get_accounts_with_pending_balance_changes,
+        process_func=procedures.process_pending_balance_changes,
+        wait_seconds=wait,
+    ).run(quit_early=quit_early)
 
-    pool2 = ThreadPool(threads, initializer=push_app_context)
-    for debtor_id, creditor_id in procedures.get_accounts_with_transfer_requests():
-        pool2.apply_async(
-            procedures.process_transfer_requests,
-            (debtor_id, creditor_id, commit_period),
-            error_callback=log_error,
-        )
-    pool2.close()
-    pool2.join()
 
-    pool3 = ThreadPool(threads, initializer=push_app_context)
-    for account_pk in procedures.get_accounts_with_finalization_requests():
-        pool3.apply_async(procedures.process_finalization_requests, account_pk, error_callback=log_error)
-    pool3.close()
-    pool3.join()
+@swpt_accounts.command('process_transfer_requests')
+@with_appcontext
+@click.option('-t', '--threads', type=int, help='The number of worker threads.')
+@click.option('-w', '--wait', type=float, help='The minimal number of seconds between'
+              ' the queries to obtain pending transfer requests.')
+@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+def process_transfer_requests(threads, wait, quit_early):
+    """Process pending transfer requests.
+
+    If --threads is not specified, the value of the configuration
+    variable APP_PROCESS_TRANSFER_REQUESTS_THREADS is taken. If it is
+    not set, the default number of threads is 1.
+
+    If --wait is not specified, the value of the configuration
+    variable APP_PROCESS_TRANSFER_REQUESTS_WAIT is taken. If it is not
+    set, the default number of seconds is 5.
+
+    """
+
+    threads = threads or int(current_app.config['APP_PROCESS_TRANSFER_REQUESTS_THREADS'])
+    wait = wait if wait is not None else current_app.config['APP_PROCESS_TRANSFER_REQUESTS_WAIT']
+    commit_period = current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
+
+    logger = logging.getLogger(__name__)
+    logger.info('Started transfer requests processor.')
+
+    def get_args_collection():
+        return [
+            (debtor_id, creditor_id, commit_period)
+            for debtor_id, creditor_id
+            in procedures.get_accounts_with_transfer_requests()
+        ]
+
+    ThreadPoolProcessor(
+        threads,
+        get_args_collection=get_args_collection,
+        process_func=procedures.process_transfer_requests,
+        wait_seconds=wait,
+    ).run(quit_early=quit_early)
+
+
+@swpt_accounts.command('process_finalization_requests')
+@with_appcontext
+@click.option('-t', '--threads', type=int, help='The number of worker threads.')
+@click.option('-w', '--wait', type=float, help='The minimal number of seconds between'
+              ' the queries to obtain pending finalization requests.')
+@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+def process_finalization_requests(threads, wait, quit_early):
+    """Process pending finalization requests.
+
+    If --threads is not specified, the value of the configuration
+    variable APP_PROCESS_FINALIZATION_REQUESTS_THREADS is taken. If it
+    is not set, the default number of threads is 1.
+
+    If --wait is not specified, the value of the configuration
+    variable APP_PROCESS_FINALIZATION_REQUESTS_WAIT is taken. If it is
+    not set, the default number of seconds is 5.
+
+    """
+
+    threads = threads or int(environ.get('APP_PROCESS_FINALIZATION_REQUESTS_THREADS', '1'))
+    wait = wait if wait is not None else current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_WAIT']
+
+    logger = logging.getLogger(__name__)
+    logger.info('Started finalization requests processor.')
+
+    ThreadPoolProcessor(
+        threads,
+        get_args_collection=procedures.get_accounts_with_finalization_requests,
+        process_func=procedures.process_finalization_requests,
+        wait_seconds=wait,
+    ).run(quit_early=quit_early)
 
 
 @swpt_accounts.command('scan_accounts')

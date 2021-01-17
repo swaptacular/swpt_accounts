@@ -32,7 +32,8 @@ def test_process_transfers_pending_balance_changes(app, db_session):
     _flush_balance_change_signals()
     _flush_balance_change_signals()
     runner = app.test_cli_runner()
-    result = runner.invoke(args=['swpt_accounts', 'process_transfers'])
+    result = runner.invoke(args=['swpt_accounts', 'process_balance_changes', '--quit-early', '--wait=0'])
+    assert result.exit_code == 0
     assert not result.output
     assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID) == -1000
     assert RegisteredBalanceChange.query.filter(RegisteredBalanceChange.is_applied == true()).all()
@@ -54,7 +55,8 @@ def test_process_transfers_transfer_requests(app, db_session):
     )
     assert len(TransferRequest.query.all()) == 1
     runner = app.test_cli_runner()
-    result = runner.invoke(args=['swpt_accounts', 'process_transfers'])
+    result = runner.invoke(args=['swpt_accounts', 'process_transfer_requests', '--quit-early', '--wait=0'])
+    assert result.exit_code == 0
     assert not result.output
     assert len(RejectedTransferSignal.query.all()) == 1
     assert len(TransferRequest.query.all()) == 0
@@ -79,7 +81,8 @@ def test_process_transfers_finalization_requests(app, db_session):
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'test', 1, 2, 1)
     assert len(FinalizationRequest.query.all()) == 1
     runner = app.test_cli_runner()
-    result = runner.invoke(args=['swpt_accounts', 'process_transfers'])
+    result = runner.invoke(args=['swpt_accounts', 'process_finalization_requests', '--quit-early', '--wait=0'])
+    assert result.exit_code == 0
     assert not result.output
     assert len(FinalizedTransferSignal.query.all()) == 1
     assert len(FinalizationRequest.query.all()) == 0
