@@ -75,6 +75,30 @@ case $1 in
         | scan_prepared_transfers)
         exec flask swpt_accounts "$@"
         ;;
+    flush_rejected_transfers | flush_prepared_transfers | flush_finalized_transfers \
+        | flush_account_transfers | flush_account_updates | flush_account_purges \
+        | flush_rejected_configs | flush_pending_balance_changes)
+
+        flush_rejected_transfers=RejectedTransferSignal
+        flush_prepared_transfers=PreparedTransferSignal
+        flush_finalized_transfers=FinalizedTransferSignal
+        flush_account_transfers=AccountTransferSignal
+        flush_account_updates=AccountUpdateSignal
+        flush_account_purges=AccountPurgeSignal
+        flush_rejected_configs=RejectedConfigSignal
+        flush_pending_balance_changes=PendingBalanceChangeSignal
+
+        # For example: if `$1` is "flush_rejected_transfers",
+        # `signal_name` will be "RejectedTransferSignal".
+        eval signal_name=\$$1
+
+        # For example: if `$1` is "flush_rejected_transfers", `wait`
+        # will get the value of the APP_FLUSH_REJECTED_TRANSFERS_WAIT
+        # environment variable, defaulting to 5 if it is not defined.
+        eval wait=\${APP_$(echo "$1" | tr [:lower:] [:upper:])_WAIT-5}
+
+        exec flask signalbus flushmany --repeat=$wait $signal_name
+        ;;
     all)
         exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
         ;;
