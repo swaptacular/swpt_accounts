@@ -303,8 +303,12 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
 
 
 @atomic
-def get_accounts_with_transfer_requests() -> Iterable[Tuple[int, int]]:
-    return set(db.session.query(TransferRequest.debtor_id, TransferRequest.sender_creditor_id).all())
+def get_accounts_with_transfer_requests(max_count: int = None) -> Iterable[Tuple[int, int]]:
+    query = db.session.query(TransferRequest.debtor_id, TransferRequest.sender_creditor_id).distinct()
+    if max_count is not None:
+        query = query.limit(max_count)
+
+    return query.all()
 
 
 @atomic
@@ -340,8 +344,12 @@ def process_transfer_requests(debtor_id: int, creditor_id: int, commit_period: i
 
 
 @atomic
-def get_accounts_with_finalization_requests() -> Iterable[Tuple[int, int]]:
-    return set(db.session.query(FinalizationRequest.debtor_id, FinalizationRequest.sender_creditor_id).all())
+def get_accounts_with_finalization_requests(max_count: int = None) -> Iterable[Tuple[int, int]]:
+    query = db.session.query(FinalizationRequest.debtor_id, FinalizationRequest.sender_creditor_id).distinct()
+    if max_count is not None:
+        query = query.limit(max_count)
+
+    return query.all()
 
 
 @atomic
@@ -396,8 +404,12 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
 
 
 @atomic
-def get_accounts_with_pending_balance_changes() -> Iterable[Tuple[int, int]]:
-    return set(db.session.query(PendingBalanceChange.debtor_id, PendingBalanceChange.creditor_id).all())
+def get_accounts_with_pending_balance_changes(max_count: int = None) -> Iterable[Tuple[int, int]]:
+    query = db.session.query(PendingBalanceChange.debtor_id, PendingBalanceChange.creditor_id).distinct()
+    if max_count is not None:
+        query = query.limit(max_count)
+
+    return query.all()
 
 
 @atomic

@@ -143,13 +143,17 @@ def process_balance_changes(threads, wait, quit_early):
 
     threads = threads or int(current_app.config['APP_PROCESS_BALANCE_CHANGES_THREADS'])
     wait = wait if wait is not None else current_app.config['APP_PROCESS_BALANCE_CHANGES_WAIT']
+    max_count = current_app.config['APP_PROCESS_BALANCE_CHANGES_MAX_COUNT']
+
+    def get_args_collection():
+        return procedures.get_accounts_with_pending_balance_changes(max_count=max_count)
 
     logger = logging.getLogger(__name__)
     logger.info('Started balance changes processor.')
 
     ThreadPoolProcessor(
         threads,
-        get_args_collection=procedures.get_accounts_with_pending_balance_changes,
+        get_args_collection=get_args_collection,
         process_func=procedures.process_pending_balance_changes,
         wait_seconds=wait,
     ).run(quit_early=quit_early)
@@ -177,6 +181,7 @@ def process_transfer_requests(threads, wait, quit_early):
     threads = threads or int(current_app.config['APP_PROCESS_TRANSFER_REQUESTS_THREADS'])
     wait = wait if wait is not None else current_app.config['APP_PROCESS_TRANSFER_REQUESTS_WAIT']
     commit_period = current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
+    max_count = current_app.config['APP_PROCESS_TRANSFER_REQUESTS_MAX_COUNT']
 
     logger = logging.getLogger(__name__)
     logger.info('Started transfer requests processor.')
@@ -185,7 +190,7 @@ def process_transfer_requests(threads, wait, quit_early):
         return [
             (debtor_id, creditor_id, commit_period)
             for debtor_id, creditor_id
-            in procedures.get_accounts_with_transfer_requests()
+            in procedures.get_accounts_with_transfer_requests(max_count=max_count)
         ]
 
     ThreadPoolProcessor(
@@ -217,13 +222,17 @@ def process_finalization_requests(threads, wait, quit_early):
 
     threads = threads or int(environ.get('APP_PROCESS_FINALIZATION_REQUESTS_THREADS', '1'))
     wait = wait if wait is not None else current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_WAIT']
+    max_count = current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_MAX_COUNT']
+
+    def get_args_collection():
+        return procedures.get_accounts_with_finalization_requests(max_count=max_count)
 
     logger = logging.getLogger(__name__)
     logger.info('Started finalization requests processor.')
 
     ThreadPoolProcessor(
         threads,
-        get_args_collection=procedures.get_accounts_with_finalization_requests,
+        get_args_collection=get_args_collection,
         process_func=procedures.process_finalization_requests,
         wait_seconds=wait,
     ).run(quit_early=quit_early)
