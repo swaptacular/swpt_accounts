@@ -108,7 +108,8 @@ ConfigureAccount
 ----------------
 
 Upon receiving this message, the server makes sure that the specified
-account exists, and updates its configuration settings.
+account exists, and updates its configuration
+settings. [#config-frequency]_
 
 debtor_id : int64
    The ID of the debtor.
@@ -197,6 +198,10 @@ they MUST first verify whether the specified account already exists:
    [#for-deletion]_ If a new account has been successfully created, an
    `AccountUpdate`_ message MUST be sent; otherwise a
    `RejectedConfig`_ message MUST be sent.
+
+.. [#config-frequency] As a rough guideline, on average,
+  `ConfigureAccount`_ messages for one account should not be sent more
+  often than once per minute.
 
 .. [#delete-transfer] When an account with a non-zero principal is
   being deleted, an `AccountTransfer`_ message SHOULD be sent,

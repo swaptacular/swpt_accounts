@@ -49,12 +49,6 @@ def configure_account(
         config_data: str = '',
         signalbus_max_delay_seconds: float = 1e30) -> bool:
 
-    # TODO: Consider using a `ConfigureRequest` buffer table, to
-    #       reduce lock contention on `account` table rows. This might
-    #       be beneficial when there are lots of `ConfigureAccount`
-    #       messages for one account, in a short period of time
-    #       (probably not a typical load).
-
     current_ts = datetime.now(tz=timezone.utc)
     should_change_interest_rate = False
 
