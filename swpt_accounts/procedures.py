@@ -24,7 +24,7 @@ ACCOUNT_PK = tuple_(
 )
 REGISTERED_BALANCE_CHANGE_PK = tuple_(
     RegisteredBalanceChange.debtor_id,
-    RegisteredBalanceChange.creditor_id,
+    RegisteredBalanceChange.other_creditor_id,
     RegisteredBalanceChange.change_id,
 )
 RC_INVALID_CONFIGURATION = 'INVALID_CONFIGURATION'
@@ -441,7 +441,7 @@ def process_pending_balance_changes(debtor_id: int, creditor_id: int) -> None:
                 principal=contain_principal_overflow(account.principal + principal_delta),
             )
 
-            applied_change_pks.append((change.debtor_id, change.creditor_id, change.change_id))
+            applied_change_pks.append((change.debtor_id, change.other_creditor_id, change.change_id))
             db.session.delete(change)
 
         _apply_account_change(account, principal_delta, interest_delta, current_ts)
@@ -490,14 +490,14 @@ def make_debtor_payment(
 @atomic
 def insert_pending_balance_change(
         debtor_id: int,
-        creditor_id: int,
+        other_creditor_id: int,
         change_id: int,
+        creditor_id: int,
         coordinator_type: str,
         transfer_note_format: str,
         transfer_note: str,
         committed_at: datetime,
-        principal_delta: int,
-        other_creditor_id: int) -> None:
+        principal_delta: int) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -506,28 +506,28 @@ def insert_pending_balance_change(
 
     registered_balance_change_query = RegisteredBalanceChange.query.filter_by(
         debtor_id=debtor_id,
-        creditor_id=creditor_id,
+        other_creditor_id=other_creditor_id,
         change_id=change_id,
     )
     if not db.session.query(registered_balance_change_query.exists()).scalar():
         with db.retry_on_integrity_error():
             db.session.add(RegisteredBalanceChange(
                 debtor_id=debtor_id,
-                creditor_id=creditor_id,
+                other_creditor_id=other_creditor_id,
                 change_id=change_id,
                 committed_at=committed_at,
             ))
 
         db.session.add(PendingBalanceChange(
             debtor_id=debtor_id,
-            creditor_id=creditor_id,
+            other_creditor_id=other_creditor_id,
             change_id=change_id,
+            creditor_id=creditor_id,
             coordinator_type=coordinator_type,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
             committed_at=committed_at,
             principal_delta=principal_delta,
-            other_creditor_id=other_creditor_id,
         ))
 
 
@@ -619,10 +619,10 @@ def _insert_pending_balance_change_signal(
 
     db.session.add(PendingBalanceChangeSignal(
         debtor_id=debtor_id,
+        other_creditor_id=other_creditor_id,
         creditor_id=creditor_id,
         committed_at=committed_at,
         coordinator_type=coordinator_type,
-        other_creditor_id=other_creditor_id,
         transfer_note_format=transfer_note_format,
         transfer_note=transfer_note,
         principal_delta=principal_delta,
@@ -706,13 +706,13 @@ def _make_debtor_payment(
     if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:
         _insert_pending_balance_change_signal(
             debtor_id=account.debtor_id,
+            other_creditor_id=account.creditor_id,
             creditor_id=ROOT_CREDITOR_ID,
             committed_at=current_ts,
             coordinator_type=coordinator_type,
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
             principal_delta=-amount,
-            other_creditor_id=account.creditor_id,
         )
         _insert_account_transfer_signal(
             account=account,
@@ -859,13 +859,13 @@ def _finalize_prepared_transfer(
         )
         _insert_pending_balance_change_signal(
             debtor_id=pt.debtor_id,
+            other_creditor_id=pt.sender_creditor_id,
             creditor_id=pt.recipient_creditor_id,
             committed_at=current_ts,
             coordinator_type=pt.coordinator_type,
             transfer_note_format=fr.transfer_note_format,
             transfer_note=fr.transfer_note,
             principal_delta=committed_amount,
-            other_creditor_id=pt.sender_creditor_id,
         )
 
     db.session.add(FinalizedTransferSignal(

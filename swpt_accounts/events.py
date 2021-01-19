@@ -310,11 +310,11 @@ class PendingBalanceChangeSignal(Signal):
         other_creditor_id = fields.Integer()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    other_creditor_id = db.Column(db.BigInteger, primary_key=True)
     change_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    creditor_id = db.Column(db.BigInteger, nullable=False)
     coordinator_type = db.Column(db.String(30), nullable=False)
     transfer_note_format = db.Column(pg.TEXT, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
     committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     principal_delta = db.Column(db.BigInteger, nullable=False)
-    other_creditor_id = db.Column(db.BigInteger, nullable=False)

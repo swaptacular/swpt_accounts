@@ -71,7 +71,8 @@ async def _make_root_config_data_request(debtor_id: int) -> Optional[RootConfigD
         if status_code == 404:
             return None
 
-        raise RuntimeError(f'Got an unexpected status code ({status_code}) from fetch request.')  # pragma: no cover
+        raise RuntimeError(
+            f'Got an unexpected status code ({status_code}) from fetch request.') from None  # pragma: no cover
 
 
 def _clear_root_config_data() -> None:

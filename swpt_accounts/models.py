@@ -371,7 +371,7 @@ class PreparedTransfer(db.Model):
 
 class RegisteredBalanceChange(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    other_creditor_id = db.Column(db.BigInteger, primary_key=True)
     change_id = db.Column(db.BigInteger, primary_key=True)
     committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     is_applied = db.Column(db.BOOLEAN, nullable=False, default=False)
@@ -387,34 +387,35 @@ class RegisteredBalanceChange(db.Model):
 
 class PendingBalanceChange(db.Model):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
-    creditor_id = db.Column(db.BigInteger, primary_key=True)
+    other_creditor_id = db.Column(
+        db.BigInteger,
+        primary_key=True,
+        comment='This is the other party in the transfer. When `principal_delta` is '
+                'positive, this is the sender. When `principal_delta` is negative, this '
+                'is the recipient.',
+    )
     change_id = db.Column(db.BigInteger, primary_key=True)
+    creditor_id = db.Column(db.BigInteger, nullable=False)
     coordinator_type = db.Column(db.String(30), nullable=False)
     transfer_note_format = db.Column(pg.TEXT, nullable=False)
     transfer_note = db.Column(pg.TEXT, nullable=False)
     committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     principal_delta = db.Column(db.BigInteger, nullable=False)
-    other_creditor_id = db.Column(
-        db.BigInteger,
-        nullable=False,
-        comment='This is the other party in the transfer. When `principal_delta` is '
-                'positive, this is the sender. When `principal_delta` is negative, this '
-                'is the recipient.',
-    )
     __table_args__ = (
         db.ForeignKeyConstraint(
             [
                 'debtor_id',
-                'creditor_id',
+                'other_creditor_id',
                 'change_id',
             ],
             [
                 'registered_balance_change.debtor_id',
-                'registered_balance_change.creditor_id',
+                'registered_balance_change.other_creditor_id',
                 'registered_balance_change.change_id',
             ],
         ),
         db.CheckConstraint(principal_delta != 0),
+        db.Index('idx_changed_account', debtor_id, creditor_id),
         {
             'comment': 'Represents a pending change in the balance of a given account. Pending '
                        'updates to `account.principal` are queued to this table before being '

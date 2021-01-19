@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 73c6b32b26fb
+Revision ID: bbcd77f71465
 Revises: 
-Create Date: 2021-01-12 15:56:30.966147
+Create Date: 2021-01-19 15:17:31.008184
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '73c6b32b26fb'
+revision = 'bbcd77f71465'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -139,15 +139,15 @@ def upgrade():
     op.create_table('pending_balance_change_signal',
     sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('change_id', sa.BigInteger(), autoincrement=True, nullable=False),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('transfer_note_format', sa.TEXT(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
     sa.Column('committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('principal_delta', sa.BigInteger(), nullable=False),
-    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id')
+    sa.PrimaryKeyConstraint('debtor_id', 'other_creditor_id', 'change_id')
     )
     op.create_table('prepared_transfer_signal',
     sa.Column('inserted_at', sa.TIMESTAMP(timezone=True), nullable=False),
@@ -168,11 +168,11 @@ def upgrade():
     )
     op.create_table('registered_balance_change',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('change_id', sa.BigInteger(), nullable=False),
     sa.Column('committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('is_applied', sa.BOOLEAN(), nullable=False),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
+    sa.PrimaryKeyConstraint('debtor_id', 'other_creditor_id', 'change_id'),
     comment='Represents the fact that a given pending balance change has been registered already. This is necessary in order to avoid applying one balance change more than once, when the corresponding `PendingBalanceChangeSignal`s is received multiple times.'
     )
     op.create_table('rejected_config_signal',
@@ -220,19 +220,20 @@ def upgrade():
     )
     op.create_table('pending_balance_change',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
-    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
+    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='This is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient.'),
     sa.Column('change_id', sa.BigInteger(), nullable=False),
+    sa.Column('creditor_id', sa.BigInteger(), nullable=False),
     sa.Column('coordinator_type', sa.String(length=30), nullable=False),
     sa.Column('transfer_note_format', sa.TEXT(), nullable=False),
     sa.Column('transfer_note', sa.TEXT(), nullable=False),
     sa.Column('committed_at', sa.TIMESTAMP(timezone=True), nullable=False),
     sa.Column('principal_delta', sa.BigInteger(), nullable=False),
-    sa.Column('other_creditor_id', sa.BigInteger(), nullable=False, comment='This is the other party in the transfer. When `principal_delta` is positive, this is the sender. When `principal_delta` is negative, this is the recipient.'),
     sa.CheckConstraint('principal_delta != 0'),
-    sa.ForeignKeyConstraint(['debtor_id', 'creditor_id', 'change_id'], ['registered_balance_change.debtor_id', 'registered_balance_change.creditor_id', 'registered_balance_change.change_id'], ),
-    sa.PrimaryKeyConstraint('debtor_id', 'creditor_id', 'change_id'),
+    sa.ForeignKeyConstraint(['debtor_id', 'other_creditor_id', 'change_id'], ['registered_balance_change.debtor_id', 'registered_balance_change.other_creditor_id', 'registered_balance_change.change_id'], ),
+    sa.PrimaryKeyConstraint('debtor_id', 'other_creditor_id', 'change_id'),
     comment='Represents a pending change in the balance of a given account. Pending updates to `account.principal` are queued to this table before being processed, thus allowing multiple updates to one account to coalesce, reducing the lock contention on `account` table rows.'
     )
+    op.create_index('idx_changed_account', 'pending_balance_change', ['debtor_id', 'creditor_id'], unique=False)
     op.create_table('prepared_transfer',
     sa.Column('debtor_id', sa.BigInteger(), nullable=False),
     sa.Column('sender_creditor_id', sa.BigInteger(), nullable=False),
@@ -261,6 +262,7 @@ def upgrade():
 def downgrade():
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('prepared_transfer')
+    op.drop_index('idx_changed_account', table_name='pending_balance_change')
     op.drop_table('pending_balance_change')
     op.drop_table('transfer_request')
     op.drop_table('rejected_transfer_signal')
