@@ -28,6 +28,14 @@ def get_now_utc():
     return datetime.now(tz=timezone.utc)
 
 
+class classproperty(object):
+    def __init__(self, f):
+        self.f = f
+
+    def __get__(self, obj, owner):
+        return self.f(owner)
+
+
 class Signal(db.Model):
     __abstract__ = True
 
@@ -89,6 +97,10 @@ class RejectedTransferSignal(Signal):
     status_code = db.Column(db.String(30), nullable=False)
     total_locked_amount = db.Column(db.BigInteger, nullable=False)
 
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_REJECTED_TRANSFERS_BURST_COUNT']
+
     @property
     def event_name(self):  # pragma: no cover
         return f'on_rejected_{self.coordinator_type}_transfer_signal'
@@ -124,6 +136,10 @@ class PreparedTransferSignal(Signal):
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     min_interest_rate = db.Column(db.REAL, nullable=False)
 
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_PREPARED_TRANSFERS_BURST_COUNT']
+
     @property
     def event_name(self):  # pragma: no cover
         return f'on_prepared_{self.coordinator_type}_transfer_signal'
@@ -154,6 +170,10 @@ class FinalizedTransferSignal(Signal):
     committed_amount = db.Column(db.BigInteger, nullable=False)
     total_locked_amount = db.Column(db.BigInteger, nullable=False)
     status_code = db.Column(db.String(30), nullable=False)
+
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_FINALIZED_TRANSFERS_BURST_COUNT']
 
     @property
     def event_name(self):  # pragma: no cover
@@ -194,6 +214,10 @@ class AccountTransferSignal(Signal):
     transfer_note = db.Column(pg.TEXT, nullable=False)
     principal = db.Column(db.BigInteger, nullable=False)
     previous_transfer_number = db.Column(db.BigInteger, nullable=False)
+
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_ACCOUNT_TRANSFERS_BURST_COUNT']
 
     @property
     def sender_creditor_id(self):
@@ -253,6 +277,10 @@ class AccountUpdateSignal(Signal):
     debtor_info_content_type = db.Column(db.String)
     debtor_info_sha256 = db.Column(db.LargeBinary)
 
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_ACCOUNT_UPDATES_BURST_COUNT']
+
     @property
     def ttl(self):
         return int(current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY)
@@ -272,6 +300,10 @@ class AccountPurgeSignal(Signal):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     creation_date = db.Column(db.DATE, primary_key=True)
+
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_ACCOUNT_PURGES_BURST_COUNT']
 
 
 class RejectedConfigSignal(Signal):
@@ -296,6 +328,10 @@ class RejectedConfigSignal(Signal):
     negligible_amount = db.Column(db.REAL, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
 
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_REJECTED_CONFIGS_BURST_COUNT']
+
 
 class PendingBalanceChangeSignal(Signal):
     class __marshmallow__(Schema):
@@ -318,3 +354,7 @@ class PendingBalanceChangeSignal(Signal):
     transfer_note = db.Column(pg.TEXT, nullable=False)
     committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     principal_delta = db.Column(db.BigInteger, nullable=False)
+
+    @classproperty
+    def signalbus_burst_count(self):
+        return current_app.config['APP_FLUSH_PENDING_BALANCE_CHANGES_BURST_COUNT']

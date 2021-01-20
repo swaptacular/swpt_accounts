@@ -5,6 +5,18 @@ D_ID = -1
 C_ID = 1
 
 
+def test_sibnalbus_burst_count(app):
+    from swpt_accounts import models as m
+    assert isinstance(m.RejectedTransferSignal.signalbus_burst_count, int)
+    assert isinstance(m.PreparedTransferSignal.signalbus_burst_count, int)
+    assert isinstance(m.FinalizedTransferSignal.signalbus_burst_count, int)
+    assert isinstance(m.AccountTransferSignal.signalbus_burst_count, int)
+    assert isinstance(m.AccountUpdateSignal.signalbus_burst_count, int)
+    assert isinstance(m.AccountPurgeSignal.signalbus_burst_count, int)
+    assert isinstance(m.RejectedConfigSignal.signalbus_burst_count, int)
+    assert isinstance(m.PendingBalanceChangeSignal.signalbus_burst_count, int)
+
+
 def test_configure_account():
     one_year = timedelta(days=365.25)
     current_ts = datetime.now(tz=timezone.utc)
