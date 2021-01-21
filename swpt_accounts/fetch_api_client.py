@@ -4,7 +4,8 @@ import asyncio
 from collections import OrderedDict
 from functools import partial
 from urllib.parse import urljoin
-from typing import Optional, Iterable, Dict, List, Union
+from typing import Optional, Iterable, Dict, Tuple
+import typing
 import requests
 from flask import current_app, url_for
 from swpt_accounts.extensions import requests_session, aiohttp_session, asyncio_loop
@@ -12,7 +13,7 @@ from swpt_accounts.models import ROOT_CREDITOR_ID
 from swpt_accounts.schemas import RootConfigData, parse_root_config_data
 
 _fetch_conifg_path = partial(url_for, 'fetch.config', _external=False, creditorId=ROOT_CREDITOR_ID)
-_root_config_data_lru_cache = OrderedDict()
+_root_config_data_lru_cache: typing.OrderedDict[int, Tuple[Optional[RootConfigData], float]] = OrderedDict()
 
 
 def get_if_account_is_reachable(debtor_id: int, creditor_id: int) -> bool:
@@ -111,7 +112,7 @@ async def _fetch_root_config_data(debtor_id: int, cutoff_ts: float) -> Optional[
 
 async def _fetch_root_config_data_list(
         debtor_ids: Iterable[int],
-        cutoff_ts: float) -> List[Union[RootConfigData, Exception]]:
+        cutoff_ts: float) -> Iterable:
 
     with current_app.test_request_context():
         return await asyncio.gather(

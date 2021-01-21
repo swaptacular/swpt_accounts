@@ -335,12 +335,8 @@ def process_transfer_requests(debtor_id: int, creditor_id: int, commit_period: i
             else:  # pragma: nocover
                 raise RuntimeError('unexpected return type')
 
-        # TODO: Use bulk-inserts when we decide to disable
-        #       auto-flushing. This will be faster, because the useless
-        #       auto-generated `signal_id`s would not be fetched separately
-        #       for each inserted row.
-        db.session.add_all(rejected_transfer_signals)
-        db.session.add_all(prepared_transfer_signals)
+        db.session.bulk_save_objects(rejected_transfer_signals, preserve_order=False)
+        db.session.bulk_save_objects(prepared_transfer_signals, preserve_order=False)
 
 
 @atomic
@@ -364,12 +360,9 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
         with_for_update(skip_locked=True, of=FinalizationRequest).\
         all()
 
-    # TODO: Use bulk-inserts when we decide to disable
-    #       auto-flushing. This will be faster, because the useless
-    #       auto-generated `change_id`s would not be fetched
-    #       separately for each inserted `PendingBalanceChange` row.
     if requests:
         principal_delta = 0
+        pending_balance_change_signals = []
 
         sender_account = get_account(debtor_id, sender_creditor_id, lock=True)
         if sender_account:
@@ -384,16 +377,21 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
                     - sender_account.total_locked_amount
                     - min_account_balance
                 )
-                committed_amount = _finalize_prepared_transfer(
+                signal = _finalize_prepared_transfer(
                     prepared_transfer,
                     finalization_request,
                     sender_account,
                     expendable_amount,
                     current_ts,
                 )
-                principal_delta -= committed_amount
-                assert committed_amount >= 0
+                if signal:
+                    committed_amount = signal.principal_delta
+                    assert committed_amount > 0
+                    pending_balance_change_signals.append(signal)
+                else:
+                    committed_amount = 0
 
+                principal_delta -= committed_amount
                 db.session.delete(prepared_transfer)
 
             db.session.delete(finalization_request)
@@ -401,6 +399,8 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
         if principal_delta != 0:
             assert sender_account
             _apply_account_change(sender_account, principal_delta, 0.0, current_ts)
+
+        db.session.bulk_save_objects(pending_balance_change_signals, preserve_order=False)
 
 
 @atomic
@@ -613,28 +613,6 @@ def _calc_account_accumulated_interest(account: Account, current_ts: datetime) -
     return account.calc_current_balance(current_ts) - account.principal
 
 
-def _insert_pending_balance_change_signal(
-        debtor_id: int,
-        creditor_id: int,
-        committed_at: datetime,
-        coordinator_type: str,
-        transfer_note_format: str,
-        transfer_note: str,
-        principal_delta: int,
-        other_creditor_id: int) -> None:
-
-    db.session.add(PendingBalanceChangeSignal(
-        debtor_id=debtor_id,
-        other_creditor_id=other_creditor_id,
-        creditor_id=creditor_id,
-        committed_at=committed_at,
-        coordinator_type=coordinator_type,
-        transfer_note_format=transfer_note_format,
-        transfer_note=transfer_note,
-        principal_delta=principal_delta,
-    ))
-
-
 def _insert_account_transfer_signal(
         account: Account,
         coordinator_type: str,
@@ -710,7 +688,7 @@ def _make_debtor_payment(
     assert -MAX_INT64 <= amount <= MAX_INT64
 
     if amount != 0 and account.creditor_id != ROOT_CREDITOR_ID:
-        _insert_pending_balance_change_signal(
+        db.session.add(PendingBalanceChangeSignal(
             debtor_id=account.debtor_id,
             other_creditor_id=account.creditor_id,
             creditor_id=ROOT_CREDITOR_ID,
@@ -719,7 +697,7 @@ def _make_debtor_payment(
             transfer_note_format=transfer_note_format,
             transfer_note=transfer_note,
             principal_delta=-amount,
-        )
+        ))
         _insert_account_transfer_signal(
             account=account,
             coordinator_type=coordinator_type,
@@ -844,35 +822,13 @@ def _finalize_prepared_transfer(
         fr: FinalizationRequest,
         sender_account: Account,
         expendable_amount: int,
-        current_ts: datetime) -> int:
+        current_ts: datetime) -> Optional[PendingBalanceChangeSignal]:
 
     sender_account.total_locked_amount = max(0, sender_account.total_locked_amount - pt.locked_amount)
     sender_account.pending_transfers_count = max(0, sender_account.pending_transfers_count - 1)
     interest_rate = sender_account.interest_rate
     status_code = pt.calc_status_code(fr.committed_amount, expendable_amount, interest_rate, current_ts)
     committed_amount = fr.committed_amount if status_code == SC_OK else 0
-
-    if committed_amount > 0:
-        _insert_account_transfer_signal(
-            account=sender_account,
-            coordinator_type=pt.coordinator_type,
-            other_creditor_id=pt.recipient_creditor_id,
-            committed_at=current_ts,
-            acquired_amount=-committed_amount,
-            transfer_note_format=fr.transfer_note_format,
-            transfer_note=fr.transfer_note,
-            principal=contain_principal_overflow(sender_account.principal - committed_amount),
-        )
-        _insert_pending_balance_change_signal(
-            debtor_id=pt.debtor_id,
-            other_creditor_id=pt.sender_creditor_id,
-            creditor_id=pt.recipient_creditor_id,
-            committed_at=current_ts,
-            coordinator_type=pt.coordinator_type,
-            transfer_note_format=fr.transfer_note_format,
-            transfer_note=fr.transfer_note,
-            principal_delta=committed_amount,
-        )
 
     db.session.add(FinalizedTransferSignal(
         debtor_id=pt.debtor_id,
@@ -888,7 +844,31 @@ def _finalize_prepared_transfer(
         status_code=status_code,
     ))
 
-    return committed_amount
+    if committed_amount > 0:
+        _insert_account_transfer_signal(
+            account=sender_account,
+            coordinator_type=pt.coordinator_type,
+            other_creditor_id=pt.recipient_creditor_id,
+            committed_at=current_ts,
+            acquired_amount=-committed_amount,
+            transfer_note_format=fr.transfer_note_format,
+            transfer_note=fr.transfer_note,
+            principal=contain_principal_overflow(sender_account.principal - committed_amount),
+        )
+
+        return PendingBalanceChangeSignal(
+            debtor_id=pt.debtor_id,
+            other_creditor_id=pt.sender_creditor_id,
+            creditor_id=pt.recipient_creditor_id,
+            committed_at=current_ts,
+            coordinator_type=pt.coordinator_type,
+            transfer_note_format=fr.transfer_note_format,
+            transfer_note=fr.transfer_note,
+            principal_delta=committed_amount,
+        )
+
+    assert committed_amount == 0
+    return None
 
 
 def _get_min_account_balance(creditor_id: int) -> int:
