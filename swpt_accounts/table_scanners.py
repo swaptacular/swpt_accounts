@@ -14,12 +14,6 @@ from swpt_accounts.actors import change_interest_rate, capitalize_interest, try_
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
 
-# TODO: Use bulk-inserts for `AccountUpdateSignal`s,
-#       `RejectedTransferSignal`s, and `PreparedTransferSignal`s when
-#       we decide to disable auto-flushing. This is necessary, because
-#       currently SQLAlchemy issues individual inserts with `RETURNING
-#       signal_id` to obtain the server generated primary key.
-
 
 class AccountScanner(TableScanner):
     """Sends account heartbeat signals, purge deleted accounts."""
@@ -82,6 +76,7 @@ class AccountScanner(TableScanner):
             and row[c.last_change_ts] < purge_cutoff_ts
             and row[c.creation_date] < date_few_days_ago)
         ]
+
         if pks_to_purge:
             to_purge = db.session.query(Account.debtor_id, Account.creditor_id, Account.creation_date).\
                 filter(self.pk.in_(pks_to_purge)).\
@@ -90,13 +85,15 @@ class AccountScanner(TableScanner):
                 filter(Account.creation_date < date_few_days_ago).\
                 with_for_update().\
                 all()
+
             if to_purge:
                 pks_to_purge = [(debtor_id, creditor_id) for debtor_id, creditor_id, _ in to_purge]
                 Account.query.\
                     filter(self.pk.in_(pks_to_purge)).\
                     delete(synchronize_session=False)
-                db.session.add_all([
-                    AccountPurgeSignal(
+
+                db.session.bulk_insert_mappings(AccountPurgeSignal, [
+                    dict(
                         debtor_id=debtor_id,
                         creditor_id=creditor_id,
                         creation_date=creation_date,
@@ -113,6 +110,7 @@ class AccountScanner(TableScanner):
             not row[c.status_flags] & deleted_flag
             and (row[c.last_heartbeat_ts] < heartbeat_cutoff_ts or row[c.pending_account_update])
         )]
+
         if pks_to_heartbeat:
             to_heartbeat = Account.query.\
                 filter(self.pk.in_(pks_to_heartbeat)).\
@@ -123,6 +121,7 @@ class AccountScanner(TableScanner):
                 )).\
                 with_for_update().\
                 all()
+
             if to_heartbeat:
                 pks_to_remind = [(account.debtor_id, account.creditor_id) for account in to_heartbeat]
                 Account.query.\
@@ -131,8 +130,9 @@ class AccountScanner(TableScanner):
                         Account.last_heartbeat_ts: current_ts,
                         Account.pending_account_update: False,
                     }, synchronize_session=False)
-                db.session.add_all([
-                    AccountUpdateSignal(
+
+                db.session.bulk_insert_mappings(AccountUpdateSignal, [
+                    dict(
                         debtor_id=account.debtor_id,
                         creditor_id=account.creditor_id,
                         last_change_seqnum=account.last_change_seqnum,
@@ -290,33 +290,44 @@ class PreparedTransferScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         c = self.table.c
+        c_last_reminder_ts = c.last_reminder_ts
+        c_prepared_at = c.prepared_at
         current_ts = datetime.now(tz=timezone.utc)
         reminder_cutoff_ts = current_ts - self.remainder_interval
-        reminded_pks = []
+        prepared_transfer_signal_mappings = {}
 
         for row in rows:
-            last_reminder_ts = row[c.last_reminder_ts]
-            has_big_delay = row[c.prepared_at] < reminder_cutoff_ts
+            last_reminder_ts = row[c_last_reminder_ts]
+            has_big_delay = row[c_prepared_at] < reminder_cutoff_ts
             has_recent_reminder = last_reminder_ts is not None and last_reminder_ts >= reminder_cutoff_ts
+
             if has_big_delay and not has_recent_reminder:
-                db.session.add(PreparedTransferSignal(
-                    debtor_id=row[c.debtor_id],
-                    sender_creditor_id=row[c.sender_creditor_id],
-                    transfer_id=row[c.transfer_id],
+                debtor_id = row[c.debtor_id]
+                sender_creditor_id = row[c.sender_creditor_id]
+                transfer_id = row[c.transfer_id]
+
+                prepared_transfer_signal_mappings[(debtor_id, sender_creditor_id, transfer_id)] = dict(
+                    debtor_id=debtor_id,
+                    sender_creditor_id=sender_creditor_id,
+                    transfer_id=transfer_id,
                     coordinator_type=row[c.coordinator_type],
                     coordinator_id=row[c.coordinator_id],
                     coordinator_request_id=row[c.coordinator_request_id],
                     locked_amount=row[c.locked_amount],
                     recipient_creditor_id=row[c.recipient_creditor_id],
-                    prepared_at=row[c.prepared_at],
+                    prepared_at=row[c_prepared_at],
                     demurrage_rate=row[c.demurrage_rate],
                     deadline=row[c.deadline],
                     min_interest_rate=row[c.min_interest_rate],
-                    inserted_at=max(current_ts, row[c.prepared_at]),
-                ))
-                reminded_pks.append((row[c.debtor_id], row[c.sender_creditor_id], row[c.transfer_id]))
+                    inserted_at=max(current_ts, row[c_prepared_at]),
+                )
 
-        if reminded_pks:
-            PreparedTransfer.query.filter(self.pk.in_(reminded_pks)).update({
-                PreparedTransfer.last_reminder_ts: current_ts,
-            }, synchronize_session=False)
+        if prepared_transfer_signal_mappings:
+            pks_to_remind = prepared_transfer_signal_mappings.keys()
+            PreparedTransfer.query.\
+                filter(self.pk.in_(pks_to_remind)).\
+                update({
+                    PreparedTransfer.last_reminder_ts: current_ts,
+                }, synchronize_session=False)
+
+            db.session.bulk_insert_mappings(PreparedTransferSignal, prepared_transfer_signal_mappings.values())
