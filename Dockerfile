@@ -6,11 +6,13 @@ ENV POETRY_VERSION="1.0.10"
 RUN apk add --no-cache \
     file \
     make \
+    build-base \
     curl \
     gcc \
     git \
     musl-dev \
     libffi-dev \
+    python3-dev \
     postgresql-dev \
   && pip install --upgrade pip==$PIP_VERSION \
   && curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python \
