@@ -3,13 +3,15 @@ set -e
 
 # During development, we should be able to connect to services
 # installed on "localhost" from the container. To allow this, we find
-# the IP address of the docker host, and then in the value of each
-# variable which name ends with "_URL" we substitute "localhost" with
-# that IP address.
+# the IP address of the docker host, and then for each variable name
+# $SUBSTITUTE_LOCALHOST_IN_VARS, we substitute "localhost" with that
+# IP address.
 host_ip=$(ip route show | awk '/default/ {print $3}')
-for envvar_name in $(env | grep -oE '^[A-Z_]+_URL\b'); do
+for envvar_name in $SUBSTITUTE_LOCALHOST_IN_VARS; do
     eval envvar_value=\$$envvar_name
-    eval export $envvar_name=$(echo "$envvar_value" | sed -E "s/(.*@|.*\/\/)localhost\b/\1$host_ip/")
+    if [[ -n $envvar_value ]]; then
+        eval export $envvar_name=$(echo "$envvar_value" | sed -E "s/(.*@|.*\/\/)localhost\b/\1$host_ip/")
+    fi
 done
 
 # This function tries to upgrade the database schema with exponential
