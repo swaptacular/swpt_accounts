@@ -4,9 +4,10 @@ import logging
 import sys
 import os
 import os.path
+from typing import List
 
 
-def configure_logging(level: str, format: str) -> None:  # pragma: no cover
+def configure_logging(level: str, format: str, associated_loggers: List[str]) -> None:  # pragma: no cover
     root_logger = logging.getLogger()
 
     # Setup the root logger's handler if necessary.
@@ -29,12 +30,9 @@ def configure_logging(level: str, format: str) -> None:  # pragma: no cover
     app_logger.setLevel(level.upper())
     app_logger_level = app_logger.getEffectiveLevel()
 
-    # Make sure that all loggers that are closely related to this app
-    # have their log levels set to the specified level as well.
-    related_logger_qualnames = [
-        'flask_signalbus.signalbus_cli',
-    ]
-    for qualname in related_logger_qualnames:
+    # Make sure that all loggers that are associated to this app have
+    # their log levels set to the specified level as well.
+    for qualname in associated_loggers:
         logging.getLogger(qualname).setLevel(app_logger_level)
 
     # Make sure that the root logger's log level (that is: the log
@@ -190,6 +188,7 @@ def create_app(config_dict={}):
 
 
 configure_logging(
-    os.environ.get('APP_LOG_LEVEL', 'warning'),
-    os.environ.get('APP_LOG_FORMAT', 'text'),
+    level=os.environ.get('APP_LOG_LEVEL', 'warning'),
+    format=os.environ.get('APP_LOG_FORMAT', 'text'),
+    associated_loggers=os.environ.get('APP_ASSOCIATED_LOGGERS', '').split(),
 )
