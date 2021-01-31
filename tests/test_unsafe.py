@@ -7,7 +7,7 @@ from swpt_accounts.extensions import db, chores_broker
 from swpt_accounts.schemas import RootConfigData
 from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict
 from swpt_accounts import procedures as p
-from swpt_accounts import actors
+from swpt_accounts.chores import configure_account_and_set_interest_rate
 
 
 D_ID = -1
@@ -313,7 +313,7 @@ def test_set_interest_rate_on_new_accounts(app_unsafe_session):
     db.session.commit()
 
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 3.567}')
-    actors.configure_account(D_ID, C_ID, current_ts.isoformat(), 0)
+    configure_account_and_set_interest_rate(debtor_id=D_ID, creditor_id=C_ID, ts=current_ts, seqnum=0)
 
     signals = AccountUpdateSignal.query.filter_by(creditor_id=C_ID).all()
     assert any(s.interest_rate == 3.567 for s in signals)

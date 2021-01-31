@@ -9,7 +9,7 @@ set -e
 host_ip=$(ip route show | awk '/default/ {print $3}')
 for envvar_name in $SUBSTITUTE_LOCALHOST_IN_VARS; do
     eval envvar_value=\$$envvar_name
-    if [[ -n $envvar_value ]]; then
+    if [[ -n "$envvar_value" ]]; then
         eval export $envvar_name=$(echo "$envvar_value" | sed -E "s/(.*@|.*\/\/)localhost\b/\1$host_ip/")
     fi
 done

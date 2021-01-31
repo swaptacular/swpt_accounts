@@ -1,13 +1,12 @@
 import re
-import math
-from datetime import datetime, timedelta
-from flask import current_app
+from datetime import datetime
 from swpt_lib.utils import u64_to_i64
-from .extensions import protocol_broker, chores_broker, APP_QUEUE_NAME
+from .extensions import protocol_broker, APP_QUEUE_NAME
 from swpt_accounts.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, T0, TRANSFER_NOTE_MAX_BYTES, \
-    CONFIG_DATA_MAX_BYTES, SECONDS_IN_DAY
-from swpt_accounts.fetch_api_client import get_root_config_data_dict, get_if_account_is_reachable
+    CONFIG_DATA_MAX_BYTES
+from swpt_accounts.fetch_api_client import get_if_account_is_reachable
 from swpt_accounts import procedures
+from swpt_accounts.chores import configure_account_and_set_interest_rate
 
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 
@@ -25,7 +24,6 @@ def configure_account(
     """Make sure the account exists, and update its configuration settings."""
 
     parsed_ts = datetime.fromisoformat(ts)
-    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
@@ -34,7 +32,7 @@ def configure_account(
     assert MIN_INT32 <= config_flags <= MAX_INT32
     assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
 
-    should_change_interest_rate = procedures.configure_account(
+    configure_account_and_set_interest_rate(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         ts=parsed_ts,
@@ -42,18 +40,7 @@ def configure_account(
         negligible_amount=negligible_amount,
         config_flags=config_flags,
         config_data=config_data,
-        signalbus_max_delay_seconds=signalbus_max_delay_seconds,
     )
-    if should_change_interest_rate:
-        root_config_data = get_root_config_data_dict([debtor_id]).get(debtor_id)
-
-        if root_config_data:
-            procedures.change_interest_rate(
-                debtor_id=debtor_id,
-                creditor_id=creditor_id,
-                interest_rate=root_config_data.interest_rate,
-                signalbus_max_delay_seconds=signalbus_max_delay_seconds,
-            )
 
 
 @protocol_broker.actor(queue_name=APP_QUEUE_NAME)
@@ -186,69 +173,3 @@ def on_pending_balance_change_signal(
         principal_delta=principal_delta,
         other_creditor_id=other_creditor_id,
     )
-
-
-@chores_broker.actor(queue_name='change_interest_rate', max_retries=0)
-def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float, ts: str) -> None:
-    """Try to change the interest rate on the account.
-
-    The interest rate will not be changed if the request is too old,
-    or not enough time has passed since the previous change in the
-    interest rate.
-
-    """
-
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-    assert not math.isnan(interest_rate)
-
-    procedures.change_interest_rate(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-        interest_rate=interest_rate,
-        ts=datetime.fromisoformat(ts),
-        signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
-    )
-
-
-@chores_broker.actor(queue_name='capitalize_interest', max_retries=0)
-def capitalize_interest(debtor_id: int, creditor_id: int) -> None:
-    """Add the interest accumulated on the account to the principal."""
-
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-
-    procedures.capitalize_interest(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-        min_capitalization_interval=timedelta(days=current_app.config['APP_MIN_INTEREST_CAPITALIZATION_DAYS']),
-    )
-
-
-@chores_broker.actor(queue_name='delete_account', max_retries=0)
-def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
-    """Mark the account as deleted, if possible.
-
-    If it is a "normal" account, it will be marked as deleted if it
-    has been scheduled for deletion, there are no prepared transfers,
-    and the current balance is not bigger than `max(2.0,
-    account.negligible_amount)`.
-
-    If it is a debtor's account, noting will be done. (Deleting
-    debtors' accounts is not implemented yet.)
-
-    Note that when a "normal" account has been successfully marked as
-    deleted, it could be "resurrected" (with "scheduled for deletion"
-    configuration flag) by a delayed incoming transfer. Therefore,
-    this function does not guarantee that the account will be marked
-    as deleted successfully, or that it will "stay" deleted for
-    long. To achieve a reliable deletion, this function may need to be
-    called repeatedly, until the account has been purged from the
-    database.
-
-    """
-
-    assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
-
-    procedures.try_to_delete_account(debtor_id, creditor_id)

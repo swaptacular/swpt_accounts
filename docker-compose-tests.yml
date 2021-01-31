@@ -45,7 +45,7 @@ services:
       - $PORT:8080
     command: develop-run-flask
     depends_on:
-      - tests-config
+      - tests-pg
 
 
   tests-dummy:

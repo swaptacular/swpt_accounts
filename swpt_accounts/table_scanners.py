@@ -9,7 +9,7 @@ from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSigna
     PreparedTransferSignal, ROOT_CREDITOR_ID, calc_current_balance, is_negligible_balance, \
     contain_principal_overflow
 from swpt_accounts.fetch_api_client import get_root_config_data_dict
-from swpt_accounts.actors import change_interest_rate, capitalize_interest, try_to_delete_account
+from swpt_accounts.chores import change_interest_rate, capitalize_interest, try_to_delete_account
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic

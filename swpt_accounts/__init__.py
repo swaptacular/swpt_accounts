@@ -5,6 +5,7 @@ import sys
 import os
 import os.path
 from typing import List
+from flask_melodramatiq import missing
 
 
 def configure_logging(level: str, format: str, associated_loggers: List[str]) -> None:  # pragma: no cover
@@ -92,7 +93,8 @@ class Configuration(metaclass=MetaEnvReader):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
     PROTOCOL_BROKER_URL = 'amqp://guest:guest@localhost:5672'
-    CHORES_BROKER_URL = 'amqp://guest:guest@localhost:5672'
+    CHORES_BROKER_CLASS = 'RabbitmqBroker'
+    CHORES_BROKER_URL: str = missing
     APP_PROCESS_BALANCE_CHANGES_THREADS = 1
     APP_PROCESS_BALANCE_CHANGES_WAIT = 5.0
     APP_PROCESS_BALANCE_CHANGES_MAX_COUNT = 500000
