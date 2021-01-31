@@ -10,7 +10,6 @@ from flask.cli import with_appcontext
 from swpt_accounts import procedures
 from swpt_accounts.extensions import db
 from swpt_accounts.models import SECONDS_IN_DAY
-from swpt_accounts.table_scanners import AccountScanner, PreparedTransferScanner
 
 
 class ThreadPoolProcessor:
@@ -253,6 +252,8 @@ def scan_accounts(hours, quit_early):
 
     """
 
+    from swpt_accounts.table_scanners import AccountScanner
+
     logger = logging.getLogger(__name__)
     logger.info('Started accounts scanner.')
     hours = hours or current_app.config['APP_ACCOUNTS_SCAN_HOURS']
@@ -275,6 +276,8 @@ def scan_prepared_transfers(days, quit_early):
     default number of days is 1.
 
     """
+
+    from swpt_accounts.table_scanners import PreparedTransferScanner
 
     logger = logging.getLogger(__name__)
     logger.info('Started prepared transfers scanner.')
