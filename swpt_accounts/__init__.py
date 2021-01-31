@@ -1,21 +1,58 @@
 __version__ = '0.1.0'
 
+import logging
+import sys
 import os
 import os.path
-import logging
-import logging.config
 
-# Configure app logging. If the value of "$APP_LOGGING_CONFIG_FILE" is
-# a relative path, the directory of this (__init__.py) file will be
-# used as a current directory.
-config_filename = os.environ.get('APP_LOGGING_CONFIG_FILE')
-if config_filename:  # pragma: no cover
-    if not os.path.isabs(config_filename):
-        current_dir = os.path.dirname(__file__)
-        config_filename = os.path.join(current_dir, config_filename)
-    logging.config.fileConfig(config_filename, disable_existing_loggers=False)
-else:
-    logging.basicConfig(level=logging.WARNING)
+
+def configure_logging(level: str, format: str) -> None:  # pragma: no cover
+    root_logger = logging.getLogger()
+
+    # Setup the root logger's handler if necessary.
+    if not root_logger.hasHandlers():
+        handler = logging.StreamHandler(sys.stdout)
+        fmt = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
+
+        if format == 'text':
+            handler.setFormatter(logging.Formatter(fmt))
+        elif format == 'json':
+            from pythonjsonlogger import jsonlogger
+            handler.setFormatter(jsonlogger.JsonFormatter(fmt))
+        else:
+            raise RuntimeError(f'invalid log format: {format}')
+
+        root_logger.addHandler(handler)
+
+    # Set the log level for this app's logger.
+    app_logger = logging.getLogger(__name__)
+    app_logger.setLevel(level.upper())
+    app_logger_level = app_logger.getEffectiveLevel()
+
+    # Make sure that all loggers that are closely related to this app
+    # have their log levels set to the specified level as well.
+    related_logger_qualnames = [
+        'flask_signalbus.signalbus_cli',
+    ]
+    for qualname in related_logger_qualnames:
+        logging.getLogger(qualname).setLevel(app_logger_level)
+
+    # Make sure that the root logger's log level (that is: the log
+    # level for all third party libraires) is not lower than the
+    # specified level.
+    if app_logger_level > root_logger.getEffectiveLevel():
+        root_logger.setLevel(app_logger_level)
+
+    # Delete all gunicorn's log handlers (they are not needed in a
+    # docker container because everything goes to the stdout anyway),
+    # and make sure that the gunicorn logger's log level is not lower
+    # than the specified level.
+    gunicorn_logger = logging.getLogger('gunicorn.error')
+    gunicorn_logger.propagate = True
+    for h in gunicorn_logger.handlers:
+        gunicorn_logger.removeHandler(h)
+    if app_logger_level > gunicorn_logger.getEffectiveLevel():
+        gunicorn_logger.setLevel(app_logger_level)
 
 
 class MetaEnvReader(type):
@@ -150,3 +187,9 @@ def create_app(config_dict={}):
     _check_config_sanity(app.config)
 
     return app
+
+
+configure_logging(
+    os.environ.get('APP_LOG_LEVEL', 'warning'),
+    os.environ.get('APP_LOG_FORMAT', 'text'),
+)

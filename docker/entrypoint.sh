@@ -14,6 +14,12 @@ for envvar_name in $SUBSTITUTE_LOCALHOST_IN_VARS; do
     fi
 done
 
+# The WEBSERVER_* variables should be used instead of the GUNICORN_*
+# variables, because we do not want to tie the public interface to the
+# "gunicorn" server, which we may, or may not use in the future.
+export GUNICORN_WORKERS=${WEBSERVER_WORKERS:-1}
+export GUNICORN_THREADS=${WEBSERVER_THREADS:-3}
+
 # This function tries to upgrade the database schema with exponential
 # backoff. This is necessary during development, because the database
 # might not be running yet when this script executes.
@@ -62,9 +68,6 @@ case $1 in
         setup_rabbitmq_bindings
         ;;
     webserver)
-        export GUNICORN_LOGLEVEL=${WEBSERVER_LOGLEVEL:-warning}
-        export GUNICORN_WORKERS=${WEBSERVER_WORKERS:-1}
-        export GUNICORN_THREADS=${WEBSERVER_THREADS:-3}
         exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :$PORT wsgi:app
         ;;
     protocol)
