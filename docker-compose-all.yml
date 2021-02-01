@@ -26,8 +26,6 @@ services:
       - 'CACHE_KEYS_ZONE=10m'
       - 'CACHE_MAX_SIZE=1g'
       - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
-    ports:
-      - 9000:80
 
   accounts-server:
     build:
