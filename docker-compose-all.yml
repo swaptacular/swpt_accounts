@@ -14,7 +14,7 @@ services:
     command: -c log_min_messages=FATAL
 
 
-  nginx-cache:
+  accounts-cache:
     image: nginx:1.19.4
     volumes:
       - 'nginx-cache-volume:/var/lib/nginx/data'
@@ -34,7 +34,7 @@ services:
     environment:
       - 'PORT=8080'
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@pg:5432/${POSTGRES_DB}'
-      - 'APP_FETCH_API_URL=http://nginx-cache:80'
+      - 'APP_FETCH_API_URL=http://accounts-cache:80'
       - 'WEBSERVER_WORKERS=1'
       - 'WEBSERVER_THREADS=3'
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@localhost:5672'
