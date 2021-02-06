@@ -30,16 +30,11 @@ How to run it
 
      $ cp env.development .env
 
-4. To create a minimal *docker-compose.yml* file for development, use
-   this command::
-
-     $ cp docker-compose-tests.yml docker-compose.yml
-
-5. To run the unit tests, use this command::
+4. To run the unit tests, use this command::
 
      $ docker-compose run tests-dummy test
 
-6. To run the minimal set of services needed for development, use this
+5. To run the minimal set of services needed for development, use this
    command::
 
      $ docker-compose up --build -d
@@ -66,14 +61,9 @@ How to setup a development environment
 How to run all services (production-like)
 -----------------------------------------
 
-1. To create a production-like *docker-compose.yml* file, use this
-   command::
-
-     $ cp docker-compose-all.yml docker-compose.yml
-
 2. To start the containers, use this command::
 
-     $ docker-compose up --build -d
+     $ docker-compose -f docker-compose-all.yml up
 
 
 .. _Docker: https://docs.docker.com/
