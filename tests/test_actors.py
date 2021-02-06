@@ -9,11 +9,17 @@ C_ID = 1
 
 @pytest.fixture(scope='module')
 def actors():
+    from unittest import mock
+
+    class Broker:
+        def actor(self, f, **kw):
+            return f
+
+    mock.patch('swpt_accounts.extensions.protocol_broker', Broker())
     from swpt_accounts import actors
     return actors
 
 
-@pytest.mark.skip
 def test_prepare_transfer(db_session, actors):
     actors.prepare_transfer(
         coordinator_type='test',
@@ -53,7 +59,6 @@ def test_prepare_transfer(db_session, actors):
         assert rts.coordinator_request_id == 2
 
 
-@pytest.mark.skip
 def test_finalize_transfer(db_session, actors):
     actors.finalize_transfer(
         debtor_id=D_ID,
@@ -69,7 +74,6 @@ def test_finalize_transfer(db_session, actors):
     )
 
 
-@pytest.mark.skip
 def test_configure_account(db_session, actors):
     from swpt_accounts.fetch_api_client import _clear_root_config_data
 
@@ -85,7 +89,6 @@ def test_configure_account(db_session, actors):
     _clear_root_config_data()
 
 
-@pytest.mark.skip
 def test_on_pending_balance_change_signal(db_session, actors):
     actors.on_pending_balance_change_signal(
         debtor_id=D_ID,
