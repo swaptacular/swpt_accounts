@@ -17,16 +17,16 @@ def _remove_handlers(logger):
         logger.removeHandler(h)  # pragma: nocover
 
 
-def _add_console_hander(logger, format: str):  # pragma: nocover
+def _add_console_hander(logger, format: str):
     handler = logging.StreamHandler(sys.stdout)
     fmt = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
 
     if format == 'text':
         handler.setFormatter(logging.Formatter(fmt))
-    elif format == 'json':
+    elif format == 'json':  # pragma: nocover
         from pythonjsonlogger import jsonlogger
         handler.setFormatter(jsonlogger.JsonFormatter(fmt))
-    else:
+    else:  # pragma: nocover
         raise RuntimeError(f'invalid log format: {format}')
 
     logger.addHandler(handler)
@@ -40,7 +40,7 @@ def _configure_root_logger(format: str) -> logging.Logger:
     return root_logger
 
 
-def configure_logging(level: str, format: str, associated_loggers: List[str]) -> None:  # pragma: no cover
+def configure_logging(level: str, format: str, associated_loggers: List[str]) -> None:
     root_logger = _configure_root_logger(format)
 
     # Set the log level for this app's logger.
@@ -57,7 +57,7 @@ def configure_logging(level: str, format: str, associated_loggers: List[str]) ->
     # level for all third party libraires) is not lower than the
     # specified level.
     if app_logger_level > root_logger.getEffectiveLevel():
-        root_logger.setLevel(app_logger_level)
+        root_logger.setLevel(app_logger_level)  # pragma: no cover
 
     # Delete all gunicorn's log handlers (they are not needed in a
     # docker container because everything goes to the stdout anyway),
@@ -67,7 +67,7 @@ def configure_logging(level: str, format: str, associated_loggers: List[str]) ->
     gunicorn_logger.propagate = True
     _remove_handlers(gunicorn_logger)
     if app_logger_level > gunicorn_logger.getEffectiveLevel():
-        gunicorn_logger.setLevel(app_logger_level)
+        gunicorn_logger.setLevel(app_logger_level)  # pragma: no cover
 
 
 class MetaEnvReader(type):
