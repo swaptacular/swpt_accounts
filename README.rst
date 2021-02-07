@@ -19,22 +19,16 @@ How to run it
 
 1. Install `Docker`_ and `Docker Compose`_.
 
-2. Install `RabbitMQ`_ and either create a new RabbitMQ user, or allow
-   the existing "guest" user to connect from other hosts (by default,
-   only local connections are allowed for "guest"). You may need to
-   alter the firewall rules on your computer as well, to allow docker
-   containers to connect to the docker host.
-
-3. To create an *.env* file with reasonable defalut values, run this
+2. To create an *.env* file with reasonable defalut values, run this
    command::
 
      $ cp env.development .env
 
-4. To run the unit tests, use this command::
+3. To run the unit tests, use this command::
 
      $ docker-compose run tests-dummy test
 
-5. To run the minimal set of services needed for development, use this
+4. To run the minimal set of services needed for development, use this
    command::
 
      $ docker-compose up --build -d

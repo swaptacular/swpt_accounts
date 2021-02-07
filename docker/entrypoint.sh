@@ -29,7 +29,7 @@ perform_db_upgrade() {
     local error_file="$APP_ROOT_DIR/flask-db-upgrade.error"
     echo -n 'Running database schema upgrade ...'
     while [[ $retry_after -lt $time_limit ]]; do
-        if flask db upgrade 2>$error_file; then
+        if flask db upgrade &>$error_file; then
             perform_db_initialization
             echo ' done.'
             return 0
@@ -42,9 +42,26 @@ perform_db_upgrade() {
     return 1
 }
 
+# This function tries to set up the needed RabbitMQ objects (queues,
+# exchanges, bindings) with exponential backoff. This is necessary
+# during development, because the RabbitMQ server might not be running
+# yet when this script executes.
 setup_rabbitmq_bindings() {
-    flask swpt_accounts subscribe swpt_accounts
-    return 0
+    local retry_after=1
+    local time_limit=$(($retry_after << 5))
+    local error_file="$APP_ROOT_DIR/flask-db-upgrade.error"
+    echo -n 'Setting up message broker objects ...'
+    while [[ $retry_after -lt $time_limit ]]; do
+        if flask swpt_accounts subscribe swpt_accounts &>$error_file; then
+            echo ' done.'
+            return 0
+        fi
+        sleep $retry_after
+        retry_after=$((2 * retry_after))
+    done
+    echo
+    cat "$error_file"
+    return 1
 }
 
 # This function is intended to perform additional one-time database
