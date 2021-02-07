@@ -8,16 +8,16 @@ from typing import List
 from flask_melodramatiq import missing
 
 
-def _excepthook(exc_type, exc_value, traceback):
+def _excepthook(exc_type, exc_value, traceback):  # pragma: nocover
     logging.error("Uncaught exception occured", exc_info=(exc_type, exc_value, traceback))
 
 
 def _remove_handlers(logger):
     for h in logger.handlers:
-        logger.removeHandler(h)
+        logger.removeHandler(h)  # pragma: nocover
 
 
-def _add_console_hander(logger, format: str):
+def _add_console_hander(logger, format: str):  # pragma: nocover
     handler = logging.StreamHandler(sys.stdout)
     fmt = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
 
