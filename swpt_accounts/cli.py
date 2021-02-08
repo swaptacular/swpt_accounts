@@ -21,6 +21,7 @@ class ThreadPoolProcessor:
         self.wait_seconds = wait_seconds
         self.all_done = threading.Condition()
         self.pending = 0
+        self.error_has_occurred = False
 
     def _wait_until_all_done(self):
         while self.pending > 0:
@@ -40,6 +41,8 @@ class ThreadPoolProcessor:
         except Exception:
             self.logger.exception('Caught error while processing objects.')
 
+        self.error_has_occurred = True
+
     def run(self, *, quit_early=False):
         app = current_app._get_current_object()
 
@@ -50,7 +53,7 @@ class ThreadPoolProcessor:
         pool = ThreadPool(self.threads, initializer=push_app_context)
         iteration_counter = 0
 
-        while not (quit_early and iteration_counter > 0):
+        while not (self.error_has_occurred or (quit_early and iteration_counter > 0)):
             iteration_counter += 1
             started_at = time.time()
             args_collection = self.get_args_collection()
@@ -138,7 +141,8 @@ def process_balance_changes(threads, wait, quit_early):
     #       dedicated `ThreadPoolProcessor`-process for each bucket.
     #       This is also true for the other "process_*" CLI
     #       commands. Note that this would makes sense only if the
-    #       load is CPU-bound.
+    #       load is CPU-bound, which is unlikely if we implement the
+    #       logic in stored procedures.
 
     threads = threads or int(current_app.config['APP_PROCESS_BALANCE_CHANGES_THREADS'])
     wait = wait if wait is not None else current_app.config['APP_PROCESS_BALANCE_CHANGES_WAIT']
