@@ -68,9 +68,9 @@ services:
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@pg:5432/${POSTGRES_DB}'
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'CHORES_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
-      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL CHORES_BROKER_URL'
       - 'APP_LOG_LEVEL=warning'
       - 'APP_LOG_FORMAT=json'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL CHORES_BROKER_URL'
     command: configure
 
 
