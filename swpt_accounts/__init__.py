@@ -34,6 +34,7 @@ def _add_console_hander(logger, format: str):
 
 def _configure_root_logger(format: str) -> logging.Logger:
     root_logger = logging.getLogger()
+    root_logger.setLevel(logging.WARNING)
     _remove_handlers(root_logger)
     _add_console_hander(root_logger, format)
 
