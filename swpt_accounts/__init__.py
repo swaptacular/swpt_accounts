@@ -29,6 +29,7 @@ def _add_console_hander(logger, format: str):
     else:  # pragma: nocover
         raise RuntimeError(f'invalid log format: {format}')
 
+    handler.addFilter(_filter_pika_connection_reset_errors)
     logger.addHandler(handler)
 
 
@@ -39,6 +40,40 @@ def _configure_root_logger(format: str) -> logging.Logger:
     _add_console_hander(root_logger, format)
 
     return root_logger
+
+
+def _filter_pika_connection_reset_errors(record: logging.LogRecord) -> bool:  # pragma: nocover
+    # TODO: Currently, when one of Pika's connections to the RabbitMQ
+    # server has not been used for some time, it will be closed by the
+    # server. Pika successfully recovers form this situation, but logs
+    # a bunch of annoying errors. Here we filter out those
+    # errors. This should be unnecessary once we rewrite the message
+    # sending logic.
+
+    message = record.getMessage()
+    is_pika_connection_reset_error = record.levelno == logging.ERROR and (
+        (
+            record.name == 'pika.adapters.utils.io_services_utils'
+            and message.startswith(
+                "_AsyncBaseTransport._produce() failed, aborting connection: "
+                "error=ConnectionResetError(104, 'Connection reset by peer'); "
+            )
+        ) or (
+            record.name == 'pika.adapters.base_connection'
+            and message.startswith(
+                "connection_lost: StreamLostError: "
+                "(\"Stream connection lost: ConnectionResetError(104, 'Connection reset by peer')\",)"
+            )
+        ) or (
+            record.name == 'pika.adapters.blocking_connection'
+            and message.startswith(
+                "Unexpected connection close detected: StreamLostError: "
+                "(\"Stream connection lost: ConnectionResetError(104, 'Connection reset by peer')\",)"
+            )
+        )
+    )
+
+    return not is_pika_connection_reset_error
 
 
 def configure_logging(level: str, format: str, associated_loggers: List[str]) -> None:
