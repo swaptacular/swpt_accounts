@@ -94,7 +94,7 @@ case $1 in
         exec dramatiq --processes ${CHORES_PROCESSES-1} --threads ${CHORES_THREADS-3} tasks:chores_broker
         ;;
     process_balance_changes |process_transfer_requests | process_finalization_requests | scan_accounts \
-        | scan_prepared_transfers)
+        | scan_prepared_transfers | scan_registered_balance_changes)
         exec flask swpt_accounts "$@"
         ;;
     flush_rejected_transfers | flush_prepared_transfers | flush_finalized_transfers \

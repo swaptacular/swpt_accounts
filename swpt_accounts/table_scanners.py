@@ -6,8 +6,8 @@ from sqlalchemy.sql.expression import true, tuple_, or_
 from flask import current_app
 from swpt_accounts.extensions import db
 from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal, PreparedTransfer, \
-    PreparedTransferSignal, ROOT_CREDITOR_ID, calc_current_balance, is_negligible_balance, \
-    contain_principal_overflow
+    PreparedTransferSignal, RegisteredBalanceChange, ROOT_CREDITOR_ID, calc_current_balance, \
+    is_negligible_balance, contain_principal_overflow
 from swpt_accounts.fetch_api_client import get_root_config_data_dict
 from swpt_accounts.chores import change_interest_rate, capitalize_interest, try_to_delete_account
 
@@ -331,3 +331,43 @@ class PreparedTransferScanner(TableScanner):
                 }, synchronize_session=False)
 
             db.session.bulk_insert_mappings(PreparedTransferSignal, prepared_transfer_signal_mappings.values())
+
+
+class RegisteredBalanceChangeScanner(TableScanner):
+    """Attempts to delete stale registered balance changes."""
+
+    table = RegisteredBalanceChange.__table__
+    pk = tuple_(
+        RegisteredBalanceChange.debtor_id,
+        RegisteredBalanceChange.other_creditor_id,
+        RegisteredBalanceChange.change_id,
+    )
+
+    def __init__(self):
+        super().__init__()
+        self.cutoff_ts = current_app.config['APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME']
+
+    @property
+    def blocks_per_query(self) -> int:
+        return current_app.config['APP_REGISTERED_BALANCE_CHANGES_SCAN_BLOCKS_PER_QUERY']
+
+    @property
+    def target_beat_duration(self) -> int:
+        return current_app.config['APP_REGISTERED_BALANCE_CHANGES_SCAN_BEAT_MILLISECS']
+
+    @atomic
+    def process_rows(self, rows):
+        c = self.table.c
+        c_debtor_id = c.debtor_id
+        c_other_creditor_id = c.other_creditor_id
+        c_change_id = c.change_id
+        c_committed_at = c.committed_at
+        c_is_applied = c.is_applied
+        cutoff_ts = self.cutoff_ts
+
+        pks_to_delete = [(row[c_debtor_id], row[c_other_creditor_id], row[c_change_id]) for row in rows if (
+            row[c_committed_at] < cutoff_ts
+            and row[c_is_applied]
+        )]
+        if pks_to_delete:
+            db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))

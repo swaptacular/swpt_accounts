@@ -5,7 +5,16 @@ import sys
 import os
 import os.path
 from typing import List
+from datetime import datetime, timezone, timedelta
 from flask_melodramatiq import missing
+
+
+def _parse_datetime(s: str) -> datetime:
+    dt = datetime.fromisoformat(s)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+
+    return dt
 
 
 def _excepthook(exc_type, exc_value, traceback):  # pragma: nocover
@@ -166,6 +175,7 @@ class Configuration(metaclass=MetaEnvReader):
     APP_FLUSH_PENDING_BALANCE_CHANGES_BURST_COUNT = 10000
     APP_ACCOUNTS_SCAN_HOURS = 8.0
     APP_PREPARED_TRANSFERS_SCAN_DAYS = 1.0
+    APP_REGISTERED_BALANCE_CHANGES_SCAN_DAYS = 7.0
     APP_INTRANET_EXTREME_DELAY_DAYS = 14.0
     APP_SIGNALBUS_MAX_DELAY_DAYS = 7.0
     APP_ACCOUNT_HEARTBEAT_DAYS = 7.0
@@ -183,6 +193,9 @@ class Configuration(metaclass=MetaEnvReader):
     APP_ACCOUNTS_SCAN_BEAT_MILLISECS = 25
     APP_PREPARED_TRANSFERS_SCAN_BLOCKS_PER_QUERY = 40
     APP_PREPARED_TRANSFERS_SCAN_BEAT_MILLISECS = 25
+    APP_REGISTERED_BALANCE_CHANGES_SCAN_BLOCKS_PER_QUERY = 40
+    APP_REGISTERED_BALANCE_CHANGES_SCAN_BEAT_MILLISECS = 25
+    APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME: _parse_datetime = _parse_datetime('1970-01-01')
 
 
 def _check_config_sanity(c):  # pragma: nocover
@@ -213,6 +226,14 @@ def _check_config_sanity(c):  # pragma: nocover
             'The configured value for APP_ACCOUNTS_SCAN_HOURS is too big. This'
             'may result in lagging account status updates. Choose a more appropriate '
             'value.'
+        )
+
+    if (c['APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME']
+            > datetime.now(tz=timezone.utc) - timedelta(days=c['APP_INTRANET_EXTREME_DELAY_DAYS'])):
+        raise RuntimeError(
+            'The configured date for APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME is too '
+            'recent. This may result in discarding balance change events. Choose a more '
+            'appropriate value.'
         )
 
 

@@ -246,6 +246,52 @@ def test_scan_prepared_transfers(app_unsafe_session):
     db.session.commit()
 
 
+def test_scan_registered_balance_changes(app_unsafe_session):
+    from swpt_accounts.models import RegisteredBalanceChange
+
+    # db.signalbus.autoflush = False
+    current_ts = datetime.now(tz=timezone.utc)
+    past_ts = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    app = app_unsafe_session
+    RegisteredBalanceChange.query.delete()
+    db.session.commit()
+    db.session.add(RegisteredBalanceChange(
+        debtor_id=D_ID,
+        other_creditor_id=C_ID,
+        change_id=1,
+        committed_at=past_ts,
+        is_applied=False,
+    ))
+    db.session.add(RegisteredBalanceChange(
+        debtor_id=D_ID,
+        other_creditor_id=C_ID,
+        change_id=2,
+        committed_at=past_ts,
+        is_applied=True,
+    ))
+    db.session.add(RegisteredBalanceChange(
+        debtor_id=D_ID,
+        other_creditor_id=C_ID,
+        change_id=3,
+        committed_at=current_ts,
+        is_applied=True,
+    ))
+    db.session.flush()
+    db.session.commit()
+    db.engine.execute('ANALYZE account')
+    assert len(RegisteredBalanceChange.query.all()) == 3
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_accounts', 'scan_registered_balance_changes',
+                                 '--days', '0.000001', '--quit-early'])
+    assert result.exit_code == 0
+    assert len(RegisteredBalanceChange.query.all()) == 2
+    assert RegisteredBalanceChange.query.filter_by(change_id=1).one()
+    assert RegisteredBalanceChange.query.filter_by(change_id=3).one()
+
+    RegisteredBalanceChange.query.delete()
+    db.session.commit()
+
+
 def test_get_if_account_is_reachable(app_unsafe_session, caplog):
     from swpt_accounts.models import Account, AccountUpdateSignal
 

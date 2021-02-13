@@ -1,5 +1,6 @@
 import re
 from datetime import datetime
+from flask import current_app
 from swpt_lib.utils import u64_to_i64
 from .extensions import protocol_broker, APP_QUEUE_NAME
 from swpt_accounts.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, T0, TRANSFER_NOTE_MAX_BYTES, \
@@ -172,4 +173,5 @@ def on_pending_balance_change_signal(
         committed_at=parsed_committed_at,
         principal_delta=principal_delta,
         other_creditor_id=other_creditor_id,
+        cutoff_ts=current_app.config['APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME'],
     )

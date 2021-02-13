@@ -13,7 +13,7 @@ from swpt_accounts.models import Account, TransferRequest, PreparedTransfer, Pen
     FinalizationRequest, ROOT_CREDITOR_ID, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MAX_INT32, MIN_INT64, \
     MAX_INT64, SECONDS_IN_DAY, CT_INTEREST, CT_DELETE, CT_DIRECT, SC_OK, SC_SENDER_IS_UNREACHABLE, \
     SC_RECIPIENT_IS_UNREACHABLE, SC_INSUFFICIENT_AVAILABLE_AMOUNT, SC_RECIPIENT_SAME_AS_SENDER, \
-    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE, is_negligible_balance, contain_principal_overflow
+    SC_TOO_MANY_TRANSFERS, SC_TOO_LOW_INTEREST_RATE, T0, is_negligible_balance, contain_principal_overflow
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -503,12 +503,15 @@ def insert_pending_balance_change(
         transfer_note_format: str,
         transfer_note: str,
         committed_at: datetime,
-        principal_delta: int) -> None:
+        principal_delta: int,
+        cutoff_ts: datetime = T0) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
     assert MIN_INT64 <= change_id <= MAX_INT64
-    assert committed_at is not None
+
+    if committed_at < cutoff_ts:
+        return
 
     registered_balance_change_query = RegisteredBalanceChange.query.filter_by(
         debtor_id=debtor_id,

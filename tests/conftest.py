@@ -1,6 +1,7 @@
 import pytest
 import sqlalchemy
 import flask_migrate
+from datetime import datetime, timezone
 from unittest import mock
 from swpt_accounts import create_app
 from swpt_accounts.extensions import db
@@ -14,6 +15,7 @@ config_dict = {
     'SWPT_SERVER_NAME': server_name,
     'APP_MAX_INTEREST_TO_PRINCIPAL_RATIO': 0.01,
     'APP_FETCH_DATA_CACHE_SIZE': 10,
+    'APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME': datetime(2000, 1, 1, tzinfo=timezone.utc)
 }
 
 
