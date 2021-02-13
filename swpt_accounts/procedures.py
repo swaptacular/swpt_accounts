@@ -511,7 +511,7 @@ def insert_pending_balance_change(
     assert MIN_INT64 <= change_id <= MAX_INT64
 
     if committed_at < cutoff_ts:
-        return
+        return  # pragma: nocover
 
     registered_balance_change_query = RegisteredBalanceChange.query.filter_by(
         debtor_id=debtor_id,
