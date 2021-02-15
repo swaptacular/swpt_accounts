@@ -69,6 +69,10 @@ services:
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL CHORES_BROKER_URL'
 
 
+  # The purpose of this container is to create the database schema,
+  # and all the necessary RabbitMQ objects (queues, exchanges,
+  # etc.). It has to be run only once, but running it multiple times
+  # should not do any harm.
   accounts-server-config:
     build:
       context: .
