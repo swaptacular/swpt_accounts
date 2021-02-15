@@ -1,17 +1,19 @@
 swpt_accounts
 =============
 
-Swaptacular micro-service that manages user account balances
+Swaptacular service that manages user account balances
+
+This service implements a generic `messaging protocol`_. The ultimate
+deliverable is a docker image, which is generated from the project's
+`Dockerfile`_. To find out what processes can be spawned from the
+generated image, see the `entrypoint`_. For the available
+configuration options, see the `docker-compose-all.yml`_ example file.
+
 
 .. _`messaging protocol`: protocol.rst
-
-This micro-service implements a generic `messaging
-protocol`_. Currently it defines several `Dramatiq`_ `actors`_, and
-emits several types of `events`_. Eventually, it should migrate to
-using `Cap'n Proto`_.
-
-.. _actors: swpt_accounts/actors.py
-.. _events: swpt_accounts/events.py
+.. _Dockerfile: Dockerfile
+.. _entrypoint: docker/entrypoint.sh
+.. _`docker-compose-all.yml`: docker-compose-all.yml
 
 
 How to run it
@@ -62,8 +64,4 @@ To start the containers, use this command::
 
 .. _Docker: https://docs.docker.com/
 .. _Docker Compose: https://docs.docker.com/compose/
-.. _RabbitMQ: https://www.rabbitmq.com/
 .. _Poetry: https://poetry.eustace.io/docs/
-.. _Python: https://docs.python.org/
-.. _Dramatiq: https://dramatiq.io/
-.. _`Cap'n Proto`: https://capnproto.org/
