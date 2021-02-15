@@ -122,6 +122,7 @@ case $1 in
         exec flask signalbus flushmany --repeat=$wait $signal_name
         ;;
     all)
+        # Spawns all the necessary processes in one container.
         exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
         ;;
     *)

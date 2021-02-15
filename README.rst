@@ -3,7 +3,7 @@ swpt_accounts
 
 Swaptacular service that manages user account balances
 
-This service implements a generic `messaging protocol`_. The ultimate
+This service implements a `messaging protocol`_ server. The ultimate
 deliverable is a docker image, which is generated from the project's
 `Dockerfile`_. To find out what processes can be spawned from the
 generated image, see the `entrypoint`_. For the available
