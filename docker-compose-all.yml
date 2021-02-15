@@ -26,6 +26,14 @@ services:
       - $RABBITMQ_MANAGEMENT_LOCAL_PORT:15672
 
 
+  # The purpose of this container is to serve as HTTP cache for the
+  # `account-server` container. In complex deployments, it is possible
+  # to run several `account-server` instances, each instance being
+  # responsible for a different range of debtors, and each instance
+  # making HTTP requests to other `account-server` instances
+  # (including itself). A properly configured HTTP cache ensures that
+  # the system scales well. (See the `APP_FETCH_API_URL` configuration
+  # variable.)
   accounts-cache:
     image: nginx:1.19.4
     volumes:
@@ -38,6 +46,7 @@ services:
       - 'CACHE_KEYS_ZONE=10m'
       - 'CACHE_MAX_SIZE=1g'
       - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
+
 
   accounts-server:
     build:
