@@ -7,13 +7,13 @@ This service implements a generic `messaging protocol`_. The ultimate
 deliverable is a docker image, which is generated from the project's
 `Dockerfile`_. To find out what processes can be spawned from the
 generated image, see the `entrypoint`_. For the available
-configuration options, see the `docker-compose-all.yml`_ example file.
+configuration options, see the `example file`_.
 
 
 .. _`messaging protocol`: protocol.rst
 .. _Dockerfile: Dockerfile
 .. _entrypoint: docker/entrypoint.sh
-.. _`docker-compose-all.yml`: docker-compose-all.yml
+.. _`example file`: docker-compose-all.yml
 
 
 How to run it
