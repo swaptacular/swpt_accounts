@@ -7,15 +7,13 @@ D_ID = -1
 C_ID = 1
 
 
-@pytest.fixture(scope='module')
-def actors():
-    from unittest import mock
-
+@pytest.fixture(scope='function')
+def actors(mocker):
     class Broker:
-        def actor(self, f, **kw):
-            return f
+        def actor(self, fn=None, **kw):
+            return fn or (lambda x: x)
 
-    mock.patch('swpt_accounts.extensions.protocol_broker', Broker())
+    mocker.patch('swpt_accounts.extensions.protocol_broker', Broker())
     from swpt_accounts import actors
     return actors
 

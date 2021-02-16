@@ -61,7 +61,6 @@ COPY docker/entrypoint.sh \
      pytest.ini \
      ./
 COPY migrations/ migrations/
-COPY tests/ tests/
 COPY $FLASK_APP/ $FLASK_APP/
 RUN python -m compileall -x '^\./(migrations|tests)/' . \
     && rm -f .env \

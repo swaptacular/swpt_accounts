@@ -2,7 +2,7 @@ import re
 from datetime import datetime
 from flask import current_app
 from swpt_lib.utils import u64_to_i64
-from .extensions import protocol_broker, APP_QUEUE_NAME
+from swpt_accounts.extensions import protocol_broker, APP_QUEUE_NAME
 from swpt_accounts.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, T0, TRANSFER_NOTE_MAX_BYTES, \
     CONFIG_DATA_MAX_BYTES
 from swpt_accounts.fetch_api_client import get_if_account_is_reachable

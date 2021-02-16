@@ -54,6 +54,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - './swpt_accounts:/usr/src/app/swpt_accounts'
+      - './tests:/usr/src/app/tests'
     env_file: .env
     environment:
       - 'PYTHONDONTWRITEBYTECODE=1'
