@@ -1,19 +1,19 @@
-swpt_accounts
-=============
-
 Swaptacular service that manages user account balances
+======================================================
 
 This service implements a `messaging protocol`_ server. The ultimate
 deliverable is a docker image, which is generated from the project's
 `Dockerfile`_. To find out what processes can be spawned from the
-generated image, see the `entrypoint`_. For the available
-configuration options, see the `example file`_.
+generated image, see the `entrypoint`_.  For the available
+configuration options, see the `development.env`_ file. This
+`example`_ shows how to use the generated image.
 
 
 .. _`messaging protocol`: protocol.rst
 .. _Dockerfile: Dockerfile
 .. _entrypoint: docker/entrypoint.sh
-.. _`example file`: docker-compose-all.yml
+.. _development.env: development.env
+.. _`example`: docker-compose-all.yml
 
 
 How to run it
