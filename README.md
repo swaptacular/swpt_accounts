@@ -10,6 +10,7 @@ options, see the [development.env](development.env) file. This
 [example](docker-compose-all.yml) shows how to use the generated
 image.
 
+
 How to run it
 -------------
 
@@ -30,12 +31,14 @@ How to run it
 
         $ docker-compose up --build
 
+
 How to setup a development environment
 --------------------------------------
 
 1.  Install [Poetry](https://poetry.eustace.io/docs/).
 
-2.  Create a new Python virtual environment and activate it.
+2.  Create a new [Python](https://docs.python.org/) virtual
+    environment and activate it.
 
 3.  To install dependencies, run this command:
 
@@ -46,6 +49,7 @@ How to setup a development environment
     tasks:chores_broker` to spawn local task workers, and `pytest
     --cov=swpt_accounts --cov-report=html` to run the tests and
     generate a test coverage report..
+
 
 How to run all services (production-like)
 -----------------------------------------
