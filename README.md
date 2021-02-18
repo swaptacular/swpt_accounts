@@ -1,14 +1,20 @@
 Swaptacular service that manages user account balances
 ======================================================
 
-This service implements a [messaging protocol](protocol.rst)
+This service implements
+[Swaptacular](https://github.com/epandurski/swaptacular)'s [messaging
+protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
 server. The ultimate deliverable is a docker image, which is generated
-from the project's [Dockerfile](Dockerfile). To find out what
-processes can be spawned from the generated image, see the
-[entrypoint](docker/entrypoint.sh). For the available configuration
-options, see the [development.env](development.env) file. This
-[example](docker-compose-all.yml) shows how to use the generated
-image.
+from the project's
+[Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile). To
+find out what processes can be spawned from the generated image, see
+the
+[entrypoint](https://github.com/epandurski/swpt_accounts/blob/master/docker/entrypoint.sh). For
+the available configuration options, see the
+[development.env](https://github.com/epandurski/swpt_accounts/blob/master/development.env)
+file. This
+[example](https://github.com/epandurski/swpt_accounts/blob/master/docker-compose-all.yml)
+shows how to use the generated image.
 
 
 How to run it
