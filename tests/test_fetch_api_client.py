@@ -5,7 +5,7 @@ from swpt_accounts.fetch_api_client import parse_root_config_data, get_root_conf
 
 
 def test_parse_root_config_data():
-    assert RootConfigData().interest_rate == 0.0
+    assert RootConfigData().interest_rate_target == 0.0
     assert parse_root_config_data('') == RootConfigData()
     assert parse_root_config_data('{}') == RootConfigData()
     assert parse_root_config_data('{"rate": 99.5}') == RootConfigData(99.5)

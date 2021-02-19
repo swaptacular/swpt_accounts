@@ -10,12 +10,6 @@ class RootConfigData(NamedTuple):
     info_sha256: Optional[bytes] = None
     info_content_type: Optional[str] = None
 
-    @property
-    def interest_rate(self):
-        # NOTE: Interest rate limits might be implemented in the future.
-
-        return self.interest_rate_target
-
 
 class ValidateTypeMixin:
     @validates('type')

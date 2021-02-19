@@ -108,6 +108,6 @@ def configure_account_and_set_interest_rate(
             procedures.change_interest_rate(
                 debtor_id=debtor_id,
                 creditor_id=creditor_id,
-                interest_rate=root_config_data.interest_rate,
+                interest_rate=root_config_data.interest_rate_target,
                 signalbus_max_delay_seconds=signalbus_max_delay_seconds,
             )

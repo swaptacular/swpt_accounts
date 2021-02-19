@@ -256,7 +256,7 @@ class AccountScanner(TableScanner):
             config_data = config_data_dict.get(debtor_id)
 
             if config_data and can_change_interest_rate(row):
-                interest_rate = config_data.interest_rate
+                interest_rate = config_data.interest_rate_target
 
                 if row[c_interest_rate] != interest_rate:
                     change_interest_rate.send(debtor_id, row[c_creditor_id], interest_rate, current_ts.isoformat())
