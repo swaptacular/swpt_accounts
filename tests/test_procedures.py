@@ -126,6 +126,26 @@ def test_invalid_config(db_session, current_ts):
     assert len(RejectedConfigSignal.query.all()) == 1
 
 
+def test_update_debtor_info(db_session, current_ts):
+    # The account does not exist.
+    p.update_debtor_info(D_ID, C_ID, None, None, None)
+    assert p.get_account(D_ID, C_ID) is None
+    assert len(AccountUpdateSignal.query.all()) == 0
+
+    # The account does exist.
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.update_debtor_info(D_ID, C_ID, 'http://example.com', 32 * b'a', 'text/plain', current_ts)
+    a = p.get_account(D_ID, C_ID)
+    assert a.debtor_info_iri == 'http://example.com'
+    assert a.debtor_info_sha256 == 32 * b'a'
+    assert a.debtor_info_content_type == 'text/plain'
+    assert len(AccountUpdateSignal.query.all()) == 2
+
+    # No change.
+    p.update_debtor_info(D_ID, C_ID, 'http://example.com', 32 * b'a', 'text/plain', current_ts)
+    assert len(AccountUpdateSignal.query.all()) == 2
+
+
 def test_set_interest_rate(db_session, current_ts):
     # The account does not exist.
     p.change_interest_rate(D_ID, C_ID, 7.0, current_ts)

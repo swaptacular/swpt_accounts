@@ -1,4 +1,5 @@
 import math
+from base64 import b16encode
 from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from swpt_lib.scan_table import TableScanner
@@ -9,7 +10,7 @@ from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSigna
     PreparedTransferSignal, RegisteredBalanceChange, ROOT_CREDITOR_ID, calc_current_balance, \
     is_negligible_balance, contain_principal_overflow
 from swpt_accounts.fetch_api_client import get_root_config_data_dict
-from swpt_accounts.chores import change_interest_rate, capitalize_interest, try_to_delete_account
+from swpt_accounts.chores import change_interest_rate, update_debtor_info, capitalize_interest, try_to_delete_account
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -59,7 +60,7 @@ class AccountScanner(TableScanner):
         self._send_heartbeats(rows, current_ts)
         self._delete_accounts(rows, current_ts)
         self._capitalize_interests(rows, current_ts)
-        self._change_interest_rates(rows, current_ts)
+        self._change_debtor_settings(rows, current_ts)
 
     def _purge_accounts(self, rows, current_ts):
         c = self.table.c
@@ -231,35 +232,63 @@ class AccountScanner(TableScanner):
                 if ratio > max_ratio:
                     capitalize_interest.send(row[c_debtor_id], creditor_id)
 
-    def _change_interest_rates(self, rows, current_ts):
+    def _change_debtor_settings(self, rows, current_ts):
         c = self.table.c
         c_debtor_id = c.debtor_id
         c_creditor_id = c.creditor_id
         c_last_interest_rate_change_ts = c.last_interest_rate_change_ts
         c_status_flags = c.status_flags
         c_interest_rate = c.interest_rate
+        c_debtor_info_iri = c.debtor_info_iri
+        c_debtor_info_content_type = c.debtor_info_content_type
+        c_debtor_info_sha256 = c.debtor_info_sha256
         deleted_flag = Account.STATUS_DELETED_FLAG
-        cutoff_ts = current_ts - self.interest_rate_change_min_interval
+        interest_rate_change_cutoff_ts = current_ts - self.interest_rate_change_min_interval
 
-        def can_change_interest_rate(row):
+        def should_change_interest_rate(row, current_interest_rate):
             return (
-                row[c_creditor_id] != ROOT_CREDITOR_ID
-                and row[c_last_interest_rate_change_ts] <= cutoff_ts
+                row[c_interest_rate] != current_interest_rate
+                and row[c_last_interest_rate_change_ts] <= interest_rate_change_cutoff_ts
                 and not row[c_status_flags] & deleted_flag
             )
 
-        debtor_ids = {row[c_debtor_id] for row in rows if can_change_interest_rate(row)}
+        def should_update_debtor_info(row, debtor_info_iri, debtor_info_content_type, debtor_info_sha256):
+            return (
+                not row[c_status_flags] & deleted_flag
+                and (
+                    row[c_debtor_info_iri] != debtor_info_iri
+                    or row[c_debtor_info_content_type] != debtor_info_content_type
+                    or row[c_debtor_info_sha256] != debtor_info_sha256
+                )
+            )
+
+        debtor_ids = {row[c_debtor_id] for row in rows}
         config_data_dict = get_root_config_data_dict(debtor_ids)
 
         for row in rows:
+            creditor_id = row[c_creditor_id]
+            if creditor_id == ROOT_CREDITOR_ID:
+                continue
+
             debtor_id = row[c_debtor_id]
             config_data = config_data_dict.get(debtor_id)
-
-            if config_data and can_change_interest_rate(row):
+            if config_data:
                 interest_rate = config_data.interest_rate_target
+                if should_change_interest_rate(row, interest_rate):
+                    change_interest_rate.send(debtor_id, creditor_id, interest_rate, current_ts.isoformat())
 
-                if row[c_interest_rate] != interest_rate:
-                    change_interest_rate.send(debtor_id, row[c_creditor_id], interest_rate, current_ts.isoformat())
+                debtor_info_iri = config_data.info_iri
+                debtor_info_content_type = config_data.info_content_type
+                debtor_info_sha256 = config_data.info_sha256
+                if should_update_debtor_info(row, debtor_info_iri, debtor_info_content_type, debtor_info_sha256):
+                    update_debtor_info.send(
+                        debtor_id,
+                        creditor_id,
+                        debtor_info_iri,
+                        debtor_info_content_type,
+                        debtor_info_sha256 and b16encode(debtor_info_sha256).decode(),
+                        current_ts.isoformat(),
+                    )
 
 
 class PreparedTransferScanner(TableScanner):

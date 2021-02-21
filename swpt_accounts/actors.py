@@ -4,10 +4,10 @@ from flask import current_app
 from swpt_lib.utils import u64_to_i64
 from swpt_accounts.extensions import protocol_broker, APP_QUEUE_NAME
 from swpt_accounts.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, T0, TRANSFER_NOTE_MAX_BYTES, \
-    CONFIG_DATA_MAX_BYTES
+    CONFIG_DATA_MAX_BYTES, SECONDS_IN_DAY
 from swpt_accounts.fetch_api_client import get_if_account_is_reachable
 from swpt_accounts import procedures
-from swpt_accounts.chores import configure_account_and_set_interest_rate
+from swpt_accounts.fetch_api_client import get_root_config_data_dict
 
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 
@@ -33,7 +33,7 @@ def configure_account(
     assert MIN_INT32 <= config_flags <= MAX_INT32
     assert len(config_data) <= CONFIG_DATA_MAX_BYTES and len(config_data.encode('utf8')) <= CONFIG_DATA_MAX_BYTES
 
-    configure_account_and_set_interest_rate(
+    _configure_and_initialize_account(
         debtor_id=debtor_id,
         creditor_id=creditor_id,
         ts=parsed_ts,
@@ -175,3 +175,43 @@ def on_pending_balance_change_signal(
         other_creditor_id=other_creditor_id,
         cutoff_ts=current_app.config['APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME'],
     )
+
+
+def _configure_and_initialize_account(
+        *,
+        debtor_id: int,
+        creditor_id: int,
+        ts: datetime,
+        seqnum: int,
+        negligible_amount: float = 0.0,
+        config_flags: int = 0,
+        config_data: str = '') -> None:
+
+    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
+    should_be_initialized = procedures.configure_account(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        ts=ts,
+        seqnum=seqnum,
+        negligible_amount=negligible_amount,
+        config_flags=config_flags,
+        config_data=config_data,
+        signalbus_max_delay_seconds=signalbus_max_delay_seconds,
+    )
+    if should_be_initialized:
+        root_config_data = get_root_config_data_dict([debtor_id]).get(debtor_id)
+
+        if root_config_data:
+            procedures.change_interest_rate(
+                debtor_id=debtor_id,
+                creditor_id=creditor_id,
+                interest_rate=root_config_data.interest_rate_target,
+                signalbus_max_delay_seconds=signalbus_max_delay_seconds,
+            )
+            procedures.update_debtor_info(
+                debtor_id=debtor_id,
+                creditor_id=creditor_id,
+                debtor_info_iri=root_config_data.info_iri,
+                debtor_info_content_type=root_config_data.info_content_type,
+                debtor_info_sha256=root_config_data.info_sha256,
+            )

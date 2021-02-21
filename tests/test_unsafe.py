@@ -7,7 +7,7 @@ from swpt_accounts.extensions import db, chores_broker
 from swpt_accounts.schemas import RootConfigData
 from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict
 from swpt_accounts import procedures as p
-from swpt_accounts.chores import configure_account_and_set_interest_rate
+from swpt_accounts.actors import _configure_and_initialize_account
 
 
 D_ID = -1
@@ -30,7 +30,8 @@ def test_scan_accounts(app_unsafe_session):
     PendingBalanceChangeSignal.query.delete()
     db.session.commit()
 
-    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 0.0}')
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0,
+                        config_data='{"rate": 0.0, "info": {"iri": "http://example.com"}}')
     AccountUpdateSignal.query.delete()
     account = Account(
         debtor_id=D_ID,
@@ -42,6 +43,7 @@ def test_scan_accounts(app_unsafe_session):
         last_transfer_id=3,
         last_change_ts=past_ts,
         last_heartbeat_ts=past_ts,
+        debtor_info_iri='http://example.com',
     )
     db.session.add(account)
     db.session.add(Account(
@@ -55,6 +57,7 @@ def test_scan_accounts(app_unsafe_session):
         status_flags=Account.STATUS_DELETED_FLAG,
         last_change_ts=past_ts,
         last_heartbeat_ts=past_ts,
+        debtor_info_iri='http://example.com',
     ))
     db.session.add(Account(
         debtor_id=D_ID,
@@ -68,6 +71,7 @@ def test_scan_accounts(app_unsafe_session):
         last_transfer_id=2,
         last_change_ts=current_ts - timedelta(seconds=10),
         last_heartbeat_ts=current_ts - timedelta(seconds=10),
+        debtor_info_iri='http://example.com',
     ))
     db.session.add(Account(
         debtor_id=D_ID,
@@ -79,6 +83,7 @@ def test_scan_accounts(app_unsafe_session):
         last_transfer_id=1,
         last_change_ts=past_ts,
         last_heartbeat_ts=current_ts - timedelta(seconds=10),
+        debtor_info_iri='http://example.com',
     ))
     db.session.add(Account(
         debtor_id=D_ID,
@@ -91,15 +96,29 @@ def test_scan_accounts(app_unsafe_session):
         config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
         last_change_ts=current_ts,
         last_heartbeat_ts=current_ts,
+        debtor_info_iri='http://example.com',
+    ))
+    db.session.add(Account(
+        debtor_id=D_ID,
+        creditor_id=1234567,
+        creation_date=date(1970, 1, 1),
+        principal=0,
+        total_locked_amount=0,
+        pending_transfers_count=0,
+        last_transfer_id=0,
+        last_change_ts=current_ts,
+        last_heartbeat_ts=current_ts,
     ))
     db.session.commit()
     db.engine.execute('ANALYZE account')
-    assert len(Account.query.all()) == 6
+    assert len(Account.query.all()) == 7
     runner = app.test_cli_runner()
     result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--hours', '0.000024', '--quit-early'])
     assert result.exit_code == 0
-    assert len(Account.query.all()) == 5
+    assert len(Account.query.all()) == 6
     assert len(AccountUpdateSignal.query.all()) == 1
+
+    # A heartbeat message
     acs = AccountUpdateSignal.query.one()
     assert acs.debtor_id == account.debtor_id
     assert acs.creditor_id == account.creditor_id
@@ -116,7 +135,7 @@ def test_scan_accounts(app_unsafe_session):
     assert acs.config_data == ''
     assert acs.config_flags == account.config_flags
 
-    assert len(Account.query.all()) == 5
+    assert len(Account.query.all()) == 6
     assert len(Account.query.filter_by(creditor_id=123).all()) == 0
     aps = AccountPurgeSignal.query.filter_by(debtor_id=D_ID, creditor_id=123).one()
     assert aps.creation_date == date(1970, 1, 1)
@@ -136,6 +155,7 @@ def test_scan_accounts(app_unsafe_session):
     assert accounts[2].last_heartbeat_ts >= current_ts and accounts[2].interest_rate == 0.0
     assert accounts[3].last_heartbeat_ts < current_ts
     assert accounts[4].status_flags & Account.STATUS_DELETED_FLAG
+    assert accounts[5].debtor_info_iri == 'http://example.com'
 
     assert AccountTransferSignal.query.one().creditor_id == 1234
     assert PendingBalanceChangeSignal.query.one().creditor_id == p.ROOT_CREDITOR_ID
@@ -143,8 +163,8 @@ def test_scan_accounts(app_unsafe_session):
     db.engine.execute('ANALYZE account')
     result = runner.invoke(args=['swpt_accounts', 'scan_prepared_transfers', '--days', '0.000001', '--quit-early'])
     assert result.exit_code == 0
-    assert len(Account.query.all()) == 5
-    assert len(AccountUpdateSignal.query.all()) == 3
+    assert len(Account.query.all()) == 6
+    assert len(AccountUpdateSignal.query.all()) == 4
 
     Account.query.delete()
     AccountUpdateSignal.query.delete()
@@ -359,7 +379,7 @@ def test_set_interest_rate_on_new_accounts(app_unsafe_session):
     db.session.commit()
 
     p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 3.567}')
-    configure_account_and_set_interest_rate(debtor_id=D_ID, creditor_id=C_ID, ts=current_ts, seqnum=0)
+    _configure_and_initialize_account(debtor_id=D_ID, creditor_id=C_ID, ts=current_ts, seqnum=0)
 
     signals = AccountUpdateSignal.query.filter_by(creditor_id=C_ID).all()
     assert any(s.interest_rate == 3.567 for s in signals)

@@ -1,10 +1,11 @@
 import math
+from base64 import b16decode
+from typing import Optional
 from datetime import datetime, timedelta
 from flask import current_app
 from .extensions import chores_broker
 from swpt_accounts.models import MIN_INT64, MAX_INT64, SECONDS_IN_DAY
 from swpt_accounts import procedures
-from swpt_accounts.fetch_api_client import get_root_config_data_dict
 
 
 @chores_broker.actor(queue_name='change_interest_rate', max_retries=0)
@@ -27,6 +28,36 @@ def change_interest_rate(debtor_id: int, creditor_id: int, interest_rate: float,
         interest_rate=interest_rate,
         ts=datetime.fromisoformat(ts),
         signalbus_max_delay_seconds=current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY,
+    )
+
+
+@chores_broker.actor(queue_name='update_debtor_info', max_retries=0)
+def update_debtor_info(
+        debtor_id: int,
+        creditor_id: int,
+        debtor_info_iri: Optional[str],
+        debtor_info_content_type: Optional[str],
+        debtor_info_sha256: Optional[str],
+        ts: str) -> None:
+
+    """Update the information about the debtor of on a given the account."""
+
+    debtor_info_sha256 = debtor_info_sha256 and b16decode(debtor_info_sha256)
+
+    assert MIN_INT64 <= debtor_id <= MAX_INT64
+    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert debtor_info_iri is None or len(debtor_info_iri) <= 200
+    assert debtor_info_content_type is None or (
+        len(debtor_info_content_type) <= 100 and debtor_info_content_type.isascii())
+    assert debtor_info_sha256 is None or len(debtor_info_sha256) == 32
+
+    procedures.update_debtor_info(
+        debtor_id=debtor_id,
+        creditor_id=creditor_id,
+        debtor_info_iri=debtor_info_iri,
+        debtor_info_content_type=debtor_info_content_type,
+        debtor_info_sha256=debtor_info_sha256,
+        ts=datetime.fromisoformat(ts),
     )
 
 
@@ -71,43 +102,3 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
     assert MIN_INT64 <= creditor_id <= MAX_INT64
 
     procedures.try_to_delete_account(debtor_id, creditor_id)
-
-
-def configure_account_and_set_interest_rate(
-        *,
-        debtor_id: int,
-        creditor_id: int,
-        ts: datetime,
-        seqnum: int,
-        negligible_amount: float = 0.0,
-        config_flags: int = 0,
-        config_data: str = '') -> None:
-
-    """A helper function, that makes sure that the given account exists,
-    and updates its configuration settings. This function also makes
-    sure that an up-to-date interest rate is set on new accounts.
-
-    """
-
-    signalbus_max_delay_seconds = current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-
-    should_change_interest_rate = procedures.configure_account(
-        debtor_id=debtor_id,
-        creditor_id=creditor_id,
-        ts=ts,
-        seqnum=seqnum,
-        negligible_amount=negligible_amount,
-        config_flags=config_flags,
-        config_data=config_data,
-        signalbus_max_delay_seconds=signalbus_max_delay_seconds,
-    )
-    if should_change_interest_rate:
-        root_config_data = get_root_config_data_dict([debtor_id]).get(debtor_id)
-
-        if root_config_data:
-            procedures.change_interest_rate(
-                debtor_id=debtor_id,
-                creditor_id=creditor_id,
-                interest_rate=root_config_data.interest_rate_target,
-                signalbus_max_delay_seconds=signalbus_max_delay_seconds,
-            )

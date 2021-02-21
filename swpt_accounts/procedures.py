@@ -50,14 +50,14 @@ def configure_account(
         signalbus_max_delay_seconds: float = 1e30) -> bool:
 
     current_ts = datetime.now(tz=timezone.utc)
-    should_change_interest_rate = False
+    should_be_initialized = False
 
     def clear_deleted_flag(account):
-        nonlocal should_change_interest_rate
+        nonlocal should_be_initialized
 
         if account.status_flags & Account.STATUS_DELETED_FLAG:
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
-            should_change_interest_rate = True
+            should_be_initialized = True
 
     def is_valid_config():
         if not negligible_amount >= 0.0:
@@ -75,12 +75,12 @@ def configure_account(
         return True
 
     def try_to_configure(account):
-        nonlocal should_change_interest_rate
+        nonlocal should_be_initialized
 
         if is_valid_config():
             if account is None:
                 account = _create_account(debtor_id, creditor_id, current_ts)
-                should_change_interest_rate = True
+                should_be_initialized = True
             else:
                 clear_deleted_flag(account)
 
@@ -115,7 +115,7 @@ def configure_account(
         if signal_age_seconds <= signalbus_max_delay_seconds:
             try_to_configure(account)
 
-    return should_change_interest_rate
+    return should_be_initialized
 
 
 @atomic
@@ -209,6 +209,43 @@ def get_account_config_data(debtor_id: int, creditor_id: int) -> Optional[str]:
         query(Account.config_data).\
         filter_by(debtor_id=debtor_id, creditor_id=creditor_id).\
         scalar()
+
+
+@atomic
+def update_debtor_info(
+        debtor_id: int,
+        creditor_id: int,
+        debtor_info_iri: Optional[str],
+        debtor_info_sha256: Optional[bytes],
+        debtor_info_content_type: Optional[str],
+        ts: datetime = None) -> None:
+
+    if creditor_id == ROOT_CREDITOR_ID:  # pragma: nocover
+        return
+
+    current_ts = datetime.now(tz=timezone.utc)
+    ts = ts or current_ts
+
+    # If the scheduled "chores" have not been processed for a long
+    # time, an old debtor info update request can arrive. In such
+    # cases, the request will be ignored, avoiding setting a
+    # potentially outdated debtor info.
+    is_old_request = (current_ts - ts).total_seconds() > SECONDS_IN_DAY
+    if is_old_request:
+        return
+
+    account = get_account(debtor_id, creditor_id, lock=True)
+    if account:
+        old_info = (account.debtor_info_iri, account.debtor_info_sha256, account.debtor_info_content_type)
+        new_info = (debtor_info_iri, debtor_info_sha256, debtor_info_content_type)
+        if old_info != new_info:
+            account.debtor_info_iri = debtor_info_iri
+            account.debtor_info_sha256 = debtor_info_sha256
+            account.debtor_info_content_type = debtor_info_content_type
+            account.last_change_seqnum = increment_seqnum(account.last_change_seqnum)
+            account.last_change_ts = max(account.last_change_ts, current_ts)
+
+            _insert_account_update_signal(account, current_ts)
 
 
 @atomic
