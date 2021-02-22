@@ -40,7 +40,12 @@ def update_debtor_info(
         debtor_info_sha256: Optional[str],
         ts: str) -> None:
 
-    """Update the information about the debtor of on a given the account."""
+    """Update the information about the debtor on a given the account.
+
+    The information about the debtor will not be updated if the
+    request is too old.
+
+    """
 
     debtor_info_sha256 = debtor_info_sha256 and b16decode(debtor_info_sha256)
 
@@ -63,7 +68,12 @@ def update_debtor_info(
 
 @chores_broker.actor(queue_name='capitalize_interest', max_retries=0)
 def capitalize_interest(debtor_id: int, creditor_id: int) -> None:
-    """Add the interest accumulated on the account to the principal."""
+    """Add the interest accumulated on the account to the principal.
+
+    Does nothing if not enough time has passed since the previous
+    interest capitalization.
+
+    """
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
     assert MIN_INT64 <= creditor_id <= MAX_INT64
