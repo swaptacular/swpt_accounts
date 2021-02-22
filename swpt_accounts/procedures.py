@@ -261,13 +261,12 @@ def change_interest_rate(
 
     current_ts = datetime.now(tz=timezone.utc)
     ts = ts or current_ts
-    change_min_interval_seconds = signalbus_max_delay_seconds + SECONDS_IN_DAY
 
     # If the scheduled "chores" have not been processed for a long
     # time, an old interest rate change request can arrive. In such
     # cases, the request will be ignored, avoiding setting a
     # potentially outdated interest rate.
-    is_old_request = (current_ts - ts).total_seconds() > change_min_interval_seconds
+    is_old_request = (current_ts - ts).total_seconds() > SECONDS_IN_DAY
     if is_old_request:
         return
 
@@ -283,8 +282,8 @@ def change_interest_rate(
             return
 
         old_interest_rate = account.interest_rate
+        change_min_interval_seconds = signalbus_max_delay_seconds + SECONDS_IN_DAY
         seconds_since_last_change = (current_ts - account.last_interest_rate_change_ts).total_seconds()
-
         if old_interest_rate != interest_rate and seconds_since_last_change >= change_min_interval_seconds:
             assert current_ts >= account.last_interest_rate_change_ts
 
