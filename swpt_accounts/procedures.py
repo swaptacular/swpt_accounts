@@ -60,19 +60,21 @@ def configure_account(
             should_be_initialized = True
 
     def is_valid_config():
-        if not negligible_amount >= 0.0:
-            return False
+        if negligible_amount >= 0.0:
+            if config_data == '':
+                return True
 
-        if config_data == '':
-            return True
+            # NOTE: Currently, only the root account is allowed to
+            # have a non-empty string as config data. ("Normal"
+            # accounts can not set config data.)
+            if creditor_id == ROOT_CREDITOR_ID:
+                try:
+                    parse_root_config_data(config_data)
+                except ValueError:
+                    return False
+                return True
 
-        if creditor_id == ROOT_CREDITOR_ID:
-            try:
-                parse_root_config_data(config_data)
-            except ValueError:
-                return False
-
-        return True
+        return False
 
     def try_to_configure(account):
         nonlocal should_be_initialized
