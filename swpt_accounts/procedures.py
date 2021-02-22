@@ -542,7 +542,7 @@ def insert_pending_balance_change(
         cutoff_ts: datetime = T0) -> None:
 
     assert MIN_INT64 <= debtor_id <= MAX_INT64
-    assert MIN_INT64 <= creditor_id <= MAX_INT64
+    assert MIN_INT64 <= other_creditor_id <= MAX_INT64
     assert MIN_INT64 <= change_id <= MAX_INT64
 
     if committed_at < cutoff_ts:
