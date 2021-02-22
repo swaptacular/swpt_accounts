@@ -317,11 +317,11 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
     if creditor_id == ROOT_CREDITOR_ID:
         # TODO: Allow the deletion of the debtor's account, but only
         #       when there are no other accounts with the given debtor
-        #       in the whole system.
+        #       in the whole system. (When accounts are sharded over
+        #       several databases, it is not easy to guarantee this.)
         return
 
     current_ts = datetime.now(tz=timezone.utc)
-
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
         account.last_deletion_attempt_ts = current_ts
@@ -334,7 +334,6 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
         if can_be_deleted:
             if account.principal != 0:
                 _make_debtor_payment(CT_DELETE, account, -account.principal, current_ts)
-
             _mark_account_as_deleted(account, current_ts)
 
 
