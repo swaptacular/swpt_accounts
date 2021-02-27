@@ -28,8 +28,9 @@ How to run it
 
         $ cp development.env .env
 
-3.  To run the unit tests, use this command:
+3.  To run the unit tests, use the following commands:
 
+        $ docker-compose build
         $ docker-compose run tests-dummy test
 
 4.  To run the minimal set of services needed for development, use this
