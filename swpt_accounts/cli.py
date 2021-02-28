@@ -93,7 +93,7 @@ def subscribe(queue_name):  # pragma: no cover
 
     logger = logging.getLogger(__name__)
     channel = protocol_broker.channel
-    channel.exchange_declare(MAIN_EXCHANGE_NAME)
+    channel.exchange_declare(MAIN_EXCHANGE_NAME, durable=True)
     logger.info(f'Declared "{MAIN_EXCHANGE_NAME}" direct exchange.')
 
     if environ.get('APP_USE_LOAD_BALANCING_EXCHANGE', '') not in ['', 'False']:
