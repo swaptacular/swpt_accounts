@@ -942,6 +942,7 @@ transfer_note_max_bytes: int32
    `FinalizeTransfer`_ messages is allowed to contain when UTF-8
    encoded. This MUST be a non-negative number which does not exceed
    the general limit imposed by this protocol. [#note-limitations]_
+   When changed, it SHOULD NOT be decreased.
 
 ts : date-time
    The moment at which this message was sent (the message's
