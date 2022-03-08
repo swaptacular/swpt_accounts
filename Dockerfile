@@ -29,7 +29,7 @@ RUN poetry config virtualenvs.create false \
 
 # This is the second and final image. Starting from a clean alpine
 # image, it copies over the previously created virtual environment.
-FROM python:3.7.9-alpine3.13 AS runtime-image
+FROM python:3.7.9-alpine3.13 AS app-image
 ARG FLASK_APP=swpt_accounts
 
 ENV FLASK_APP=$FLASK_APP
