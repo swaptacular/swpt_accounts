@@ -106,4 +106,3 @@ venv.bak/
 # Emacs files
 TAGS
 *~
-.dir-locals.el
