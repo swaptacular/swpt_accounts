@@ -19,7 +19,7 @@ pytest-mock = "^1.10"
 marshmallow = "^3.0.1"
 swpt_lib = {git = "https://github.com/epandurski/swpt_lib.git"}
 requests = "^2.25.1"
-aiohttp = "^3.7.3"
+aiohttp = "^3.7.4"
 
 [tool.poetry.dev-dependencies]
 pudb = "*"
