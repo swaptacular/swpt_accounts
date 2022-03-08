@@ -33,8 +33,8 @@ How to run it
         $ docker-compose build
         $ docker-compose run tests-dummy test
 
-4.  To run the minimal set of services needed for development, use this
-    command:
+4.  To run the minimal set of services needed for development (not
+    includuing RabbitMQ), use this command:
 
         $ docker-compose up --build
 
