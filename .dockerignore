@@ -12,6 +12,11 @@ sdist/
 wheels/
 MANIFEST
 
+# Other unneeded directories
+htmlcov/
+submodules/
+hooks/
+
 # Byte-compiled files
 **/__pycache__/
 **/*.py[cod]
