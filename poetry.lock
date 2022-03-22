@@ -235,7 +235,7 @@ Flask-SQLAlchemy = ">=1.0"
 
 [[package]]
 name = "flask-signalbus"
-version = "0.5.6"
+version = "0.5.7"
 description = "A Flask-SQLAlchemy extension for atomically sending messages (signals) over a message bus"
 category = "main"
 optional = false
@@ -1009,7 +1009,7 @@ flask-migrate = [
     {file = "Flask_Migrate-2.6.0-py2.py3-none-any.whl", hash = "sha256:c1601dfd46b9204233935e5d73473cd7fa959db7a4b0e894c7aa7a9e8aeebf0e"},
 ]
 flask-signalbus = [
-    {file = "Flask-SignalBus-0.5.6.tar.gz", hash = "sha256:6a6ce05d1fe9cc297866dd23bc49cdce32d3430845414b8ba72a76b8c0ac9727"},
+    {file = "Flask-SignalBus-0.5.7.tar.gz", hash = "sha256:9b13506faa73a958d798c179f4be96a040f4e5bfddc44e7ade5d858d512bf2c3"},
 ]
 flask-sqlalchemy = [
     {file = "Flask-SQLAlchemy-2.4.4.tar.gz", hash = "sha256:bfc7150eaf809b1c283879302f04c42791136060c6eeb12c0c6674fb1291fae5"},
