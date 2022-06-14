@@ -57,7 +57,7 @@ def configure_account(
 
         if account.status_flags & Account.STATUS_DELETED_FLAG:
             account.status_flags &= ~Account.STATUS_DELETED_FLAG
-            should_be_initialized = True
+            should_be_initialized = creditor_id != ROOT_CREDITOR_ID
 
     def is_valid_config():
         if negligible_amount >= 0.0:
@@ -82,7 +82,7 @@ def configure_account(
         if is_valid_config():
             if account is None:
                 account = _create_account(debtor_id, creditor_id, current_ts)
-                should_be_initialized = True
+                should_be_initialized = creditor_id != ROOT_CREDITOR_ID
             else:
                 clear_deleted_flag(account)
 
