@@ -204,7 +204,7 @@ they MUST first verify whether the specified account already exists:
   `ConfigureAccount`_ messages for one account should not be sent more
   often than once per minute.
 
-.. [#reserved-creditor-ids] All ``creditor_id``s between 0 and
+.. [#reserved-creditor-ids] All ``creditor_id``\s between 0 and
   4294967295 are reserved. Implementations SHOULD NOT use numbers in
   this interval for regular accounts.
 
