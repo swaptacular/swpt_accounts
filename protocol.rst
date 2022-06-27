@@ -1062,10 +1062,7 @@ coordinator_type : string
 sender : string
    A string which (along with ``debtor_id``) identifies the sender's
    account. [#account-id]_ An empty string signifies that the sender
-   is unknown. If the transfer has been committed by a
-   `FinalizeTransfer`_ message, this field MUST contain the sender's
-   ``account_id``. (That is: the value of the ``account_id`` field in
-   `AccountUpdate`_ messages.)
+   is unknown.
 
 recipient : string
    A string which (along with ``debtor_id``) identifies the
