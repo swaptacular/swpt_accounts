@@ -3,7 +3,7 @@ Swaptacular service that manages user account balances
 
 This service implements
 [Swaptacular](https://github.com/epandurski/swaptacular)'s [messaging
-protocol](https://github.com/epandurski/swaptacular/blob/master/docs/protocol.rst)
+protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
 server. The ultimate deliverable is a docker image, which is generated
 from the project's
 [Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile). To
