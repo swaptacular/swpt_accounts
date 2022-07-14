@@ -29,7 +29,7 @@ flake8 = "^3.7"
 pytest-pudb = "^0.7.0"
 pytest-dotenv = "^0.4.0"
 pytest-cov = "^2.7"
-mypy = "^0.730"
+mypy = "^0.961"
 
 [build-system]
 requires = ["poetry>=0.12"]
