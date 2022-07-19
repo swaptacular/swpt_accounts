@@ -1,13 +1,16 @@
 from base64 import b16encode
+from hashlib import md5
 import dramatiq
 from flask import current_app
 from datetime import datetime, timezone
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
 from swpt_lib.utils import i64_to_u64
-from swpt_accounts.extensions import db, protocol_broker, MAIN_EXCHANGE_NAME
+from swpt_accounts.extensions import db, publisher
+from flask_signalbus import rabbitmq
 
 __all__ = [
+    'ROOT_CREDITOR_ID',
     'RejectedTransferSignal',
     'PreparedTransferSignal',
     'FinalizedTransferSignal',
@@ -23,9 +26,29 @@ INTEREST_RATE_FLOOR = -50.0
 INTEREST_RATE_CEIL = 100.0
 TRANSFER_NOTE_MAX_BYTES = 500
 
+# The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
+# debtor's account. It issuers all the money. Also, all interest and
+# demurrage payments come from/to this account.
+ROOT_CREDITOR_ID = 0
+
 
 def get_now_utc():
     return datetime.now(tz=timezone.utc)
+
+
+def i64_to_hex_routing_key(n):
+    s = format(i64_to_u64(n), '016x')
+    assert(len(s) == 16)
+    return '.'.join([s[i:i + 2] for i in range(0, 16, 2)])
+
+
+def calc_bin_routing_key(debtor_id, creditor_id):
+    m = md5()
+    m.update(debtor_id.to_bytes(8, byteorder='big', signed=True))
+    m.update(creditor_id.to_bytes(8, byteorder='big', signed=True))
+    s = ''.join([format(byte, '08b') for byte in m.digest()[:3]])
+    assert(len(s) == 24)
+    return '.'.join(s)
 
 
 class classproperty(object):
@@ -43,37 +66,58 @@ class Signal(db.Model):
     #      `ModelClass.signalbus_burst_count = N` in models. Make sure
     #      RabbitMQ message headers are set properly for the messages.
 
-    queue_name = None
-
     @property
-    def event_name(self):  # pragma: no cover
+    def actor_name(self):  # pragma: no cover
         model = type(self)
         return f'on_{model.__tablename__}'
 
+    @classmethod
+    def send_signalbus_messages(cls, objects):  # pragma: no cover
+        assert(all(isinstance(obj, cls) for obj in objects))
+        messages = [obj._create_message() for obj in objects]
+        publisher.publish_messages(messages)
+
     def send_signalbus_message(self):  # pragma: no cover
+        self.send_signalbus_messages([self])
+
+    def _create_message(self):  # pragma: no cover
         model = type(self)
-        if model.queue_name is None:
-            assert not hasattr(model, 'actor_name'), \
-                'SignalModel.actor_name is set, but SignalModel.queue_name is not'
-            actor_name = self.event_name
-            routing_key = f'events.{actor_name}'
-        else:
-            actor_name = model.actor_name
-            routing_key = model.queue_name
         data = model.__marshmallow_schema__.dump(self)
-        message = dramatiq.Message(
-            queue_name=model.queue_name,
-            actor_name=actor_name,
+        dramatiq_message = dramatiq.Message(
+            queue_name=None,
+            actor_name=self.actor_name,
             args=(),
             kwargs=data,
             options={},
         )
-        protocol_broker.publish_message(message, exchange=MAIN_EXCHANGE_NAME, routing_key=routing_key)
+        headers = {
+            'debtor-id': data['debtor_id'],
+            'creditor-id': data['creditor_id'],
+        }
+        if 'coordinator_id' in data:
+            headers['coordinator-id'] = data['coordinator_id']
+            headers['coordinator-type'] = data['coordinator_type']
+        properties = rabbitmq.MessageProperties(
+            delivery_mode=2,
+            app_id='swpt_accounts',
+            content_type='application/json',
+            type=self.message_type,
+            headers=headers,
+        )
+        return rabbitmq.Message(
+            exchange=self.exchange_name,
+            routing_key=self.routing_key,
+            body=dramatiq_message.encode(),
+            properties=properties,
+        )
 
     inserted_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
 
 
 class RejectedTransferSignal(Signal):
+    message_type = 'RejectedTransfer'
+    exchange_name = 'to_coordinators'
+
     class __marshmallow__(Schema):
         coordinator_type = fields.String()
         coordinator_id = fields.Integer()
@@ -98,11 +142,18 @@ class RejectedTransferSignal(Signal):
         return current_app.config['APP_FLUSH_REJECTED_TRANSFERS_BURST_COUNT']
 
     @property
-    def event_name(self):  # pragma: no cover
+    def routing_key(self):  # pragma: no cover
+        return i64_to_hex_routing_key(self.coordinator_id)
+
+    @property
+    def actor_name(self):  # pragma: no cover
         return f'on_rejected_{self.coordinator_type}_transfer_signal'
 
 
 class PreparedTransferSignal(Signal):
+    message_type = 'PreparedTransfer'
+    exchange_name = 'to_coordinators'
+
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         sender_creditor_id = fields.Integer(data_key='creditor_id')
@@ -137,11 +188,18 @@ class PreparedTransferSignal(Signal):
         return current_app.config['APP_FLUSH_PREPARED_TRANSFERS_BURST_COUNT']
 
     @property
-    def event_name(self):  # pragma: no cover
+    def routing_key(self):  # pragma: no cover
+        return i64_to_hex_routing_key(self.coordinator_id)
+
+    @property
+    def actor_name(self):  # pragma: no cover
         return f'on_prepared_{self.coordinator_type}_transfer_signal'
 
 
 class FinalizedTransferSignal(Signal):
+    message_type = 'FinalizedTransfer'
+    exchange_name = 'to_coordinators'
+
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         sender_creditor_id = fields.Integer(data_key='creditor_id')
@@ -172,11 +230,17 @@ class FinalizedTransferSignal(Signal):
         return current_app.config['APP_FLUSH_FINALIZED_TRANSFERS_BURST_COUNT']
 
     @property
-    def event_name(self):  # pragma: no cover
+    def routing_key(self):  # pragma: no cover
+        return i64_to_hex_routing_key(self.coordinator_id)
+
+    @property
+    def actor_name(self):  # pragma: no cover
         return f'on_finalized_{self.coordinator_type}_transfer_signal'
 
 
 class AccountTransferSignal(Signal):
+    message_type = 'AccountTransfer'
+
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
@@ -216,6 +280,14 @@ class AccountTransferSignal(Signal):
         return current_app.config['APP_FLUSH_ACCOUNT_TRANSFERS_BURST_COUNT']
 
     @property
+    def exchange_name(self):  # pragma: no cover
+        return 'to_debtors' if self.creditor_id == ROOT_CREDITOR_ID else 'to_creditors'
+
+    @property
+    def routing_key(self):  # pragma: no cover
+        return i64_to_hex_routing_key(self.debtor_id if self.creditor_id == ROOT_CREDITOR_ID else self.creditor_id)
+
+    @property
     def sender_creditor_id(self):
         return self.other_creditor_id if self.acquired_amount >= 0 else self.creditor_id
 
@@ -225,6 +297,8 @@ class AccountTransferSignal(Signal):
 
 
 class AccountUpdateSignal(Signal):
+    message_type = 'AccountUpdate'
+
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
@@ -278,6 +352,14 @@ class AccountUpdateSignal(Signal):
         return current_app.config['APP_FLUSH_ACCOUNT_UPDATES_BURST_COUNT']
 
     @property
+    def exchange_name(self):  # pragma: no cover
+        return 'to_debtors' if self.creditor_id == ROOT_CREDITOR_ID else 'to_creditors'
+
+    @property
+    def routing_key(self):  # pragma: no cover
+        return i64_to_hex_routing_key(self.debtor_id if self.creditor_id == ROOT_CREDITOR_ID else self.creditor_id)
+
+    @property
     def ttl(self):
         return int(current_app.config['APP_SIGNALBUS_MAX_DELAY_DAYS'] * SECONDS_IN_DAY)
 
@@ -287,6 +369,8 @@ class AccountUpdateSignal(Signal):
 
 
 class AccountPurgeSignal(Signal):
+    message_type = 'AccountPurge'
+
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
@@ -297,12 +381,22 @@ class AccountPurgeSignal(Signal):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     creation_date = db.Column(db.DATE, primary_key=True)
 
+    @property
+    def exchange_name(self):  # pragma: no cover
+        return 'to_debtors' if self.creditor_id == ROOT_CREDITOR_ID else 'to_creditors'
+
+    @property
+    def routing_key(self):  # pragma: no cover
+        return i64_to_hex_routing_key(self.debtor_id if self.creditor_id == ROOT_CREDITOR_ID else self.creditor_id)
+
     @classproperty
     def signalbus_burst_count(self):
         return current_app.config['APP_FLUSH_ACCOUNT_PURGES_BURST_COUNT']
 
 
 class RejectedConfigSignal(Signal):
+    message_type = 'RejectedConfig'
+
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
@@ -324,12 +418,23 @@ class RejectedConfigSignal(Signal):
     negligible_amount = db.Column(db.REAL, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
 
+    @property
+    def exchange_name(self):  # pragma: no cover
+        return 'to_debtors' if self.creditor_id == ROOT_CREDITOR_ID else 'to_creditors'
+
+    @property
+    def routing_key(self):  # pragma: no cover
+        return i64_to_hex_routing_key(self.debtor_id if self.creditor_id == ROOT_CREDITOR_ID else self.creditor_id)
+
     @classproperty
     def signalbus_burst_count(self):
         return current_app.config['APP_FLUSH_REJECTED_CONFIGS_BURST_COUNT']
 
 
 class PendingBalanceChangeSignal(Signal):
+    message_type = 'PendingBalanceChange'
+    exchange_name = 'accounts_in'
+
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
@@ -350,6 +455,10 @@ class PendingBalanceChangeSignal(Signal):
     transfer_note = db.Column(pg.TEXT, nullable=False)
     committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     principal_delta = db.Column(db.BigInteger, nullable=False)
+
+    @property
+    def routing_key(self):  # pragma: no cover
+        return calc_bin_routing_key(self.debtor_id, self.creditor_id)
 
     @classproperty
     def signalbus_burst_count(self):

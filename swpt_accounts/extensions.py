@@ -8,7 +8,7 @@ from werkzeug.local import Local, LocalProxy
 from flask import current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_signalbus import SignalBusMixin, AtomicProceduresMixin
+from flask_signalbus import SignalBusMixin, AtomicProceduresMixin, rabbitmq
 from flask_melodramatiq import RabbitmqBroker
 from dramatiq import Middleware
 
@@ -79,3 +79,4 @@ requests_session = LocalProxy(get_requests_session)
 protocol_broker = RabbitmqBroker(config_prefix='PROTOCOL_BROKER', confirm_delivery=True)
 protocol_broker.add_middleware(EventSubscriptionMiddleware())
 chores_broker = RabbitmqBroker(config_prefix='CHORES_BROKER', confirm_delivery=False)
+publisher = rabbitmq.Publisher(url_config_key='PROTOCOL_BROKER_URL')

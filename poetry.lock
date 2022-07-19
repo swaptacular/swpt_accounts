@@ -235,7 +235,7 @@ Flask-SQLAlchemy = ">=1.0"
 
 [[package]]
 name = "flask-signalbus"
-version = "0.5.7"
+version = "0.5.11"
 description = "A Flask-SQLAlchemy extension for atomically sending messages (signals) over a message bus"
 category = "main"
 optional = false
@@ -827,7 +827,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "26c3b966191fb64c684837aa164f42ca8b0627cae39aecc9a915eb58e6ab7242"
+content-hash = "6fc849ec5c085de6550420b2a2e9782291a0b436d2e6e3281359e98cbdf51fe2"
 
 [metadata.files]
 aiohttp = [
@@ -1019,9 +1019,7 @@ flask-migrate = [
     {file = "Flask-Migrate-2.6.0.tar.gz", hash = "sha256:8626af845e6071ef80c70b0dc16d373f761c981f0ad61bb143a529cab649e725"},
     {file = "Flask_Migrate-2.6.0-py2.py3-none-any.whl", hash = "sha256:c1601dfd46b9204233935e5d73473cd7fa959db7a4b0e894c7aa7a9e8aeebf0e"},
 ]
-flask-signalbus = [
-    {file = "Flask-SignalBus-0.5.7.tar.gz", hash = "sha256:9b13506faa73a958d798c179f4be96a040f4e5bfddc44e7ade5d858d512bf2c3"},
-]
+flask-signalbus = []
 flask-sqlalchemy = [
     {file = "Flask-SQLAlchemy-2.4.4.tar.gz", hash = "sha256:bfc7150eaf809b1c283879302f04c42791136060c6eeb12c0c6674fb1291fae5"},
     {file = "Flask_SQLAlchemy-2.4.4-py2.py3-none-any.whl", hash = "sha256:05b31d2034dd3f2a685cbbae4cfc4ed906b2a733cff7964ada450fd5e462b84e"},

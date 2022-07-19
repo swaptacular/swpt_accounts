@@ -34,11 +34,6 @@ SC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
 SC_RECIPIENT_SAME_AS_SENDER = 'RECIPIENT_SAME_AS_SENDER'
 SC_TOO_MANY_TRANSFERS = 'TOO_MANY_TRANSFERS'
 
-# The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
-# debtor's account. It issuers all the money. Also, all interest and
-# demurrage payments come from/to this account.
-ROOT_CREDITOR_ID = 0
-
 
 def get_now_utc() -> datetime:
     return datetime.now(tz=timezone.utc)
