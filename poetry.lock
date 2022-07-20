@@ -235,7 +235,7 @@ Flask-SQLAlchemy = ">=1.0"
 
 [[package]]
 name = "flask-signalbus"
-version = "0.5.12"
+version = "0.5.13"
 description = "A Flask-SQLAlchemy extension for atomically sending messages (signals) over a message bus"
 category = "main"
 optional = false
@@ -827,7 +827,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "d1b98e2369ac455cb78623bdabc1f0a1d799d043b1dc4f4667b9cd01cc7517b0"
+content-hash = "762eeff6b5c9981ab92bbf7d345fd79475a2729bc371b6ee6bd2dcbedfe30947"
 
 [metadata.files]
 aiohttp = [
