@@ -83,8 +83,7 @@ class Signal(db.Model):
         self.send_signalbus_messages([self])
 
     def _create_message(self):  # pragma: no cover
-        model = type(self)
-        data = model.__marshmallow_schema__.dump(self)
+        data = self.__marshmallow_schema__.dump(self)
         dramatiq_message = dramatiq.Message(
             queue_name=None,
             actor_name=self.actor_name,
