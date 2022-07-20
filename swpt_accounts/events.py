@@ -6,7 +6,9 @@ from datetime import datetime, timezone
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
 from swpt_lib.utils import i64_to_u64
-from swpt_accounts.extensions import db, publisher
+from swpt_accounts.extensions import db, publisher, TO_COORDINATORS_EXCHANGE, TO_DEBTORS_EXCHANGE, \
+    TO_CREDITORS_EXCHANGE
+
 from flask_signalbus import rabbitmq
 
 __all__ = [
@@ -117,7 +119,7 @@ class Signal(db.Model):
 
 class RejectedTransferSignal(Signal):
     message_type = 'RejectedTransfer'
-    exchange_name = 'to_coordinators'
+    exchange_name = TO_COORDINATORS_EXCHANGE
 
     class __marshmallow__(Schema):
         coordinator_type = fields.String()
@@ -153,7 +155,7 @@ class RejectedTransferSignal(Signal):
 
 class PreparedTransferSignal(Signal):
     message_type = 'PreparedTransfer'
-    exchange_name = 'to_coordinators'
+    exchange_name = TO_COORDINATORS_EXCHANGE
 
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
@@ -199,7 +201,7 @@ class PreparedTransferSignal(Signal):
 
 class FinalizedTransferSignal(Signal):
     message_type = 'FinalizedTransfer'
-    exchange_name = 'to_coordinators'
+    exchange_name = TO_COORDINATORS_EXCHANGE
 
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
@@ -282,7 +284,7 @@ class AccountTransferSignal(Signal):
 
     @property
     def exchange_name(self):  # pragma: no cover
-        return 'to_debtors' if self.creditor_id == ROOT_CREDITOR_ID else 'to_creditors'
+        return TO_DEBTORS_EXCHANGE if self.creditor_id == ROOT_CREDITOR_ID else TO_CREDITORS_EXCHANGE
 
     @property
     def routing_key(self):  # pragma: no cover
@@ -354,7 +356,7 @@ class AccountUpdateSignal(Signal):
 
     @property
     def exchange_name(self):  # pragma: no cover
-        return 'to_debtors' if self.creditor_id == ROOT_CREDITOR_ID else 'to_creditors'
+        return TO_DEBTORS_EXCHANGE if self.creditor_id == ROOT_CREDITOR_ID else TO_CREDITORS_EXCHANGE
 
     @property
     def routing_key(self):  # pragma: no cover
@@ -384,7 +386,7 @@ class AccountPurgeSignal(Signal):
 
     @property
     def exchange_name(self):  # pragma: no cover
-        return 'to_debtors' if self.creditor_id == ROOT_CREDITOR_ID else 'to_creditors'
+        return TO_DEBTORS_EXCHANGE if self.creditor_id == ROOT_CREDITOR_ID else TO_CREDITORS_EXCHANGE
 
     @property
     def routing_key(self):  # pragma: no cover
@@ -421,7 +423,7 @@ class RejectedConfigSignal(Signal):
 
     @property
     def exchange_name(self):  # pragma: no cover
-        return 'to_debtors' if self.creditor_id == ROOT_CREDITOR_ID else 'to_creditors'
+        return TO_DEBTORS_EXCHANGE if self.creditor_id == ROOT_CREDITOR_ID else TO_CREDITORS_EXCHANGE
 
     @property
     def routing_key(self):  # pragma: no cover
