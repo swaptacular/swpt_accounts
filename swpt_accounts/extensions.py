@@ -17,6 +17,7 @@ APP_QUEUE_NAME = os.environ.get('APP_QUEUE_NAME', 'swpt_accounts')
 TO_COORDINATORS_EXCHANGE = 'to_coordinators'
 TO_DEBTORS_EXCHANGE = 'to_debtors'
 TO_CREDITORS_EXCHANGE = 'to_creditors'
+ACCOUNTS_IN_EXCHANGE = 'accounts_in'
 
 _local = Local()
 

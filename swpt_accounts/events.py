@@ -7,7 +7,7 @@ from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
 from swpt_lib.utils import i64_to_u64
 from swpt_accounts.extensions import db, publisher, TO_COORDINATORS_EXCHANGE, TO_DEBTORS_EXCHANGE, \
-    TO_CREDITORS_EXCHANGE
+    TO_CREDITORS_EXCHANGE, ACCOUNTS_IN_EXCHANGE
 
 from flask_signalbus import rabbitmq
 
@@ -436,7 +436,7 @@ class RejectedConfigSignal(Signal):
 
 class PendingBalanceChangeSignal(Signal):
     message_type = 'PendingBalanceChange'
-    exchange_name = 'accounts_in'
+    exchange_name = ACCOUNTS_IN_EXCHANGE
 
     class __marshmallow__(Schema):
         debtor_id = fields.Integer()
