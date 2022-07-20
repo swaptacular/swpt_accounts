@@ -37,9 +37,9 @@ def get_now_utc():
 
 
 def i64_to_hex_routing_key(n):
-    s = format(i64_to_u64(n), '016x')
-    assert(len(s) == 16)
-    return '.'.join([s[i:i + 2] for i in range(0, 16, 2)])
+    bytes_n = n.to_bytes(8, byteorder='big', signed=True)
+    assert(len(bytes_n) == 8)
+    return '.'.join([format(byte, '02x') for byte in bytes_n])
 
 
 def calc_bin_routing_key(debtor_id, creditor_id):
@@ -109,6 +109,7 @@ class Signal(db.Model):
             routing_key=self.routing_key,
             body=dramatiq_message.encode(),
             properties=properties,
+            mandatory=True,
         )
 
     inserted_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc)
