@@ -8,7 +8,6 @@ from sqlalchemy.dialects import postgresql as pg
 from swpt_lib.utils import i64_to_u64
 from swpt_accounts.extensions import db, publisher, TO_COORDINATORS_EXCHANGE, TO_DEBTORS_EXCHANGE, \
     TO_CREDITORS_EXCHANGE, ACCOUNTS_IN_EXCHANGE
-
 from flask_signalbus import rabbitmq
 
 __all__ = [
