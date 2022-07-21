@@ -64,10 +64,6 @@ class classproperty(object):
 class Signal(db.Model):
     __abstract__ = True
 
-    # TODO: Define `send_signalbus_messages` class method, and set
-    #      `ModelClass.signalbus_burst_count = N` in models. Make sure
-    #      RabbitMQ message headers are set properly for the messages.
-
     @property
     def actor_name(self):  # pragma: no cover
         model = type(self)
