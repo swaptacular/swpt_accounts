@@ -234,8 +234,8 @@ class SmpConsumer(rabbitmq.Consumer):
 
     def process_message(self, body, properties):
         try:
-            massage_type = properties.headers['type']
-        except (KeyError, AttributeError):
+            massage_type = properties.type
+        except AttributeError:
             LOGGER.warn('Missing message type header')
             return False
 
