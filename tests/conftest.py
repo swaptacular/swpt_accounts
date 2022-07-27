@@ -17,8 +17,6 @@ config_dict = {
     'APP_MAX_INTEREST_TO_PRINCIPAL_RATIO': 0.01,
     'APP_FETCH_DATA_CACHE_SIZE': 10,
     'APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME': datetime(2000, 1, 1, tzinfo=timezone.utc),
-    'PROTOCOL_BROKER_CLASS': 'StubBroker',
-    'PROTOCOL_BROKER_URL': missing,
 }
 
 

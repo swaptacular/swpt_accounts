@@ -1,18 +1,19 @@
+import logging
 import re
+import json
 from datetime import datetime
 from flask import current_app
+from flask_signalbus import rabbitmq
 from swpt_lib.utils import u64_to_i64
-from swpt_accounts.extensions import protocol_broker, APP_QUEUE_NAME
 from swpt_accounts.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, T0, TRANSFER_NOTE_MAX_BYTES, \
     CONFIG_DATA_MAX_BYTES, SECONDS_IN_DAY
-from swpt_accounts.fetch_api_client import get_if_account_is_reachable
+from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict
 from swpt_accounts import procedures
-from swpt_accounts.fetch_api_client import get_root_config_data_dict
 
+LOGGER = logging.getLogger(__name__)
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME)
 def configure_account(
         debtor_id: int,
         creditor_id: int,
@@ -20,7 +21,8 @@ def configure_account(
         seqnum: int,
         negligible_amount: float = 0.0,
         config_flags: int = 0,
-        config_data: str = '') -> None:
+        config_data: str = '',
+        *args, **kwargs) -> None:
 
     """Make sure the account exists, and update its configuration settings."""
 
@@ -44,7 +46,6 @@ def configure_account(
     )
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME)
 def prepare_transfer(
         coordinator_type: str,
         coordinator_id: int,
@@ -56,7 +57,8 @@ def prepare_transfer(
         recipient: str,
         ts: str,
         max_commit_delay: int,
-        min_interest_rate: float = -100.0) -> None:
+        min_interest_rate: float = -100.0,
+        *args, **kwargs) -> None:
 
     """Try to secure some amount, to eventually transfer it to another account."""
 
@@ -93,7 +95,6 @@ def prepare_transfer(
     )
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME)
 def finalize_transfer(
         debtor_id: int,
         creditor_id: int,
@@ -104,7 +105,8 @@ def finalize_transfer(
         committed_amount: int,
         transfer_note_format: str,
         transfer_note: str,
-        ts: str) -> None:
+        ts: str,
+        *args, **kwargs) -> None:
 
     """Finalize a prepared transfer."""
 
@@ -136,7 +138,6 @@ def finalize_transfer(
     )
 
 
-@protocol_broker.actor(queue_name=APP_QUEUE_NAME, event_subscription=True)
 def on_pending_balance_change_signal(
         debtor_id: int,
         creditor_id: int,
@@ -146,7 +147,8 @@ def on_pending_balance_change_signal(
         transfer_note: str,
         committed_at: str,
         principal_delta: int,
-        other_creditor_id: int) -> None:
+        other_creditor_id: int,
+        *args, **kwargs) -> None:
 
     """Queue a pendding balance change."""
 
@@ -215,3 +217,45 @@ def _configure_and_initialize_account(
                 debtor_info_content_type=root_config_data.info_content_type,
                 debtor_info_sha256=root_config_data.info_sha256,
             )
+
+
+MESSAGE_TYPES = {
+    'ConfigureAccount': configure_account,
+    'PrepareTransfer': prepare_transfer,
+    'FinalizeTransfer': finalize_transfer,
+    'PendingBalanceChange': on_pending_balance_change_signal,
+}
+
+TerminatedConsumtion = rabbitmq.TerminatedConsumtion
+
+
+class SmpConsumer(rabbitmq.Consumer):
+    """Passes messages to proper handlers (actors)."""
+
+    def process_message(self, body, properties):
+        try:
+            massage_type = properties.headers['type']
+        except (KeyError, AttributeError):
+            LOGGER.warn('Missing message type header')
+            return False
+
+        try:
+            actor = MESSAGE_TYPES[massage_type]
+        except KeyError:
+            LOGGER.warn('Unknown message type: "%s"', massage_type)
+            return False
+
+        try:
+            obj = json.loads(body.decode('utf8'))
+        except (UnicodeError, json.JSONDecodeError):
+            LOGGER.warn('The message does not contain a valid JSON document.')
+            return False
+
+        try:
+            kwargs = obj['kwargs']
+        except KeyError:
+            LOGGER.warn('Malformed message: does not contain a "kwargs" property.')
+            return False
+
+        actor(**kwargs)
+        return True

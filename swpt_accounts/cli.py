@@ -2,6 +2,8 @@ import logging
 import click
 import time
 import threading
+import signal
+import pika
 from datetime import timedelta
 from os import environ
 from multiprocessing.dummy import Pool as ThreadPool
@@ -81,39 +83,67 @@ def swpt_accounts():
 @swpt_accounts.command()
 @with_appcontext
 @click.argument('queue_name')
-def subscribe(queue_name):  # pragma: no cover
-    """Subscribe a queue for the observed events and messages.
+@click.option('-r', '--routing-key', type=str, default='#', help='Specify a routing key (the default is "#").')
+def subscribe(queue_name, routing_key):  # pragma: no cover
+    """Declare a RabbitMQ queue, and subscribe it to receive incoming
+    messages.
 
     QUEUE_NAME specifies the name of the queue.
 
     """
 
-    from .extensions import protocol_broker, MAIN_EXCHANGE_NAME
-    from . import actors  # noqa
+    from .extensions import ACCOUNTS_IN_EXCHANGE, \
+        TO_CREDITORS_EXCHANGE, TO_DEBTORS_EXCHANGE, TO_COORDINATORS_EXCHANGE, \
+        DEBTORS_IN_EXCHANGE, DEBTORS_OUT_EXCHANGE, \
+        CREDITORS_IN_EXCHANGE, CREDITORS_OUT_EXCHANGE
 
     logger = logging.getLogger(__name__)
-    channel = protocol_broker.channel
-    channel.exchange_declare(MAIN_EXCHANGE_NAME, durable=True)
-    logger.info(f'Declared "{MAIN_EXCHANGE_NAME}" direct exchange.')
+    dead_letter_queue_name = queue_name + '.XQ'
+    broker_url = current_app.config['PROTOCOL_BROKER_URL']
+    connection = pika.BlockingConnection(pika.URLParameters(broker_url))
+    channel = connection.channel()
 
-    if environ.get('APP_USE_LOAD_BALANCING_EXCHANGE', '') not in ['', 'False']:
-        bind = channel.exchange_bind
-        unbind = channel.exchange_unbind
-    else:
-        bind = channel.queue_bind
-        unbind = channel.queue_unbind
-    bind(queue_name, MAIN_EXCHANGE_NAME, queue_name)
-    logger.info(f'Subscribed "{queue_name}" to "{MAIN_EXCHANGE_NAME}.{queue_name}".')
+    # declare exchanges
+    channel.exchange_declare(ACCOUNTS_IN_EXCHANGE, exchange_type='topic', durable=True)
+    channel.exchange_declare(TO_CREDITORS_EXCHANGE, exchange_type='topic', durable=True)
+    channel.exchange_declare(TO_DEBTORS_EXCHANGE, exchange_type='topic', durable=True)
+    channel.exchange_declare(TO_COORDINATORS_EXCHANGE, exchange_type='headers', durable=True)
+    channel.exchange_declare(CREDITORS_IN_EXCHANGE, exchange_type='topic', durable=True)
+    channel.exchange_declare(CREDITORS_OUT_EXCHANGE, exchange_type='topic', durable=True)
+    channel.exchange_declare(DEBTORS_IN_EXCHANGE, exchange_type='topic', durable=True)
+    channel.exchange_declare(DEBTORS_OUT_EXCHANGE, exchange_type='fanout', durable=True)
 
-    for actor in [protocol_broker.get_actor(actor_name) for actor_name in protocol_broker.get_declared_actors()]:
-        if 'event_subscription' in actor.options:
-            routing_key = f'events.{actor.actor_name}'
-            if actor.options['event_subscription']:
-                bind(queue_name, MAIN_EXCHANGE_NAME, routing_key)
-                logger.info(f'Subscribed "{queue_name}" to "{MAIN_EXCHANGE_NAME}.{routing_key}".')
-            else:
-                unbind(queue_name, MAIN_EXCHANGE_NAME, routing_key)
-                logger.info(f'Unsubscribed "{queue_name}" from "{MAIN_EXCHANGE_NAME}.{routing_key}".')
+    # declare exchange bindings
+    channel.exchange_bind(source=TO_CREDITORS_EXCHANGE, destination=CREDITORS_IN_EXCHANGE, routing_key="#")
+    channel.exchange_bind(source=TO_DEBTORS_EXCHANGE, destination=DEBTORS_IN_EXCHANGE, routing_key="#")
+    channel.exchange_bind(source=TO_COORDINATORS_EXCHANGE, destination=TO_CREDITORS_EXCHANGE, arguments={
+        "x-match": "all",
+        "coordinator-type": "direct",
+    })
+    channel.exchange_bind(source=TO_COORDINATORS_EXCHANGE, destination=TO_DEBTORS_EXCHANGE, arguments={
+        "x-match": "all",
+        "coordinator-type": "issuing",
+    })
+    channel.exchange_bind(source=CREDITORS_OUT_EXCHANGE, destination=ACCOUNTS_IN_EXCHANGE, routing_key="#")
+    channel.exchange_bind(source=DEBTORS_OUT_EXCHANGE, destination=ACCOUNTS_IN_EXCHANGE)
+
+    # declare a corresponding dead-letter queue
+    channel.queue_declare(dead_letter_queue_name, durable=True, arguments={
+        'x-message-ttl': 604800000,
+    })
+    logger.info('Declared "%s" dead-letter queue.', dead_letter_queue_name)
+
+    # declare the queue
+    channel.queue_declare(queue_name, durable=True, arguments={
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": dead_letter_queue_name,
+    })
+    logger.info('Declared "%s" queue.', queue_name)
+
+    # bind the queue
+    channel.queue_bind(exchange=ACCOUNTS_IN_EXCHANGE, queue=queue_name, routing_key=routing_key)
+    logger.info('Created a binding from "%s" to "%s" with routing key "%s".',
+                ACCOUNTS_IN_EXCHANGE, queue_name, routing_key)
 
 
 @swpt_accounts.command('process_balance_changes')
@@ -314,3 +344,41 @@ def scan_registered_balance_changes(days, quit_early):
     assert days > 0.0
     scanner = RegisteredBalanceChangeScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
+
+
+@swpt_accounts.command('process_messages')
+@with_appcontext
+def process_messages():  # pragma: no cover
+    """Process incoming Swaptacular Messaging Protocol messages.
+
+    The following environment variables control the behavior of the
+    message consumer:
+
+    PROTOCOL_BROKER_URL: RabbimMQ connection URL (default
+    "amqp://guest:guest@localhost:5672")
+
+    PROTOCOL_BROKER_QUEUE: the queue name (defalut "swpt_accounts")
+
+    PROTOCOL_BROKER_THREADS: number of worker threads (defalut 1)
+
+    PROTOCOL_BROKER_PREFETCH_COUNT: max prefetched messages (default 1)
+
+    PROTOCOL_BROKER_PREFETCH_SIZE: max prefetched bytes (default unlimited)
+
+    """
+
+    from swpt_accounts.actors import SmpConsumer, TerminatedConsumtion
+
+    logger = logging.getLogger(__name__)
+    logger.info('Started processing incoming messages.')
+    app = current_app._get_current_object()
+    consumer = SmpConsumer(config_prefix='PROTOCOL_BROKER')
+    consumer.init_app(app)
+
+    signal.signal(signal.SIGINT, consumer.stop)
+    signal.signal(signal.SIGTERM, consumer.stop)
+    try:
+        consumer.start()
+    except TerminatedConsumtion:
+        pass
+    logger.info('Stopped processing incoming messages.')

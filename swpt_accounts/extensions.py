@@ -10,14 +10,15 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_signalbus import SignalBusMixin, AtomicProceduresMixin, rabbitmq
 from flask_melodramatiq import RabbitmqBroker
-from dramatiq import Middleware
 
-MAIN_EXCHANGE_NAME = 'dramatiq'
-APP_QUEUE_NAME = os.environ.get('APP_QUEUE_NAME', 'swpt_accounts')
 TO_COORDINATORS_EXCHANGE = 'to_coordinators'
 TO_DEBTORS_EXCHANGE = 'to_debtors'
 TO_CREDITORS_EXCHANGE = 'to_creditors'
 ACCOUNTS_IN_EXCHANGE = 'accounts_in'
+CREDITORS_OUT_EXCHANGE = 'creditors_out'
+CREDITORS_IN_EXCHANGE = 'creditors_in'
+DEBTORS_OUT_EXCHANGE = 'debtors_out'
+DEBTORS_IN_EXCHANGE = 'debtors_in'
 
 _local = Local()
 
@@ -31,12 +32,6 @@ warnings.filterwarnings(
 
 class CustomAlchemy(AtomicProceduresMixin, SignalBusMixin, SQLAlchemy):
     pass
-
-
-class EventSubscriptionMiddleware(Middleware):
-    @property
-    def actor_options(self):
-        return {'event_subscription'}
 
 
 def get_asyncio_loop():
@@ -80,7 +75,5 @@ migrate = Migrate()
 asyncio_loop = LocalProxy(get_asyncio_loop)
 aiohttp_session = LocalProxy(get_aiohttp_session)
 requests_session = LocalProxy(get_requests_session)
-protocol_broker = RabbitmqBroker(config_prefix='PROTOCOL_BROKER', confirm_delivery=True)
-protocol_broker.add_middleware(EventSubscriptionMiddleware())
 chores_broker = RabbitmqBroker(config_prefix='CHORES_BROKER', confirm_delivery=False)
 publisher = rabbitmq.Publisher(url_config_key='PROTOCOL_BROKER_URL')

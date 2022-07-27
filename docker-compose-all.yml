@@ -29,8 +29,8 @@ services:
   # The purpose of this container is to serve as HTTP cache for the
   # `account-server` container. In complex deployments, it is possible
   # to run several `account-server` instances, each instance being
-  # responsible for a different range of debtors, and each instance
-  # making HTTP requests to other `account-server` instances
+  # responsible for a different range of creditors/debtors, and each
+  # instance making HTTP requests to other `account-server` instances
   # (including itself). A properly configured HTTP cache ensures that
   # the system scales well. (See the `APP_FETCH_API_URL` configuration
   # variable.)
@@ -59,8 +59,9 @@ services:
       - 'WEBSERVER_WORKERS=1'
       - 'WEBSERVER_THREADS=3'
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
-      - 'PROTOCOL_PROCESSES=1'
-      - 'PROTOCOL_THREADS=3'
+      - 'PROTOCOL_BROKER_QUEUE=swpt_accounts'
+      - 'PROTOCOL_BROKER_THREADS=3'
+      - 'PROTOCOL_BROKER_PREFETCH_COUNT=10'
       - 'CHORES_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'CHORES_PROCESSES=1'
       - 'CHORES_THREADS=3'

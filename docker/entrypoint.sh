@@ -88,7 +88,8 @@ case $1 in
         exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :$PORT wsgi:app
         ;;
     protocol)
-        exec dramatiq --processes ${PROTOCOL_PROCESSES-1} --threads ${PROTOCOL_THREADS-3} tasks:protocol_broker
+        shift
+        exec flask swpt_accounts process_messages "$@"
         ;;
     process_chores)
         exec dramatiq --processes ${CHORES_PROCESSES-1} --threads ${CHORES_THREADS-3} tasks:chores_broker

@@ -154,6 +154,10 @@ class Configuration(metaclass=MetaEnvReader):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
     PROTOCOL_BROKER_URL = 'amqp://guest:guest@localhost:5672'
+    PROTOCOL_BROKER_QUEUE = 'swpt_accounts'
+    PROTOCOL_BROKER_THREADS = 1
+    PROTOCOL_BROKER_PREFETCH_SIZE = 0
+    PROTOCOL_BROKER_PREFETCH_COUNT = 1
     CHORES_BROKER_CLASS = 'RabbitmqBroker'
     CHORES_BROKER_URL: str = missing
     APP_PROCESS_BALANCE_CHANGES_THREADS = 1
@@ -241,7 +245,7 @@ def create_app(config_dict={}):
     from werkzeug.middleware.proxy_fix import ProxyFix
     from flask import Flask
     from swpt_lib.utils import Int64Converter
-    from .extensions import db, migrate, protocol_broker, chores_broker, publisher
+    from .extensions import db, migrate, chores_broker, publisher
     from .routes import fetch_api
     from .cli import swpt_accounts
     from . import models  # noqa
@@ -253,7 +257,6 @@ def create_app(config_dict={}):
     app.config.from_mapping(config_dict)
     db.init_app(app)
     migrate.init_app(app, db)
-    protocol_broker.init_app(app)
     chores_broker.init_app(app)
     publisher.init_app(app)
     app.register_blueprint(fetch_api)
