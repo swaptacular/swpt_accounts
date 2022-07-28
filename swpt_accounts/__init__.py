@@ -52,12 +52,11 @@ def _configure_root_logger(format: str) -> logging.Logger:
 
 
 def _filter_pika_connection_reset_errors(record: logging.LogRecord) -> bool:  # pragma: nocover
-    # TODO: Currently, when one of Pika's connections to the RabbitMQ
+    # NOTE: Currently, when one of Pika's connections to the RabbitMQ
     # server has not been used for some time, it will be closed by the
-    # server. Pika successfully recovers form this situation, but logs
-    # a bunch of annoying errors. Here we filter out those
-    # errors. This should be unnecessary once we rewrite the message
-    # sending logic.
+    # server. We successfully recover form these situations, but pika
+    # logs a bunch of annoying errors. Here we filter out those
+    # errors.
 
     message = record.getMessage()
     is_pika_connection_reset_error = record.levelno == logging.ERROR and (
