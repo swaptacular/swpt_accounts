@@ -1,9 +1,12 @@
 import logging
+import os
+import sys
 import click
 import time
 import threading
 import signal
 import pika
+import multiprocessing
 from datetime import timedelta
 from os import environ
 from multiprocessing.dummy import Pool as ThreadPool
@@ -12,6 +15,58 @@ from flask.cli import with_appcontext
 from swpt_accounts import procedures
 from swpt_accounts.extensions import db
 from swpt_accounts.models import SECONDS_IN_DAY
+
+HANDLED_SIGNALS = {signal.SIGINT, signal.SIGTERM}
+if hasattr(signal, "SIGHUP"):
+    HANDLED_SIGNALS.add(signal.SIGHUP)
+if hasattr(signal, "SIGBREAK"):
+    HANDLED_SIGNALS.add(signal.SIGBREAK)
+
+
+def try_block_signals():
+    """Blocks HANDLED_SIGNALS on platforms that support it."""
+    if hasattr(signal, "pthread_sigmask"):
+        signal.pthread_sigmask(signal.SIG_BLOCK, HANDLED_SIGNALS)
+
+
+def try_unblock_signals():
+    """Unblocks HANDLED_SIGNALS on platforms that support it."""
+    if hasattr(signal, "pthread_sigmask"):
+        signal.pthread_sigmask(signal.SIG_UNBLOCK, HANDLED_SIGNALS)
+
+
+def consume(url, queue, threads, prefetch_size, prefetch_count):
+    """Consume messages in a subprocess."""
+
+    from swpt_accounts.actors import SmpConsumer, TerminatedConsumtion
+    from swpt_accounts import create_app
+
+    consumer = SmpConsumer(
+        app=create_app(),
+        config_prefix='PROTOCOL_BROKER',
+        url=url,
+        queue=queue,
+        threads=threads,
+        prefetch_size=prefetch_size,
+        prefetch_count=prefetch_count,
+    )
+    for sig in HANDLED_SIGNALS:
+        signal.signal(sig, consumer.stop)
+
+    # Unblock the blocked signals inherited from the parent process
+    # before we start any worker threads.
+    try_unblock_signals()
+
+    pid = os.getpid()
+    logger = logging.getLogger(__name__)
+    logger.info('Worker with PID %i started processing messages.', pid)
+
+    try:
+        consumer.start()
+    except TerminatedConsumtion:
+        pass
+
+    logger.info('Worker with PID %i stopped processing messages.', pid)
 
 
 class ThreadPoolProcessor:
@@ -354,10 +409,11 @@ def scan_registered_balance_changes(days, quit_early):
 @with_appcontext
 @click.option('-u', '--url', type=str, help='The RabbitMQ connection URL.')
 @click.option('-q', '--queue', type=str, help='The name the queue to consume from.')
-@click.option('-t', '--threads', type=int, help='The number of worker threads.')
+@click.option('-p', '--processes', type=int, help='The number of worker processes.')
+@click.option('-t', '--threads', type=int, help='The number of threads running in each process.')
 @click.option('-s', '--prefetch-size', type=int, help='The prefetch window size in bytes.')
 @click.option('-c', '--prefetch-count', type=int, help='The prefetch window in terms of whole messages.')
-def consume_messages(url, queue, threads, prefetch_size, prefetch_count):  # pragma: no cover
+def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_count):  # pragma: no cover
     """Consume and process incoming Swaptacular Messaging Protocol
     messages.
 
@@ -368,6 +424,8 @@ def consume_messages(url, queue, threads, prefetch_size, prefetch_count):  # pra
 
     * PROTOCOL_BROKER_QUEUE (defalut "swpt_accounts")
 
+    * PROTOCOL_BROKER_PROCESSES (defalut 1)
+
     * PROTOCOL_BROKER_THREADS (defalut 1)
 
     * PROTOCOL_BROKER_PREFETCH_COUNT (default 1)
@@ -376,24 +434,51 @@ def consume_messages(url, queue, threads, prefetch_size, prefetch_count):  # pra
 
     """
 
-    from swpt_accounts.actors import SmpConsumer, TerminatedConsumtion
+    worker_processes = []
+    worker_processes_have_been_terminated = False
+    processes = processes or current_app.config['PROTOCOL_BROKER_PROCESSES']
+    assert processes >= 1
+
+    def terminate_worker_processes():
+        nonlocal worker_processes_have_been_terminated
+        if not worker_processes_have_been_terminated:
+            for p in worker_processes:
+                p.terminate()
+            worker_processes_have_been_terminated = True
+
+    def sighandler(signum, frame):
+        logger.info('Received "%s" signal. Shutting down...', signal.strsignal(signum))
+        terminate_worker_processes()
+
+    # To prevent the main process from exiting due to signals after
+    # worker processes have been defined but before the signal
+    # handling has been configured for the main process, block those
+    # signals that the main process is expected to handle.
+    try_block_signals()
 
     logger = logging.getLogger(__name__)
-    logger.info('Started processing incoming messages.')
-    app = current_app._get_current_object()
-    consumer = SmpConsumer(
-        app=app,
-        config_prefix='PROTOCOL_BROKER',
-        url=url,
-        queue=queue,
-        threads=threads,
-        prefetch_size=prefetch_size,
-        prefetch_count=prefetch_count,
-    )
-    signal.signal(signal.SIGINT, consumer.stop)
-    signal.signal(signal.SIGTERM, consumer.stop)
-    try:
-        consumer.start()
-    except TerminatedConsumtion:
-        pass
-    logger.info('Stopped processing incoming messages.')
+    logger.info('Spawning %i worker processes, each running %i threads...', processes, threads)
+
+    for _ in range(processes):
+        p = multiprocessing.Process(target=consume, args=(url, queue, threads, prefetch_size, prefetch_count))
+        p.start()
+        worker_processes.append(p)
+
+    for sig in HANDLED_SIGNALS:
+        signal.signal(sig, sighandler)
+
+    assert all(p.pid is not None for p in worker_processes)
+    try_unblock_signals()
+
+    # This loop waits until all worker processes have exited. However,
+    # as soon as one worker process exits, all remaining worker
+    # processes will be forcefully terminated.
+    while any(p.exitcode is None for p in worker_processes):
+        for p in worker_processes:
+            p.join(timeout=1)
+            if p.exitcode is not None and not worker_processes_have_been_terminated:
+                logger.warn("Worker with PID %r exited unexpectedly. Shutting down...", p.pid)
+                terminate_worker_processes()
+                break
+
+    sys.exit(1)
