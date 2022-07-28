@@ -14,7 +14,7 @@ flask_signalbus = "^0.5.17"
 flask_melodramatiq = "^0.3.4"
 psycopg2-binary = "^2.8"
 pika = "^1.3"
-dramatiq = {git = "https://github.com/epandurski/dramatiq.git", extras = ["rabbitmq"], branch = "set-queue-name-if-missing"}
+dramatiq = { version = "^1.13", extras = ["rabbitmq", "redis"] }
 pytest = "^4.0"
 pytest-mock = "^1.10"
 marshmallow = "^3.0.1"

@@ -62,6 +62,7 @@ services:
       - 'PROTOCOL_BROKER_QUEUE=swpt_accounts'
       - 'PROTOCOL_BROKER_THREADS=3'
       - 'PROTOCOL_BROKER_PREFETCH_COUNT=10'
+      - 'CHORES_BROKER_CLASS=RabbitmqBroker'
       - 'CHORES_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'CHORES_PROCESSES=1'
       - 'CHORES_THREADS=3'
@@ -81,6 +82,7 @@ services:
     environment:
       - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@pg:5432/${POSTGRES_DB}'
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'CHORES_BROKER_CLASS=RabbitmqBroker'
       - 'CHORES_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'APP_LOG_LEVEL=warning'
       - 'APP_LOG_FORMAT=json'

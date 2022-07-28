@@ -52,7 +52,7 @@ setup_rabbitmq_bindings() {
     local error_file="$APP_ROOT_DIR/flask-db-upgrade.error"
     echo -n 'Setting up message broker objects ...'
     while [[ $retry_after -lt $time_limit ]]; do
-        if flask swpt_accounts subscribe swpt_accounts &>$error_file; then
+        if flask swpt_accounts subscribe &>$error_file; then
             echo ' done.'
             return 0
         fi
@@ -87,15 +87,11 @@ case $1 in
     webserver)
         exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :$PORT wsgi:app
         ;;
-    protocol)
-        shift
-        exec flask swpt_accounts process_messages "$@"
-        ;;
     process_chores)
         exec dramatiq --processes ${CHORES_PROCESSES-1} --threads ${CHORES_THREADS-3} tasks:chores_broker
         ;;
     process_balance_changes |process_transfer_requests | process_finalization_requests | scan_accounts \
-        | scan_prepared_transfers | scan_registered_balance_changes)
+        | scan_prepared_transfers | scan_registered_balance_changes | consume_messages)
         exec flask swpt_accounts "$@"
         ;;
     flush_rejected_transfers | flush_prepared_transfers | flush_finalized_transfers \

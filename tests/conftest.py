@@ -1,7 +1,6 @@
 import pytest
 import sqlalchemy
 import flask_migrate
-from flask_melodramatiq import missing
 from datetime import datetime, timezone
 from unittest import mock
 from swpt_accounts import create_app

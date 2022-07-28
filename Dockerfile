@@ -38,7 +38,6 @@ ENV APP_ASSOCIATED_LOGGERS=flask_signalbus.signalbus_cli
 ENV PYTHONPATH="$APP_ROOT_DIR"
 ENV PATH="/opt/venv/bin:$PATH"
 ENV GUNICORN_LOGLEVEL=warning
-ENV dramatiq_restart_delay=300
 
 RUN apk add --no-cache \
     libffi \
