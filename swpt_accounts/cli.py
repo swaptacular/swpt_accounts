@@ -352,22 +352,27 @@ def scan_registered_balance_changes(days, quit_early):
 
 @swpt_accounts.command('consume_messages')
 @with_appcontext
-def consume_messages():  # pragma: no cover
-    """Consume incoming Swaptacular Messaging Protocol messages.
+@click.option('-u', '--url', type=str, help='The RabbitMQ connection URL.')
+@click.option('-q', '--queue', type=str, help='The name the queue to consume from.')
+@click.option('-t', '--threads', type=int, help='The number of worker threads.')
+@click.option('-s', '--prefetch-size', type=int, help='The prefetch window size in bytes.')
+@click.option('-c', '--prefetch-count', type=int, help='The prefetch window in terms of whole messages.')
+def consume_messages(url, queue, threads, prefetch_size, prefetch_count):  # pragma: no cover
+    """Consume and process incoming Swaptacular Messaging Protocol
+    messages.
 
-    The following environment variables control the behavior of the
-    message consumer:
+    If some of the available options are not specified directly, the
+    values of the following environment variables will be used:
 
-    PROTOCOL_BROKER_URL: RabbimMQ connection URL (default
-    "amqp://guest:guest@localhost:5672")
+    * PROTOCOL_BROKER_URL (default "amqp://guest:guest@localhost:5672")
 
-    PROTOCOL_BROKER_QUEUE: the queue name (defalut "swpt_accounts")
+    * PROTOCOL_BROKER_QUEUE (defalut "swpt_accounts")
 
-    PROTOCOL_BROKER_THREADS: number of worker threads (defalut 1)
+    * PROTOCOL_BROKER_THREADS (defalut 1)
 
-    PROTOCOL_BROKER_PREFETCH_COUNT: max prefetched messages (default 1)
+    * PROTOCOL_BROKER_PREFETCH_COUNT (default 1)
 
-    PROTOCOL_BROKER_PREFETCH_SIZE: max prefetched bytes (default unlimited)
+    * PROTOCOL_BROKER_PREFETCH_SIZE (default 0, meaning unlimited)
 
     """
 
@@ -376,9 +381,15 @@ def consume_messages():  # pragma: no cover
     logger = logging.getLogger(__name__)
     logger.info('Started processing incoming messages.')
     app = current_app._get_current_object()
-    consumer = SmpConsumer(config_prefix='PROTOCOL_BROKER')
-    consumer.init_app(app)
-
+    consumer = SmpConsumer(
+        app=app,
+        config_prefix='PROTOCOL_BROKER',
+        url=url,
+        queue=queue,
+        threads=threads,
+        prefetch_size=prefetch_size,
+        prefetch_count=prefetch_count,
+    )
     signal.signal(signal.SIGINT, consumer.stop)
     signal.signal(signal.SIGTERM, consumer.stop)
     try:
