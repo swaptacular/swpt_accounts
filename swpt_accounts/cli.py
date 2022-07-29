@@ -439,6 +439,12 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
     processes = processes or current_app.config['PROTOCOL_BROKER_PROCESSES']
     assert processes >= 1
 
+    def worker(*args):
+        try:
+            consume(*args)
+        except Exception:
+            logging.exception("Uncaught exception occured in worker with PID %i.", os.getpid())
+
     def terminate_worker_processes():
         nonlocal worker_processes_have_been_terminated
         if not worker_processes_have_been_terminated:
@@ -460,7 +466,7 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
     logger.info('Spawning %i worker processes...', processes)
 
     for _ in range(processes):
-        p = multiprocessing.Process(target=consume, args=(url, queue, threads, prefetch_size, prefetch_count))
+        p = multiprocessing.Process(target=worker, args=(url, queue, threads, prefetch_size, prefetch_count))
         p.start()
         worker_processes.append(p)
 
