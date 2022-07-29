@@ -443,7 +443,8 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
         try:
             consume(*args)
         except Exception:
-            logging.exception("Uncaught exception occured in worker with PID %i.", os.getpid())
+            logger = logging.getLogger(__name__)
+            logger.exception("Uncaught exception occured in worker with PID %i.", os.getpid())
 
     def terminate_worker_processes():
         nonlocal worker_processes_have_been_terminated
