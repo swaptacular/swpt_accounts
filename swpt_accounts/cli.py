@@ -457,7 +457,7 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
     try_block_signals()
 
     logger = logging.getLogger(__name__)
-    logger.info('Spawning %i worker processes, each running %i threads...', processes, threads)
+    logger.info('Spawning %i worker processes...', processes)
 
     for _ in range(processes):
         p = multiprocessing.Process(target=consume, args=(url, queue, threads, prefetch_size, prefetch_count))
