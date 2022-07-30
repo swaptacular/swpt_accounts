@@ -1,6 +1,6 @@
+import json
 from base64 import b16encode
 from hashlib import md5
-import dramatiq
 from flask import current_app
 from datetime import datetime, timezone
 from marshmallow import Schema, fields
@@ -63,11 +63,6 @@ class classproperty(object):
 class Signal(db.Model):
     __abstract__ = True
 
-    @property
-    def actor_name(self):  # pragma: no cover
-        model = type(self)
-        return f'on_{model.__tablename__}'
-
     @classmethod
     def send_signalbus_messages(cls, objects):  # pragma: no cover
         assert(all(isinstance(obj, cls) for obj in objects))
@@ -79,13 +74,6 @@ class Signal(db.Model):
 
     def _create_message(self):  # pragma: no cover
         data = self.__marshmallow_schema__.dump(self)
-        dramatiq_message = dramatiq.Message(
-            queue_name=None,
-            actor_name=self.actor_name,
-            args=(),
-            kwargs=data,
-            options={},
-        )
         headers = {
             'debtor-id': data['debtor_id'],
             'creditor-id': data['creditor_id'],
@@ -93,17 +81,26 @@ class Signal(db.Model):
         if 'coordinator_id' in data:
             headers['coordinator-id'] = data['coordinator_id']
             headers['coordinator-type'] = data['coordinator_type']
+
         properties = rabbitmq.MessageProperties(
             delivery_mode=2,
             app_id='swpt_accounts',
             content_type='application/json',
-            type=self.message_type,
+            type=data['type'],
             headers=headers,
         )
+        body = json.dumps(
+            data,
+            ensure_ascii=False,
+            check_circular=False,
+            allow_nan=False,
+            separators=(',', ':'),
+        ).encode('utf8')
+
         return rabbitmq.Message(
             exchange=self.exchange_name,
             routing_key=self.routing_key,
-            body=dramatiq_message.encode(),
+            body=body,
             properties=properties,
             mandatory=True,
         )
@@ -112,10 +109,10 @@ class Signal(db.Model):
 
 
 class RejectedTransferSignal(Signal):
-    message_type = 'RejectedTransfer'
     exchange_name = TO_COORDINATORS_EXCHANGE
 
     class __marshmallow__(Schema):
+        type = fields.Constant('RejectedTransfer')
         coordinator_type = fields.String()
         coordinator_id = fields.Integer()
         coordinator_request_id = fields.Integer()
@@ -142,16 +139,12 @@ class RejectedTransferSignal(Signal):
     def routing_key(self):  # pragma: no cover
         return i64_to_hex_routing_key(self.coordinator_id)
 
-    @property
-    def actor_name(self):  # pragma: no cover
-        return f'on_rejected_{self.coordinator_type}_transfer_signal'
-
 
 class PreparedTransferSignal(Signal):
-    message_type = 'PreparedTransfer'
     exchange_name = TO_COORDINATORS_EXCHANGE
 
     class __marshmallow__(Schema):
+        type = fields.Constant('PreparedTransfer')
         debtor_id = fields.Integer()
         sender_creditor_id = fields.Integer(data_key='creditor_id')
         transfer_id = fields.Integer()
@@ -188,16 +181,12 @@ class PreparedTransferSignal(Signal):
     def routing_key(self):  # pragma: no cover
         return i64_to_hex_routing_key(self.coordinator_id)
 
-    @property
-    def actor_name(self):  # pragma: no cover
-        return f'on_prepared_{self.coordinator_type}_transfer_signal'
-
 
 class FinalizedTransferSignal(Signal):
-    message_type = 'FinalizedTransfer'
     exchange_name = TO_COORDINATORS_EXCHANGE
 
     class __marshmallow__(Schema):
+        type = fields.Constant('FinalizedTransfer')
         debtor_id = fields.Integer()
         sender_creditor_id = fields.Integer(data_key='creditor_id')
         transfer_id = fields.Integer()
@@ -230,15 +219,10 @@ class FinalizedTransferSignal(Signal):
     def routing_key(self):  # pragma: no cover
         return i64_to_hex_routing_key(self.coordinator_id)
 
-    @property
-    def actor_name(self):  # pragma: no cover
-        return f'on_finalized_{self.coordinator_type}_transfer_signal'
-
 
 class AccountTransferSignal(Signal):
-    message_type = 'AccountTransfer'
-
     class __marshmallow__(Schema):
+        type = fields.Constant('AccountTransfer')
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         creation_date = fields.Date()
@@ -294,9 +278,8 @@ class AccountTransferSignal(Signal):
 
 
 class AccountUpdateSignal(Signal):
-    message_type = 'AccountUpdate'
-
     class __marshmallow__(Schema):
+        type = fields.Constant('AccountUpdate')
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         last_change_ts = fields.DateTime()
@@ -366,9 +349,8 @@ class AccountUpdateSignal(Signal):
 
 
 class AccountPurgeSignal(Signal):
-    message_type = 'AccountPurge'
-
     class __marshmallow__(Schema):
+        type = fields.Constant('AccountPurge')
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         creation_date = fields.Date()
@@ -392,9 +374,8 @@ class AccountPurgeSignal(Signal):
 
 
 class RejectedConfigSignal(Signal):
-    message_type = 'RejectedConfig'
-
     class __marshmallow__(Schema):
+        type = fields.Constant('RejectedConfig')
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         config_ts = fields.DateTime()
@@ -429,10 +410,10 @@ class RejectedConfigSignal(Signal):
 
 
 class PendingBalanceChangeSignal(Signal):
-    message_type = 'PendingBalanceChange'
     exchange_name = ACCOUNTS_IN_EXCHANGE
 
     class __marshmallow__(Schema):
+        type = fields.Constant('PendingBalanceChange')
         debtor_id = fields.Integer()
         creditor_id = fields.Integer()
         change_id = fields.Integer()

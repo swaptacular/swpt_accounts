@@ -14,7 +14,7 @@ LOGGER = logging.getLogger(__name__)
 RE_TRANSFER_NOTE_FORMAT = re.compile(r'^[0-9A-Za-z.-]{0,8}$')
 
 
-def configure_account(
+def on_configure_account_signal(
         debtor_id: int,
         creditor_id: int,
         ts: str,
@@ -46,7 +46,7 @@ def configure_account(
     )
 
 
-def prepare_transfer(
+def on_prepare_transfer_signal(
         coordinator_type: str,
         coordinator_id: int,
         coordinator_request_id: int,
@@ -95,7 +95,7 @@ def prepare_transfer(
     )
 
 
-def finalize_transfer(
+def on_finalize_transfer_signal(
         debtor_id: int,
         creditor_id: int,
         transfer_id: int,
@@ -220,9 +220,9 @@ def _configure_and_initialize_account(
 
 
 MESSAGE_TYPES = {
-    'ConfigureAccount': configure_account,
-    'PrepareTransfer': prepare_transfer,
-    'FinalizeTransfer': finalize_transfer,
+    'ConfigureAccount': on_configure_account_signal,
+    'PrepareTransfer': on_prepare_transfer_signal,
+    'FinalizeTransfer': on_finalize_transfer_signal,
     'PendingBalanceChange': on_pending_balance_change_signal,
 }
 
@@ -251,11 +251,5 @@ class SmpConsumer(rabbitmq.Consumer):
             LOGGER.warn('The message does not contain a valid JSON document.')
             return False
 
-        try:
-            kwargs = obj['kwargs']
-        except KeyError:
-            LOGGER.warn('Malformed message: does not contain a "kwargs" property.')
-            return False
-
-        actor(**kwargs)
+        actor(**obj)
         return True

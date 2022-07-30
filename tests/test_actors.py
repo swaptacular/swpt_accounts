@@ -14,7 +14,7 @@ def actors():
 
 
 def test_prepare_transfer(db_session, actors):
-    actors.prepare_transfer(
+    actors.on_prepare_transfer_signal(
         coordinator_type='test',
         coordinator_id=1,
         coordinator_request_id=2,
@@ -27,7 +27,7 @@ def test_prepare_transfer(db_session, actors):
         max_commit_delay=1000000,
         ts=datetime.now(tz=timezone.utc).isoformat(),
     )
-    actors.prepare_transfer(
+    actors.on_prepare_transfer_signal(
         coordinator_type='test',
         coordinator_id=1,
         coordinator_request_id=2,
@@ -53,7 +53,7 @@ def test_prepare_transfer(db_session, actors):
 
 
 def test_finalize_transfer(db_session, actors):
-    actors.finalize_transfer(
+    actors.on_finalize_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         transfer_id=666,
@@ -70,7 +70,7 @@ def test_finalize_transfer(db_session, actors):
 def test_configure_account(db_session, actors):
     from swpt_accounts.fetch_api_client import _clear_root_config_data
 
-    actors.configure_account(
+    actors.on_configure_account_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         ts='2099-12-31T00:00:00+00:00',
