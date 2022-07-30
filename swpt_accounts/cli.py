@@ -8,7 +8,6 @@ import signal
 import pika
 import multiprocessing
 from datetime import timedelta
-from os import environ
 from multiprocessing.dummy import Pool as ThreadPool
 from flask import current_app
 from flask.cli import with_appcontext
@@ -312,7 +311,7 @@ def process_finalization_requests(threads, wait, quit_early):
 
     """
 
-    threads = threads or int(environ.get('APP_PROCESS_FINALIZATION_REQUESTS_THREADS', '1'))
+    threads = threads if threads is not None else current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_THREADS']
     wait = wait if wait is not None else current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_WAIT']
     max_count = current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_MAX_COUNT']
 
