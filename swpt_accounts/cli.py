@@ -136,16 +136,9 @@ def swpt_accounts():
 
 @swpt_accounts.command()
 @with_appcontext
-@click.argument('queue_name', default='')
-@click.option('-r', '--routing-key', type=str, default='#', help='Specify a routing key (the default is "#").')
-def subscribe(queue_name, routing_key):  # pragma: no cover
+def subscribe():  # pragma: no cover
     """Declare a RabbitMQ queue, and subscribe it to receive incoming
     messages.
-
-    QUEUE_NAME specifies the name of the queue. If not given, the
-    value of the configuration variable PROTOCOL_BROKER_QUEUE will be
-    taken. If it is not set, the default queue name is
-    "swpt_accounts".
 
     """
 
@@ -155,7 +148,8 @@ def subscribe(queue_name, routing_key):  # pragma: no cover
         CREDITORS_IN_EXCHANGE, CREDITORS_OUT_EXCHANGE
 
     logger = logging.getLogger(__name__)
-    queue_name = queue_name or current_app.config['PROTOCOL_BROKER_QUEUE']
+    queue_name = current_app.config['PROTOCOL_BROKER_QUEUE']
+    routing_key = current_app.config['PROTOCOL_BROKER_QUEUE_ROUTING_KEY']
     dead_letter_queue_name = queue_name + '.XQ'
     broker_url = current_app.config['PROTOCOL_BROKER_URL']
     connection = pika.BlockingConnection(pika.URLParameters(broker_url))
