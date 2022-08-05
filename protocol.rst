@@ -183,7 +183,7 @@ they MUST first verify whether the specified account already exists:
 
 1. If the specified account already exists, the server implementation
    MUST decide whether the same or a later `ConfigureAccount`_ message
-   has been applied already. [#compare-config]_ [#compare-seqnums]_ If
+   has been applied already. [#compare-config]_ \ [#compare-seqnums]_ If
    the received message turns out to be an old one, it MUST be
    ignored. Otherwise, an attempt MUST be made to update the account's
    configuration with the requested new configuration. If the new
@@ -195,7 +195,7 @@ they MUST first verify whether the specified account already exists:
    MUST be checked. If it is more that ``MAX_CONFIG_DELAY`` seconds in
    the past, the message MUST be ignored. [#config-delay]_ Otherwise,
    an attempt MUST be made to create a new account with the requested
-   configuration settings. [#creation-date]_ [#zero-principal]_
+   configuration settings. [#creation-date]_ \ [#zero-principal]_ \
    [#for-deletion]_ If a new account has been successfully created, an
    `AccountUpdate`_ message MUST be sent; otherwise a
    `RejectedConfig`_ message MUST be sent.
@@ -206,7 +206,9 @@ they MUST first verify whether the specified account already exists:
 
 .. [#reserved-creditor-ids] All ``creditor_id``\s between 0 and
   4294967295 are reserved. Implementations SHOULD NOT use numbers in
-  this interval for regular accounts.
+  this interval for *creditor's accounts*. In particular,
+  implementations may use the account with ``creditor_id = 0`` (*the
+  debtor's account*) to issue new currency tokens in circulation.
 
 .. [#delete-transfer] When an account with a non-zero principal is
   being deleted, an `AccountTransfer`_ message SHOULD be sent,
@@ -216,8 +218,7 @@ they MUST first verify whether the specified account already exists:
 .. [#forbid-transfers] Server implementations must not accept incoming
   transfers for "scheduled for deletion" accounts. That is:
   `PrepareTransfer`_ messages that has a "scheduled for deletion"
-  creditor's account [#debtor-creditor-id]_ as a recipient MUST be
-  rejected.
+  creditor's account as a recipient MUST be rejected.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
@@ -364,9 +365,9 @@ When server implementations process a `PrepareTransfer`_ message they:
 
 * MUST guarantee that if a transfer is successfully prepared, the
   probability for successful commit of the secured amount is very
-  high. [#demurrage]_ Notably, the secured amount MUST be locked, so
-  that until the prepared transfer is finalized, the amount is not
-  available for other transfers.
+  high. [#demurrage]_ \ [#creditor-trick]_ Notably, the secured amount
+  MUST be locked, so that until the prepared transfer is finalized,
+  the amount is not available for other transfers.
 
 * If the requested transfer has been successfully prepared, MUST send
   a `PreparedTransfer`_ message, and MUST create a new prepared
@@ -659,7 +660,8 @@ prepared_at : date-time
 demurrage_rate : float
    The annual rate (in percents) at which the secured amount will
    diminish with time, in the worst possible case. This MUST be a
-   number between ``-100`` and ``0``. [#demurrage]_ [#demurrage-rate]_
+   number between ``-100`` and ``0``. [#demurrage]_ \
+   [#demurrage-rate]_
 
 deadline : date-time
    The prepared transfer can be committed successfully only before
@@ -687,14 +689,13 @@ lost message, or a complete database loss on the client's side.
   the accumulated interest. Therefore, at the moment of the prepared
   transfer's commit, it could happen that the committed amount exceeds
   the remaining amount by a considerable margin. In such cases, the
-  commit should be unsuccessful. [#creditor-trick]_ Also, note that
-  when a `PrepareTransfer`_ request is being processed by the server,
-  it can not be predicted what amount will be available on the
-  sender's account at the time of the transfer's commit. For this
-  reason, when a `PreparedTransfer`_ message is sent, the server
-  should set the value of the ``demurrage_rate`` field correctly, so
-  as to inform the client (the coordinator) about *the worst possible
-  case*.
+  commit should be unsuccessful. Also, note that when a
+  `PrepareTransfer`_ request is being processed by the server, it can
+  not be predicted what amount will be available on the sender's
+  account at the time of the transfer's commit. For this reason, when
+  a `PreparedTransfer`_ message is sent, the server should set the
+  value of the ``demurrage_rate`` field correctly, so as to inform the
+  client (the coordinator) about *the worst possible case*.
 
   Here is an example how this may work, from the viewpoint of a
   coordinator who is trying to commit a conditional transfer: The
@@ -771,7 +772,7 @@ status_code : string
    only. If the prepared transfer was committed, but the commit was
    unsuccessful for some reason, this value MUST be different from
    ``"OK"``, and SHOULD hint at the reason for the
-   failure. [#status-codes]_ [#failed-commit]_ In all other cases,
+   failure. [#status-codes]_ \ [#failed-commit]_ In all other cases,
    this value MUST be ``"OK"``.
 
 total_locked_amount : int64
@@ -821,7 +822,7 @@ last_change_seqnum : int32
    account, later changes MUST have bigger sequential numbers,
    compared to earlier changes. Note that when the maximum ``int32``
    value is reached, the next value MUST be ``-2147483648`` (signed
-   32-bit integer wrapping). [#compare-change]_ [#compare-seqnums]_
+   32-bit integer wrapping). [#compare-change]_ \ [#compare-seqnums]_
 
 principal : int64
    The amount that the debtor owes to the creditor, without the
@@ -1039,7 +1040,7 @@ AccountTransfer
 ---------------
 
 Emitted when a non-negligible committed transfer has affected a
-creditor's account. [#negligible-transfer]_ [#debtor-creditor-id]_
+creditor's account. [#negligible-transfer]_ \ [#debtor-creditor-id]_
 
 debtor_id : int64
    The ID of the debtor.
@@ -1153,6 +1154,7 @@ prepared
    message. [#db-crash]_
 
 settled
+
    Indicates that a `PrepareTransfer`_ request has been sent, a
    `PreparedTransfer`_ response has been received, and a
    `FinalizeTransfer`_ message has been sent to dismiss or commit the
@@ -1160,8 +1162,8 @@ settled
    whenever considered appropriate. RT records for *committed
    tranfers*, however, SHOULD NOT be deleted right away. Instead, they
    SHOULD stay in the database until a `FinalizedTransfer`_ message is
-   received for them, or a very long time has passed. [#cr-retention]_
-   [#staled-records]_ [#dismissed-records]_
+   received for them, or a very long time has passed. [#cr-retention]_ \
+   [#staled-records]_ \ [#dismissed-records]_
 
 
 Received `RejectedTransfer`_ message
@@ -1289,7 +1291,7 @@ already exists: [#matching-adr]_
    ``last_heartbeat_ts`` field SHOULD be advanced to the value of the
    ``ts`` field in the received message. [#heartbeat-update]_ Then it
    MUST be verified whether the same or a later `AccountUpdate`_
-   message has been received already. [#compare-change]_
+   message has been received already. [#compare-change]_ \
    [#compare-seqnums]_ If the received message turns out to be an old
    one, further actions MUST NOT be taken; otherwise, the
    corresponding AD record MUST be updated with the data contained in
@@ -1373,7 +1375,7 @@ following steps must be performed:
    ``last_transfer_number`` field in the corresponding `AL record`_,
    the ``last_transfer_number``\'s value must be updated to contain
    the transfer number of the *latest sequential transfer* in the set
-   of processed `AccountTransfer`_ messages. [#sequential-transfer]_
+   of processed `AccountTransfer`_ messages. [#sequential-transfer]_ \
    [#transfer-chain]_ Note that when between two `AccountTransfer`_
    messages that are being added to the ledger, there were one or more
    negligible transfers, a dummy in-between ledger entry must be added
