@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2020-12-11
-:Version: 0.4.3
+:Date: 2022-08-03
+:Version: 0.4.4
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -836,7 +836,8 @@ interest : float
 
 interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
-   account. This can be a negative number.
+   account. This can be a negative number, but MUST NOT be smaller
+   than -100.
 
 last_interest_rate_change_ts : date-time
    The moment at which the latest change in the account's interest
@@ -867,7 +868,8 @@ negligible_amount : float
    The value of the ``negligible_amount`` field in the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
    `ConfigureAccount`_ messages yet, the value MUST represent the
-   current configuration settings.
+   current configuration settings. This MUST always be a non-negative
+   number.
 
 config_flags : int32
    The value of the ``config_flags`` field in the latest applied
