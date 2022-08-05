@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import func, null, or_, and_
-from swpt_lib.utils import date_to_int24
+from swpt_pythonlib.utils import date_to_int24
 from swpt_accounts.extensions import db
 from swpt_accounts.events import SECONDS_IN_DAY, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     TRANSFER_NOTE_MAX_BYTES  # noqa

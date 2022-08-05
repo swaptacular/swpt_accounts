@@ -5,10 +5,10 @@ from flask import current_app
 from datetime import datetime, timezone
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
-from swpt_lib.utils import i64_to_u64
+from swpt_pythonlib.utils import i64_to_u64
 from swpt_accounts.extensions import db, publisher, TO_COORDINATORS_EXCHANGE, TO_DEBTORS_EXCHANGE, \
     TO_CREDITORS_EXCHANGE, ACCOUNTS_IN_EXCHANGE
-from flask_signalbus import rabbitmq
+from swpt_pythonlib import rabbitmq
 
 __all__ = [
     'ROOT_CREDITOR_ID',
@@ -122,6 +122,8 @@ class RejectedTransferSignal(Signal):
         sender_creditor_id = fields.Integer(data_key='creditor_id')
         inserted_at = fields.DateTime(data_key='ts')
 
+    __marshmallow_schema__ = __marshmallow__()
+
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
@@ -158,6 +160,8 @@ class PreparedTransferSignal(Signal):
         demurrage_rate = fields.Float()
         deadline = fields.DateTime()
         min_interest_rate = fields.Float()
+
+    __marshmallow_schema__ = __marshmallow__()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -199,6 +203,8 @@ class FinalizedTransferSignal(Signal):
         total_locked_amount = fields.Integer()
         status_code = fields.String()
 
+    __marshmallow_schema__ = __marshmallow__()
+
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_id = db.Column(db.BigInteger, primary_key=True)
@@ -237,6 +243,8 @@ class AccountTransferSignal(Signal):
         sender = fields.Function(lambda obj: str(i64_to_u64(obj.sender_creditor_id)))
         recipient = fields.Function(lambda obj: str(i64_to_u64(obj.recipient_creditor_id)))
         inserted_at = fields.DateTime(data_key='ts')
+
+    __marshmallow_schema__ = __marshmallow__()
 
     SYSTEM_FLAG_IS_NEGLIGIBLE = 1
     """Indicates that the absolute value of `committed_amount` is not
@@ -306,6 +314,8 @@ class AccountUpdateSignal(Signal):
         debtor_info_content_type = fields.Function(lambda obj: obj.debtor_info_content_type or '')
         debtor_info_sha256 = fields.Function(lambda obj: b16encode(obj.debtor_info_sha256 or b'').decode())
 
+    __marshmallow_schema__ = __marshmallow__()
+
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     signal_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
@@ -356,6 +366,8 @@ class AccountPurgeSignal(Signal):
         creation_date = fields.Date()
         inserted_at = fields.DateTime(data_key='ts')
 
+    __marshmallow_schema__ = __marshmallow__()
+
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     creation_date = db.Column(db.DATE, primary_key=True)
@@ -385,6 +397,8 @@ class RejectedConfigSignal(Signal):
         config_flags = fields.Integer()
         inserted_at = fields.DateTime(data_key='ts')
         rejection_code = fields.String()
+
+    __marshmallow_schema__ = __marshmallow__()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     creditor_id = db.Column(db.BigInteger, primary_key=True)
@@ -423,6 +437,8 @@ class PendingBalanceChangeSignal(Signal):
         committed_at = fields.DateTime()
         principal_delta = fields.Integer()
         other_creditor_id = fields.Integer()
+
+    __marshmallow_schema__ = __marshmallow__()
 
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     other_creditor_id = db.Column(db.BigInteger, primary_key=True)

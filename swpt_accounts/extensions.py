@@ -1,4 +1,3 @@
-import os
 import warnings
 import asyncio
 import requests
@@ -8,7 +7,8 @@ from werkzeug.local import Local, LocalProxy
 from flask import current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_signalbus import SignalBusMixin, AtomicProceduresMixin, rabbitmq
+from swpt_pythonlib.flask_signalbus import SignalBusMixin, AtomicProceduresMixin
+from swpt_pythonlib import rabbitmq
 from flask_melodramatiq import Broker
 
 TO_COORDINATORS_EXCHANGE = 'to_coordinators'

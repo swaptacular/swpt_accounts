@@ -3,8 +3,8 @@ import re
 import json
 from datetime import datetime
 from flask import current_app
-from flask_signalbus import rabbitmq
-from swpt_lib.utils import u64_to_i64
+from swpt_pythonlib import rabbitmq
+from swpt_pythonlib.utils import u64_to_i64
 from swpt_accounts.models import MIN_INT32, MAX_INT32, MIN_INT64, MAX_INT64, T0, TRANSFER_NOTE_MAX_BYTES, \
     CONFIG_DATA_MAX_BYTES, SECONDS_IN_DAY
 from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict

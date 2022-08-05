@@ -244,7 +244,7 @@ def _check_config_sanity(c):  # pragma: nocover
 def create_app(config_dict={}):
     from werkzeug.middleware.proxy_fix import ProxyFix
     from flask import Flask
-    from swpt_lib.utils import Int64Converter
+    from swpt_pythonlib.utils import Int64Converter
     from .extensions import db, migrate, chores_broker, publisher
     from .routes import fetch_api
     from .cli import swpt_accounts

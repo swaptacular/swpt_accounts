@@ -4,7 +4,7 @@ from typing import TypeVar, Iterable, Tuple, Union, Optional, Callable
 from decimal import Decimal
 from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
-from swpt_lib.utils import Seqnum, increment_seqnum
+from swpt_pythonlib.utils import Seqnum, increment_seqnum
 from swpt_accounts.extensions import db
 from swpt_accounts.schemas import parse_root_config_data
 from swpt_accounts.models import Account, TransferRequest, PreparedTransfer, PendingBalanceChange, \

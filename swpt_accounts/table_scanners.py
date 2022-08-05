@@ -2,7 +2,7 @@ import math
 from base64 import b16encode
 from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
-from swpt_lib.scan_table import TableScanner
+from swpt_pythonlib.scan_table import TableScanner
 from sqlalchemy.sql.expression import true, tuple_, or_
 from flask import current_app
 from swpt_accounts.extensions import db
