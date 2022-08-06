@@ -14,7 +14,7 @@ def actors():
 
 
 def test_prepare_transfer(db_session, actors):
-    actors.on_prepare_transfer_signal(
+    actors._on_prepare_transfer_signal(
         coordinator_type='test',
         coordinator_id=1,
         coordinator_request_id=2,
@@ -25,9 +25,9 @@ def test_prepare_transfer(db_session, actors):
         recipient='1234',
         min_interest_rate=-100.0,
         max_commit_delay=1000000,
-        ts=datetime.now(tz=timezone.utc).isoformat(),
+        ts=datetime.now(tz=timezone.utc),
     )
-    actors.on_prepare_transfer_signal(
+    actors._on_prepare_transfer_signal(
         coordinator_type='test',
         coordinator_id=1,
         coordinator_request_id=2,
@@ -38,7 +38,7 @@ def test_prepare_transfer(db_session, actors):
         recipient='invalid',
         min_interest_rate=-100.0,
         max_commit_delay=1000000,
-        ts=datetime.now(tz=timezone.utc).isoformat(),
+        ts=datetime.now(tz=timezone.utc),
     )
 
     p.process_transfer_requests(D_ID, C_ID)
@@ -53,7 +53,7 @@ def test_prepare_transfer(db_session, actors):
 
 
 def test_finalize_transfer(db_session, actors):
-    actors.on_finalize_transfer_signal(
+    actors._on_finalize_transfer_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         transfer_id=666,
@@ -63,17 +63,17 @@ def test_finalize_transfer(db_session, actors):
         committed_amount=100,
         transfer_note_format='',
         transfer_note='',
-        ts=datetime.now(tz=timezone.utc).isoformat(),
+        ts=datetime.now(tz=timezone.utc),
     )
 
 
 def test_configure_account(db_session, actors):
     from swpt_accounts.fetch_api_client import _clear_root_config_data
 
-    actors.on_configure_account_signal(
+    actors._on_configure_account_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
-        ts='2099-12-31T00:00:00+00:00',
+        ts=datetime.fromisoformat('2099-12-31T00:00:00+00:00'),
         seqnum=0,
         negligible_amount=500.0,
         config_flags=0,
@@ -83,14 +83,14 @@ def test_configure_account(db_session, actors):
 
 
 def test_on_pending_balance_change_signal(db_session, actors):
-    actors.on_pending_balance_change_signal(
+    actors._on_pending_balance_change_signal(
         debtor_id=D_ID,
         creditor_id=C_ID,
         change_id=1,
         coordinator_type='direct',
         transfer_note_format='',
         transfer_note='',
-        committed_at='2099-12-31T00:00:00+00:00',
+        committed_at=datetime.fromisoformat('2099-12-31T00:00:00+00:00'),
         principal_delta=1000,
         other_creditor_id=123,
     )
