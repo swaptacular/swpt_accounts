@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2022-08-03
-:Version: 0.4.4
+:Date: 2022-08-05
+:Version: 0.4.5
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -120,9 +120,9 @@ creditor_id : int64
 
 negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
-   a non-negative number. It can be used to: 1) decide whether an
-   account can be safely deleted; 2) decide whether an incoming
-   transfer is insignificant.
+   a *finite* non-negative number. It can be used to: 1) decide
+   whether an account can be safely deleted; 2) decide whether an
+   incoming transfer is insignificant.
 
 config_flags : int32
    Account configuration bit-flags. Different server implementations
@@ -335,8 +335,9 @@ min_interest_rate : float
    server that if the interest rate on the account becomes lower than
    this value, the transfer MUST NOT be successful. This can be useful
    when the transferred amount may need to be decreased if the
-   interest rate on the account has decreased. The value MUST be equal
-   or bigger than ``-100``. Normally, this would be ``-100``.
+   interest rate on the account has decreased. The value MUST be
+   *finite* and equal or bigger than ``-100``. Normally, this would be
+   ``-100``.
 
 max_commit_delay : int32
    The period (in seconds) during which the prepared transfer can be
@@ -833,12 +834,13 @@ interest : float
    ``last_change_ts`` moment, which is not added to the ``principal``
    yet. Once in a while, the accumulated interest MUST be zeroed out
    and added to the principal (an interest payment). Note that the
-   accumulated interest can be a negative number. [#interest]_
+   accumulated interest can be a negative number, but MUST be
+   *finite*. [#interest]_
 
 interest_rate : float
    The annual rate (in percents) at which interest accumulates on the
    account. This can be a negative number, but MUST NOT be smaller
-   than -100.
+   than -100, and MUST be *finite*.
 
 last_interest_rate_change_ts : date-time
    The moment at which the latest change in the account's interest
@@ -869,8 +871,8 @@ negligible_amount : float
    The value of the ``negligible_amount`` field in the latest applied
    `ConfigureAccount`_ message. If there have not been any applied
    `ConfigureAccount`_ messages yet, the value MUST represent the
-   current configuration settings. This MUST always be a non-negative
-   number.
+   current configuration settings. This MUST always be a *finite*
+   non-negative number.
 
 config_flags : int32
    The value of the ``config_flags`` field in the latest applied
