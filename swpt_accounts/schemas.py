@@ -20,31 +20,39 @@ class ValidateTypeMixin:
 
 class DebtorInfoSchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        missing='DebtorInfo',
-        default='DebtorInfo',
-        description='The type of this object.',
-        example='DebtorInfo',
+        load_default='DebtorInfo',
+        dump_default='DebtorInfo',
+        metadata=dict(
+            description='The type of this object.',
+            example='DebtorInfo',
+        )
     )
     iri = fields.String(
         required=True,
         validate=validate.Length(max=200),
-        format='iri',
-        description='A link (Internationalized Resource Identifier) referring to a document '
-                    'containing information about the debtor.',
-        example='https://example.com/debtors/1/',
+        metadata=dict(
+            format='iri',
+            description='A link (Internationalized Resource Identifier) referring to a document '
+                        'containing information about the debtor.',
+            example='https://example.com/debtors/1/',
+        )
     )
     optional_content_type = fields.String(
         validate=validate.Length(max=100),
         data_key='contentType',
-        description='Optional MIME type of the document that the `iri` field refers to.',
-        example='text/html',
+        metadata=dict(
+            description='Optional MIME type of the document that the `iri` field refers to.',
+            example='text/html',
+        )
     )
     optional_sha256 = fields.String(
         validate=validate.Regexp('^[0-9A-F]{64}$'),
         data_key='sha256',
-        description='Optional SHA-256 cryptographic hash (Base16 encoded) of the content of '
-                    'the document that the `iri` field refers to.',
-        example='E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
+        metadata=dict(
+            description='Optional SHA-256 cryptographic hash (Base16 encoded) of the content of '
+                        'the document that the `iri` field refers to.',
+            example='E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855',
+        )
     )
 
     @validates('optional_content_type')
@@ -55,24 +63,30 @@ class DebtorInfoSchema(ValidateTypeMixin, Schema):
 
 class RootConfigDataSchema(ValidateTypeMixin, Schema):
     type = fields.String(
-        missing='RootConfigData',
-        default='RootConfigData',
-        description='The type of this object.',
-        example='RootConfigData',
+        load_default='RootConfigData',
+        dump_default='RootConfigData',
+        metadata=dict(
+            description='The type of this object.',
+            example='RootConfigData',
+        )
     )
     interest_rate_target = fields.Float(
-        missing=0.0,
+        load_default=0.0,
         validate=validate.Range(min=INTEREST_RATE_FLOOR, max=INTEREST_RATE_CEIL),
         data_key='rate',
-        description='The annual rate (in percents) at which the debtor wants the interest '
-                    'to accumulate on creditors\' accounts. The actual current interest rate may '
-                    'be different if interest rate limits are being enforced.',
-        example=0.0,
+        metadata=dict(
+            description='The annual rate (in percents) at which the debtor wants the interest '
+                        'to accumulate on creditors\' accounts. The actual current interest rate may '
+                        'be different if interest rate limits are being enforced.',
+            example=0.0,
+        )
     )
     optional_info = fields.Nested(
         DebtorInfoSchema,
         data_key='info',
-        description='Optional `DebtorInfo`.',
+        metadata=dict(
+            description='Optional `DebtorInfo`.',
+        )
     )
 
 
