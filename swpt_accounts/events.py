@@ -1,11 +1,10 @@
 import json
 from base64 import b16encode
-from hashlib import md5
 from flask import current_app
 from datetime import datetime, timezone
 from marshmallow import Schema, fields
 from sqlalchemy.dialects import postgresql as pg
-from swpt_pythonlib.utils import i64_to_u64
+from swpt_pythonlib.utils import i64_to_u64, i64_to_hex_routing_key, calc_bin_routing_key
 from swpt_accounts.extensions import db, publisher, TO_COORDINATORS_EXCHANGE, TO_DEBTORS_EXCHANGE, \
     TO_CREDITORS_EXCHANGE, ACCOUNTS_IN_EXCHANGE
 from swpt_pythonlib import rabbitmq
@@ -35,21 +34,6 @@ ROOT_CREDITOR_ID = 0
 
 def get_now_utc():
     return datetime.now(tz=timezone.utc)
-
-
-def i64_to_hex_routing_key(n):
-    bytes_n = n.to_bytes(8, byteorder='big', signed=True)
-    assert(len(bytes_n) == 8)
-    return '.'.join([format(byte, '02x') for byte in bytes_n])
-
-
-def calc_bin_routing_key(debtor_id, creditor_id):
-    m = md5()
-    m.update(debtor_id.to_bytes(8, byteorder='big', signed=True))
-    m.update(creditor_id.to_bytes(8, byteorder='big', signed=True))
-    s = ''.join([format(byte, '08b') for byte in m.digest()[:3]])
-    assert(len(s) == 24)
-    return '.'.join(s)
 
 
 class classproperty(object):

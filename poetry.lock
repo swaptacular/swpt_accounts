@@ -33,17 +33,20 @@ frozenlist = ">=1.1.0"
 
 [[package]]
 name = "alembic"
-version = "1.5.4"
+version = "1.8.1"
 description = "A database migration tool for SQLAlchemy."
 category = "main"
 optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*,>=2.7"
+python-versions = ">=3.7"
 
 [package.dependencies]
+importlib-metadata = {version = "*", markers = "python_version < \"3.9\""}
+importlib-resources = {version = "*", markers = "python_version < \"3.9\""}
 Mako = "*"
-python-dateutil = "*"
-python-editor = ">=0.3"
 SQLAlchemy = ">=1.3.0"
+
+[package.extras]
+tz = ["python-dateutil"]
 
 [[package]]
 name = "async-timeout"
@@ -315,6 +318,21 @@ zipp = ">=0.5"
 docs = ["sphinx", "jaraco.packaging (>=9)", "rst.linker (>=1.9)"]
 perf = ["ipython"]
 testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.3)", "packaging", "pyfakefs", "flufl.flake8", "pytest-perf (>=0.9.2)", "pytest-black (>=0.3.7)", "pytest-mypy (>=0.9.1)", "importlib-resources (>=1.3)"]
+
+[[package]]
+name = "importlib-resources"
+version = "5.9.0"
+description = "Read resources from Python packages"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+zipp = {version = ">=3.1.0", markers = "python_version < \"3.10\""}
+
+[package.extras]
+docs = ["sphinx", "jaraco.packaging (>=9)", "rst.linker (>=1.9)", "jaraco.tidelift (>=1.4)"]
+testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-cov", "pytest-enabler (>=1.3)", "pytest-black (>=0.3.7)", "pytest-mypy (>=0.9.1)"]
 
 [[package]]
 name = "itsdangerous"
@@ -618,17 +636,6 @@ pytest = ">=2.0"
 dev = ["pexpect", "tox", "flake8"]
 
 [[package]]
-name = "python-dateutil"
-version = "2.8.1"
-description = "Extensions to the standard Python datetime module"
-category = "main"
-optional = false
-python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,>=2.7"
-
-[package.dependencies]
-six = ">=1.5"
-
-[[package]]
 name = "python-dotenv"
 version = "0.15.0"
 description = "Add .env support to your django/flask apps in development and deployments"
@@ -638,14 +645,6 @@ python-versions = "*"
 
 [package.extras]
 cli = ["click (>=5.0)"]
-
-[[package]]
-name = "python-editor"
-version = "1.0.4"
-description = "Programmatically open an editor, capture the result."
-category = "main"
-optional = false
-python-versions = "*"
 
 [[package]]
 name = "python-json-logger"
@@ -735,7 +734,7 @@ sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
 name = "Swpt-Pythonlib"
-version = "0.8.0"
+version = "0.8.1"
 description = ""
 category = "main"
 optional = false
@@ -743,15 +742,17 @@ python-versions = "*"
 develop = false
 
 [package.dependencies]
+Flask = ">=1.0"
 Flask-SQLAlchemy = ">=2.4"
-marshmallow = ">=3.10,<4.0"
-pika = ">=1.3,<2.0"
+marshmallow = ">=3.10"
+pika = ">=1.3"
+SQLAlchemy = ">=1.3"
 
 [package.source]
 type = "git"
 url = "https://github.com/swaptacular/swpt_pythonlib.git"
-reference = "v0.8.0"
-resolved_reference = "804e19806259726d066c8ce0d09d0064b02163ee"
+reference = "v0.8.1"
+resolved_reference = "26520ee5afd80ae2ca66e0d53b6d5fb3c9ac1971"
 
 [[package]]
 name = "tomli"
@@ -868,7 +869,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "3ff06760066dff00f5ae85e2dfe3965b9e682472224ceddc4753c0496cebe015"
+content-hash = "682f67a87a337803b1690b3d274f8534745a708afd917706df12565e64b2b0b6"
 
 [metadata.files]
 aiohttp = [
@@ -949,10 +950,7 @@ aiosignal = [
     {file = "aiosignal-1.2.0-py3-none-any.whl", hash = "sha256:26e62109036cd181df6e6ad646f91f0dcfd05fe16d0cb924138ff2ab75d64e3a"},
     {file = "aiosignal-1.2.0.tar.gz", hash = "sha256:78ed67db6c7b7ced4f98e495e572106d5c432a93e1ddd1bf475e1dc05f5b7df2"},
 ]
-alembic = [
-    {file = "alembic-1.5.4-py2.py3-none-any.whl", hash = "sha256:422883bf429105b9b5f1fece6d79da64ed1ee648af2ef256d9b52edac236bc46"},
-    {file = "alembic-1.5.4.tar.gz", hash = "sha256:e871118b6174681f7e9a9ea67cfcae954c6d18e05b49c6b17f662d2530c76bf5"},
-]
+alembic = []
 async-timeout = [
     {file = "async-timeout-4.0.2.tar.gz", hash = "sha256:2163e1640ddb52b7a8c80d0a67a08587e5d245cc9c553a74a847056bc2976b15"},
     {file = "async_timeout-4.0.2-py3-none-any.whl", hash = "sha256:8ca1e4fcf50d07413d66d1a5e416e42cfdf5851c981d679a09851a6853383b3c"},
@@ -1122,6 +1120,7 @@ idna = [
     {file = "idna-2.10.tar.gz", hash = "sha256:b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6"},
 ]
 importlib-metadata = []
+importlib-resources = []
 itsdangerous = []
 jinja2 = []
 mako = [
@@ -1238,20 +1237,9 @@ pytest-pudb = [
     {file = "pytest-pudb-0.7.0.tar.gz", hash = "sha256:0ea87316d39c82163d340c28a168e08a163b8d3f484e60a53c9fd5eefe432c63"},
     {file = "pytest_pudb-0.7.0-py2.py3-none-any.whl", hash = "sha256:21e96fc16f313a7bd75e1df1b151de8a721144318b0ae8350208d6554222005a"},
 ]
-python-dateutil = [
-    {file = "python-dateutil-2.8.1.tar.gz", hash = "sha256:73ebfe9dbf22e832286dafa60473e4cd239f8592f699aa5adaf10050e6e1823c"},
-    {file = "python_dateutil-2.8.1-py2.py3-none-any.whl", hash = "sha256:75bb3f31ea686f1197762692a9ee6a7550b59fc6ca3a1f4b5d7e32fb98e2da2a"},
-]
 python-dotenv = [
     {file = "python-dotenv-0.15.0.tar.gz", hash = "sha256:587825ed60b1711daea4832cf37524dfd404325b7db5e25ebe88c495c9f807a0"},
     {file = "python_dotenv-0.15.0-py2.py3-none-any.whl", hash = "sha256:0c8d1b80d1a1e91717ea7d526178e3882732420b03f08afea0406db6402e220e"},
-]
-python-editor = [
-    {file = "python-editor-1.0.4.tar.gz", hash = "sha256:51fda6bcc5ddbbb7063b2af7509e43bd84bfc32a4ff71349ec7847713882327b"},
-    {file = "python_editor-1.0.4-py2-none-any.whl", hash = "sha256:5f98b069316ea1c2ed3f67e7f5df6c0d8f10b689964a4a811ff64f0106819ec8"},
-    {file = "python_editor-1.0.4-py2.7.egg", hash = "sha256:ea87e17f6ec459e780e4221f295411462e0d0810858e055fc514684350a2f522"},
-    {file = "python_editor-1.0.4-py3-none-any.whl", hash = "sha256:1bf6e860a8ad52a14c3ee1252d5dc25b2030618ed80c022598f00176adc8367d"},
-    {file = "python_editor-1.0.4-py3.5.egg", hash = "sha256:c3da2053dbab6b29c94e43c486ff67206eafbe7eb52dbec7390b5e2fb05aac77"},
 ]
 python-json-logger = []
 redis = []
