@@ -22,7 +22,7 @@ are serialized to JSON documents (``"applicatoin/json"``).
 RFC 2119.
 
 
-Required Message Fileds
+Required Message Fields
 =======================
 
 For every specific type of message defined by the Swaptacular
@@ -31,7 +31,7 @@ MUST be present in the serialized JSON document as properties. In
 addition, a ``"type"`` property MUST exist, specifying the type of the
 message.
 
-For example, the serialization of a ``AccountPurge`` message would
+For example, the serialization of an ``AccountPurge`` message would
 look like this::
 
   {
@@ -54,21 +54,31 @@ follows:
 int32
   To JSON number.
 
-  MUST be formated as integer. MUST NOT contain a decimal point
+  MUST be formatted as integer. MUST NOT contain a decimal point
   (``.``) or an exponent (``e`` or ``E``).
 
 
 int64
   To JSON number.
 
-  MUST be formated as integer. MUST NOT contain a decimal point
+  MUST be formatted as integer. MUST NOT contain a decimal point
   (``.``) or an exponent (``e`` or ``E``).
 
+  **Note for implementators:** Even thought ECMAScript 2021 supports
+  `BigInt`s, the standard JSON parser and serializer does not allow to
+  correctly process numbers outside the safe range from ```-(2 ** 53 -
+  1)`` to ``2 ** 53 - 1``.
+  
 float  
   To JSON number.
 
-  MUST be formated as floating point number. MUST contain a decimal
-  point (``.``), or an exponent (``e`` or ``E``), or both.
+  MUST be formatted as floating point number. MUST contain a decimal
+  point (``.``), or an exponent (``e`` or ``E``), or both. The reason
+  for this requirement is to allow generic JSON parsers to easily
+  differentiate integers from floats.
+
+  **Note for implementators:** The standard ECMAScript 2021 JSON
+  serializer does not satisfy this requirement.
 
 string
   To JSON string.
