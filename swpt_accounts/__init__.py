@@ -39,6 +39,7 @@ def _add_console_hander(logger, format: str):
         raise RuntimeError(f'invalid log format: {format}')
 
     handler.addFilter(_filter_pika_connection_reset_errors)
+    handler.addFilter(_filter_asyncio_unclosed_client_session_errors)
     logger.addHandler(handler)
 
 
@@ -82,6 +83,24 @@ def _filter_pika_connection_reset_errors(record: logging.LogRecord) -> bool:  # 
     )
 
     return not is_pika_connection_reset_error
+
+
+def _filter_asyncio_unclosed_client_session_errors(record: logging.LogRecord) -> bool:  # pragma: nocover
+    # NOTE: Currently, when using aiohttp's ClientSession,
+    # periodically we get "Unclosed client session client_session:
+    # <aiohttp.client.ClientSession object at ...>" error from the
+    # "asyncio" module, which seems to be a harmless warning, but is
+    # quite annoying. Here we filter out those errors.
+
+    message = record.getMessage()
+    is_asyncio_unclosed_client_session_errors = record.levelno == logging.ERROR and (
+        record.name == 'asyncio'
+        and message.startswith(
+            "Unclosed client session\nclient_session: <aiohttp.client.ClientSession object at "
+        )
+    )
+
+    return not is_asyncio_unclosed_client_session_errors
 
 
 def configure_logging(level: str, format: str, associated_loggers: List[str]) -> None:
