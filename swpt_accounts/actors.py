@@ -185,7 +185,7 @@ TerminatedConsumtion = rabbitmq.TerminatedConsumtion
 class SmpConsumer(rabbitmq.Consumer):
     """Passes messages to proper handlers (actors)."""
 
-    def process_message(self, body, properties):
+    def process_message(self, body, properties):  # pragma: nocover
         try:
             content_type = properties.content_type
         except AttributeError:

@@ -176,23 +176,26 @@ class AccountScanner(TableScanner):
 
         for row in rows:
             creditor_id = row[c_creditor_id]
-            should_be_deleted = (
-                creditor_id != ROOT_CREDITOR_ID
-                and row[c_last_deletion_attempt_ts] <= cutoff_ts
+            should_be_deleted = False
+            should_be_deleted_if_balance_is_negligible = (
+                row[c_last_deletion_attempt_ts] <= cutoff_ts
                 and row[c_config_flags] & scheduled_for_deletion_flag
                 and not row[c_status_flags] & deleted_flag
-                and is_negligible_balance(
-                    calc_current_balance(
+            )
+            if should_be_deleted_if_balance_is_negligible:
+                if creditor_id == ROOT_CREDITOR_ID:  # pragma: nocover
+                    should_be_deleted = row[c_principal] == 0
+                else:
+                    balance = calc_current_balance(
                         creditor_id=creditor_id,
                         principal=row[c_principal],
                         interest=row[c_interest],
                         interest_rate=row[c_interest_rate],
                         last_change_ts=row[c_last_change_ts],
                         current_ts=current_ts,
-                    ),
-                    row[c_negligible_amount],
-                )
-            )
+                    )
+                    should_be_deleted = is_negligible_balance(balance, row[c_negligible_amount])
+
             if should_be_deleted:
                 try_to_delete_account.send(row[c_debtor_id], creditor_id)
 

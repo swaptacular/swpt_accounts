@@ -316,23 +316,26 @@ def capitalize_interest(debtor_id: int, creditor_id: int, min_capitalization_int
 
 @atomic
 def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
-    if creditor_id == ROOT_CREDITOR_ID:
-        # TODO: Allow the deletion of the debtor's account, but only
-        #       when there are no other accounts with the given debtor
-        #       in the whole system. (When accounts are sharded over
-        #       several databases, it is not easy to guarantee this.)
-        return
-
     current_ts = datetime.now(tz=timezone.utc)
     account = get_account(debtor_id, creditor_id, lock=True)
     if account:
         account.last_deletion_attempt_ts = current_ts
 
-        can_be_deleted = (
+        can_be_deleted = False
+        can_be_deleted_if_balance_is_negligible = (
             account.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
             and account.pending_transfers_count == 0
-            and is_negligible_balance(account.calc_current_balance(current_ts), account.negligible_amount)
         )
+        if can_be_deleted_if_balance_is_negligible:
+            if creditor_id == ROOT_CREDITOR_ID:  # pragma: nocover
+                # NOTE: The debtor's account will only be deleted if
+                # the remaining principal (that is, the total amount
+                # of tokens in circulation) is exactly zero.
+                can_be_deleted = account.principal == 0
+            else:
+                balance = account.calc_current_balance(current_ts)
+                can_be_deleted = is_negligible_balance(balance, account.negligible_amount)
+
         if can_be_deleted:
             if account.principal != 0:
                 _make_debtor_payment(CT_DELETE, account, -account.principal, current_ts)

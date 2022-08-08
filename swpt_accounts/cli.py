@@ -16,25 +16,25 @@ from swpt_accounts.extensions import db
 from swpt_accounts.models import SECONDS_IN_DAY
 
 HANDLED_SIGNALS = {signal.SIGINT, signal.SIGTERM}
-if hasattr(signal, "SIGHUP"):
+if hasattr(signal, "SIGHUP"):  # pragma: no cover
     HANDLED_SIGNALS.add(signal.SIGHUP)
-if hasattr(signal, "SIGBREAK"):
+if hasattr(signal, "SIGBREAK"):  # pragma: no cover
     HANDLED_SIGNALS.add(signal.SIGBREAK)
 
 
-def try_block_signals():
+def try_block_signals():  # pragma: no cover
     """Blocks HANDLED_SIGNALS on platforms that support it."""
     if hasattr(signal, "pthread_sigmask"):
         signal.pthread_sigmask(signal.SIG_BLOCK, HANDLED_SIGNALS)
 
 
-def try_unblock_signals():
+def try_unblock_signals():  # pragma: no cover
     """Unblocks HANDLED_SIGNALS on platforms that support it."""
     if hasattr(signal, "pthread_sigmask"):
         signal.pthread_sigmask(signal.SIG_UNBLOCK, HANDLED_SIGNALS)
 
 
-def consume(url, queue, threads, prefetch_size, prefetch_count):
+def consume(url, queue, threads, prefetch_size, prefetch_count):  # pragma: no cover
     """Consume messages in a subprocess."""
 
     from swpt_accounts.actors import SmpConsumer, TerminatedConsumtion
