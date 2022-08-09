@@ -330,7 +330,17 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
             if creditor_id == ROOT_CREDITOR_ID:  # pragma: nocover
                 # NOTE: The debtor's account will only be deleted if
                 # the remaining principal (that is, the total amount
-                # of tokens in circulation) is exactly zero.
+                # of tokens in circulation with a negative sign) is
+                # exactly zero. However, if there are regular accounts
+                # with negative balances, it is possible for the
+                # deleted debtor's account to be "resurrected" by an
+                # incoming transfer, with its "scheduled for deletion"
+                # flag reset to `False`. To properly delete the
+                # debtor's account in this case, the debtors agent
+                # should automatically schedule the account for
+                # deletion again, in response to the `AccountUpdate`
+                # message sent as a result of the resurrection of the
+                # debtor's account.
                 can_be_deleted = account.principal == 0
             else:
                 balance = account.calc_current_balance(current_ts)
