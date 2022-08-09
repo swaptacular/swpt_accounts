@@ -56,7 +56,6 @@ COPY docker/entrypoint.sh \
      docker/supervisord.conf \
      docker/trigger_supervisor_process.py \
      wsgi.py \
-     tasks.py \
      pytest.ini \
      ./
 COPY migrations/ migrations/

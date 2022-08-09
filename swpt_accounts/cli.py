@@ -198,6 +198,32 @@ def subscribe():  # pragma: no cover
                 ACCOUNTS_IN_EXCHANGE, queue_name, routing_key)
 
 
+@swpt_accounts.command('create_chores_queue')
+@with_appcontext
+def create_chores_queue():  # pragma: no cover
+    """Declare a RabbitMQ queue for accounts' chores."""
+
+    logger = logging.getLogger(__name__)
+    queue_name = current_app.config['CHORES_BROKER_QUEUE']
+    dead_letter_queue_name = queue_name + '.XQ'
+    broker_url = current_app.config['CHORES_BROKER_URL']
+    connection = pika.BlockingConnection(pika.URLParameters(broker_url))
+    channel = connection.channel()
+
+    # declare a corresponding dead-letter queue
+    channel.queue_declare(dead_letter_queue_name, durable=True, arguments={
+        'x-message-ttl': 604800000,
+    })
+    logger.info('Declared "%s" dead-letter queue.', dead_letter_queue_name)
+
+    # declare the queue
+    channel.queue_declare(queue_name, durable=True, arguments={
+        "x-dead-letter-exchange": "",
+        "x-dead-letter-routing-key": dead_letter_queue_name,
+    })
+    logger.info('Declared "%s" queue.', queue_name)
+
+
 @swpt_accounts.command('process_balance_changes')
 @with_appcontext
 @click.option('-t', '--threads', type=int, help='The number of worker threads.')
@@ -482,3 +508,34 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
                 break
 
     sys.exit(1)
+
+
+@swpt_accounts.command('consume_chore_messages')
+@with_appcontext
+@click.option('-u', '--url', type=str, help='The RabbitMQ connection URL.')
+@click.option('-q', '--queue', type=str, help='The name the queue to consume from.')
+@click.option('-p', '--processes', type=int, help='The number of worker processes.')
+@click.option('-t', '--threads', type=int, help='The number of threads running in each process.')
+@click.option('-s', '--prefetch-size', type=int, help='The prefetch window size in bytes.')
+@click.option('-c', '--prefetch-count', type=int, help='The prefetch window in terms of whole messages.')
+def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefetch_count):  # pragma: no cover
+    """Consume and process chore messages.
+
+    If some of the available options are not specified directly, the
+    values of the following environment variables will be used:
+
+    * CHORES_BROKER_URL (default "amqp://guest:guest@localhost:5672")
+
+    * CHORES_BROKER_QUEUE (defalut "swpt_accounts_chores")
+
+    * CHORES_BROKER_PROCESSES (defalut 1)
+
+    * CHORES_BROKER_THREADS (defalut 1)
+
+    * CHORES_BROKER_PREFETCH_COUNT (default 1)
+
+    * CHORES_BROKER_PREFETCH_SIZE (default 0, meaning unlimited)
+
+    """
+
+    # TODO: Add an implementation.

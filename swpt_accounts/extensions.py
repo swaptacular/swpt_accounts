@@ -9,7 +9,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from swpt_pythonlib.flask_signalbus import SignalBusMixin, AtomicProceduresMixin
 from swpt_pythonlib import rabbitmq
-from flask_melodramatiq import Broker
 
 TO_COORDINATORS_EXCHANGE = 'to_coordinators'
 TO_DEBTORS_EXCHANGE = 'to_debtors'
@@ -75,5 +74,5 @@ migrate = Migrate()
 asyncio_loop = LocalProxy(get_asyncio_loop)
 aiohttp_session = LocalProxy(get_aiohttp_session)
 requests_session = LocalProxy(get_requests_session)
-chores_broker = Broker(config_prefix='CHORES_BROKER')
 publisher = rabbitmq.Publisher(url_config_key='PROTOCOL_BROKER_URL')
+chores_publisher = rabbitmq.Publisher(url_config_key='CHORES_BROKER_URL')

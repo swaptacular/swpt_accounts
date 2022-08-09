@@ -5,12 +5,12 @@ from datetime import datetime, timedelta, timezone
 from swpt_pythonlib.scan_table import TableScanner
 from sqlalchemy.sql.expression import true, tuple_, or_
 from flask import current_app
-from swpt_accounts.extensions import db
+from swpt_accounts.extensions import db, chores_publisher
 from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal, PreparedTransfer, \
     PreparedTransferSignal, RegisteredBalanceChange, ROOT_CREDITOR_ID, calc_current_balance, \
     is_negligible_balance, contain_principal_overflow
 from swpt_accounts.fetch_api_client import get_root_config_data_dict
-from swpt_accounts.chores import change_interest_rate, update_debtor_info, capitalize_interest, try_to_delete_account
+from swpt_accounts.chores import create_message
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -173,6 +173,7 @@ class AccountScanner(TableScanner):
         scheduled_for_deletion_flag = Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
         deleted_flag = Account.STATUS_DELETED_FLAG
         cutoff_ts = current_ts - self.deletion_attempts_min_interval
+        chores = []
 
         for row in rows:
             creditor_id = row[c_creditor_id]
@@ -197,7 +198,13 @@ class AccountScanner(TableScanner):
                     should_be_deleted = is_negligible_balance(balance, row[c_negligible_amount])
 
             if should_be_deleted:
-                try_to_delete_account.send(row[c_debtor_id], creditor_id)
+                chores.append(create_message({
+                    'type': 'TryToDeleteAccount',
+                    'debtor_id': row[c_debtor_id],
+                    'creditor_id': creditor_id,
+                }))
+
+        chores_publisher.publish_messages(chores)
 
     def _capitalize_interests(self, rows, current_ts):
         c = self.table.c
@@ -212,6 +219,7 @@ class AccountScanner(TableScanner):
         deleted_flag = Account.STATUS_DELETED_FLAG
         cutoff_ts = current_ts - self.min_interest_cap_interval
         max_ratio = self.max_interest_to_principal_ratio
+        chores = []
 
         for row in rows:
             creditor_id = row[c_creditor_id]
@@ -233,7 +241,13 @@ class AccountScanner(TableScanner):
                 ratio = accumulated_interest / (1 + abs(row[c_principal]))
 
                 if ratio > max_ratio:
-                    capitalize_interest.send(row[c_debtor_id], creditor_id)
+                    chores.append(create_message({
+                        'type': 'CapitalizeInterest',
+                        'debtor_id': row[c_debtor_id],
+                        'creditor_id': creditor_id,
+                    }))
+
+        chores_publisher.publish_messages(chores)
 
     def _change_debtor_settings(self, rows, current_ts):
         c = self.table.c
@@ -267,6 +281,7 @@ class AccountScanner(TableScanner):
 
         debtor_ids = {row[c_debtor_id] for row in rows}
         config_data_dict = get_root_config_data_dict(debtor_ids)
+        chores = []
 
         for row in rows:
             creditor_id = row[c_creditor_id]
@@ -278,20 +293,29 @@ class AccountScanner(TableScanner):
             if config_data:
                 interest_rate = config_data.interest_rate_target
                 if should_change_interest_rate(row, interest_rate):
-                    change_interest_rate.send(debtor_id, creditor_id, interest_rate, current_ts.isoformat())
+                    chores.append(create_message({
+                        'type': 'ChangeInterestRate',
+                        'debtor_id': debtor_id,
+                        'creditor_id': creditor_id,
+                        'interest_rate': interest_rate,
+                        'ts': current_ts,
+                    }))
 
                 debtor_info_iri = config_data.info_iri
                 debtor_info_content_type = config_data.info_content_type
                 debtor_info_sha256 = config_data.info_sha256
                 if should_update_debtor_info(row, debtor_info_iri, debtor_info_content_type, debtor_info_sha256):
-                    update_debtor_info.send(
-                        debtor_id,
-                        creditor_id,
-                        debtor_info_iri,
-                        debtor_info_content_type,
-                        debtor_info_sha256 and b16encode(debtor_info_sha256).decode(),
-                        current_ts.isoformat(),
-                    )
+                    chores.append(create_message({
+                        'type': 'UpdateDebtorInfo',
+                        'debtor_id': debtor_id,
+                        'creditor_id': creditor_id,
+                        'debtor_info_iri': debtor_info_iri or '',
+                        'debtor_info_content_type': debtor_info_content_type or '',
+                        'debtor_info_sha256': b16encode(debtor_info_sha256).decode() if debtor_info_sha256 else '',
+                        'ts': current_ts,
+                    }))
+
+        chores_publisher.publish_messages(chores)
 
 
 class PreparedTransferScanner(TableScanner):

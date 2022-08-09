@@ -64,6 +64,28 @@ setup_rabbitmq_bindings() {
     return 1
 }
 
+# This function tries to create the RabbitMQ queue for accounts'
+# chores, with exponential backoff. This is necessary during
+# development, because the RabbitMQ server might not be running yet
+# when this script executes.
+create_chores_queue() {
+    local retry_after=1
+    local time_limit=$(($retry_after << 5))
+    local error_file="$APP_ROOT_DIR/flask-create-queue.error"
+    echo -n 'Setting up message broker objects ...'
+    while [[ $retry_after -lt $time_limit ]]; do
+        if flask swpt_accounts create_chores_queue &>$error_file; then
+            echo ' done.'
+            return 0
+        fi
+        sleep $retry_after
+        retry_after=$((2 * retry_after))
+    done
+    echo
+    cat "$error_file"
+    return 1
+}
+
 # This function is intended to perform additional one-time database
 # initialization. Make sure that it is idempotent.
 # (https://en.wikipedia.org/wiki/Idempotence)
@@ -83,15 +105,13 @@ case $1 in
     configure)
         perform_db_upgrade
         setup_rabbitmq_bindings
+        create_chores_queue
         ;;
     webserver)
         exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :$PORT wsgi:app
         ;;
-    process_chores)
-        exec dramatiq --processes ${CHORES_PROCESSES-1} --threads ${CHORES_THREADS-3} tasks:chores_broker
-        ;;
     process_balance_changes |process_transfer_requests | process_finalization_requests | scan_accounts \
-        | scan_prepared_transfers | scan_registered_balance_changes | consume_messages)
+        | scan_prepared_transfers | scan_registered_balance_changes | consume_messages | consume_chore_messages)
         exec flask swpt_accounts "$@"
         ;;
     flush_rejected_transfers | flush_prepared_transfers | flush_finalized_transfers \

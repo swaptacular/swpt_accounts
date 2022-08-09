@@ -6,7 +6,6 @@ import os
 import os.path
 from typing import List
 from datetime import datetime, timezone, timedelta
-from flask_melodramatiq import missing
 
 
 def _parse_datetime(s: str) -> datetime:
@@ -178,8 +177,12 @@ class Configuration(metaclass=MetaEnvReader):
     PROTOCOL_BROKER_THREADS = 1
     PROTOCOL_BROKER_PREFETCH_SIZE = 0
     PROTOCOL_BROKER_PREFETCH_COUNT = 1
-    CHORES_BROKER_CLASS = 'RabbitmqBroker'
-    CHORES_BROKER_URL: str = missing
+    CHORES_BROKER_URL = 'amqp://guest:guest@localhost:5672'
+    CHORES_BROKER_QUEUE = 'swpt_accounts_chores'
+    CHORES_BROKER_PROCESSES = 1
+    CHORES_BROKER_THREADS = 1
+    CHORES_BROKER_PREFETCH_SIZE = 0
+    CHORES_BROKER_PREFETCH_COUNT = 1
     APP_PROCESS_BALANCE_CHANGES_THREADS = 1
     APP_PROCESS_BALANCE_CHANGES_WAIT = 5.0
     APP_PROCESS_BALANCE_CHANGES_MAX_COUNT = 500000
@@ -265,7 +268,7 @@ def create_app(config_dict={}):
     from werkzeug.middleware.proxy_fix import ProxyFix
     from flask import Flask
     from swpt_pythonlib.utils import Int64Converter
-    from .extensions import db, migrate, chores_broker, publisher
+    from .extensions import db, migrate, publisher, chores_publisher
     from .routes import fetch_api
     from .cli import swpt_accounts
     from . import models  # noqa
@@ -277,8 +280,8 @@ def create_app(config_dict={}):
     app.config.from_mapping(config_dict)
     db.init_app(app)
     migrate.init_app(app, db)
-    chores_broker.init_app(app)
     publisher.init_app(app)
+    chores_publisher.init_app(app)
     app.register_blueprint(fetch_api)
     app.cli.add_command(swpt_accounts)
     _check_config_sanity(app.config)

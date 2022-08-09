@@ -1,20 +1,26 @@
 import logging
-import time
-import dramatiq
 from datetime import date, datetime, timezone, timedelta
 from flask import current_app
-from swpt_accounts.extensions import db, chores_broker
+from swpt_accounts.extensions import db
 from swpt_accounts.schemas import RootConfigData
 from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict
 from swpt_accounts import procedures as p
 from swpt_accounts.actors import _configure_and_initialize_account
-
+from swpt_accounts.chores import ChoresConsumer
 
 D_ID = -1
 C_ID = 1
 
 
-def test_scan_accounts(app_unsafe_session):
+def test_scan_accounts(app_unsafe_session, mocker):
+    chores = []
+
+    class MyPublisher:
+        def publish_messages(self, messages):
+            chores.extend(messages)
+
+    mocker.patch('swpt_accounts.extensions.chores_publisher', new=MyPublisher())
+
     from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal, AccountTransferSignal, \
         PendingBalanceChangeSignal
     from swpt_accounts.fetch_api_client import _clear_root_config_data
@@ -144,10 +150,10 @@ def test_scan_accounts(app_unsafe_session):
     assert len(PendingBalanceChangeSignal.query.all()) == 0
 
     db.session.commit()
-    worker = dramatiq.Worker(chores_broker)
-    worker.start()
-    time.sleep(2.0)
-    worker.join()
+
+    chores_consumer = ChoresConsumer()
+    for msg in chores:
+        chores_consumer.process_message(msg.body, msg.properties)
 
     accounts = Account.query.order_by(Account.creditor_id).all()
     assert accounts[0].creditor_id == 0
