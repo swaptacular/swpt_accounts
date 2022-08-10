@@ -17,9 +17,52 @@ def test_sibnalbus_burst_count(app):
     assert isinstance(m.PendingBalanceChangeSignal.signalbus_burst_count, int)
 
 
+def test_send_signalbus_message(app, mocker):
+    from swpt_accounts import models as m
+    current_ts = datetime.now()
+    publisher = mocker.patch('swpt_accounts.models.publisher')
+    s = m.RejectedTransferSignal(
+        debtor_id=1,
+        sender_creditor_id=2,
+        coordinator_type='direct',
+        coordinator_id=666,
+        coordinator_request_id=777,
+        status_code='TEST_ERROR',
+        total_locked_amount=0,
+        inserted_at=current_ts,
+    )
+    s.send_signalbus_message()
+    publisher.publish_messages.assert_called_once()
+    args, kwargs = publisher.publish_messages.call_args
+    assert len(args) == 1
+    assert kwargs == {}
+    messages = args[0]
+    assert len(messages) == 1
+    m = messages[0]
+    assert m.properties.headers['debtor-id'] == 1
+    assert m.properties.headers['creditor-id'] == 2
+    assert m.properties.headers['coordinator-type'] == 'direct'
+    assert m.properties.headers['coordinator-id'] == 666
+    assert m.properties.type == 'RejectedTransfer'
+    assert m.properties.content_type == 'application/json'
+    assert m.properties.app_id == 'swpt_accounts'
+    assert m.properties.delivery_mode == 2
+    assert s.__marshmallow_schema__.loads(m.body.decode('utf-8')) == dict(
+        type='RejectedTransfer',
+        debtor_id=1,
+        sender_creditor_id=2,
+        coordinator_type='direct',
+        coordinator_id=666,
+        coordinator_request_id=777,
+        status_code='TEST_ERROR',
+        total_locked_amount=0,
+        inserted_at=current_ts,
+    )
+
+
 def test_properties(app):
     from swpt_accounts import models as m
-    from swpt_accounts.extensions import  TO_COORDINATORS_EXCHANGE, TO_DEBTORS_EXCHANGE, \
+    from swpt_accounts.extensions import TO_COORDINATORS_EXCHANGE, TO_DEBTORS_EXCHANGE, \
         TO_CREDITORS_EXCHANGE, ACCOUNTS_IN_EXCHANGE
 
     s = m.RejectedTransferSignal(coordinator_id=1)

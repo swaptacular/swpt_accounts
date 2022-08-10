@@ -449,15 +449,15 @@ class Signal(db.Model):
     __abstract__ = True
 
     @classmethod
-    def send_signalbus_messages(cls, objects):  # pragma: no cover
+    def send_signalbus_messages(cls, objects):
         assert(all(isinstance(obj, cls) for obj in objects))
         messages = [obj._create_message() for obj in objects]
         publisher.publish_messages(messages)
 
-    def send_signalbus_message(self):  # pragma: no cover
+    def send_signalbus_message(self):
         self.send_signalbus_messages([self])
 
-    def _create_message(self):  # pragma: no cover
+    def _create_message(self):
         data = self.__marshmallow_schema__.dump(self)
         headers = {
             'debtor-id': data['debtor_id'],
