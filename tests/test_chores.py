@@ -3,6 +3,7 @@ from datetime import datetime
 from swpt_accounts import chores
 from swpt_accounts import schemas
 from marshmallow import ValidationError
+from swpt_pythonlib.rabbitmq import MessageProperties
 
 D_ID = -1
 C_ID = 1
@@ -135,3 +136,28 @@ def test_create_chore_message():
     assert m.properties.content_type == 'application/json'
     assert m.properties.delivery_mode == 2
     assert m.properties.type == 'UpdateDebtorInfo'
+
+
+def test_consumer(db_session):
+    consumer = chores.ChoresConsumer()
+
+    props = MessageProperties(content_type="xxx")
+    assert consumer.process_message(b'body', props) is False
+
+    props = MessageProperties(content_type="application/json", type="xxx")
+    assert consumer.process_message(b'body', props) is False
+
+    props = MessageProperties(content_type="application/json", type="TryToDeleteAccount")
+    assert consumer.process_message(b'body', props) is False
+
+    props = MessageProperties(content_type="application/json", type="TryToDeleteAccount")
+    assert consumer.process_message(b'{}', props) is False
+
+    props = MessageProperties(content_type="application/json", type="TryToDeleteAccount")
+    assert consumer.process_message(b'''
+    {
+      "type": "TryToDeleteAccount",
+      "debtor_id": 1,
+      "creditor_id": 2
+    }
+    ''', props) is True

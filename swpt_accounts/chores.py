@@ -124,23 +124,13 @@ TerminatedConsumtion = rabbitmq.TerminatedConsumtion
 class ChoresConsumer(rabbitmq.Consumer):
     """Passes messages to proper handlers."""
 
-    def process_message(self, body, properties):  # pragma: nocover
-        try:
-            content_type = properties.content_type
-        except AttributeError:
-            _LOGGER.error('Missing message content type header')
-            return False
-
+    def process_message(self, body, properties):
+        content_type = getattr(properties, 'content_type', '')
         if content_type != 'application/json':
             _LOGGER.error('Unknown message content type: "%s"', content_type)
             return False
 
-        try:
-            massage_type = properties.type
-        except AttributeError:
-            _LOGGER.error('Missing message type header')
-            return False
-
+        massage_type = getattr(properties, 'type', '')
         try:
             schema, actor = _MESSAGE_TYPES[massage_type]
         except KeyError:

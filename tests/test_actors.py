@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime, timezone
 from swpt_accounts import procedures as p
 from swpt_accounts.models import RejectedTransferSignal
+from swpt_pythonlib.rabbitmq import MessageProperties
 
 D_ID = -1
 C_ID = 1
@@ -94,3 +95,33 @@ def test_on_pending_balance_change_signal(db_session, actors):
         principal_delta=1000,
         other_creditor_id=123,
     )
+
+
+def test_consumer(db_session, actors):
+    consumer = actors.SmpConsumer()
+
+    props = MessageProperties(content_type="xxx")
+    assert consumer.process_message(b'body', props) is False
+
+    props = MessageProperties(content_type="application/json", type="xxx")
+    assert consumer.process_message(b'body', props) is False
+
+    props = MessageProperties(content_type="application/json", type="ConfigureAccount")
+    assert consumer.process_message(b'body', props) is False
+
+    props = MessageProperties(content_type="application/json", type="ConfigureAccount")
+    assert consumer.process_message(b'{}', props) is False
+
+    props = MessageProperties(content_type="application/json", type="ConfigureAccount")
+    assert consumer.process_message(b'''
+    {
+      "type": "ConfigureAccount",
+      "debtor_id": 1,
+      "creditor_id": 2,
+      "ts": "2099-12-31T00:00:00+00:00",
+      "seqnum": 0,
+      "negligible_amount": 500.0,
+      "config_flags": 0,
+      "config_data": ""
+    }
+    ''', props) is True
