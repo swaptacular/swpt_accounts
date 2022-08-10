@@ -523,7 +523,7 @@ class RejectedTransferSignal(Signal):
         return current_app.config['APP_FLUSH_REJECTED_TRANSFERS_BURST_COUNT']
 
     @property
-    def routing_key(self):  # pragma: no cover
+    def routing_key(self):
         return i64_to_hex_routing_key(self.coordinator_id)
 
 
@@ -567,7 +567,7 @@ class PreparedTransferSignal(Signal):
         return current_app.config['APP_FLUSH_PREPARED_TRANSFERS_BURST_COUNT']
 
     @property
-    def routing_key(self):  # pragma: no cover
+    def routing_key(self):
         return i64_to_hex_routing_key(self.coordinator_id)
 
 
@@ -607,7 +607,7 @@ class FinalizedTransferSignal(Signal):
         return current_app.config['APP_FLUSH_FINALIZED_TRANSFERS_BURST_COUNT']
 
     @property
-    def routing_key(self):  # pragma: no cover
+    def routing_key(self):
         return i64_to_hex_routing_key(self.coordinator_id)
 
 
@@ -654,11 +654,11 @@ class AccountTransferSignal(Signal):
         return current_app.config['APP_FLUSH_ACCOUNT_TRANSFERS_BURST_COUNT']
 
     @property
-    def exchange_name(self):  # pragma: no cover
+    def exchange_name(self):
         return TO_DEBTORS_EXCHANGE if self.creditor_id == ROOT_CREDITOR_ID else TO_CREDITORS_EXCHANGE
 
     @property
-    def routing_key(self):  # pragma: no cover
+    def routing_key(self):
         return i64_to_hex_routing_key(self.debtor_id if self.creditor_id == ROOT_CREDITOR_ID else self.creditor_id)
 
     @property
@@ -727,11 +727,11 @@ class AccountUpdateSignal(Signal):
         return current_app.config['APP_FLUSH_ACCOUNT_UPDATES_BURST_COUNT']
 
     @property
-    def exchange_name(self):  # pragma: no cover
+    def exchange_name(self):
         return TO_DEBTORS_EXCHANGE if self.creditor_id == ROOT_CREDITOR_ID else TO_CREDITORS_EXCHANGE
 
     @property
-    def routing_key(self):  # pragma: no cover
+    def routing_key(self):
         return i64_to_hex_routing_key(self.debtor_id if self.creditor_id == ROOT_CREDITOR_ID else self.creditor_id)
 
     @property
@@ -758,11 +758,11 @@ class AccountPurgeSignal(Signal):
     creation_date = db.Column(db.DATE, primary_key=True)
 
     @property
-    def exchange_name(self):  # pragma: no cover
+    def exchange_name(self):
         return TO_DEBTORS_EXCHANGE if self.creditor_id == ROOT_CREDITOR_ID else TO_CREDITORS_EXCHANGE
 
     @property
-    def routing_key(self):  # pragma: no cover
+    def routing_key(self):
         return i64_to_hex_routing_key(self.debtor_id if self.creditor_id == ROOT_CREDITOR_ID else self.creditor_id)
 
     @classproperty
@@ -796,11 +796,11 @@ class RejectedConfigSignal(Signal):
     rejection_code = db.Column(db.String(30), nullable=False)
 
     @property
-    def exchange_name(self):  # pragma: no cover
+    def exchange_name(self):
         return TO_DEBTORS_EXCHANGE if self.creditor_id == ROOT_CREDITOR_ID else TO_CREDITORS_EXCHANGE
 
     @property
-    def routing_key(self):  # pragma: no cover
+    def routing_key(self):
         return i64_to_hex_routing_key(self.debtor_id if self.creditor_id == ROOT_CREDITOR_ID else self.creditor_id)
 
     @classproperty
@@ -836,7 +836,7 @@ class PendingBalanceChangeSignal(Signal):
     principal_delta = db.Column(db.BigInteger, nullable=False)
 
     @property
-    def routing_key(self):  # pragma: no cover
+    def routing_key(self):
         return calc_bin_routing_key(self.debtor_id, self.creditor_id)
 
     @classproperty

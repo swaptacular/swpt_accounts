@@ -17,6 +17,52 @@ def test_sibnalbus_burst_count(app):
     assert isinstance(m.PendingBalanceChangeSignal.signalbus_burst_count, int)
 
 
+def test_properties(app):
+    from swpt_accounts import models as m
+    from swpt_accounts.extensions import  TO_COORDINATORS_EXCHANGE, TO_DEBTORS_EXCHANGE, \
+        TO_CREDITORS_EXCHANGE, ACCOUNTS_IN_EXCHANGE
+
+    s = m.RejectedTransferSignal(coordinator_id=1)
+    assert s.exchange_name == TO_COORDINATORS_EXCHANGE
+    assert s.routing_key == "00.00.00.00.00.00.00.01"
+
+    s = m.PreparedTransferSignal(coordinator_id=1)
+    assert s.exchange_name == TO_COORDINATORS_EXCHANGE
+    assert s.routing_key == "00.00.00.00.00.00.00.01"
+
+    s = m.FinalizedTransferSignal(coordinator_id=1)
+    assert s.exchange_name == TO_COORDINATORS_EXCHANGE
+    assert s.routing_key == "00.00.00.00.00.00.00.01"
+
+    s = m.AccountTransferSignal(creditor_id=1)
+    assert s.exchange_name == TO_CREDITORS_EXCHANGE
+    assert s.routing_key == "00.00.00.00.00.00.00.01"
+
+    s = m.AccountTransferSignal(debtor_id=2, creditor_id=0)
+    assert s.exchange_name == TO_DEBTORS_EXCHANGE
+    assert s.routing_key == "00.00.00.00.00.00.00.02"
+
+    s = m.AccountUpdateSignal(creditor_id=1)
+    assert s.exchange_name == TO_CREDITORS_EXCHANGE
+    assert s.routing_key == "00.00.00.00.00.00.00.01"
+
+    s = m.AccountPurgeSignal(creditor_id=1)
+    assert s.exchange_name == TO_CREDITORS_EXCHANGE
+    assert s.routing_key == "00.00.00.00.00.00.00.01"
+
+    s = m.RejectedConfigSignal(creditor_id=1)
+    assert s.exchange_name == TO_CREDITORS_EXCHANGE
+    assert s.routing_key == "00.00.00.00.00.00.00.01"
+
+    s = m.RejectedConfigSignal(debtor_id=2, creditor_id=0)
+    assert s.exchange_name == TO_DEBTORS_EXCHANGE
+    assert s.routing_key == "00.00.00.00.00.00.00.02"
+
+    s = m.PendingBalanceChangeSignal(debtor_id=2, creditor_id=1)
+    assert s.exchange_name == ACCOUNTS_IN_EXCHANGE
+    assert s.routing_key == "1.1.1.1.1.0.0.0.1.1.0.1.0.0.1.1.1.0.1.1.0.1.0.1"
+
+
 def test_configure_account():
     one_year = timedelta(days=365.25)
     current_ts = datetime.now(tz=timezone.utc)
