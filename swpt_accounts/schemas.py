@@ -83,33 +83,6 @@ class RootConfigDataSchema(ValidateTypeMixin, Schema):
     )
 
 
-_root_config_data_schema = RootConfigDataSchema()
-
-
-def parse_root_config_data(config_data: str) -> RootConfigData:
-    if config_data == '':
-        return RootConfigData()
-
-    try:
-        data = _root_config_data_schema.loads(config_data)
-    except (ValueError, ValidationError):
-        raise ValueError(f"invalid root config data: '{config_data}'")
-
-    interest_rate_target = data['interest_rate_target']
-    info = data.get('optional_info')
-    if info:
-        optional_sha256 = info.get('optional_sha256')
-        info_iri = info['iri']
-        info_sha256 = optional_sha256 and b16decode(optional_sha256)
-        info_content_type = info.get('optional_content_type')
-    else:
-        info_iri = None
-        info_sha256 = None
-        info_content_type = None
-
-    return RootConfigData(interest_rate_target, info_iri, info_sha256, info_content_type)
-
-
 class ValidateChoreMessageMixin:
     class Meta:
         unknown = EXCLUDE
@@ -151,3 +124,30 @@ class CapitalizeInterestMessageSchema(ValidateChoreMessageMixin, Schema):
 
 class TryToDeleteAccountMessageSchema(ValidateChoreMessageMixin, Schema):
     """``TryToDeleteAccount`` message schema."""
+
+
+_ROOT_CONFIG_DATA_SCHEMA = RootConfigDataSchema()
+
+
+def parse_root_config_data(config_data: str) -> RootConfigData:
+    if config_data == '':
+        return RootConfigData()
+
+    try:
+        data = _ROOT_CONFIG_DATA_SCHEMA.loads(config_data)
+    except (ValueError, ValidationError):
+        raise ValueError(f"invalid root config data: '{config_data}'")
+
+    interest_rate_target = data['interest_rate_target']
+    info = data.get('optional_info')
+    if info:
+        optional_sha256 = info.get('optional_sha256')
+        info_iri = info['iri']
+        info_sha256 = optional_sha256 and b16decode(optional_sha256)
+        info_content_type = info.get('optional_content_type')
+    else:
+        info_iri = None
+        info_sha256 = None
+        info_content_type = None
+
+    return RootConfigData(interest_rate_target, info_iri, info_sha256, info_content_type)
