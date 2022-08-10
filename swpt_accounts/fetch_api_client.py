@@ -9,8 +9,8 @@ import typing
 import requests
 from flask import current_app, url_for
 from swpt_accounts.extensions import requests_session, aiohttp_session, asyncio_loop
-from swpt_accounts.models import ROOT_CREDITOR_ID
-from swpt_accounts.schemas import RootConfigData, parse_root_config_data
+from swpt_accounts.models import ROOT_CREDITOR_ID, RootConfigData
+from swpt_accounts.schemas import parse_root_config_data
 
 _fetch_conifg_path = partial(url_for, 'fetch.config', _external=False, creditorId=ROOT_CREDITOR_ID)
 _root_config_data_lru_cache: typing.OrderedDict[int, Tuple[Optional[RootConfigData], float]] = OrderedDict()

@@ -1,15 +1,7 @@
 from base64 import b16decode
-from typing import NamedTuple, Optional
 from marshmallow import Schema, fields, validate, validates, ValidationError, EXCLUDE
 from swpt_accounts.models import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MIN_INT64, MAX_INT64, \
-    IRI_MAX_LENGTH, CONTENT_TYPE_MAX_BYTES, DEBTOR_INFO_SHA256_REGEX
-
-
-class RootConfigData(NamedTuple):
-    interest_rate_target: float = 0.0
-    info_iri: Optional[str] = None
-    info_sha256: Optional[bytes] = None
-    info_content_type: Optional[str] = None
+    IRI_MAX_LENGTH, CONTENT_TYPE_MAX_BYTES, DEBTOR_INFO_SHA256_REGEX, RootConfigData
 
 
 class ValidateTypeMixin:

@@ -1,5 +1,6 @@
 import json
 import math
+from typing import NamedTuple, Optional
 from base64 import b16encode
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -48,6 +49,13 @@ SC_RECIPIENT_IS_UNREACHABLE = 'RECIPIENT_IS_UNREACHABLE'
 SC_INSUFFICIENT_AVAILABLE_AMOUNT = 'INSUFFICIENT_AVAILABLE_AMOUNT'
 SC_RECIPIENT_SAME_AS_SENDER = 'RECIPIENT_SAME_AS_SENDER'
 SC_TOO_MANY_TRANSFERS = 'TOO_MANY_TRANSFERS'
+
+
+class RootConfigData(NamedTuple):
+    interest_rate_target: float = 0.0
+    info_iri: Optional[str] = None
+    info_sha256: Optional[bytes] = None
+    info_content_type: Optional[str] = None
 
 
 class classproperty(object):
