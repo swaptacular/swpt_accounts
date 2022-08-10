@@ -2,131 +2,16 @@ import logging
 import os
 import sys
 import click
-import time
-import threading
 import signal
 import pika
-import multiprocessing
 from datetime import timedelta
-from multiprocessing.dummy import Pool as ThreadPool
 from flask import current_app
 from flask.cli import with_appcontext
 from swpt_accounts import procedures
 from swpt_accounts.extensions import db
 from swpt_accounts.models import SECONDS_IN_DAY
-
-HANDLED_SIGNALS = {signal.SIGINT, signal.SIGTERM}
-if hasattr(signal, "SIGHUP"):  # pragma: no cover
-    HANDLED_SIGNALS.add(signal.SIGHUP)
-if hasattr(signal, "SIGBREAK"):  # pragma: no cover
-    HANDLED_SIGNALS.add(signal.SIGBREAK)
-
-
-def try_block_signals():  # pragma: no cover
-    """Blocks HANDLED_SIGNALS on platforms that support it."""
-    if hasattr(signal, "pthread_sigmask"):
-        signal.pthread_sigmask(signal.SIG_BLOCK, HANDLED_SIGNALS)
-
-
-def try_unblock_signals():  # pragma: no cover
-    """Unblocks HANDLED_SIGNALS on platforms that support it."""
-    if hasattr(signal, "pthread_sigmask"):
-        signal.pthread_sigmask(signal.SIG_UNBLOCK, HANDLED_SIGNALS)
-
-
-def consume(url, queue, threads, prefetch_size, prefetch_count):  # pragma: no cover
-    """Consume messages in a subprocess."""
-
-    from swpt_accounts.actors import SmpConsumer, TerminatedConsumtion
-    from swpt_accounts import create_app
-
-    consumer = SmpConsumer(
-        app=create_app(),
-        config_prefix='PROTOCOL_BROKER',
-        url=url,
-        queue=queue,
-        threads=threads,
-        prefetch_size=prefetch_size,
-        prefetch_count=prefetch_count,
-    )
-    for sig in HANDLED_SIGNALS:
-        signal.signal(sig, consumer.stop)
-
-    # Unblock the blocked signals inherited from the parent process
-    # before we start any worker threads.
-    try_unblock_signals()
-
-    pid = os.getpid()
-    logger = logging.getLogger(__name__)
-    logger.info('Worker with PID %i started processing messages.', pid)
-
-    try:
-        consumer.start()
-    except TerminatedConsumtion:
-        pass
-
-    logger.info('Worker with PID %i stopped processing messages.', pid)
-
-
-class ThreadPoolProcessor:
-    def __init__(self, threads, *, get_args_collection, process_func, wait_seconds):
-        self.logger = logging.getLogger(__name__)
-        self.threads = threads
-        self.get_args_collection = get_args_collection
-        self.process_func = process_func
-        self.wait_seconds = wait_seconds
-        self.all_done = threading.Condition()
-        self.pending = 0
-        self.error_has_occurred = False
-
-    def _wait_until_all_done(self):
-        while self.pending > 0:
-            self.all_done.wait()
-        assert self.pending == 0
-
-    def _mark_done(self, result=None):
-        with self.all_done:
-            self.pending -= 1
-            if self.pending <= 0:
-                self.all_done.notify()
-
-    def _log_error(self, e):  # pragma: no cover
-        self._mark_done()
-        try:
-            raise e
-        except Exception:
-            self.logger.exception('Caught error while processing objects.')
-
-        self.error_has_occurred = True
-
-    def run(self, *, quit_early=False):
-        app = current_app._get_current_object()
-
-        def push_app_context():
-            ctx = app.app_context()
-            ctx.push()
-
-        pool = ThreadPool(self.threads, initializer=push_app_context)
-        iteration_counter = 0
-
-        while not (self.error_has_occurred or (quit_early and iteration_counter > 0)):
-            iteration_counter += 1
-            started_at = time.time()
-            args_collection = self.get_args_collection()
-
-            with self.all_done:
-                self.pending += len(args_collection)
-
-            for args in args_collection:
-                pool.apply_async(self.process_func, args, callback=self._mark_done, error_callback=self._log_error)
-
-            with self.all_done:
-                self._wait_until_all_done()
-
-            time.sleep(max(0.0, self.wait_seconds + started_at - time.time()))
-
-        pool.close()
-        pool.join()
+from swpt_accounts.multiprocessing_utils import ThreadPoolProcessor, spawn_worker_processes, \
+    try_unblock_signals, HANDLED_SIGNALS
 
 
 @click.group('swpt_accounts')
@@ -134,7 +19,7 @@ def swpt_accounts():
     """Perform operations on Swaptacular accounts."""
 
 
-@swpt_accounts.command()
+@swpt_accounts.command('subscribe')
 @with_appcontext
 def subscribe():  # pragma: no cover
     """Declare a RabbitMQ queue, and subscribe it to receive incoming
@@ -432,7 +317,7 @@ def scan_registered_balance_changes(days, quit_early):
 @click.option('-t', '--threads', type=int, help='The number of threads running in each process.')
 @click.option('-s', '--prefetch-size', type=int, help='The prefetch window size in bytes.')
 @click.option('-c', '--prefetch-count', type=int, help='The prefetch window in terms of whole messages.')
-def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_count):  # pragma: no cover
+def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_count):
     """Consume and process incoming Swaptacular Messaging Protocol
     messages.
 
@@ -453,60 +338,45 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
 
     """
 
-    worker_processes = []
-    worker_processes_have_been_terminated = False
-    processes = processes or current_app.config['PROTOCOL_BROKER_PROCESSES']
-    assert processes >= 1
+    def _consume_messages(url, queue, threads, prefetch_size, prefetch_count):
+        """Consume messages in a subprocess."""
 
-    def worker(*args):
+        from swpt_accounts.actors import SmpConsumer, TerminatedConsumtion
+        from swpt_accounts import create_app
+
+        consumer = SmpConsumer(
+            app=create_app(),
+            config_prefix='PROTOCOL_BROKER',
+            url=url,
+            queue=queue,
+            threads=threads,
+            prefetch_size=prefetch_size,
+            prefetch_count=prefetch_count,
+        )
+        for sig in HANDLED_SIGNALS:
+            signal.signal(sig, consumer.stop)
+        try_unblock_signals()
+
+        pid = os.getpid()
+        logger = logging.getLogger(__name__)
+        logger.info('Worker with PID %i started processing messages.', pid)
+
         try:
-            consume(*args)
-        except Exception:
-            logger = logging.getLogger(__name__)
-            logger.exception("Uncaught exception occured in worker with PID %i.", os.getpid())
+            consumer.start()
+        except TerminatedConsumtion:  # pragma: no cover
+            pass
 
-    def terminate_worker_processes():
-        nonlocal worker_processes_have_been_terminated
-        if not worker_processes_have_been_terminated:
-            for p in worker_processes:
-                p.terminate()
-            worker_processes_have_been_terminated = True
+        logger.info('Worker with PID %i stopped processing messages.', pid)  # pragma: no cover
 
-    def sighandler(signum, frame):
-        logger.info('Received "%s" signal. Shutting down...', signal.strsignal(signum))
-        terminate_worker_processes()
-
-    # To prevent the main process from exiting due to signals after
-    # worker processes have been defined but before the signal
-    # handling has been configured for the main process, block those
-    # signals that the main process is expected to handle.
-    try_block_signals()
-
-    logger = logging.getLogger(__name__)
-    logger.info('Spawning %i worker processes...', processes)
-
-    for _ in range(processes):
-        p = multiprocessing.Process(target=worker, args=(url, queue, threads, prefetch_size, prefetch_count))
-        p.start()
-        worker_processes.append(p)
-
-    for sig in HANDLED_SIGNALS:
-        signal.signal(sig, sighandler)
-
-    assert all(p.pid is not None for p in worker_processes)
-    try_unblock_signals()
-
-    # This loop waits until all worker processes have exited. However,
-    # as soon as one worker process exits, all remaining worker
-    # processes will be forcefully terminated.
-    while any(p.exitcode is None for p in worker_processes):
-        for p in worker_processes:
-            p.join(timeout=1)
-            if p.exitcode is not None and not worker_processes_have_been_terminated:
-                logger.warn("Worker with PID %r exited unexpectedly. Shutting down...", p.pid)
-                terminate_worker_processes()
-                break
-
+    spawn_worker_processes(
+        processes=processes or current_app.config['PROTOCOL_BROKER_PROCESSES'],
+        target=_consume_messages,
+        url=url,
+        queue=queue,
+        threads=threads,
+        prefetch_size=prefetch_size,
+        prefetch_count=prefetch_count,
+    )
     sys.exit(1)
 
 
@@ -518,7 +388,7 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
 @click.option('-t', '--threads', type=int, help='The number of threads running in each process.')
 @click.option('-s', '--prefetch-size', type=int, help='The prefetch window size in bytes.')
 @click.option('-c', '--prefetch-count', type=int, help='The prefetch window in terms of whole messages.')
-def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefetch_count):  # pragma: no cover
+def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefetch_count):
     """Consume and process chore messages.
 
     If some of the available options are not specified directly, the
@@ -538,4 +408,41 @@ def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefet
 
     """
 
-    # TODO: Add an implementation.
+    def _consume_chore_messages(url, queue, threads, prefetch_size, prefetch_count):
+        from swpt_accounts.chores import ChoresConsumer, TerminatedConsumtion
+        from swpt_accounts import create_app
+
+        consumer = ChoresConsumer(
+            app=create_app(),
+            config_prefix='CHORES_BROKER',
+            url=url,
+            queue=queue,
+            threads=threads,
+            prefetch_size=prefetch_size,
+            prefetch_count=prefetch_count,
+        )
+        for sig in HANDLED_SIGNALS:
+            signal.signal(sig, consumer.stop)
+        try_unblock_signals()
+
+        pid = os.getpid()
+        logger = logging.getLogger(__name__)
+        logger.info('Worker with PID %i started processing messages.', pid)
+
+        try:
+            consumer.start()
+        except TerminatedConsumtion:  # pragma: no cover
+            pass
+
+        logger.info('Worker with PID %i stopped processing messages.', pid)  # pragma: no cover
+
+    spawn_worker_processes(
+        processes=processes or current_app.config['CHORES_BROKER_PROCESSES'],
+        target=_consume_chore_messages,
+        url=url,
+        queue=queue,
+        threads=threads,
+        prefetch_size=prefetch_size,
+        prefetch_count=prefetch_count,
+    )
+    sys.exit(1)

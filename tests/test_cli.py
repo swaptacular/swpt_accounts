@@ -86,3 +86,28 @@ def test_process_transfers_finalization_requests(app, db_session):
     assert not result.output
     assert len(FinalizedTransferSignal.query.all()) == 1
     assert len(FinalizationRequest.query.all()) == 0
+
+
+def test_spawn_worker_processes():
+    from swpt_accounts.multiprocessing_utils import spawn_worker_processes, HANDLED_SIGNALS, try_unblock_signals
+
+    def _quit():
+        assert len(HANDLED_SIGNALS) > 0
+        try_unblock_signals()
+
+    spawn_worker_processes(
+        processes=2,
+        target=_quit,
+    )
+
+
+def test_consume_messages(app):
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_accounts', 'consume_messages', '--url=INVALID'])
+    assert result.exit_code == 1
+
+
+def test_consume_chore_messages(app):
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_accounts', 'consume_chore_messages', '--url=INVALID'])
+    assert result.exit_code == 1

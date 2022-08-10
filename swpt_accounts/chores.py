@@ -125,12 +125,12 @@ class ChoresConsumer(rabbitmq.Consumer):
     """Passes messages to proper handlers."""
 
     def process_message(self, body, properties):
-        content_type = getattr(properties, 'content_type', '')
+        content_type = getattr(properties, 'content_type', None)
         if content_type != 'application/json':
             _LOGGER.error('Unknown message content type: "%s"', content_type)
             return False
 
-        massage_type = getattr(properties, 'type', '')
+        massage_type = getattr(properties, 'type', None)
         try:
             schema, actor = _MESSAGE_TYPES[massage_type]
         except KeyError:
