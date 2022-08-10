@@ -18,6 +18,10 @@ MAX_INT64 = (1 << 63) - 1
 T0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 CONFIG_DATA_MAX_BYTES = 2000
+IRI_MAX_LENGTH = 200
+CONTENT_TYPE_MAX_BYTES = 100
+DEBTOR_INFO_SHA256_REGEX = r'^([0-9A-F]{64}|[0-9a-f]{64})?$'
+
 
 # Reserved coordinator types:
 CT_INTEREST = 'interest'

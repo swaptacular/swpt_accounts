@@ -1,7 +1,8 @@
 from base64 import b16decode
 from typing import NamedTuple, Optional
-from marshmallow import Schema, fields, validate, validates, ValidationError
-from swpt_accounts.models import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL
+from marshmallow import Schema, fields, validate, validates, ValidationError, EXCLUDE
+from swpt_accounts.models import INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, MIN_INT64, MAX_INT64, \
+    IRI_MAX_LENGTH, CONTENT_TYPE_MAX_BYTES, DEBTOR_INFO_SHA256_REGEX
 
 
 class RootConfigData(NamedTuple):
@@ -115,3 +116,46 @@ def parse_root_config_data(config_data: str) -> RootConfigData:
         info_content_type = None
 
     return RootConfigData(interest_rate_target, info_iri, info_sha256, info_content_type)
+
+
+class ValidateChoreMessageMixin:
+    class Meta:
+        unknown = EXCLUDE
+
+    type = fields.String(required=True)
+    debtor_id = fields.Integer(required=True, validate=validate.Range(min=MIN_INT64, max=MAX_INT64))
+    creditor_id = fields.Integer(required=True, validate=validate.Range(min=MIN_INT64, max=MAX_INT64))
+
+    @validates('type')
+    def validate_type(self, value):
+        if f'{value}MessageSchema' != type(self).__name__:
+            raise ValidationError('Invalid type.')
+
+
+class ChangeInterestRateMessageSchema(ValidateChoreMessageMixin, Schema):
+    """``ChangeInterestRate`` message schema."""
+
+    interest_rate = fields.Float(required=True)
+    ts = fields.DateTime(required=True)
+
+
+class UpdateDebtorInfoMessageSchema(ValidateChoreMessageMixin, Schema):
+    """``UpdateDebtorInfo`` message schema."""
+
+    debtor_info_iri = fields.String(required=True, validate=validate.Length(max=IRI_MAX_LENGTH))
+    debtor_info_content_type = fields.String(required=True, validate=validate.Length(max=CONTENT_TYPE_MAX_BYTES))
+    debtor_info_sha256 = fields.String(required=True, validate=validate.Regexp(DEBTOR_INFO_SHA256_REGEX))
+    ts = fields.DateTime(required=True)
+
+    @validates('debtor_info_content_type')
+    def validate_debtor_info_content_type(self, value):
+        if not value.isascii():
+            raise ValidationError('The debtor_info_content_type field contains non-ASCII characters.')
+
+
+class CapitalizeInterestMessageSchema(ValidateChoreMessageMixin, Schema):
+    """``CapitalizeInterest`` message schema."""
+
+
+class TryToDeleteAccountMessageSchema(ValidateChoreMessageMixin, Schema):
+    """``TryToDeleteAccount`` message schema."""

@@ -1,6 +1,7 @@
 import pytest
 from datetime import datetime
 from swpt_accounts import chores
+from swpt_accounts import schemas
 from marshmallow import ValidationError
 
 D_ID = -1
@@ -42,7 +43,7 @@ def test_try_to_delete_account(db_session):
 
 
 def test_change_interest_rate_schema():
-    s = chores.ChangeInterestRateMessageSchema()
+    s = schemas.ChangeInterestRateMessageSchema()
 
     data = s.loads("""{
     "type": "ChangeInterestRate",
@@ -75,7 +76,7 @@ def test_change_interest_rate_schema():
 
 
 def test_update_debtor_info_schema():
-    s = chores.UpdateDebtorInfoMessageSchema()
+    s = schemas.UpdateDebtorInfoMessageSchema()
 
     data = s.loads("""{
     "type": "UpdateDebtorInfo",
@@ -110,10 +111,10 @@ def test_update_debtor_info_schema():
         assert all(m == ['Missing data for required field.'] for m in e.messages.values())
 
 
-def test_create_message():
+def test_create_chore_message():
     current_ts = datetime.now()
-    s = chores.UpdateDebtorInfoMessageSchema()
-    m = chores.create_message({
+    s = schemas.UpdateDebtorInfoMessageSchema()
+    m = chores.create_chore_message({
         "type": "UpdateDebtorInfo",
         "debtor_id": -2,
         "creditor_id": -1,

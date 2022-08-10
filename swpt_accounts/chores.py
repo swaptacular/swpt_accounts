@@ -2,59 +2,12 @@ import logging
 import json
 from base64 import b16decode
 from datetime import datetime, timedelta
+from marshmallow import ValidationError
 from flask import current_app
-from marshmallow import Schema, fields, validate, validates, ValidationError, EXCLUDE
 from swpt_pythonlib import rabbitmq
-from swpt_accounts.models import MIN_INT64, MAX_INT64, SECONDS_IN_DAY
+from swpt_accounts.models import SECONDS_IN_DAY
 from swpt_accounts import procedures
-
-_LOGGER = logging.getLogger(__name__)
-_IRI_MAX_LENGTH = 200
-_CONTENT_TYPE_MAX_BYTES = 100
-_DEBTOR_INFO_SHA256_REGEX = r'^([0-9A-F]{64}|[0-9a-f]{64})?$'
-
-
-class _ValidateMixin:
-    class Meta:
-        unknown = EXCLUDE
-
-    type = fields.String(required=True)
-    debtor_id = fields.Integer(required=True, validate=validate.Range(min=MIN_INT64, max=MAX_INT64))
-    creditor_id = fields.Integer(required=True, validate=validate.Range(min=MIN_INT64, max=MAX_INT64))
-
-    @validates('type')
-    def validate_type(self, value):
-        if f'{value}MessageSchema' != type(self).__name__:
-            raise ValidationError('Invalid type.')
-
-
-class ChangeInterestRateMessageSchema(_ValidateMixin, Schema):
-    """``ChangeInterestRate`` message schema."""
-
-    interest_rate = fields.Float(required=True)
-    ts = fields.DateTime(required=True)
-
-
-class UpdateDebtorInfoMessageSchema(_ValidateMixin, Schema):
-    """``UpdateDebtorInfo`` message schema."""
-
-    debtor_info_iri = fields.String(required=True, validate=validate.Length(max=_IRI_MAX_LENGTH))
-    debtor_info_content_type = fields.String(required=True, validate=validate.Length(max=_CONTENT_TYPE_MAX_BYTES))
-    debtor_info_sha256 = fields.String(required=True, validate=validate.Regexp(_DEBTOR_INFO_SHA256_REGEX))
-    ts = fields.DateTime(required=True)
-
-    @validates('debtor_info_content_type')
-    def validate_debtor_info_content_type(self, value):
-        if not value.isascii():
-            raise ValidationError('The debtor_info_content_type field contains non-ASCII characters.')
-
-
-class CapitalizeInterestMessageSchema(_ValidateMixin, Schema):
-    """``CapitalizeInterest`` message schema."""
-
-
-class TryToDeleteAccountMessageSchema(_ValidateMixin, Schema):
-    """``TryToDeleteAccount`` message schema."""
+from swpt_accounts import schemas
 
 
 def _on_change_interest_rate(
@@ -155,11 +108,13 @@ def _on_try_to_delete_account(
     procedures.try_to_delete_account(debtor_id, creditor_id)
 
 
+_LOGGER = logging.getLogger(__name__)
+
 _MESSAGE_TYPES = {
-    'ChangeInterestRate': (ChangeInterestRateMessageSchema(), _on_change_interest_rate),
-    'UpdateDebtorInfo': (UpdateDebtorInfoMessageSchema(), _on_update_debtor_info),
-    'CapitalizeInterest': (CapitalizeInterestMessageSchema(), _on_capitalize_interest),
-    'TryToDeleteAccount': (TryToDeleteAccountMessageSchema(), _on_try_to_delete_account),
+    'ChangeInterestRate': (schemas.ChangeInterestRateMessageSchema(), _on_change_interest_rate),
+    'UpdateDebtorInfo': (schemas.UpdateDebtorInfoMessageSchema(), _on_update_debtor_info),
+    'CapitalizeInterest': (schemas.CapitalizeInterestMessageSchema(), _on_capitalize_interest),
+    'TryToDeleteAccount': (schemas.TryToDeleteAccountMessageSchema(), _on_try_to_delete_account),
 }
 
 
@@ -208,7 +163,7 @@ class ChoresConsumer(rabbitmq.Consumer):
         return True
 
 
-def create_message(data):
+def create_chore_message(data):
     message_type = data['type']
     properties = rabbitmq.MessageProperties(
         delivery_mode=2,

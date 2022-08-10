@@ -10,7 +10,7 @@ from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSigna
     PreparedTransferSignal, RegisteredBalanceChange, ROOT_CREDITOR_ID, calc_current_balance, \
     is_negligible_balance, contain_principal_overflow
 from swpt_accounts.fetch_api_client import get_root_config_data_dict
-from swpt_accounts.chores import create_message
+from swpt_accounts.chores import create_chore_message
 
 T = TypeVar('T')
 atomic: Callable[[T], T] = db.atomic
@@ -198,7 +198,7 @@ class AccountScanner(TableScanner):
                     should_be_deleted = is_negligible_balance(balance, row[c_negligible_amount])
 
             if should_be_deleted:
-                chores.append(create_message({
+                chores.append(create_chore_message({
                     'type': 'TryToDeleteAccount',
                     'debtor_id': row[c_debtor_id],
                     'creditor_id': creditor_id,
@@ -241,7 +241,7 @@ class AccountScanner(TableScanner):
                 ratio = accumulated_interest / (1 + abs(row[c_principal]))
 
                 if ratio > max_ratio:
-                    chores.append(create_message({
+                    chores.append(create_chore_message({
                         'type': 'CapitalizeInterest',
                         'debtor_id': row[c_debtor_id],
                         'creditor_id': creditor_id,
@@ -293,7 +293,7 @@ class AccountScanner(TableScanner):
             if config_data:
                 interest_rate = config_data.interest_rate_target
                 if should_change_interest_rate(row, interest_rate):
-                    chores.append(create_message({
+                    chores.append(create_chore_message({
                         'type': 'ChangeInterestRate',
                         'debtor_id': debtor_id,
                         'creditor_id': creditor_id,
@@ -305,7 +305,7 @@ class AccountScanner(TableScanner):
                 debtor_info_content_type = config_data.info_content_type
                 debtor_info_sha256 = config_data.info_sha256
                 if should_update_debtor_info(row, debtor_info_iri, debtor_info_content_type, debtor_info_sha256):
-                    chores.append(create_message({
+                    chores.append(create_chore_message({
                         'type': 'UpdateDebtorInfo',
                         'debtor_id': debtor_id,
                         'creditor_id': creditor_id,
