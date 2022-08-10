@@ -10,7 +10,7 @@ from flask.cli import with_appcontext
 from swpt_accounts import procedures
 from swpt_accounts.extensions import db
 from swpt_accounts.models import SECONDS_IN_DAY
-from swpt_accounts.multiprocessing_utils import ThreadPoolProcessor, spawn_worker_processes, \
+from swpt_accounts.multiproc_utils import ThreadPoolProcessor, spawn_worker_processes, \
     try_unblock_signals, HANDLED_SIGNALS
 
 
@@ -317,7 +317,7 @@ def scan_registered_balance_changes(days, quit_early):
 @click.option('-t', '--threads', type=int, help='The number of threads running in each process.')
 @click.option('-s', '--prefetch-size', type=int, help='The prefetch window size in bytes.')
 @click.option('-c', '--prefetch-count', type=int, help='The prefetch window in terms of whole messages.')
-def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_count):
+def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_count):  # pragma: no cover
     """Consume and process incoming Swaptacular Messaging Protocol
     messages.
 
@@ -363,10 +363,10 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
 
         try:
             consumer.start()
-        except TerminatedConsumtion:  # pragma: no cover
+        except TerminatedConsumtion:
             pass
 
-        logger.info('Worker with PID %i stopped processing messages.', pid)  # pragma: no cover
+        logger.info('Worker with PID %i stopped processing messages.', pid)
 
     spawn_worker_processes(
         processes=processes or current_app.config['PROTOCOL_BROKER_PROCESSES'],
@@ -408,7 +408,7 @@ def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefet
 
     """
 
-    def _consume_chore_messages(url, queue, threads, prefetch_size, prefetch_count):
+    def _consume_chore_messages(url, queue, threads, prefetch_size, prefetch_count):  # pragma: no cover
         from swpt_accounts.chores import ChoresConsumer, TerminatedConsumtion
         from swpt_accounts import create_app
 
@@ -431,10 +431,10 @@ def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefet
 
         try:
             consumer.start()
-        except TerminatedConsumtion:  # pragma: no cover
+        except TerminatedConsumtion:
             pass
 
-        logger.info('Worker with PID %i stopped processing messages.', pid)  # pragma: no cover
+        logger.info('Worker with PID %i stopped processing messages.', pid)
 
     spawn_worker_processes(
         processes=processes or current_app.config['CHORES_BROKER_PROCESSES'],
