@@ -77,7 +77,9 @@ services:
   # The purpose of this container is to create the database schema,
   # and all the necessary RabbitMQ objects (queues, exchanges,
   # etc.). It has to be run only once, but running it multiple times
-  # should not do any harm.
+  # should not do any harm. Set `SETUP_RABBITMQ_BINDINGS` to anything
+  # other than "yes", if you do not want RabbitMQ exchanges and
+  # bindings to be (re)configured.
   accounts-server-config:
     build:
       context: .
@@ -89,6 +91,7 @@ services:
       - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
       - 'CHORES_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'CHORES_BROKER_QUEUE=swpt_accounts_chores'
+      - 'SETUP_RABBITMQ_BINDINGS=yes'
       - 'APP_LOG_LEVEL=warning'
       - 'APP_LOG_FORMAT=json'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL CHORES_BROKER_URL'

@@ -72,7 +72,7 @@ create_chores_queue() {
     local retry_after=1
     local time_limit=$(($retry_after << 5))
     local error_file="$APP_ROOT_DIR/flask-create-queue.error"
-    echo -n 'Setting up message broker objects ...'
+    echo -n 'Creating chores queue ...'
     while [[ $retry_after -lt $time_limit ]]; do
         if flask swpt_accounts create_chores_queue &>$error_file; then
             echo ' done.'
@@ -104,8 +104,8 @@ case $1 in
         ;;
     configure)
         perform_db_upgrade
-        setup_rabbitmq_bindings
         create_chores_queue
+        [[ "$SETUP_RABBITMQ_BINDINGS" == "yes" ]] && setup_rabbitmq_bindings
         ;;
     webserver)
         exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :$PORT wsgi:app
