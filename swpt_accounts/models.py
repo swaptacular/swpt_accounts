@@ -39,6 +39,7 @@ ROOT_CREDITOR_ID = 0
 CT_INTEREST = 'interest'
 CT_DELETE = 'delete'
 CT_DIRECT = 'direct'
+CT_ISSUING = 'issuing'
 
 # Transfer status codes:
 SC_OK = 'OK'

@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2022-08-05
-:Version: 0.4.5
+:Date: 2022-08-16
+:Version: 0.4.6
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -387,11 +387,15 @@ commit.
 
 
 .. [#coordinator-type] The coordinator type ``"direct"`` is reserved
-  for payments initiated directly by the owner of the account;
-  ``"interest"`` MUST be used for transfers initiated by the interest
-  capitalization service; ``"issuing"`` MUST be used for transfers
-  which create new money into existence; ``"delete"`` MUST be used for
-  transfers which zero out the principal on deleted accounts.
+  for payments initiated directly by the owner of the account, and for
+  such transfers ``coordinator_id`` MUST be equal to ``creditor_id``;
+  The coordinator type ``"issuing"`` is reserved for transfers which
+  create new money into existence, and for such transfers
+  ``coordinator_id`` MUST be equal to ``debtor_id``, and the
+  ``creditor_id`` of the sender must be ``0``; ``"interest"`` MUST be
+  used for transfers initiated by the interest capitalization service;
+  ``"delete"`` MUST be used for transfers which zero out the principal
+  on deleted accounts.
 
 .. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
   no other impediments to the transfer, the transfer MUST be prepared
