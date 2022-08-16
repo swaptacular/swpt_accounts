@@ -673,8 +673,8 @@ SQLAlchemy = ">=1.3"
 [package.source]
 type = "git"
 url = "https://github.com/swaptacular/swpt_pythonlib.git"
-reference = "v0.8.1"
-resolved_reference = "26520ee5afd80ae2ca66e0d53b6d5fb3c9ac1971"
+reference = "v0.8.2"
+resolved_reference = "87b7bb59874d7d27da7045817383f78a5eeaedb3"
 
 [[package]]
 name = "tomli"
@@ -783,7 +783,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "68d5bc0ad227354d4ec55448e567285244f4180537148dc636df174aaae40aa2"
+content-hash = "1bc0936f882fc614c338bf8ca31bf801273567ae686a517284f7668dc38ed49d"
 
 [metadata.files]
 aiohttp = [
