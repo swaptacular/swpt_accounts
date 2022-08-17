@@ -656,7 +656,7 @@ sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
 name = "Swpt-Pythonlib"
-version = "0.8.1"
+version = "0.8.3"
 description = ""
 category = "main"
 optional = false
@@ -673,8 +673,8 @@ SQLAlchemy = ">=1.3"
 [package.source]
 type = "git"
 url = "https://github.com/swaptacular/swpt_pythonlib.git"
-reference = "v0.8.2"
-resolved_reference = "87b7bb59874d7d27da7045817383f78a5eeaedb3"
+reference = "v0.8.3"
+resolved_reference = "ccb85b7f6ee0ee4221d8884530b18acf58705117"
 
 [[package]]
 name = "tomli"
@@ -783,7 +783,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "1bc0936f882fc614c338bf8ca31bf801273567ae686a517284f7668dc38ed49d"
+content-hash = "90ec54db774b8165fe1c3849ea097e6c306a64b94ca1f822455230288e63e83d"
 
 [metadata.files]
 aiohttp = [
