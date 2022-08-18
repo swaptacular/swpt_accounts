@@ -133,8 +133,8 @@ case $1 in
 
         # For example: if `$1` is "flush_rejected_transfers", `wait`
         # will get the value of the APP_FLUSH_REJECTED_TRANSFERS_WAIT
-        # environment variable, defaulting to 5 if it is not defined.
-        eval wait=\${APP_$(echo "$1" | tr [:lower:] [:upper:])_WAIT-5}
+        # environment variable, defaulting to 2 if it is not defined.
+        eval wait=\${APP_$(echo "$1" | tr [:lower:] [:upper:])_WAIT-2}
 
         exec flask signalbus flushmany --repeat=$wait $signal_name
         ;;
