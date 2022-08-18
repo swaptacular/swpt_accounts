@@ -162,7 +162,6 @@ class MetaEnvReader(type):
 
 
 class Configuration(metaclass=MetaEnvReader):
-    SECRET_KEY = 'dummy-secret'
     SQLALCHEMY_DATABASE_URI = ''
     SQLALCHEMY_POOL_SIZE: int = None
     SQLALCHEMY_POOL_TIMEOUT: int = None
@@ -170,6 +169,7 @@ class Configuration(metaclass=MetaEnvReader):
     SQLALCHEMY_MAX_OVERFLOW: int = None
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
+
     PROTOCOL_BROKER_URL = 'amqp://guest:guest@localhost:5672'
     PROTOCOL_BROKER_QUEUE = 'swpt_accounts'
     PROTOCOL_BROKER_QUEUE_ROUTING_KEY = '#'
@@ -177,12 +177,14 @@ class Configuration(metaclass=MetaEnvReader):
     PROTOCOL_BROKER_THREADS = 1
     PROTOCOL_BROKER_PREFETCH_SIZE = 0
     PROTOCOL_BROKER_PREFETCH_COUNT = 1
+
     CHORES_BROKER_URL = 'amqp://guest:guest@localhost:5672'
     CHORES_BROKER_QUEUE = 'swpt_accounts_chores'
     CHORES_BROKER_PROCESSES = 1
     CHORES_BROKER_THREADS = 1
     CHORES_BROKER_PREFETCH_SIZE = 0
     CHORES_BROKER_PREFETCH_COUNT = 1
+
     APP_PROCESS_BALANCE_CHANGES_THREADS = 1
     APP_PROCESS_BALANCE_CHANGES_WAIT = 2.0
     APP_PROCESS_BALANCE_CHANGES_MAX_COUNT = 100000
