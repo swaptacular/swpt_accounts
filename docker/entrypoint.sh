@@ -95,10 +95,12 @@ perform_db_initialization() {
 
 case $1 in
     develop-run-flask)
+        # Do not run this in production!
         shift
         exec flask run --host=0.0.0.0 --port $PORT --without-threads "$@"
         ;;
     test)
+        # Do not run this in production!
         perform_db_upgrade
         exec pytest
         ;;
@@ -110,8 +112,14 @@ case $1 in
     webserver)
         exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :$PORT wsgi:app
         ;;
-    process_balance_changes |process_transfer_requests | process_finalization_requests | scan_accounts \
-        | scan_prepared_transfers | scan_registered_balance_changes | consume_messages | consume_chore_messages)
+    consume_messages)
+        exec flask swpt_accounts "$@"
+        ;;
+    consume_chore_messages)
+        exec flask swpt_accounts "$@"
+        ;;
+    process_balance_changes | process_transfer_requests | process_finalization_requests \
+        | scan_accounts | scan_prepared_transfers | scan_registered_balance_changes)
         exec flask swpt_accounts "$@"
         ;;
     flush_rejected_transfers | flush_prepared_transfers | flush_finalized_transfers \
