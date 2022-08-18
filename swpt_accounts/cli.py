@@ -125,7 +125,7 @@ def process_balance_changes(threads, wait, quit_early):
 
     If --wait is not specified, the value of the configuration
     variable APP_PROCESS_BALANCE_CHANGES_WAIT is taken. If it is not
-    set, the default number of seconds is 5.
+    set, the default number of seconds is 2.
 
     """
 
@@ -171,7 +171,7 @@ def process_transfer_requests(threads, wait, quit_early):
 
     If --wait is not specified, the value of the configuration
     variable APP_PROCESS_TRANSFER_REQUESTS_WAIT is taken. If it is not
-    set, the default number of seconds is 5.
+    set, the default number of seconds is 2.
 
     """
 
@@ -213,7 +213,7 @@ def process_finalization_requests(threads, wait, quit_early):
 
     If --wait is not specified, the value of the configuration
     variable APP_PROCESS_FINALIZATION_REQUESTS_WAIT is taken. If it is
-    not set, the default number of seconds is 5.
+    not set, the default number of seconds is 2.
 
     """
 
