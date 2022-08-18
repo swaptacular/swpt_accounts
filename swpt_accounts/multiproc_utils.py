@@ -114,9 +114,12 @@ def spawn_worker_processes(processes: int, target, **kwargs):
 
     """
 
+    while processes < 1:  # pragma: no cover
+        time.sleep(1)
+    assert processes >= 1
+
     worker_processes = []
     worker_processes_have_been_terminated = False
-    assert processes >= 1
 
     def worker(**kwargs):
         try:
