@@ -468,7 +468,9 @@ class Signal(db.Model):
 
     def _create_message(self):
         data = self.__marshmallow_schema__.dump(self)
+        message_type = data['type']
         headers = {
+            'message-type': message_type,
             'debtor-id': data['debtor_id'],
             'creditor-id': data['creditor_id'],
         }
@@ -480,7 +482,7 @@ class Signal(db.Model):
             delivery_mode=2,
             app_id='swpt_accounts',
             content_type='application/json',
-            type=data['type'],
+            type=message_type,
             headers=headers,
         )
         body = json.dumps(
