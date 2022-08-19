@@ -1,8 +1,8 @@
-FROM python:3.7.9-alpine3.13 AS venv-image
+FROM python:3.10.6-alpine3.16 AS venv-image
 WORKDIR /usr/src/app
 
-ENV PIP_VERSION="21.0.1"
-ENV POETRY_VERSION="1.1.4"
+ENV PIP_VERSION="22.2.2"
+ENV POETRY_VERSION="1.1.14"
 RUN apk add --no-cache \
     file \
     make \
@@ -17,7 +17,7 @@ RUN apk add --no-cache \
     openssl-dev \
     cargo \
   && pip install --upgrade pip==$PIP_VERSION \
-  && curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python \
+  && curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python - \
   && ln -s "$HOME/.poetry/bin/poetry" "/usr/local/bin" \
   && python -m venv /opt/venv
 
@@ -29,7 +29,7 @@ RUN poetry config virtualenvs.create false \
 
 # This is the second and final image. Starting from a clean alpine
 # image, it copies over the previously created virtual environment.
-FROM python:3.7.9-alpine3.13 AS app-image
+FROM python:3.10.6-alpine3.16 AS app-image
 ARG FLASK_APP=swpt_accounts
 
 ENV FLASK_APP=$FLASK_APP
