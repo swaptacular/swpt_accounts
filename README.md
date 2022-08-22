@@ -7,6 +7,11 @@ protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
 server. The ultimate deliverable is a docker image, which is generated
 from the project's
 [Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
+
+
+Configuration
+-------------
+
 The behavior of the service can be tuned with environment variables.
 Here are the most important settings with some example values:
 
@@ -114,15 +119,18 @@ APP_LOG_LEVEL=info
 APP_LOG_FORMAT=text
 ```
 
-For more configuration options, see the
+For more configuration options, check the
 [development.env](https://github.com/epandurski/swpt_accounts/blob/master/development.env)
 file.
 
 
+Commands
+--------
+
 The
 [entrypoint](https://github.com/epandurski/swpt_accounts/blob/master/docker/entrypoint.sh)
-of the container allows you to execute the following *documented*
-commands:
+of the container allows you to execute the following *documented
+commands*:
 
 * **all**
 
