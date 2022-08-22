@@ -146,22 +146,22 @@ commands*:
 
 * **webserver**
 
-  Starts a "fetch API" server. This command allows you to start as
-  many dedicated web servers as necessary, so as to handle the
+  Starts only the "fetch API" server. This command allows you to start
+  as many dedicated web servers as necessary, so as to handle the
   incoming load.
 
 * **consume_messages**
 
-  Starts only the processes that consume and process Swaptacular
-  Messaging Protocol messages. This command allows you to start as
-  many dedicated SMP message processors as necessary, so as to handle
-  the incoming load.
+  Starts only the processes that consume Swaptacular Messaging
+  Protocol messages. This command allows you to start as many
+  dedicated SMP message processors as necessary, so as to handle the
+  incoming load.
 
 * **consume_chore_messages**
 
-  Starts only the processes that consume and process local database
-  tasks. This command allows you to start as many dedicated chores
-  processors as necessary, so as to handle the incoming load.
+  Starts only the processes that perform local database tasks. This
+  command allows you to start as many dedicated chores processors as
+  necessary, so as to handle the incoming load.
 
 
 This
