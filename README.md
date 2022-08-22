@@ -138,26 +138,26 @@ commands*:
   command that will be executed if no arguments are passed to the
   entrypoint.
 
-* **configure**
+* `configure`
 
   Initializes a new empty database, and creates the "chores" RabbitMQ
   queue. This needs to be run only once, but running it multiple times
   should not do any harm.
 
-* **webserver**
+* `webserver`
 
   Starts only the "fetch API" server. This command allows you to start
   as many dedicated web servers as necessary, so as to handle the
   incoming load.
 
-* **consume_messages**
+* `consume_messages`
 
   Starts only the processes that consume Swaptacular Messaging
   Protocol messages. This command allows you to start as many
   dedicated SMP message processors as necessary, so as to handle the
   incoming load.
 
-* **consume_chore_messages**
+* `consume_chore_messages`
 
   Starts only the processes that perform local database tasks. This
   command allows you to start as many dedicated chores processors as
