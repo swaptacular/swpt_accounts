@@ -88,7 +88,20 @@ PROCESS_TRANSFER_REQUESTS_THREADS=10
 PROCESS_FINALIZATION_REQUESTS_THREADS=10
 PROCESS_BALANCE_CHANGES_THREADS=10
 
-REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME=1970-01-01
+# The ID of each committed transfer will be archived to the
+# database. If the message that performed the transfer is received one
+# more time (which not likely, but is entirely possible), and the ID
+# of the committed transfer is found in the archive, the transfer will
+# not be performed again (as it should not be). As time passes, and
+# the likelihood of receiving the message again drops to zero, we can
+# safely remove the transfer ID from the archive.
+#
+# This configuration settings determines the date before which
+# transfer IDs are safe to remove from the archive. Normally, this
+# should be a date at least few weeks in the past. The date must be
+# give in ISO 8601 date and time format. It can also include time, for
+# example: "1970-01-01T18:30:00Z".
+REMOVE_FROM_ARCHIVE_THRESHOLD_DATE=1970-01-01
 
 # Set the minimum level of severity for log messages ("info",
 # "warning", or "error"). The default is "warning".
