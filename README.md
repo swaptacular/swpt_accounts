@@ -16,7 +16,7 @@ The behavior of the service can be tuned with environment variables.
 Here are the most important settings with some example values:
 
 ```shell
-# The port on which the container will listen for fetch-api
+# The port on which the container will listen for "fetch API"
 # requests. If not set, the default is 80.
 PORT=8001
 
@@ -65,15 +65,17 @@ CHORES_BROKER_PREFETCH_COUNT=10
 # new transfer. The "fetch API" is responsible to provide limited
 # information about existing accounts, to other (internal) servers
 # which may need it. When there is only one database server, the
-# container will ask itself for the information. But when different
-# accounts are located on several database servers (sharding), things
-# get more complex. In such cases, one or more Web-proxies should be
-# installed, which will forward each "fetch API" request to the
-# corresponding server/container. However, even in a single server
-# scenario, installing a Web-proxy is beneficial, for the caching
-# only. If you have a "fetch API" Web-proxy installed (recommended),
-# set the FETCH_API_URL variable to the base URL of your the proxy. If
-# you do not have a proxy, set FETCH_API_URL to the address of the
+# container can ask itself for the information. But when different
+# accounts are located on different database servers (sharding),
+# things get more complex. In such cases, one or more Web-proxies
+# should be installed, which will forward each "fetch API" request to
+# the server/container responsible fot the account. Note, however,
+# that even in the single database server scenario, installing a
+# Web-proxy will be beneficial, for the caching it provides.
+#
+# If you have a "fetch API" Web-proxy installed (recommended), set the
+# FETCH_API_URL variable to the base URL of your proxy. If you do not
+# have a proxy, set FETCH_API_URL to the "fetch API" address of the
 # container itself (see PORT configuration variable).
 FETCH_API_URL=http://localhost:8001
 
