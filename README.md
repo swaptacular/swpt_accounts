@@ -124,15 +124,15 @@ For more configuration options, check the
 file.
 
 
-Commands
---------
+Available commands
+------------------
 
 The
 [entrypoint](https://github.com/epandurski/swpt_accounts/blob/master/docker/entrypoint.sh)
 of the container allows you to execute the following *documented
 commands*:
 
-* **all**
+* `all`
 
   Starts all the necessary services in the container. This is the
   command that will be executed if no arguments are passed to the
