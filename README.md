@@ -164,9 +164,9 @@ commands*:
   necessary, so as to handle the incoming load.
 
 
-This
-[example](https://github.com/epandurski/swpt_accounts/blob/master/docker-compose-all.yml)
-shows how you can use the generated image.
+This [docker-compose
+example](https://github.com/epandurski/swpt_accounts/blob/master/docker-compose-all.yml)
+shows how the generated docker image can be used.
 
 
 How to run it
