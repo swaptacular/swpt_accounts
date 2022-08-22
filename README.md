@@ -94,13 +94,14 @@ PROCESS_BALANCE_CHANGES_THREADS=10
 # committed transfer is found in the archive, the transfer will not be
 # performed again (as it should not be). As time passes, and the
 # likelihood of receiving the same message again drops to zero, the
-# transfer ID can be safely remove from the archive.
+# transfer ID can be safely removed from the archive.
 #
-# This configuration settings determines the date before which
-# transfer IDs are safe to remove from the archive. Normally, this
-# should be a date at least few weeks in the past. The date must be
-# give in ISO 8601 date and time format. It can also include time, for
-# example: "1970-01-01T18:30:00Z".
+# The REMOVE_FROM_ARCHIVE_THRESHOLD_DATE configuration settings
+# determines the date before which transfer IDs are safe to remove
+# from the archive. Normally, this should be a date at least a few
+# weeks in the past. The date must be given in ISO 8601 date
+# format. It can also include time, for example:
+# "1970-01-01T18:30:00Z".
 REMOVE_FROM_ARCHIVE_THRESHOLD_DATE=1970-01-01
 
 # Set the minimum level of severity for log messages ("info",
