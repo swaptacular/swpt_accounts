@@ -121,7 +121,7 @@ file.
 
 The
 [entrypoint](https://github.com/epandurski/swpt_accounts/blob/master/docker/entrypoint.sh)
-of the container allows you to execute the following documented
+of the container allows you to execute the following *documented*
 commands:
 
 * **all**
@@ -132,24 +132,33 @@ commands:
 
 * **configure**
 
-  Creates the database schema and initializes a new database. This has
-  to be run only once, but running it multiple times should not do any
-  harm.
+  Initializes a new empty database, and creates the "chores" RabbitMQ
+  queue. This needs to be run only once, but running it multiple times
+  should not do any harm.
 
 * **webserver**
 
   Starts a "fetch API" server. This command allows you to start as
-  many dedicated web servers as necessary, to handle the incoming
-  load.
+  many dedicated web servers as necessary, so as to handle the
+  incoming load.
 
 * **consume_messages**
 
+  Starts only the processes that consume and process Swaptacular
+  Messaging Protocol messages. This command allows you to start as
+  many dedicated SMP message processors as necessary, so as to handle
+  the incoming load.
+
 * **consume_chore_messages**
+
+  Starts only the processes that consume and process local database
+  tasks. This command allows you to start as many dedicated chores
+  processors as necessary, so as to handle the incoming load.
 
 
 This
 [example](https://github.com/epandurski/swpt_accounts/blob/master/docker-compose-all.yml)
-shows how to use the generated image.
+shows how you can use the generated image.
 
 
 How to run it
