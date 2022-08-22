@@ -15,6 +15,12 @@ Here are the most important settings with some example values:
 # requests. If not set, the default is 80.
 PORT=8001
 
+# The specified number of processes ("$WEBSERVER_WORKERS") will be
+# spawned to handle "fetch API" requests (default 1), each process
+# will run "$WEBSERVER_THREADS" threads in parallel (default 3).
+WEBSERVER_WORKERS=2
+WEBSERVER_THREADS=10
+
 # Connection string for a PostgreSQL database server to connect to.
 POSTGRES_URL=postgresql://swpt_accounts:swpt_accounts@localhost:5433/test
 
@@ -114,21 +120,31 @@ file.
 
 
 The
-[entrypoint](https://github.com/epandurski/swpt_accounts/blob/master/docker/entrypoint.sh).
-of the cointainer allows you to execute the following commangs:
+[entrypoint](https://github.com/epandurski/swpt_accounts/blob/master/docker/entrypoint.sh)
+of the container allows you to execute the following documented
+commands:
+
+* **all**
+
+  Starts all the necessary services in the container. This is the
+  command that will be executed if no arguments are passed to the
+  entrypoint.
 
 * **configure**
 
+  Creates the database schema and initializes a new database. This has
+  to be run only once, but running it multiple times should not do any
+  harm.
+
 * **webserver**
+
+  Starts a "fetch API" server. This command allows you to start as
+  many dedicated web servers as necessary, to handle the incoming
+  load.
 
 * **consume_messages**
 
 * **consume_chore_messages**
-
-* **all**
-
-  Starts all necessary services in the container. This is the command
-  that will be executed if no arguments are passed to the entrypoint.
 
 
 This
