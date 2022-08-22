@@ -6,12 +6,7 @@ This service implements
 protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
 server. The ultimate deliverable is a docker image, which is generated
 from the project's
-[Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile). To
-find out what processes can be spawned from the generated image, see
-the
-[entrypoint](https://github.com/epandurski/swpt_accounts/blob/master/docker/entrypoint.sh).
-
-
+[Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
 The behavior of the service can be tuned with environment variables.
 Here are the most important settings with some example values:
 
@@ -115,7 +110,28 @@ APP_LOG_FORMAT=text
 
 For more configuration options, see the
 [development.env](https://github.com/epandurski/swpt_accounts/blob/master/development.env)
-file. This
+file.
+
+
+The
+[entrypoint](https://github.com/epandurski/swpt_accounts/blob/master/docker/entrypoint.sh).
+of the cointainer allows you to execute the following commangs:
+
+* **configure**
+
+* **webserver**
+
+* **consume_messages**
+
+* **consume_chore_messages**
+
+* **all**
+
+  Starts all necessary services in the container. This is the command
+  that will be executed if no arguments are passed to the entrypoint.
+
+
+This
 [example](https://github.com/epandurski/swpt_accounts/blob/master/docker-compose-all.yml)
 shows how to use the generated image.
 
