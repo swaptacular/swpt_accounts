@@ -79,9 +79,15 @@ CHORES_BROKER_PREFETCH_COUNT=10
 # container itself (see PORT configuration variable).
 FETCH_API_URL=http://localhost:8001
 
-PROCESS_TRANSFER_REQUESTS_THREADS=1
-PROCESS_FINALIZATION_REQUESTS_THREADS=1
-PROCESS_BALANCE_CHANGES_THREADS=1
+# The processing of each transfer consists of several stages. The
+# following configuration variables control the number of worker
+# threads that will be involved on each respective stage. You must set
+# this to a reasonable value, and increase it when you start
+# experiencing problems with performance.
+PROCESS_TRANSFER_REQUESTS_THREADS=10
+PROCESS_FINALIZATION_REQUESTS_THREADS=10
+PROCESS_BALANCE_CHANGES_THREADS=10
+
 REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME=1970-01-01
 
 # Set the minimum level of severity for log messages ("info",
