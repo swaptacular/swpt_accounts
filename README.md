@@ -88,13 +88,13 @@ PROCESS_TRANSFER_REQUESTS_THREADS=10
 PROCESS_FINALIZATION_REQUESTS_THREADS=10
 PROCESS_BALANCE_CHANGES_THREADS=10
 
-# The ID of each committed transfer will be archived to the
-# database. If the message that performed the transfer is received one
-# more time (which not likely, but is entirely possible), and the ID
-# of the committed transfer is found in the archive, the transfer will
-# not be performed again (as it should not be). As time passes, and
-# the likelihood of receiving the message again drops to zero, we can
-# safely remove the transfer ID from the archive.
+# The ID of each committed transfer is archived to the database. Then,
+# if the message that performed the transfer is received one more time
+# (which is not likely, but is entirely possible), but the ID of the
+# committed transfer is found in the archive, the transfer will not be
+# performed again (as it should not be). As time passes, and the
+# likelihood of receiving the same message again drops to zero, the
+# transfer ID can be safely remove from the archive.
 #
 # This configuration settings determines the date before which
 # transfer IDs are safe to remove from the archive. Normally, this
