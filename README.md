@@ -15,8 +15,9 @@ the following services:
 * A [RabbitMQ](https://www.rabbitmq.com/) server instance, which acts
   as a broker for [Swaptacular Messaging
   Protocol](https://epandurski.github.io/swaptacular/protocol.pdf)
-  messages. The following *RabbitMQ exchanges* must be configured on
-  the server instance:
+  messages. The following [RabbitMQ
+  exchanges](https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html)
+  must be configured on the server instance:
 
   **`to_creditors`**: For messages that must be send to the creditors
   agents. The routing key will represent the creditor ID as
