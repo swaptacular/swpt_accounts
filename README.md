@@ -52,13 +52,17 @@ the following servers:
     different accounts to be located on different database servers
     (sharding).
 
-* A [RabbitMQ](https://www.rabbitmq.com/) server instance which is
-  responsible for queuing local database tasks (chores). This can be
-  the same RabbitMQ server instance that is used for brokering
-  Swaptacular Messaging Protocol messages, but it can also be a
-  different one. For example, when different accounts are located on
-  different database servers, it could be a good idea to store local
-  database "chores" as close as possible to the database.
+* A RabbitMQ server instance which is responsible for queuing local
+  database tasks (chores). This can be the same RabbitMQ server
+  instance that is used for brokering Swaptacular Messaging Protocol
+  messages, but it can also be a different one. For example, when
+  different accounts are located on different database servers, it
+  could be a good idea to store local database "chores" as close as
+  possible to the database.
+
+**Note:** This implementation uses [JSON Serialization for the
+Swaptacular Messaging
+Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol-json.rst).
 
 
 Configuration
