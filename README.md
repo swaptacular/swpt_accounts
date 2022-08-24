@@ -17,7 +17,7 @@ the following services:
   messages. The following RabbitMQ exchanges must be configured on the
   server instance:
 
-  `to_creditors` exchange: for messages that must be send to the
+  **`to_creditors` exchange**: for messages that must be send to the
   creditors agents. The routing key will represent the creditor ID as
   hexadecimal. For example, for creditor ID equal to 2, the routing
   key will be "00.00.00.00.00.00.00.02".
