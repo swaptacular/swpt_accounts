@@ -8,9 +8,13 @@ image](https://www.geeksforgeeks.org/what-is-docker-images/),
 generated from the project's
 [Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
 
-**Note:** This implementation will uses [JSON Serialization for the
+**Note:** This implementation uses [JSON Serialization for the
 Swaptacular Messaging
 Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol-json.rst).
+
+
+Dependencies
+------------
 
 Containers started from the generated docker image must have access to
 the following servers:
