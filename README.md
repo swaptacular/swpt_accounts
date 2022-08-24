@@ -8,6 +8,45 @@ server. The ultimate deliverable is a docker image, which is generated
 from the project's
 [Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
 
+In order to work, containers started from the generated docker image
+should have access to:
+
+1. A running PostgreSQL server instance, which holds all accounts and
+   transfers data.
+
+2. A running RabbitMQ server instance, which acts as a broker for
+   Swaptacular Messaging Protocol messages. There must be at least 4
+   RabbitMQ exchanges configured on that server:
+
+   * `to_creditors` for messages that must be send to the creditors
+     agents. The routing key that the container sets, will represent
+     the creditor ID as hexadecimal. For example, for creditor ID
+     equal to 2, the routing key will be `00.00.00.00.00.00.00.02`.
+
+   * `to_debtors` for messages that must be send to the debtors
+     agents. The routing key that the container sets, will represent
+     the debtor ID as hexadecimal. For example, for debtor ID equal to
+     -2, the routing key will be `ff.ff.ff.ff.ff.ff.ff.fe`.
+
+   * `to_coordinators` for messages that must be send to the transfer
+     coordinators. Different types of transfer coordinators are
+     responsible for performing different types of transfers. The most
+     important types are: "direct", which must be sent to the
+     creditors agents, and "issuing", which must be sent to the
+     debtors agents. All messages sent to this exchange will have a
+     correctly set `coordinator_type` header. The routing key will
+     represent the coordinator ID as hexadecimal. (Note that for
+     "direct" transfers, the coordinator ID is the same as the
+     creditor ID; and for "issuing" transfers the coordinator ID is
+     the same as the debtor ID.)
+
+   * `accounts_in` for messages that must be send to this accounting
+     authority itself (self-posting). The routing key that the
+     container sets, will represent the highest 24 bits of the MD5
+     digest of the (debtor ID, creditor ID) pair. For example, for
+     debtor ID equal to 123, and creditor ID equal to 456, the routing
+     key will be `0.0.0.0.1.0.0.0.0.1.0.0.0.1.0.0.0.0.1.1.0.1.0.0`. 
+
 
 Configuration
 -------------
@@ -103,11 +142,11 @@ PROCESS_BALANCE_CHANGES_THREADS=10
 #
 # The REMOVE_FROM_ARCHIVE_THRESHOLD_DATE configuration settings
 # determines the date before which transfer IDs are safe to remove
-# from the archive. Normally, this should be a date at least a few
-# weeks in the past. The date must be given in ISO 8601 date
-# format. It can also include time, for example:
-# "1970-01-01T18:30:00Z".
-REMOVE_FROM_ARCHIVE_THRESHOLD_DATE=1970-01-01
+# from the archive (default 1970-01-01). Normally, this should be a
+# date at least a few weeks in the past. The date must be given in ISO
+# 8601 date format. It can also include time, for example:
+# "2022-07-30T18:59:59Z".
+REMOVE_FROM_ARCHIVE_THRESHOLD_DATE=2022-07-30
 
 # Set the minimum level of severity for log messages ("info",
 # "warning", or "error"). The default is "warning".
@@ -137,8 +176,8 @@ commands*:
   command that will be executed if no arguments are passed to the
   entrypoint.
 
-  **For each database instance, you must start exactly one container,
-  with this command.**
+  **For each database instance, you must start exactly one container
+  with this command!**
 
 * `configure`
 
@@ -149,21 +188,21 @@ commands*:
 * `webserver`
 
   Starts only the "fetch API" server. This command allows you to start
-  as many dedicated web servers as necessary, so as to handle the
+  as many additional dedicated web servers as necessary, to handle the
   incoming load.
 
 * `consume_messages`
 
   Starts only the processes that consume Swaptacular Messaging
   Protocol messages. This command allows you to start as many
-  dedicated SMP message processors as necessary, so as to handle the
-  incoming load.
+  additional dedicated SMP message processors as necessary, to handle
+  the incoming load.
 
 * `consume_chore_messages`
 
   Starts only the processes that perform local database tasks. This
-  command allows you to start as many dedicated chores processors as
-  necessary, so as to handle the incoming load.
+  command allows you to start as many additional dedicated chores
+  processors as necessary, to handle the incoming load.
 
 
 This [docker-compose
