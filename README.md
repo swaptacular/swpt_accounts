@@ -24,7 +24,7 @@ the following servers:
 
 * A [RabbitMQ](https://www.rabbitmq.com/) server instance, which acts
   as a broker for [Swaptacular Messaging
-  Protocol](https://epandurski.github.io/swaptacular/protocol.pdf)
+  Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
   messages. The following [RabbitMQ
   exchanges](https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html)
   must be configured on the server instance:
