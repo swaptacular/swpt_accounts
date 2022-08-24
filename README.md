@@ -8,7 +8,7 @@ image](https://www.geeksforgeeks.org/what-is-docker-images/),
 generated from the project's
 [Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
 Containers started from the generated docker image must have access to
-the following services:
+the following servers:
 
 * A [PostgreSQL](https://www.postgresql.org/) server instance, which
   stores all the data.
@@ -51,13 +51,13 @@ the following services:
   different accounts to be located on different database servers
   (sharding).
 
-* A RabbitMQ server instance which is responsible for queuing local
-  database tasks (chores). This can be the same RabbitMQ server
-  instance that is used for brokering Swaptacular Messaging Protocol
-  messages, but it does not need to be the same. For example, when
-  different accounts are located on different database servers, it
-  could be a good idea to store local database "chores" as close as
-  possible to the database.
+* A [RabbitMQ](https://www.rabbitmq.com/) server instance which is
+  responsible for queuing local database tasks (chores). This can be
+  the same RabbitMQ server instance that is used for brokering
+  Swaptacular Messaging Protocol messages, but it does not need to be
+  the same. For example, when different accounts are located on
+  different database servers, it could be a good idea to store local
+  database "chores" as close as possible to the database.
 
 
 Configuration
@@ -225,7 +225,7 @@ shows how the generated docker image can be used.
 How to run it
 -------------
 
-1.  Install [Docker](https://docs.docker.com/) and [Docker
+1.  Install [Docker](https://docs.docker.com/engine/) and [Docker
     Compose](https://docs.docker.com/compose/).
 
 2.  To create an *.env* file with reasonable defalut values, run this
