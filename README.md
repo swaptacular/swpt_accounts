@@ -8,28 +8,26 @@ server. The ultimate deliverable is a docker image, which is generated
 from the project's
 [Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
 
-In order to work, containers started from the generated docker image
-should have access to the following services:
+Containers started from the generated docker image must have access to
+the following services:
 
-* A running PostgreSQL server instance, which holds all the data.
+* A PostgreSQL server instance, which stores all the data.
 
-* A running RabbitMQ server instance, which acts as a broker for
-  [Swaptacular Messaging
+* A RabbitMQ server instance, which acts as a broker for [Swaptacular
+  Messaging
   Protocol](https://epandurski.github.io/swaptacular/protocol.pdf)
-  messages. There must be at least 4 RabbitMQ exchanges configured on
-  the server instance:
+  messages. At least 4 RabbitMQ exchanges should be configured on the
+  this server instance:
 
    1. `to_creditors` exchange: for messages that must be send to the
-      creditors agents. The routing key that the container sets, will
-      represent the creditor ID as hexadecimal. For example, for
-      creditor ID equal to 2, the routing key will be
-      "00.00.00.00.00.00.00.02".
+      creditors agents. The routing key will represent the creditor ID
+      as hexadecimal. For example, for creditor ID equal to 2, the
+      routing key will be "00.00.00.00.00.00.00.02".
 
    2. `to_debtors` exchange: for messages that must be send to the
-      debtors agents. The routing key that the container sets, will
-      represent the debtor ID as hexadecimal. For example, for debtor
-      ID equal to -2, the routing key will be
-      "ff.ff.ff.ff.ff.ff.ff.fe".
+      debtors agents. The routing key will represent the debtor ID as
+      hexadecimal. For example, for debtor ID equal to -2, the routing
+      key will be "ff.ff.ff.ff.ff.ff.ff.fe".
 
    3. `to_coordinators` exchange: for messages that must be send to
       the transfer coordinators. Different types of transfer
@@ -54,8 +52,8 @@ should have access to the following services:
       different accounts to be located on different database servers
       (sharding).
 
-* A running RabbitMQ server instance which is responsible for queuing
-  local database tasks (chores). This can be the same RabbitMQ server
+* A RabbitMQ server instance which is responsible for queuing local
+  database tasks (chores). This can be the same RabbitMQ server
   instance that is used for brokering Swaptacular Messaging Protocol
   messages, but it does not need to be the same. For example, when
   different accounts are located on different database servers, it can
