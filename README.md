@@ -9,29 +9,30 @@ from the project's
 [Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
 
 In order to work, containers started from the generated docker image
-should have access to:
+should have access to the following services:
 
-1. A running PostgreSQL server instance, which holds all accounts and
-   transfers data.
+1. A running PostgreSQL server instance, which all the data.
 
 2. A running RabbitMQ server instance, which acts as a broker for
    Swaptacular Messaging Protocol messages. There must be at least 4
-   RabbitMQ exchanges configured on that server:
+   RabbitMQ exchanges configured on that server instance:
 
-   * `to_creditors` for messages that must be send to the creditors
-     agents. The routing key that the container sets, will represent
-     the creditor ID as hexadecimal. For example, for creditor ID
-     equal to 2, the routing key will be `00.00.00.00.00.00.00.02`.
+   * `to_creditors` exchange: for messages that must be send to the
+     creditors agents. The routing key that the container sets, will
+     represent the creditor ID as hexadecimal. For example, for
+     creditor ID equal to 2, the routing key will be
+     `00.00.00.00.00.00.00.02`.
 
-   * `to_debtors` for messages that must be send to the debtors
-     agents. The routing key that the container sets, will represent
-     the debtor ID as hexadecimal. For example, for debtor ID equal to
-     -2, the routing key will be `ff.ff.ff.ff.ff.ff.ff.fe`.
+   * `to_debtors` exchange: for messages that must be send to the
+     debtors agents. The routing key that the container sets, will
+     represent the debtor ID as hexadecimal. For example, for debtor
+     ID equal to -2, the routing key will be
+     `ff.ff.ff.ff.ff.ff.ff.fe`.
 
-   * `to_coordinators` for messages that must be send to the transfer
-     coordinators. Different types of transfer coordinators are
-     responsible for performing different types of transfers. The most
-     important types are: "direct", which must be sent to the
+   * `to_coordinators` exchange: for messages that must be send to the
+     transfer coordinators. Different types of transfer coordinators
+     are responsible for performing different types of transfers. The
+     most important types are: "direct", which must be sent to the
      creditors agents, and "issuing", which must be sent to the
      debtors agents. All messages sent to this exchange will have a
      correctly set `coordinator_type` header. The routing key will
@@ -40,12 +41,14 @@ should have access to:
      creditor ID; and for "issuing" transfers the coordinator ID is
      the same as the debtor ID.)
 
-   * `accounts_in` for messages that must be send to this accounting
-     authority itself (self-posting). The routing key that the
-     container sets, will represent the highest 24 bits of the MD5
+   * `accounts_in` exchange: for messages that must be send to this
+     accounting authority itself (self-posting). The routing key that
+     the container sets, will represent the highest 24 bits of the MD5
      digest of the (debtor ID, creditor ID) pair. For example, for
      debtor ID equal to 123, and creditor ID equal to 456, the routing
-     key will be `0.0.0.0.1.0.0.0.0.1.0.0.0.1.0.0.0.0.1.1.0.1.0.0`. 
+     key will be `0.0.0.0.1.0.0.0.0.1.0.0.0.1.0.0.0.0.1.1.0.1.0.0`.
+     This allows different accounts to be located on different
+     database servers (sharding).
 
 
 Configuration
