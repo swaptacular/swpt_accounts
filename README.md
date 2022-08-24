@@ -14,20 +14,20 @@ the following services:
 * A RabbitMQ server instance, which acts as a broker for [Swaptacular
   Messaging
   Protocol](https://epandurski.github.io/swaptacular/protocol.pdf)
-  messages. The following RabbitMQ exchanges must be configured on the
-  server instance:
+  messages. The following *RabbitMQ exchanges*k must be configured on
+  the server instance:
 
-  **`to_creditors` exchange**: for messages that must be send to the
-  creditors agents. The routing key will represent the creditor ID as
+  **`to_creditors`**: for messages that must be send to the creditors
+  agents. The routing key will represent the creditor ID as
   hexadecimal. For example, for creditor ID equal to 2, the routing
   key will be "00.00.00.00.00.00.00.02".
 
-  **`to_debtors` exchange**: for messages that must be send to the debtors
+  **`to_debtors`**: for messages that must be send to the debtors
   agents. The routing key will represent the debtor ID as
   hexadecimal. For example, for debtor ID equal to -2, the routing key
   will be "ff.ff.ff.ff.ff.ff.ff.fe".
 
-  **`to_coordinators` exchange**: for messages that must be send to the
+  **`to_coordinators`**: for messages that must be send to the
   transfer coordinators. Different types of transfer coordinators are
   responsible for performing different types of transfers. The most
   important types are: "direct" (the message must be sent to the
@@ -39,12 +39,12 @@ the following services:
   creditor ID; and for "issuing" transfers, the coordinator ID is
   guaranteed to be the same as the debtor ID.
 
-  **`accounts_in` exchange**: for messages that must be send to this
-  accounting authority itself (self-posting). The routing key that the
-  container sets, will represent the highest 24 bits of the MD5 digest
-  of the (debtor ID, creditor ID) pair. For example, if debtor ID is
-  equal to 123, and creditor ID is equal to 456, the routing key will
-  be "0.0.0.0.1.0.0.0.0.1.0.0.0.1.0.0.0.0.1.1.0.1.0.0". This allows
+  **`accounts_in`**: for messages that must be send to this accounting
+  authority itself (self-posting). The routing key that the container
+  sets, will represent the highest 24 bits of the MD5 digest of the
+  (debtor ID, creditor ID) pair. For example, if debtor ID is equal to
+  123, and creditor ID is equal to 456, the routing key will be
+  "0.0.0.0.1.0.0.0.0.1.0.0.0.1.0.0.0.0.1.1.0.1.0.0". This allows
   different accounts to be located on different database servers
   (sharding).
 
