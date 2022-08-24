@@ -3,8 +3,9 @@ Swaptacular "Accounting Authority" reference implementation
 
 This project implements a
 [Swaptacular](https://swaptacular.github.io/overview) "Accounting
-Authority" node. The ultimate deliverable is a docker image, generated
-from the project's
+Authority" node. The ultimate deliverable is a [docker
+image](https://www.geeksforgeeks.org/what-is-docker-images/),
+generated from the project's
 [Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
 Containers started from the generated docker image must have access to
 the following services:
