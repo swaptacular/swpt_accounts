@@ -14,20 +14,20 @@ the following services:
 * A RabbitMQ server instance, which acts as a broker for [Swaptacular
   Messaging
   Protocol](https://epandurski.github.io/swaptacular/protocol.pdf)
-  messages. The following *RabbitMQ exchanges*k must be configured on
+  messages. The following *RabbitMQ exchanges* must be configured on
   the server instance:
 
-  **`to_creditors`**: for messages that must be send to the creditors
+  **`to_creditors`**: For messages that must be send to the creditors
   agents. The routing key will represent the creditor ID as
   hexadecimal. For example, for creditor ID equal to 2, the routing
   key will be "00.00.00.00.00.00.00.02".
 
-  **`to_debtors`**: for messages that must be send to the debtors
+  **`to_debtors`**: For messages that must be send to the debtors
   agents. The routing key will represent the debtor ID as
   hexadecimal. For example, for debtor ID equal to -2, the routing key
   will be "ff.ff.ff.ff.ff.ff.ff.fe".
 
-  **`to_coordinators`**: for messages that must be send to the
+  **`to_coordinators`**: For messages that must be send to the
   transfer coordinators. Different types of transfer coordinators are
   responsible for performing different types of transfers. The most
   important types are: "direct" (the message must be sent to the
@@ -39,7 +39,7 @@ the following services:
   creditor ID; and for "issuing" transfers, the coordinator ID is
   guaranteed to be the same as the debtor ID.
 
-  **`accounts_in`**: for messages that must be send to this accounting
+  **`accounts_in`**: For messages that must be send to this accounting
   authority itself (self-posting). The routing key that the container
   sets, will represent the highest 24 bits of the MD5 digest of the
   (debtor ID, creditor ID) pair. For example, if debtor ID is equal to
@@ -52,9 +52,9 @@ the following services:
   database tasks (chores). This can be the same RabbitMQ server
   instance that is used for brokering Swaptacular Messaging Protocol
   messages, but it does not need to be the same. For example, when
-  different accounts are located on different database servers, it can
-  be a good idea to store local database "chores" as close as possible
-  to the database.
+  different accounts are located on different database servers, it
+  could be a good idea to store local database "chores" as close as
+  possible to the database.
 
 
 Configuration
@@ -185,8 +185,8 @@ commands*:
   command that will be executed if no arguments are passed to the
   entrypoint.
 
-  **For each database instance, you must start exactly one container
-  with this command!**
+  **IMPORTANT NOTE: For each database instance, you must start exactly
+  one container with this command!**
 
 * `configure`
 
