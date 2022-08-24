@@ -54,8 +54,8 @@ the following servers:
 * A [RabbitMQ](https://www.rabbitmq.com/) server instance which is
   responsible for queuing local database tasks (chores). This can be
   the same RabbitMQ server instance that is used for brokering
-  Swaptacular Messaging Protocol messages, but it does not need to be
-  the same. For example, when different accounts are located on
+  Swaptacular Messaging Protocol messages, but it can also be a
+  different one. For example, when different accounts are located on
   different database servers, it could be a good idea to store local
   database "chores" as close as possible to the database.
 
@@ -225,8 +225,8 @@ shows how the generated docker image can be used.
 How to run it
 -------------
 
-1.  Install [Docker](https://docs.docker.com/engine/) and [Docker
-    Compose](https://docs.docker.com/compose/).
+1.  Install [Docker Engine](https://docs.docker.com/engine/) and
+    [Docker Compose](https://docs.docker.com/compose/).
 
 2.  To create an *.env* file with reasonable defalut values, run this
     command:
