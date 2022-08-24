@@ -32,14 +32,14 @@ should have access to the following services:
    * `to_coordinators` exchange: for messages that must be send to the
      transfer coordinators. Different types of transfer coordinators
      are responsible for performing different types of transfers. The
-     most important types are: "direct", which must be sent to the
-     creditors agents, and "issuing", which must be sent to the
-     debtors agents. All messages sent to this exchange will have a
-     correctly set `coordinator_type` header. The routing key will
-     represent the coordinator ID as hexadecimal. (Note that for
-     "direct" transfers, the coordinator ID is the same as the
-     creditor ID; and for "issuing" transfers the coordinator ID is
-     the same as the debtor ID.)
+     most important types are: "direct" (the messages must be sent to
+     the creditors agents), and "issuing" (the messages must be sent
+     to the debtors agents). All the messages sent to this exchange,
+     will have a correctly set `coordinator_type` header. The routing
+     key will represent the coordinator ID as hexadecimal. Note that
+     for "direct" transfers, the coordinator ID is guaranteed to be
+     the same as the creditor ID; and for "issuing" transfers, the
+     coordinator ID is guaranteed to be the same as the debtor ID.
 
    * `accounts_in` exchange: for messages that must be send to this
      accounting authority itself (self-posting). The routing key that
