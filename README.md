@@ -14,8 +14,8 @@ the following services:
 * A RabbitMQ server instance, which acts as a broker for [Swaptacular
   Messaging
   Protocol](https://epandurski.github.io/swaptacular/protocol.pdf)
-  messages. At least 4 RabbitMQ exchanges should be configured on the
-  this server instance:
+  messages. The following RabbitMQ exchanges must be configured on the
+  server instance:
 
    1. `to_creditors` exchange: for messages that must be send to the
       creditors agents. The routing key will represent the creditor ID
