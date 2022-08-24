@@ -9,10 +9,11 @@ from the project's
 Containers started from the generated docker image must have access to
 the following services:
 
-* A PostgreSQL server instance, which stores all the data.
+* A [PostgreSQL](https://www.postgresql.org/) server instance, which
+  stores all the data.
 
-* A RabbitMQ server instance, which acts as a broker for [Swaptacular
-  Messaging
+* A [RabbitMQ](https://www.rabbitmq.com/) server instance, which acts
+  as a broker for [Swaptacular Messaging
   Protocol](https://epandurski.github.io/swaptacular/protocol.pdf)
   messages. The following *RabbitMQ exchanges* must be configured on
   the server instance:
