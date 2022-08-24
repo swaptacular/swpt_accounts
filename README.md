@@ -7,6 +7,11 @@ Authority" node. The ultimate deliverable is a [docker
 image](https://www.geeksforgeeks.org/what-is-docker-images/),
 generated from the project's
 [Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
+
+**Note:** This implementation will uses [JSON Serialization for the
+Swaptacular Messaging
+Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol-json.rst).
+
 Containers started from the generated docker image must have access to
 the following servers:
 
@@ -59,10 +64,6 @@ the following servers:
   different accounts are located on different database servers, it
   could be a good idea to store local database "chores" as close as
   possible to the database.
-
-**Note:** This implementation uses [JSON Serialization for the
-Swaptacular Messaging
-Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol-json.rst).
 
 
 Configuration
