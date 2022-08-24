@@ -401,7 +401,7 @@ class RegisteredBalanceChangeScanner(TableScanner):
 
     def __init__(self):
         super().__init__()
-        self.cutoff_ts = current_app.config['APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME']
+        self.cutoff_ts = current_app.config['REMOVE_FROM_ARCHIVE_THRESHOLD_DATE']
 
     @property
     def blocks_per_query(self) -> int:

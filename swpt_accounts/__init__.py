@@ -1,6 +1,7 @@
 __version__ = '0.1.0'
 
 import logging
+import json
 import sys
 import os
 import os.path
@@ -14,6 +15,13 @@ def _parse_datetime(s: str) -> datetime:
         dt = dt.replace(tzinfo=timezone.utc)
 
     return dt
+
+
+def _parse_dict(s: str) -> dict:
+    try:
+        return json.loads(s)
+    except ValueError:  # pragma: no cover
+        raise ValueError(f'Invalid JSON configuration value: {s}')
 
 
 def _excepthook(exc_type, exc_value, traceback):  # pragma: nocover
@@ -163,10 +171,7 @@ class MetaEnvReader(type):
 
 class Configuration(metaclass=MetaEnvReader):
     SQLALCHEMY_DATABASE_URI = ''
-    SQLALCHEMY_POOL_SIZE: int = None
-    SQLALCHEMY_POOL_TIMEOUT: int = None
-    SQLALCHEMY_POOL_RECYCLE: int = None
-    SQLALCHEMY_MAX_OVERFLOW: int = None
+    SQLALCHEMY_ENGINE_OPTIONS: _parse_dict = _parse_dict('{"pool_size": 0}')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False
 
@@ -185,13 +190,18 @@ class Configuration(metaclass=MetaEnvReader):
     CHORES_BROKER_PREFETCH_SIZE = 0
     CHORES_BROKER_PREFETCH_COUNT = 1
 
-    APP_PROCESS_BALANCE_CHANGES_THREADS = 1
+    FETCH_API_URL: str = None
+
+    PROCESS_TRANSFER_REQUESTS_THREADS = 1
+    PROCESS_FINALIZATION_REQUESTS_THREADS = 1
+    PROCESS_BALANCE_CHANGES_THREADS = 1
+
+    REMOVE_FROM_ARCHIVE_THRESHOLD_DATE: _parse_datetime = _parse_datetime('1970-01-01')
+
     APP_PROCESS_BALANCE_CHANGES_WAIT = 2.0
     APP_PROCESS_BALANCE_CHANGES_MAX_COUNT = 100000
-    APP_PROCESS_TRANSFER_REQUESTS_THREADS = 1
     APP_PROCESS_TRANSFER_REQUESTS_WAIT = 2.0
     APP_PROCESS_TRANSFER_REQUESTS_MAX_COUNT = 100000
-    APP_PROCESS_FINALIZATION_REQUESTS_THREADS = 1
     APP_PROCESS_FINALIZATION_REQUESTS_WAIT = 2.0
     APP_PROCESS_FINALIZATION_REQUESTS_MAX_COUNT = 100000
     APP_FLUSH_REJECTED_TRANSFERS_BURST_COUNT = 10000
@@ -210,7 +220,6 @@ class Configuration(metaclass=MetaEnvReader):
     APP_ACCOUNT_HEARTBEAT_DAYS = 7.0
     APP_PREPARED_TRANSFER_REMAINDER_DAYS = 7.0
     APP_PREPARED_TRANSFER_MAX_DELAY_DAYS = 30.0
-    APP_FETCH_API_URL: str = None
     APP_FETCH_API_TIMEOUT_SECONDS = 5.0
     APP_FETCH_DNS_CACHE_SECONDS = 10.0
     APP_FETCH_CONNECTIONS = 100
@@ -224,7 +233,6 @@ class Configuration(metaclass=MetaEnvReader):
     APP_PREPARED_TRANSFERS_SCAN_BEAT_MILLISECS = 25
     APP_REGISTERED_BALANCE_CHANGES_SCAN_BLOCKS_PER_QUERY = 40
     APP_REGISTERED_BALANCE_CHANGES_SCAN_BEAT_MILLISECS = 25
-    APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME: _parse_datetime = _parse_datetime('1970-01-01')
 
 
 def _check_config_sanity(c):  # pragma: nocover
@@ -257,10 +265,10 @@ def _check_config_sanity(c):  # pragma: nocover
             'value.'
         )
 
-    if (c['APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME']
+    if (c['REMOVE_FROM_ARCHIVE_THRESHOLD_DATE']
             > datetime.now(tz=timezone.utc) - timedelta(days=c['APP_INTRANET_EXTREME_DELAY_DAYS'])):
         raise RuntimeError(
-            'The configured date for APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME is too '
+            'The configured date for REMOVE_FROM_ARCHIVE_THRESHOLD_DATE is too '
             'recent. This may result in discarding balance change events. Choose a more '
             'appropriate value.'
         )

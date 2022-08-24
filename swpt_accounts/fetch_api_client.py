@@ -20,7 +20,7 @@ def get_if_account_is_reachable(debtor_id: int, creditor_id: int) -> bool:
     with current_app.test_request_context():
         path = url_for('fetch.reachable', _external=False, debtorId=debtor_id, creditorId=creditor_id)
 
-    url = urljoin(current_app.config['APP_FETCH_API_URL'], path)
+    url = urljoin(current_app.config['FETCH_API_URL'], path)
 
     try:
         response = requests_session.get(url)
@@ -62,7 +62,7 @@ def _log_error(e):
 
 
 async def _make_root_config_data_request(debtor_id: int) -> Optional[RootConfigData]:
-    fetch_api_url = current_app.config['APP_FETCH_API_URL']
+    fetch_api_url = current_app.config['FETCH_API_URL']
     url = urljoin(fetch_api_url, _fetch_conifg_path(debtorId=debtor_id))
 
     async with aiohttp_session.get(url) as response:

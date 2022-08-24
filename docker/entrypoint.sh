@@ -17,8 +17,14 @@ done
 # The WEBSERVER_* variables should be used instead of the GUNICORN_*
 # variables, because we do not want to tie the public interface to the
 # "gunicorn" server, which we may, or may not use in the future.
-export GUNICORN_WORKERS=${WEBSERVER_WORKERS:-1}
+export GUNICORN_WORKERS=${WEBSERVER_PROCESSES:-1}
 export GUNICORN_THREADS=${WEBSERVER_THREADS:-3}
+
+# The POSTGRES_URL variable should be used instead of the
+# SQLALCHEMY_DATABASE_URI variable, because we do not want to tie the
+# public interface to the "sqlalchemy" library, which we may, or may
+# not use in the future.
+export SQLALCHEMY_DATABASE_URI=${POSTGRES_URL}
 
 # This function tries to upgrade the database schema with exponential
 # backoff. This is necessary during development, because the database
@@ -97,7 +103,7 @@ case $1 in
     develop-run-flask)
         # Do not run this in production!
         shift
-        exec flask run --host=0.0.0.0 --port $PORT --without-threads "$@"
+        exec flask run --host=0.0.0.0 --port ${WEBSERVER_PORT:-5000} --without-threads "$@"
         ;;
     test)
         # Do not run this in production!
@@ -110,7 +116,7 @@ case $1 in
         [[ "$SETUP_RABBITMQ_BINDINGS" == "yes" ]] && setup_rabbitmq_bindings
         ;;
     webserver)
-        exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :$PORT wsgi:app
+        exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :${WEBSERVER_PORT:-80} wsgi:app
         ;;
     consume_messages)
         exec flask swpt_accounts "$@"

@@ -125,7 +125,7 @@ def _on_pending_balance_change_signal(
         committed_at=committed_at,
         principal_delta=principal_delta,
         other_creditor_id=other_creditor_id,
-        cutoff_ts=current_app.config['APP_REGISTERED_BALANCE_CHANGES_RETENTION_DATETIME'],
+        cutoff_ts=current_app.config['REMOVE_FROM_ARCHIVE_THRESHOLD_DATE'],
     )
 
 

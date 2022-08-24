@@ -16,15 +16,34 @@ The behavior of the service can be tuned with environment variables.
 Here are the most important settings with some example values:
 
 ```shell
-# The port on which the container will listen for "fetch API"
-# requests. If not set, the default is 80.
-PORT=8001
-
-# The specified number of processes ("$WEBSERVER_WORKERS") will be
+# The specified number of processes ("$WEBSERVER_PROCESSES") will be
 # spawned to handle "fetch API" requests (default 1), each process
-# will run "$WEBSERVER_THREADS" threads in parallel (default 3).
-WEBSERVER_WORKERS=2
+# will run "$WEBSERVER_THREADS" threads in parallel (default 3). The
+# container will listen for "fetch API" requests on port
+# "$WEBSERVER_PORT" (default 80).
+WEBSERVER_PROCESSES=2
 WEBSERVER_THREADS=10
+WEBSERVER_PORT=8001
+
+# The accounting authority should be able to access the configuration
+# data of any existing account. For example, this is needed in order
+# to ensure that the recipient's account exists, before initiating a
+# new transfer. The "fetch API" is responsible to provide limited
+# information about existing accounts, to other (internal) servers
+# which may need it. When there is only one database server, the
+# container can ask itself for the information. But when different
+# accounts are located on different database servers (sharding),
+# things get more complex. In such cases, one or more Web-proxies
+# should be installed, which will forward each "fetch API" request to
+# the server/container responsible fot the account. Note, however,
+# that even in the single database server scenario, installing a
+# Web-proxy will be beneficial, for the caching it provides.
+#
+# If you have a "fetch API" Web-proxy installed (recommended), set the
+# FETCH_API_URL variable to the base URL of your proxy. If you do not
+# have a proxy, set FETCH_API_URL to the "fetch API" address of the
+# container itself (see WEBSERVER_PORT configuration variable).
+FETCH_API_URL=http://localhost:8001
 
 # Connection string for a PostgreSQL database server to connect to.
 POSTGRES_URL=postgresql://swpt_accounts:swpt_accounts@localhost:5433/test
@@ -64,26 +83,6 @@ CHORES_BROKER_QUEUE=swpt_accounts_chores
 CHORES_BROKER_PROCESSES=1
 CHORES_BROKER_THREADS=3
 CHORES_BROKER_PREFETCH_COUNT=10
-
-# The accounting authority should be able to access the configuration
-# data of any existing account. For example, this is needed in order
-# to ensure that the recipient's account exists, before initiating a
-# new transfer. The "fetch API" is responsible to provide limited
-# information about existing accounts, to other (internal) servers
-# which may need it. When there is only one database server, the
-# container can ask itself for the information. But when different
-# accounts are located on different database servers (sharding),
-# things get more complex. In such cases, one or more Web-proxies
-# should be installed, which will forward each "fetch API" request to
-# the server/container responsible fot the account. Note, however,
-# that even in the single database server scenario, installing a
-# Web-proxy will be beneficial, for the caching it provides.
-#
-# If you have a "fetch API" Web-proxy installed (recommended), set the
-# FETCH_API_URL variable to the base URL of your proxy. If you do not
-# have a proxy, set FETCH_API_URL to the "fetch API" address of the
-# container itself (see PORT configuration variable).
-FETCH_API_URL=http://localhost:8001
 
 # The processing of each transfer consists of several stages. The
 # following configuration variables control the number of worker

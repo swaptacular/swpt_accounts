@@ -25,6 +25,9 @@ def subscribe():  # pragma: no cover
     """Declare a RabbitMQ queue, and subscribe it to receive incoming
     messages.
 
+    The value of the PROTOCOL_BROKER_QUEUE_ROUTING_KEY configuration
+    variable will be used as a binding key for the created queue.
+
     This is mainly useful during development and testing.
     """
 
@@ -120,8 +123,8 @@ def process_balance_changes(threads, wait, quit_early):
     """Process pending balance changes.
 
     If --threads is not specified, the value of the configuration
-    variable APP_PROCESS_BALANCE_CHANGES_THREADS is taken. If it is
-    not set, the default number of threads is 1.
+    variable PROCESS_BALANCE_CHANGES_THREADS is taken. If it is not
+    set, the default number of threads is 1.
 
     If --wait is not specified, the value of the configuration
     variable APP_PROCESS_BALANCE_CHANGES_WAIT is taken. If it is not
@@ -138,7 +141,7 @@ def process_balance_changes(threads, wait, quit_early):
     #       CPU-bound, which is unlikely, especially if we
     #       re-implement the logic in stored procedures.
 
-    threads = threads or int(current_app.config['APP_PROCESS_BALANCE_CHANGES_THREADS'])
+    threads = threads or int(current_app.config['PROCESS_BALANCE_CHANGES_THREADS'])
     wait = wait if wait is not None else current_app.config['APP_PROCESS_BALANCE_CHANGES_WAIT']
     max_count = current_app.config['APP_PROCESS_BALANCE_CHANGES_MAX_COUNT']
 
@@ -166,8 +169,8 @@ def process_transfer_requests(threads, wait, quit_early):
     """Process pending transfer requests.
 
     If --threads is not specified, the value of the configuration
-    variable APP_PROCESS_TRANSFER_REQUESTS_THREADS is taken. If it is
-    not set, the default number of threads is 1.
+    variable PROCESS_TRANSFER_REQUESTS_THREADS is taken. If it is not
+    set, the default number of threads is 1.
 
     If --wait is not specified, the value of the configuration
     variable APP_PROCESS_TRANSFER_REQUESTS_WAIT is taken. If it is not
@@ -175,7 +178,7 @@ def process_transfer_requests(threads, wait, quit_early):
 
     """
 
-    threads = threads or int(current_app.config['APP_PROCESS_TRANSFER_REQUESTS_THREADS'])
+    threads = threads or int(current_app.config['PROCESS_TRANSFER_REQUESTS_THREADS'])
     wait = wait if wait is not None else current_app.config['APP_PROCESS_TRANSFER_REQUESTS_WAIT']
     commit_period = current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
     max_count = current_app.config['APP_PROCESS_TRANSFER_REQUESTS_MAX_COUNT']
@@ -208,8 +211,8 @@ def process_finalization_requests(threads, wait, quit_early):
     """Process pending finalization requests.
 
     If --threads is not specified, the value of the configuration
-    variable APP_PROCESS_FINALIZATION_REQUESTS_THREADS is taken. If it
-    is not set, the default number of threads is 1.
+    variable PROCESS_FINALIZATION_REQUESTS_THREADS is taken. If it is
+    not set, the default number of threads is 1.
 
     If --wait is not specified, the value of the configuration
     variable APP_PROCESS_FINALIZATION_REQUESTS_WAIT is taken. If it is
@@ -217,7 +220,7 @@ def process_finalization_requests(threads, wait, quit_early):
 
     """
 
-    threads = threads if threads is not None else current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_THREADS']
+    threads = threads if threads is not None else current_app.config['PROCESS_FINALIZATION_REQUESTS_THREADS']
     wait = wait if wait is not None else current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_WAIT']
     max_count = current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_MAX_COUNT']
 

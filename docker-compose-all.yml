@@ -32,7 +32,7 @@ services:
   # responsible for a different range of creditors/debtors, and each
   # instance making HTTP requests to other `account-server` instances
   # (including itself). A properly configured HTTP cache ensures that
-  # the system scales well. (See the `APP_FETCH_API_URL` configuration
+  # the system scales well. (See the `FETCH_API_URL` configuration
   # variable.)
   accounts-cache:
     image: nginx:1.19.4
@@ -53,14 +53,13 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      - 'PORT=8080'
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@pg:5432/${POSTGRES_DB}'
-      - 'APP_FETCH_API_URL=http://accounts-cache:80'
-      - 'WEBSERVER_WORKERS=1'
+      - 'WEBSERVER_PROCESSES=1'
       - 'WEBSERVER_THREADS=3'
+      - 'WEBSERVER_PORT=8080'
+      - 'FETCH_API_URL=http://accounts-cache:80'
+      - 'POSTGRES_URL=postgresql://swpt_accounts:swpt_accounts@pg:5432/${POSTGRES_DB}'
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'PROTOCOL_BROKER_QUEUE=swpt_accounts'
-      - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
       - 'PROTOCOL_BROKER_PROCESSES=1'
       - 'PROTOCOL_BROKER_THREADS=3'
       - 'PROTOCOL_BROKER_PREFETCH_COUNT=10'
@@ -79,21 +78,22 @@ services:
   # etc.). It has to be run only once, but running it multiple times
   # should not do any harm. Set `SETUP_RABBITMQ_BINDINGS` to anything
   # other than "yes", if you do not want RabbitMQ exchanges and
-  # bindings to be (re)configured.
+  # bindings to be (re)configured. (In this case you do not need to
+  # set the `PROTOCOL_BROKER_QUEUE_ROUTING_KEY` variable as well.)
   accounts-server-config:
     build:
       context: .
       dockerfile: Dockerfile
     environment:
-      - 'SQLALCHEMY_DATABASE_URI=postgresql://swpt_accounts:swpt_accounts@pg:5432/${POSTGRES_DB}'
+      - 'POSTGRES_URL=postgresql://swpt_accounts:swpt_accounts@pg:5432/${POSTGRES_DB}'
       - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'PROTOCOL_BROKER_QUEUE=swpt_accounts'
       - 'PROTOCOL_BROKER_QUEUE_ROUTING_KEY=#'
       - 'CHORES_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
       - 'CHORES_BROKER_QUEUE=swpt_accounts_chores'
-      - 'SETUP_RABBITMQ_BINDINGS=yes'
       - 'APP_LOG_LEVEL=warning'
       - 'APP_LOG_FORMAT=json'
+      - 'SETUP_RABBITMQ_BINDINGS=yes'
       - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL CHORES_BROKER_URL'
     command: configure
 
