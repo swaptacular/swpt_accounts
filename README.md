@@ -66,15 +66,15 @@ the following servers:
   instance that is used for brokering Swaptacular Messaging Protocol
   messages, but it can also be a different one. For example, when
   different accounts are located on different database servers, it
-  could be a good idea to store local database "chores" as close as
-  possible to the database.
+  could be a good idea to store local database "chores" as close to
+  the database as possible .
 
 
 Configuration
 -------------
 
-The behavior of the service can be tuned with environment variables.
-Here are the most important settings with some example values:
+The behavior of the running container can be tuned with environment
+variables. Here are the most important settings with example values:
 
 ```shell
 # The specified number of processes ("$WEBSERVER_PROCESSES") will be
