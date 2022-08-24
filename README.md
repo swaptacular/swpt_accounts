@@ -35,14 +35,14 @@ WEBSERVER_PORT=8001
 # accounts are located on different database servers (sharding),
 # things get more complex. In such cases, one or more Web-proxies
 # should be installed, which will forward each "fetch API" request to
-# the server/container responsible fot the account. Note, however,
+# the server/container responsible for the account. Note, however,
 # that even in the single database server scenario, installing a
 # Web-proxy will be beneficial, for the caching it provides.
 #
-# If you have a "fetch API" Web-proxy installed (recommended), set the
-# FETCH_API_URL variable to the base URL of your proxy. If you do not
-# have a proxy, set FETCH_API_URL to the "fetch API" address of the
-# container itself (see WEBSERVER_PORT configuration variable).
+# If you have a "fetch API" Web-proxy installed, set the FETCH_API_URL
+# variable to the base URL of your proxy. If you do not have a proxy,
+# set FETCH_API_URL to the "fetch API" address of the container itself
+# (see the WEBSERVER_PORT configuration variable).
 FETCH_API_URL=http://localhost:8001
 
 # Connection string for a PostgreSQL database server to connect to.
@@ -66,7 +66,7 @@ PROTOCOL_BROKER_THREADS=3
 PROTOCOL_BROKER_PREFETCH_COUNT=10
 
 # Parameters for the communication with the RabbitMQ server which is
-# responsible for queuing *local* database tasks (chores). This may or
+# responsible for queuing local database tasks (chores). This may or
 # may not be the same RabbitMQ server that is used for brokering
 # Swaptacular Messaging Protocol messages. The container will connect
 # to "$CHORES_BROKER_URL", will post and consume messages to/from the
@@ -136,6 +136,9 @@ commands*:
   Starts all the necessary services in the container. This is the
   command that will be executed if no arguments are passed to the
   entrypoint.
+
+  **For each database instance, you must start exactly one container,
+  with this command.**
 
 * `configure`
 
