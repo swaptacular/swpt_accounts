@@ -22,12 +22,12 @@ the following services:
   hexadecimal. For example, for creditor ID equal to 2, the routing
   key will be "00.00.00.00.00.00.00.02".
 
-  `to_debtors` exchange: for messages that must be send to the debtors
+  **`to_debtors` exchange**: for messages that must be send to the debtors
   agents. The routing key will represent the debtor ID as
   hexadecimal. For example, for debtor ID equal to -2, the routing key
   will be "ff.ff.ff.ff.ff.ff.ff.fe".
 
-  `to_coordinators` exchange: for messages that must be send to the
+  **`to_coordinators` exchange**: for messages that must be send to the
   transfer coordinators. Different types of transfer coordinators are
   responsible for performing different types of transfers. The most
   important types are: "direct" (the message must be sent to the
@@ -39,7 +39,7 @@ the following services:
   creditor ID; and for "issuing" transfers, the coordinator ID is
   guaranteed to be the same as the debtor ID.
 
-  `accounts_in` exchange: for messages that must be send to this
+  **`accounts_in` exchange**: for messages that must be send to this
   accounting authority itself (self-posting). The routing key that the
   container sets, will represent the highest 24 bits of the MD5 digest
   of the (debtor ID, creditor ID) pair. For example, if debtor ID is
