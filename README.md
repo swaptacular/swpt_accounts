@@ -11,34 +11,36 @@ from the project's
 In order to work, containers started from the generated docker image
 should have access to the following services:
 
-1. A running PostgreSQL server instance, which all the data.
+1. A running PostgreSQL server instance, which holds all the data.
 
 2. A running RabbitMQ server instance, which acts as a broker for
-   Swaptacular Messaging Protocol messages. There must be at least 4
-   RabbitMQ exchanges configured on that server instance:
+   [Swaptacular Messaging
+   Protocol](https://epandurski.github.io/swaptacular/protocol.pdf)
+   messages. There must be at least 4 RabbitMQ exchanges configured on
+   the server instance:
 
    * `to_creditors` exchange: for messages that must be send to the
      creditors agents. The routing key that the container sets, will
      represent the creditor ID as hexadecimal. For example, for
      creditor ID equal to 2, the routing key will be
-     `00.00.00.00.00.00.00.02`.
+     "00.00.00.00.00.00.00.02".
 
    * `to_debtors` exchange: for messages that must be send to the
      debtors agents. The routing key that the container sets, will
      represent the debtor ID as hexadecimal. For example, for debtor
      ID equal to -2, the routing key will be
-     `ff.ff.ff.ff.ff.ff.ff.fe`.
+     "ff.ff.ff.ff.ff.ff.ff.fe".
 
    * `to_coordinators` exchange: for messages that must be send to the
      transfer coordinators. Different types of transfer coordinators
      are responsible for performing different types of transfers. The
-     most important types are: "direct" (the messages must be sent to
-     the creditors agents), and "issuing" (the messages must be sent
-     to the debtors agents). All the messages sent to this exchange,
-     will have a correctly set `coordinator_type` header. The routing
-     key will represent the coordinator ID as hexadecimal. Note that
-     for "direct" transfers, the coordinator ID is guaranteed to be
-     the same as the creditor ID; and for "issuing" transfers, the
+     most important types are: "direct" (the message must be sent to
+     the creditors agent), and "issuing" (the message must be sent to
+     the debtors agent). All the messages sent to this exchange, will
+     have a correctly set "coordinator_type" header. The routing key
+     will represent the coordinator ID as hexadecimal. Note that for
+     "direct" transfers, the coordinator ID is guaranteed to be the
+     same as the creditor ID; and for "issuing" transfers, the
      coordinator ID is guaranteed to be the same as the debtor ID.
 
    * `accounts_in` exchange: for messages that must be send to this
@@ -46,7 +48,7 @@ should have access to the following services:
      the container sets, will represent the highest 24 bits of the MD5
      digest of the (debtor ID, creditor ID) pair. For example, for
      debtor ID equal to 123, and creditor ID equal to 456, the routing
-     key will be `0.0.0.0.1.0.0.0.0.1.0.0.0.1.0.0.0.0.1.1.0.1.0.0`.
+     key will be "0.0.0.0.1.0.0.0.0.1.0.0.0.1.0.0.0.0.1.1.0.1.0.0".
      This allows different accounts to be located on different
      database servers (sharding).
 
