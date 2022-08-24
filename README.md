@@ -204,8 +204,10 @@ commands*:
 * `configure`
 
   Initializes a new empty database, and creates the "chores" RabbitMQ
-  queue. This needs to be run only once, but running it multiple times
-  should not do any harm.
+  queue.
+
+  **IMPORTANT NOTE: This needs to be run only once (at the beginning),
+  but running it multiple times should not do any harm.**
 
 * `webserver`
 
