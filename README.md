@@ -3,11 +3,10 @@ Swaptacular "Accounting Authority" reference implementation
 
 This project implements a [Swaptacular] "Accounting Authority"
 node. The ultimate deliverable is a [docker image], generated from the
-project's [Dockerfile].
+project's [Dockerfile](../master/Dockerfile).
 
 **Note:** This implementation uses [JSON Serialization for the
-Swaptacular Messaging
-Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol-json.rst).
+Swaptacular Messaging Protocol](./master/protocol-json.rst).
 
 
 Dependencies
@@ -16,23 +15,17 @@ Dependencies
 Containers started from the generated docker image must have access to
 the following servers:
 
-1. [PostgreSQL server instance](https://www.postgresql.org/), which
-   stores accounts' data.
+1. [PostgreSQL server instance], which stores accounts' data.
 
-2. [RabbitMQ server instance](https://www.rabbitmq.com/), which acts
-   as broker for [Swaptacular Messaging
-   Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
-   (SMP) messages.
+2. [RabbitMQ server instance], which acts as broker for [Swaptacular
+   Messaging Protocol](../master/protocol.rst) (SMP) messages.
 
-   A [RabbitMQ
-   queue](https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html)
-   must be configured on the broker instance, so that all incoming SMP
-   messages for the accounts stored on the PostgreSQL server instance,
-   are routed to this queue.
+   A [RabbitMQ queue] must be configured on the broker instance, so
+   that all incoming SMP messages for the accounts stored on the
+   PostgreSQL server instance, are routed to this queue.
 
-   Also, the following [RabbitMQ
-   exchanges](https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html)
-   must be configured on the broker instance:
+   Also, the following [RabbitMQ exchanges] must be configured on the
+   broker instance:
 
    - **`to_creditors`**: For messages that must be send to the
      creditors agents. The routing key will represent the creditor ID
@@ -198,10 +191,8 @@ file.
 Available commands
 ------------------
 
-The
-[entrypoint](https://github.com/epandurski/swpt_accounts/blob/master/docker/entrypoint.sh)
-of the docker container allows you to execute the following
-*documented commands*:
+The [entrypoint](../master/docker/entrypoint.sh) of the docker
+container allows you to execute the following *documented commands*:
 
 * `all`
 
@@ -239,17 +230,15 @@ of the docker container allows you to execute the following
   processors as necessary, to handle the incoming load.
 
 
-This [docker-compose
-example](https://github.com/epandurski/swpt_accounts/blob/master/docker-compose-all.yml)
-shows how to use the generated docker image, along with the PostgerSQL
+This [docker-compose example](../master/docker-compose-all.yml) shows
+how to use the generated docker image, along with the PostgerSQL
 server, and the RabbitMQ server.
 
 
 How to run it
 -------------
 
-1.  Install [Docker Engine](https://docs.docker.com/engine/) and
-    [Docker Compose](https://docs.docker.com/compose/).
+1.  Install [Docker Engine] and [Docker Compose].
 
 2.  To create an *.env* file with reasonable defalut values, run this
     command:
@@ -270,10 +259,9 @@ How to run it
 How to setup a development environment
 --------------------------------------
 
-1.  Install [Poetry](https://poetry.eustace.io/docs/).
+1.  Install [Poetry].
 
-2.  Create a new [Python](https://docs.python.org/) virtual
-    environment and activate it.
+2.  Create a new [Python] virtual environment and activate it.
 
 3.  To install dependencies, run this command:
 
@@ -296,4 +284,11 @@ server, a RabbitMQ server, and a HTTP-proxy server, use this command:
 
 [Swaptacular]: https://swaptacular.github.io/overview
 [docker image]: https://www.geeksforgeeks.org/what-is-docker-images/
-[Dockerfile]: ../master/Dockerfile
+[PostgreSQL server instance]: https://www.postgresql.org/
+[RabbitMQ server instance]: https://www.rabbitmq.com/
+[RabbitMQ queue]: https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html
+[RabbitMQ exchanges]: https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html
+[Docker Engine]: https://docs.docker.com/engine/
+[Docker Compose]: https://docs.docker.com/compose/
+[Poetry]: https://poetry.eustace.io/docs/
+[Python]: https://docs.python.org/
