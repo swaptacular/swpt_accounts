@@ -19,11 +19,11 @@ Dependencies
 Containers started from the generated docker image must have access to
 the following servers:
 
-1. [PostgreSQL](https://www.postgresql.org/) server instance, which
+1. [PostgreSQL server instance](https://www.postgresql.org/), which
    stores accounts' data.
 
-2. [RabbitMQ](https://www.rabbitmq.com/) server instance, which acts
-   as a broker for [Swaptacular Messaging
+2. [RabbitMQ server instance](https://www.rabbitmq.com/), which acts
+   as broker for [Swaptacular Messaging
    Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
    (SMP) messages.
 
@@ -69,27 +69,27 @@ the following servers:
      (sharding).
 
    **Note:** If you execute the "configure" command (see below), with
-   the environment variable `SETUP_RABBITMQ_BINDINGS` set to "yes", an
+   the environment variable `SETUP_RABBITMQ_BINDINGS` set to `yes`, an
    attempt will be made to automatically setup all the required
    RabbitMQ queues, exchanges, and the bindings between them. However,
-   this works only for the most basic single database setup.
+   this works only for the most basic setup.
 
-3. *RabbitMQ* server instance which, is responsible for queuing local
+3. *RabbitMQ server instance* which, is responsible for queuing local
    database tasks (chores).
 
    This can be the same RabbitMQ server instance that is used for
-   brokering SMP messages, but it can also be a different one. For
+   brokering SMP messages, but can also be a different one. For
    example, when different accounts are located on different database
-   servers, it could be a good idea to store local database "chores"
-   as close to the database as possible .
+   servers, it might be a good idea to store the local database
+   "chores" queue, as close to the database as possible.
 
 
 Configuration
 -------------
 
 The behavior of the running container can be tuned with environment
-variables. Here are the most important settings with random example
-values:
+variables. Here are the most important settings with some random
+example values:
 
 ```shell
 # The specified number of processes ("$WEBSERVER_PROCESSES") will be
@@ -217,8 +217,8 @@ of the docker container allows you to execute the following
 
 * `configure`
 
-  Initializes a new empty database, and creates the "chores" RabbitMQ
-  queue.
+  Initializes a new empty PostgreSQL database, and creates the
+  "chores" RabbitMQ queue.
 
   **IMPORTANT NOTE: This command has to be run only once (at the
   beginning), but running it multiple times should not do any harm.**
