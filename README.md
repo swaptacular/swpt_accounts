@@ -235,8 +235,8 @@ how to use the generated docker image, along with the PostgerSQL
 server, and the RabbitMQ server.
 
 
-How to run it
--------------
+How to run the tests
+--------------------
 
 1.  Install [Docker Engine] and [Docker Compose].
 
@@ -245,7 +245,7 @@ How to run it
 
         $ cp development.env .env
 
-3.  To run the unit tests, use the following commands:
+3.  To run the tests, use the following commands:
 
         $ docker-compose build
         $ docker-compose run tests-dummy test
