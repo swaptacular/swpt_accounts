@@ -1,9 +1,8 @@
 Swaptacular "Accounting Authority" reference implementation
 ===========================================================
 
-This project implements a
-[Swaptacular](https://swaptacular.github.io/overview) "Accounting
-Authority" node. The ultimate deliverable is a [docker
+This project implements a [Swaptacular] "Accounting Authority"
+node. The ultimate deliverable is a [docker
 image](https://www.geeksforgeeks.org/what-is-docker-images/),
 generated from the project's
 [Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
@@ -295,3 +294,6 @@ To start the "Accounting Authority" server, along with a PostgerSQL
 server, a RabbitMQ server, and a HTTP-proxy server, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
+
+
+[Swaptacular]: https://swaptacular.github.io/overview
