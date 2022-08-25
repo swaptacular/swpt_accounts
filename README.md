@@ -74,7 +74,7 @@ the following servers:
    RabbitMQ queues, exchanges, and the bindings between them. However,
    this works only for the most basic setup.
 
-3. *RabbitMQ server instance* which, is responsible for queuing local
+3. *RabbitMQ server instance*, which is responsible for queuing local
    database tasks (chores).
 
    This can be the same RabbitMQ server instance that is used for
@@ -237,7 +237,7 @@ of the docker container allows you to execute the following
 
 * `consume_chore_messages`
 
-  Starts only the processes that perform local database tasks. This
+  Starts only the processes that perform local database chores. This
   command allows you to start as many additional dedicated chores
   processors as necessary, to handle the incoming load.
 
@@ -291,6 +291,7 @@ How to setup a development environment
 How to run all services (production-like)
 -----------------------------------------
 
-To start the containers, use this command:
+To start the container, along with a PostgerSQL server, a RabbitMQ
+server, and a HTTP-proxy server, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
