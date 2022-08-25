@@ -26,9 +26,11 @@ def subscribe():  # pragma: no cover
     messages.
 
     The value of the PROTOCOL_BROKER_QUEUE_ROUTING_KEY configuration
-    variable will be used as a binding key for the created queue.
+    variable will be used as a binding key for the created queue. The
+    default binding key is "#".
 
     This is mainly useful during development and testing.
+
     """
 
     from .extensions import ACCOUNTS_IN_EXCHANGE, \
