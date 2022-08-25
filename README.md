@@ -2,10 +2,8 @@ Swaptacular "Accounting Authority" reference implementation
 ===========================================================
 
 This project implements a [Swaptacular] "Accounting Authority"
-node. The ultimate deliverable is a [docker
-image](https://www.geeksforgeeks.org/what-is-docker-images/),
-generated from the project's
-[Dockerfile](https://github.com/epandurski/swpt_accounts/blob/master/Dockerfile).
+node. The ultimate deliverable is a [docker image], generated from the
+project's [Dockerfile].
 
 **Note:** This implementation uses [JSON Serialization for the
 Swaptacular Messaging
@@ -297,3 +295,5 @@ server, a RabbitMQ server, and a HTTP-proxy server, use this command:
 
 
 [Swaptacular]: https://swaptacular.github.io/overview
+[docker image]: https://www.geeksforgeeks.org/what-is-docker-images/
+[Dockerfile]: ../blob/master/Dockerfile
