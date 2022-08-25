@@ -187,8 +187,7 @@ APP_LOG_FORMAT=text
 ```
 
 For more configuration options, check the
-[development.env](https://github.com/epandurski/swpt_accounts/blob/master/development.env)
-file.
+[development.env](../master/development.env) file.
 
 
 Available commands
