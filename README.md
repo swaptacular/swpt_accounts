@@ -265,8 +265,8 @@ How to run the tests
     Note that because the RabbitMQ "guest" user [can only connect from
     localhost], you should either explicitly allow the "guest" user to
     connect from anywhere, or create a new RabbitMQ user, and change
-    the RabbitMQ connection URLs (`PROTOCOL_BROKER_URL` and
-    `CHORES_BROKER_URL`) accordingly.
+    the RabbitMQ connection URLs accordingly (`PROTOCOL_BROKER_URL` and
+    `CHORES_BROKER_URL` in the *.env* file).
 
 
 How to setup a development environment
