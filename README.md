@@ -291,7 +291,7 @@ How to setup a development environment
 How to run all services (production-like)
 -----------------------------------------
 
-To start the container, along with a PostgerSQL server, a RabbitMQ
-server, and a HTTP-proxy server, use this command:
+To start the "Accounting Authority" server, along with a PostgerSQL
+server, a RabbitMQ server, and a HTTP-proxy server, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
