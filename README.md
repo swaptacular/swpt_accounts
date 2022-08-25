@@ -19,68 +19,69 @@ Dependencies
 Containers started from the generated docker image must have access to
 the following servers:
 
-* A [PostgreSQL](https://www.postgresql.org/) server instance, which
-  stores accounts' data.
+1. A [PostgreSQL](https://www.postgresql.org/) server instance, which
+   stores accounts' data.
 
-* A [RabbitMQ](https://www.rabbitmq.com/) server instance, which acts
-  as a broker for [Swaptacular Messaging
-  Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
-  (SMP) messages.
+2. A [RabbitMQ](https://www.rabbitmq.com/) server instance, which acts
+   as a broker for [Swaptacular Messaging
+   Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
+   (SMP) messages.
 
-  A [RabbitMQ
-  queue](https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html)
-  must be configured on the broker instance, so that incoming SMP
-  messages for the accounts stored on the PostgreSQL server instance,
-  are all routed to this queue.
+   A [RabbitMQ
+   queue](https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html)
+   must be configured on the broker instance, so that incoming SMP
+   messages for the accounts stored on the PostgreSQL server instance,
+   are all routed to this queue.
 
-  Also, the following [RabbitMQ
-  exchanges](https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html)
-  must be configured on the server instance:
+   Also, the following [RabbitMQ
+   exchanges](https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html)
+   must be configured on the broker instance:
 
-  - **`to_creditors`**: For messages that must be send to the
-    creditors agents. The routing key will represent the creditor ID
-    as hexadecimal. For example, for creditor ID equal to 2, the
-    routing key will be "00.00.00.00.00.00.00.02".
+   - **`to_creditors`**: For messages that must be send to the
+     creditors agents. The routing key will represent the creditor ID
+     as hexadecimal. For example, for creditor ID equal to 2, the
+     routing key will be "00.00.00.00.00.00.00.02".
 
-  - **`to_debtors`**: For messages that must be send to the debtors
-    agents. The routing key will represent the debtor ID as
-    hexadecimal. For example, for debtor ID equal to -2, the routing
-    key will be "ff.ff.ff.ff.ff.ff.ff.fe".
+   - **`to_debtors`**: For messages that must be send to the debtors
+     agents. The routing key will represent the debtor ID as
+     hexadecimal. For example, for debtor ID equal to -2, the routing
+     key will be "ff.ff.ff.ff.ff.ff.ff.fe".
 
-  - **`to_coordinators`**: For messages that must be send to the
-    transfer coordinators. Different types of transfer coordinators
-    are responsible for performing different types of transfers. The
-    most important types are: "direct" (the message must be sent to
-    the creditors agent), and "issuing" (the message must be sent to
-    the debtors agent). All the messages sent to this exchange, will
-    have a correctly set "coordinator_type" header. The routing key
-    will represent the coordinator ID as hexadecimal. Note that for
-    "direct" transfers, the coordinator ID is guaranteed to be the
-    same as the creditor ID; and for "issuing" transfers, the
-    coordinator ID is guaranteed to be the same as the debtor ID.
+   - **`to_coordinators`**: For messages that must be send to the
+     transfer coordinators. Different types of transfer coordinators
+     are responsible for performing different types of transfers. The
+     most important types are: "direct" (the message must be sent to
+     the creditors agent), and "issuing" (the message must be sent to
+     the debtors agent). All the messages sent to this exchange, will
+     have a correctly set "coordinator_type" header. The routing key
+     will represent the coordinator ID as hexadecimal. Note that for
+     "direct" transfers, the coordinator ID is guaranteed to be the
+     same as the creditor ID; and for "issuing" transfers, the
+     coordinator ID is guaranteed to be the same as the debtor ID.
 
-  - **`accounts_in`**: For messages that must be send to this
-    accounting authority itself (self-posting). The routing key that
-    the container sets, will represent the highest 24 bits of the MD5
-    digest of the (debtor ID, creditor ID) pair. For example, if
-    debtor ID is equal to 123, and creditor ID is equal to 456, the
-    routing key will be
-    "0.0.0.0.1.0.0.0.0.1.0.0.0.1.0.0.0.0.1.1.0.1.0.0". This allows
-    different accounts to be located on different database servers
-    (sharding).
+   - **`accounts_in`**: For messages that must be send to this
+     accounting authority itself (self-posting). The routing key will
+     represent the highest 24 bits of the MD5 digest of the (debtor
+     ID, creditor ID) pair. For example, if debtor ID is equal to 123,
+     and creditor ID is equal to 456, the routing key will be
+     "0.0.0.0.1.0.0.0.0.1.0.0.0.1.0.0.0.0.1.1.0.1.0.0". This allows
+     different accounts to be located on different database servers
+     (sharding).
 
-  **Note:** If you execute the "configure" command (see below), with
-  the environment variable `SETUP_RABBITMQ_BINDINGS` set to "yes", an
-  attempt will be made to automatically setup all the required
-  RabbitMQ queues, exchanges, and bindings between them. However, this
-  will will work only for the most basic single database setup.
+   **Note:** If you execute the "configure" command (see below), with
+   the environment variable `SETUP_RABBITMQ_BINDINGS` set to "yes", an
+   attempt will be made to automatically setup all the required
+   RabbitMQ queues, exchanges, and the bindings between them. However,
+   this works only for the most basic, single database setup.
 
-* A RabbitMQ server instance which is responsible for queuing local
-  database tasks (chores). This can be the same RabbitMQ server
-  instance that is used for brokering SMP messages, but it can also be
-  a different one. For example, when different accounts are located on
-  different database servers, it could be a good idea to store local
-  database "chores" as close to the database as possible .
+3. A RabbitMQ server instance which is responsible for queuing local
+   database tasks (chores).
+
+   This can be the same RabbitMQ server instance that is used for
+   brokering SMP messages, but it can also be a different one. For
+   example, when different accounts are located on different database
+   servers, it could be a good idea to store local database "chores"
+   as close to the database as possible .
 
 
 Configuration
