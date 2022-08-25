@@ -296,4 +296,4 @@ server, a RabbitMQ server, and a HTTP-proxy server, use this command:
 
 [Swaptacular]: https://swaptacular.github.io/overview
 [docker image]: https://www.geeksforgeeks.org/what-is-docker-images/
-[Dockerfile]: ../blob/master/Dockerfile
+[Dockerfile]: ../master/Dockerfile
