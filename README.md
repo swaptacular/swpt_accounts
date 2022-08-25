@@ -6,7 +6,7 @@ node. The ultimate deliverable is a [docker image], generated from the
 project's [Dockerfile](../master/Dockerfile).
 
 **Note:** This implementation uses [JSON Serialization for the
-Swaptacular Messaging Protocol](./master/protocol-json.rst).
+Swaptacular Messaging Protocol](../master/protocol-json.rst).
 
 
 Dependencies
@@ -15,9 +15,9 @@ Dependencies
 Containers started from the generated docker image must have access to
 the following servers:
 
-1. [PostgreSQL server instance], which stores accounts' data.
+1. [PostgreSQL] server instance, which stores accounts' data.
 
-2. [RabbitMQ server instance], which acts as broker for [Swaptacular
+2. [RabbitMQ] server instance, which acts as broker for [Swaptacular
    Messaging Protocol](../master/protocol.rst) (SMP) messages.
 
    A [RabbitMQ queue] must be configured on the broker instance, so
@@ -284,8 +284,8 @@ server, a RabbitMQ server, and a HTTP-proxy server, use this command:
 
 [Swaptacular]: https://swaptacular.github.io/overview
 [docker image]: https://www.geeksforgeeks.org/what-is-docker-images/
-[PostgreSQL server instance]: https://www.postgresql.org/
-[RabbitMQ server instance]: https://www.rabbitmq.com/
+[PostgreSQL]: https://www.postgresql.org/
+[RabbitMQ]: https://www.rabbitmq.com/
 [RabbitMQ queue]: https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html
 [RabbitMQ exchanges]: https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html
 [Docker Engine]: https://docs.docker.com/engine/
