@@ -20,12 +20,20 @@ Containers started from the generated docker image must have access to
 the following servers:
 
 * A [PostgreSQL](https://www.postgresql.org/) server instance, which
-  stores all the data.
+  stores accounts' data.
 
 * A [RabbitMQ](https://www.rabbitmq.com/) server instance, which acts
   as a broker for [Swaptacular Messaging
   Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
-  messages. The following [RabbitMQ
+  (SMP) messages.
+
+  A [RabbitMQ
+  queue](https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html)
+  must be configured on the broker instance, so that incoming SMP
+  messages for the accounts stored on the PostgreSQL server instance,
+  are all routed to this queue.
+
+  Also, the following [RabbitMQ
   exchanges](https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html)
   must be configured on the server instance:
 
@@ -61,13 +69,18 @@ the following servers:
     different accounts to be located on different database servers
     (sharding).
 
+  **Note:** If you execute the "configure" command (see below), with
+  the environment variable `SETUP_RABBITMQ_BINDINGS` set to "yes", an
+  attempt will be made to automatically setup all the required
+  RabbitMQ queues, exchanges, and bindings between them. However, this
+  will will work only for the most basic single database setup.
+
 * A RabbitMQ server instance which is responsible for queuing local
   database tasks (chores). This can be the same RabbitMQ server
-  instance that is used for brokering Swaptacular Messaging Protocol
-  messages, but it can also be a different one. For example, when
-  different accounts are located on different database servers, it
-  could be a good idea to store local database "chores" as close to
-  the database as possible .
+  instance that is used for brokering SMP messages, but it can also be
+  a different one. For example, when different accounts are located on
+  different database servers, it could be a good idea to store local
+  database "chores" as close to the database as possible .
 
 
 Configuration
@@ -110,16 +123,15 @@ FETCH_API_URL=http://localhost:8001
 POSTGRES_URL=postgresql://swpt_accounts:swpt_accounts@localhost:5433/test
 
 # Parameters for the communication with the RabbitMQ server which is
-# responsible for brokering Swaptacular Messaging Protocol
-# messages. The container will connect to "$PROTOCOL_BROKER_URL", will
-# consume messages from the queue named "$PROTOCOL_BROKER_QUEUE",
-# prefetching at most "$PROTOCOL_BROKER_PREFETCH_COUNT" messages at
-# once (default 1). The specified number of processes
-# ("$PROTOCOL_BROKER_PROCESSES") will be spawned to consume and
-# process messages (default 1), each process will run
-# "$PROTOCOL_BROKER_THREADS" threads in parallel (default 1). Note
-# that PROTOCOL_BROKER_PROCESSES can be set to 0, in which case, the
-# container will not consume any messages from the queue.
+# responsible for brokering SMP messages. The container will connect
+# to "$PROTOCOL_BROKER_URL", will consume messages from the queue
+# named "$PROTOCOL_BROKER_QUEUE", prefetching at most
+# "$PROTOCOL_BROKER_PREFETCH_COUNT" messages at once (default 1). The
+# specified number of processes ("$PROTOCOL_BROKER_PROCESSES") will be
+# spawned to consume and process messages (default 1), each process
+# will run "$PROTOCOL_BROKER_THREADS" threads in parallel (default
+# 1). Note that PROTOCOL_BROKER_PROCESSES can be set to 0, in which
+# case, the container will not consume any messages from the queue.
 PROTOCOL_BROKER_URL=amqp://guest:guest@localhost:5672
 PROTOCOL_BROKER_QUEUE=swpt_accounts
 PROTOCOL_BROKER_PROCESSES=1
@@ -128,10 +140,10 @@ PROTOCOL_BROKER_PREFETCH_COUNT=10
 
 # Parameters for the communication with the RabbitMQ server which is
 # responsible for queuing local database tasks (chores). This may or
-# may not be the same RabbitMQ server that is used for brokering
-# Swaptacular Messaging Protocol messages. The container will connect
-# to "$CHORES_BROKER_URL", will post and consume messages to/from the
-# queue named "$CHORES_BROKER_QUEUE", prefetching at most
+# may not be the same RabbitMQ server that is used for brokering SMP
+# messages. The container will connect to "$CHORES_BROKER_URL", will
+# post and consume messages to/from the queue named
+# "$CHORES_BROKER_QUEUE", prefetching at most
 # "$CHORES_BROKER_PREFETCH_COUNT" messages at once (default 1). The
 # specified number of processes ("$CHORES_BROKER_PROCESSES") will be
 # spawned to consume and process chores (default 1), each process will
@@ -217,10 +229,9 @@ commands*:
 
 * `consume_messages`
 
-  Starts only the processes that consume Swaptacular Messaging
-  Protocol messages. This command allows you to start as many
-  additional dedicated SMP message processors as necessary, to handle
-  the incoming load.
+  Starts only the processes that consume SMP messages. This command
+  allows you to start as many additional dedicated SMP message
+  processors as necessary, to handle the incoming load.
 
 * `consume_chore_messages`
 
@@ -251,7 +262,7 @@ How to run it
         $ docker-compose run tests-dummy test
 
 4.  To run the minimal set of services needed for development (not
-    includuing RabbitMQ), use this command:
+    including RabbitMQ), use this command:
 
         $ docker-compose up --build
 
