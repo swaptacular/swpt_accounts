@@ -19,19 +19,19 @@ Dependencies
 Containers started from the generated docker image must have access to
 the following servers:
 
-1. A [PostgreSQL](https://www.postgresql.org/) server instance, which
+1. [PostgreSQL](https://www.postgresql.org/) server instance, which
    stores accounts' data.
 
-2. A [RabbitMQ](https://www.rabbitmq.com/) server instance, which acts
+2. [RabbitMQ](https://www.rabbitmq.com/) server instance, which acts
    as a broker for [Swaptacular Messaging
    Protocol](https://github.com/epandurski/swpt_accounts/blob/master/protocol.rst)
    (SMP) messages.
 
    A [RabbitMQ
    queue](https://www.cloudamqp.com/blog/part1-rabbitmq-for-beginners-what-is-rabbitmq.html)
-   must be configured on the broker instance, so that incoming SMP
+   must be configured on the broker instance, so that all incoming SMP
    messages for the accounts stored on the PostgreSQL server instance,
-   are all routed to this queue.
+   are routed to this queue.
 
    Also, the following [RabbitMQ
    exchanges](https://www.cloudamqp.com/blog/part4-rabbitmq-for-beginners-exchanges-routing-keys-bindings.html)
@@ -72,9 +72,9 @@ the following servers:
    the environment variable `SETUP_RABBITMQ_BINDINGS` set to "yes", an
    attempt will be made to automatically setup all the required
    RabbitMQ queues, exchanges, and the bindings between them. However,
-   this works only for the most basic, single database setup.
+   this works only for the most basic single database setup.
 
-3. A RabbitMQ server instance which is responsible for queuing local
+3. *RabbitMQ* server instance which, is responsible for queuing local
    database tasks (chores).
 
    This can be the same RabbitMQ server instance that is used for
@@ -88,7 +88,8 @@ Configuration
 -------------
 
 The behavior of the running container can be tuned with environment
-variables. Here are the most important settings with example values:
+variables. Here are the most important settings with random example
+values:
 
 ```shell
 # The specified number of processes ("$WEBSERVER_PROCESSES") will be
@@ -202,17 +203,17 @@ Available commands
 
 The
 [entrypoint](https://github.com/epandurski/swpt_accounts/blob/master/docker/entrypoint.sh)
-of the container allows you to execute the following *documented
-commands*:
+of the docker container allows you to execute the following
+*documented commands*:
 
 * `all`
 
-  Starts all the necessary services in the container. This is the
-  command that will be executed if no arguments are passed to the
+  Starts all the necessary services in the container. Also, this is
+  the command that will be executed if no arguments are passed to the
   entrypoint.
 
   **IMPORTANT NOTE: For each database instance, you must start exactly
-  one container with this command!**
+  one container with this command.**
 
 * `configure`
 
@@ -243,7 +244,8 @@ commands*:
 
 This [docker-compose
 example](https://github.com/epandurski/swpt_accounts/blob/master/docker-compose-all.yml)
-shows how the generated docker image can be used.
+shows how to use the generated docker image, along with the PostgerSQL
+server, and the RabbitMQ server.
 
 
 How to run it
