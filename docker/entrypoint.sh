@@ -1,11 +1,11 @@
 #!/bin/sh
 set -e
 
-# During development, we should be able to connect to services
-# installed on "localhost" from the container. To allow this, we find
-# the IP address of the docker host, and then for each variable name
-# $SUBSTITUTE_LOCALHOST_IN_VARS, we substitute "localhost" with that
-# IP address.
+# During development and testing, we should be able to connect to
+# services installed on "localhost" from the container. To allow this,
+# we find the IP address of the docker host, and then for each
+# variable name in "$SUBSTITUTE_LOCALHOST_IN_VARS", we substitute
+# "localhost" with that IP address.
 host_ip=$(ip route show | awk '/default/ {print $3}')
 for envvar_name in $SUBSTITUTE_LOCALHOST_IN_VARS; do
     eval envvar_value=\$$envvar_name
