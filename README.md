@@ -259,13 +259,14 @@ How to run the tests
         $ docker-compose up --build
 
     This will start its own PostgreSQL server instance in a docker
-    container, will rely on being able to connect to a RabbitMQ server
-    instance at "amqp://guest:guest@localhost:5672".
+    container, but will rely on being able to connect to a RabbitMQ
+    server instance at "amqp://guest:guest@localhost:5672".
 
     Note that because the RabbitMQ "guest" user [can only connect from
     localhost], you should either explicitly allow the "guest" user to
     connect from anywhere, or create a new RabbitMQ user, and change
-    the RabbitMQ connection string accordingly.
+    the RabbitMQ connection URLs accordingly (`PROTOCOL_BROKER_URL`,
+    `CHORES_BROKER_URL`).
 
 
 How to setup a development environment
