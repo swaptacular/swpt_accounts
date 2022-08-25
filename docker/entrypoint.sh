@@ -113,7 +113,9 @@ case $1 in
     configure)
         perform_db_upgrade
         create_chores_queue
-        [[ "$SETUP_RABBITMQ_BINDINGS" == "yes" ]] && setup_rabbitmq_bindings
+        if [[ "$SETUP_RABBITMQ_BINDINGS" == "yes" ]]; then
+            setup_rabbitmq_bindings
+        fi
         ;;
     webserver)
         exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :${WEBSERVER_PORT:-80} wsgi:app
