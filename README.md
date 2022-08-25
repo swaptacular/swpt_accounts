@@ -116,14 +116,16 @@ POSTGRES_URL=postgresql://swpt_accounts:swpt_accounts@localhost:5433/test
 
 # Parameters for the communication with the RabbitMQ server which is
 # responsible for brokering SMP messages. The container will connect
-# to "$PROTOCOL_BROKER_URL", will consume messages from the queue
-# named "$PROTOCOL_BROKER_QUEUE", prefetching at most
-# "$PROTOCOL_BROKER_PREFETCH_COUNT" messages at once (default 1). The
-# specified number of processes ("$PROTOCOL_BROKER_PROCESSES") will be
-# spawned to consume and process messages (default 1), each process
-# will run "$PROTOCOL_BROKER_THREADS" threads in parallel (default
-# 1). Note that PROTOCOL_BROKER_PROCESSES can be set to 0, in which
-# case, the container will not consume any messages from the queue.
+# to "$PROTOCOL_BROKER_URL" (default
+# "amqp://guest:guest@localhost:5672"), will consume messages from the
+# queue named "$PROTOCOL_BROKER_QUEUE" (default "swpt_accounts"),
+# prefetching at most "$PROTOCOL_BROKER_PREFETCH_COUNT" messages at
+# once (default 1). The specified number of processes
+# ("$PROTOCOL_BROKER_PROCESSES") will be spawned to consume and
+# process messages (default 1), each process will run
+# "$PROTOCOL_BROKER_THREADS" threads in parallel (default 1). Note
+# that PROTOCOL_BROKER_PROCESSES can be set to 0, in which case, the
+# container will not consume any messages from the queue.
 PROTOCOL_BROKER_URL=amqp://guest:guest@localhost:5672
 PROTOCOL_BROKER_QUEUE=swpt_accounts
 PROTOCOL_BROKER_PROCESSES=1
@@ -133,9 +135,10 @@ PROTOCOL_BROKER_PREFETCH_COUNT=10
 # Parameters for the communication with the RabbitMQ server which is
 # responsible for queuing local database tasks (chores). This may or
 # may not be the same RabbitMQ server that is used for brokering SMP
-# messages. The container will connect to "$CHORES_BROKER_URL", will
-# post and consume messages to/from the queue named
-# "$CHORES_BROKER_QUEUE", prefetching at most
+# messages. The container will connect to "$CHORES_BROKER_URL"
+# (default "amqp://guest:guest@localhost:5672"), will post and consume
+# messages to/from the queue named "$CHORES_BROKER_QUEUE" (default
+# "swpt_accounts_chores"), prefetching at most
 # "$CHORES_BROKER_PREFETCH_COUNT" messages at once (default 1). The
 # specified number of processes ("$CHORES_BROKER_PROCESSES") will be
 # spawned to consume and process chores (default 1), each process will
@@ -151,9 +154,9 @@ CHORES_BROKER_PREFETCH_COUNT=10
 
 # The processing of each transfer consists of several stages. The
 # following configuration variables control the number of worker
-# threads that will be involved on each respective stage. You must set
-# this to a reasonable value, and increase it when you start
-# experiencing problems with performance.
+# threads that will be involved on each respective stage (default
+# 1). You must set this to a reasonable value, and increase it when
+# you start experiencing problems with performance.
 PROCESS_TRANSFER_REQUESTS_THREADS=10
 PROCESS_FINALIZATION_REQUESTS_THREADS=10
 PROCESS_BALANCE_CHANGES_THREADS=10
@@ -250,10 +253,19 @@ How to run the tests
         $ docker-compose build
         $ docker-compose run tests-dummy test
 
-4.  To run the minimal set of services needed for development (not
-    including RabbitMQ), use this command:
+4.  To run the minimal set of services needed for development, use
+    this command:
 
         $ docker-compose up --build
+
+    This will start its own PostgreSQL server instance in a docker
+    container, will rely on being able to connect to a RabbitMQ server
+    instance at "amqp://guest:guest@localhost:5672".
+
+    Note that because the RabbitMQ "guest" user [can only connect from
+    localhost], you should either explicitly allow the "guest" user to
+    connect from anywhere, or create a new RabbitMQ user, and change
+    the RabbitMQ connection string accordingly.
 
 
 How to setup a development environment
@@ -292,3 +304,4 @@ server, a RabbitMQ server, and a HTTP-proxy server, use this command:
 [Docker Compose]: https://docs.docker.com/compose/
 [Poetry]: https://poetry.eustace.io/docs/
 [Python]: https://docs.python.org/
+[can only connect from localhost]: https://www.rabbitmq.com/access-control.html#loopback-users
