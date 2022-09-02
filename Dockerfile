@@ -2,7 +2,7 @@ FROM python:3.10.6-alpine3.16 AS venv-image
 WORKDIR /usr/src/app
 
 ENV PIP_VERSION="22.2.2"
-ENV POETRY_VERSION="1.1.14"
+ENV POETRY_VERSION="1.1.15"
 RUN apk add --no-cache \
     file \
     make \
@@ -17,8 +17,8 @@ RUN apk add --no-cache \
     openssl-dev \
     cargo \
   && pip install --upgrade pip==$PIP_VERSION \
-  && curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python - \
-  && ln -s "$HOME/.poetry/bin/poetry" "/usr/local/bin" \
+  && curl -sSL https://install.python-poetry.org | python3 - \
+  && ln -s "$HOME/.local/bin/poetry" "/usr/local/bin" \
   && python -m venv /opt/venv
 
 ENV PATH="/opt/venv/bin:$PATH"
