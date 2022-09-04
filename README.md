@@ -252,6 +252,18 @@ How to run the tests
         $ docker-compose build
         $ docker-compose run tests-dummy test
 
+
+How to setup a development environment
+--------------------------------------
+
+1.  Install [Poetry].
+
+2.  Create a new [Python] virtual environment and activate it.
+
+3.  To install dependencies, run this command:
+
+        $ poetry install
+
 4.  To run the minimal set of services needed for development, use
     this command:
 
@@ -267,20 +279,7 @@ How to run the tests
     the RabbitMQ connection URLs accordingly (`PROTOCOL_BROKER_URL` and
     `CHORES_BROKER_URL` in the *.env* file).
 
-
-How to setup a development environment
---------------------------------------
-
-1.  Install [Poetry].
-
-2.  Create a new [Python] virtual environment and activate it.
-
-3.  To install dependencies, run this command:
-
-        $ poetry install
-
-
-4.  You can use `flask swpt_accounts` to run management commands, and
+5.  You can use `flask swpt_accounts` to run management commands, and
     `pytest --cov=swpt_accounts --cov-report=html` to run the tests
     and generate a test coverage report.
 
