@@ -1,0 +1,16 @@
+name: pull-request-tests
+on:
+  pull_request:
+    branches: [ master ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Build docker image
+        run: docker-compose build
+        
+      - name: Run tests in docker container
+        run: docker-compose run tests-config test
