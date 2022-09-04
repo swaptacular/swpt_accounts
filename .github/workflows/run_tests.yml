@@ -16,4 +16,4 @@ jobs:
         run: docker-compose build
         
       - name: Run tests in docker container
-        run: docker-compose run tests-config test
+        run: docker-compose run tests-dummy test
