@@ -9,8 +9,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set environment variables
-        run: cat development.env >> $GITHUB_ENV
+      - name: Create .env file
+        run: cp development.env .env
 
       - name: Build docker image
         run: docker-compose build
