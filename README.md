@@ -86,7 +86,7 @@ example values:
 # spawned to handle "fetch API" requests (default 1), each process
 # will run "$WEBSERVER_THREADS" threads in parallel (default 3). The
 # container will listen for "fetch API" requests on port
-# "$WEBSERVER_PORT" (default 80).
+# "$WEBSERVER_PORT" (default 8080).
 WEBSERVER_PROCESSES=2
 WEBSERVER_THREADS=10
 WEBSERVER_PORT=8001

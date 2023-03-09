@@ -118,7 +118,7 @@ case $1 in
         fi
         ;;
     webserver)
-        exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :${WEBSERVER_PORT:-80} wsgi:app
+        exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :${WEBSERVER_PORT:-8080} wsgi:app
         ;;
     consume_messages)
         exec flask swpt_accounts "$@"
