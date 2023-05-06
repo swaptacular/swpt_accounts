@@ -1,7 +1,7 @@
 FROM python:3.10.6-alpine3.16 AS venv-image
 WORKDIR /usr/src/app
 
-ENV POETRY_VERSION="1.3.2"
+ENV POETRY_VERSION="1.4.2"
 RUN apk add --no-cache \
     file \
     make \
@@ -22,7 +22,7 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry config virtualenvs.create false --local \
   && python -m venv /opt/venv \
   && source /opt/venv/bin/activate \
-  && poetry install --no-dev --no-interaction
+  && poetry install --only main --no-interaction
 
 
 # This is the second and final image. Starting from a clean alpine
@@ -36,6 +36,7 @@ ENV APP_ASSOCIATED_LOGGERS=swpt_pythonlib.flask_signalbus.signalbus_cli
 ENV PYTHONPATH="$APP_ROOT_DIR"
 ENV PATH="/opt/venv/bin:$PATH"
 ENV GUNICORN_LOGLEVEL=warning
+ENV SQLALCHEMY_SILENCE_UBER_WARNING=1
 
 RUN apk add --no-cache \
     libffi \

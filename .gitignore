@@ -103,6 +103,9 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+# direnv subdir
+.direnv/
+
 # Emacs files
 TAGS
 *~

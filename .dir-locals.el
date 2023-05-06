@@ -2,4 +2,9 @@
 ;;; For more information see (info "(emacs) Directory Variables")
 
 ((python-mode
-  (eval venv-workon "swpt_accounts")))
+  . ((eglot-workspace-configuration
+      . (:pylsp (:plugins (:pycodestyle (:enabled :json-false)
+                           :mccabe (:enabled :json-false)
+                           :pyflakes (:enabled :json-false)
+                           :flake8 (:enabled t))
+                 :configurationSources ["flake8"]))))))
