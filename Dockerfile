@@ -36,6 +36,7 @@ ENV APP_ASSOCIATED_LOGGERS=swpt_pythonlib.flask_signalbus.signalbus_cli
 ENV PYTHONPATH="$APP_ROOT_DIR"
 ENV PATH="/opt/venv/bin:$PATH"
 ENV GUNICORN_LOGLEVEL=warning
+ENV SQLALCHEMY_SILENCE_UBER_WARNING=1
 
 RUN apk add --no-cache \
     libffi \
