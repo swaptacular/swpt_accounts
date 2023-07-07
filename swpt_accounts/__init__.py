@@ -38,10 +38,10 @@ def _add_console_hander(logger, format: str):
     fmt = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
 
     if format == 'text':
-        handler.setFormatter(logging.Formatter(fmt))
+        handler.setFormatter(logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S%z"))
     elif format == 'json':  # pragma: nocover
         from pythonjsonlogger import jsonlogger
-        handler.setFormatter(jsonlogger.JsonFormatter(fmt))
+        handler.setFormatter(jsonlogger.JsonFormatter(fmt, datefmt="%Y-%m-%dT%H:%M:%S%z"))
     else:  # pragma: nocover
         raise RuntimeError(f'invalid log format: {format}')
 
