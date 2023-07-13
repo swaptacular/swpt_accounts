@@ -27,27 +27,27 @@ the following servers:
    Also, the following [RabbitMQ exchanges] must be configured on the
    broker instance:
 
-   - **`to_creditors`**: For messages that must be send to the
-     creditors agents. The routing key will represent the creditor ID
-     as hexadecimal. For example, for creditor ID equal to 2, the
-     routing key will be "00.00.00.00.00.00.00.02".
+   - **`to_creditors`**: For messages that must be send to the creditors
+     agents. The routing key will represent the creditor ID as hexadecimal
+     (lowercase). For example, for creditor ID equal to 2, the routing key
+     will be "00.00.00.00.00.00.00.02".
 
-   - **`to_debtors`**: For messages that must be send to the debtors
-     agents. The routing key will represent the debtor ID as
-     hexadecimal. For example, for debtor ID equal to -2, the routing
-     key will be "ff.ff.ff.ff.ff.ff.ff.fe".
+   - **`to_debtors`**: For messages that must be send to the debtors agents.
+     The routing key will represent the debtor ID as hexadecimal
+     (lowercase). For example, for debtor ID equal to -2, the routing key
+     will be "ff.ff.ff.ff.ff.ff.ff.fe".
 
-   - **`to_coordinators`**: For messages that must be send to the
-     transfer coordinators. Different types of transfer coordinators
-     are responsible for performing different types of transfers. The
-     most important types are: "direct" (the message must be sent to
-     the creditors agent), and "issuing" (the message must be sent to
-     the debtors agent). All the messages sent to this exchange, will
-     have a correctly set "coordinator_type" header. The routing key
-     will represent the coordinator ID as hexadecimal. Note that for
-     "direct" transfers, the coordinator ID is guaranteed to be the
-     same as the creditor ID; and for "issuing" transfers, the
-     coordinator ID is guaranteed to be the same as the debtor ID.
+   - **`to_coordinators`**: For messages that must be send to the transfer
+     coordinators. Different types of transfer coordinators are responsible
+     for performing different types of transfers. The most important types
+     are: "direct" (the message must be sent to the creditors agent), and
+     "issuing" (the message must be sent to the debtors agent). All the
+     messages sent to this exchange, will have a correctly set
+     "coordinator_type" header. The routing key will represent the
+     coordinator ID as hexadecimal (lowercase). Note that for "direct"
+     transfers, the coordinator ID is guaranteed to be the same as the
+     creditor ID; and for "issuing" transfers, the coordinator ID is
+     guaranteed to be the same as the debtor ID.
 
    - **`accounts_in`**: For messages that must be send to this
      accounting authority itself (self-posting). The routing key will
