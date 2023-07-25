@@ -1,0 +1,62 @@
+#!/bin/bash
+set -e
+
+if [[ "$#" != 2 || "$1" == "--help" ]]; then
+    echo 'Generates an unencrypted public/private key pair, plus a corresponding'
+    echo 'certificate signing request (CSR).'
+    echo
+    echo 'Usage: generate-serverkey KEYPAIR_FILEPATH CSR_FILEPATH'
+    exit 2
+fi
+
+function find_script_dir {
+    SOURCE=${BASH_SOURCE[0]}
+    while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is not a symlink
+        DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+        SOURCE=$(readlink "$SOURCE")
+        # If $SOURCE was a relative symlink, we need to resolve it relative
+        # to the path where the symlink file was located.
+        [[ $SOURCE != /* ]] && SOURCE=$DIR/$SOURCE
+    done
+    DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+    export SWPT_CA_DIR="$DIR"
+}
+
+find_script_dir || exit 3
+
+key_file="$1"
+csr_file="$2"
+
+if [ -s "$key_file" ]; then
+    echo
+    echo "ERROR: $key_file file already exists."
+    echo
+    exit 1
+fi
+
+if [ -s "$csr_file" ]; then
+    echo
+    echo "ERROR: $csr_file file already exists."
+    echo
+    exit 1
+fi
+
+openssl req \
+    -new \
+    -nodes \
+    -config "$DIR/root-ca.conf" \
+    -out "$csr_file" \
+    -keyout "$key_file" \
+    -reqexts server_official_ext
+
+echo
+echo '***********************************************************************'
+echo '* IMPORTANT: An unencrypted public/private key pair has been created  *'
+echo '*            and saved. Copy this file to your server(s), and make    *'
+echo '*            sure that nobody else has access to it. A corresponding  *'
+echo '*            certificate signing request (CSR) file has been created  *'
+echo '*            also. Use the "sign-servercert" command to create a      *'
+echo '*            signed certificate, and copy that certificate to your    *'
+echo '*            server(s) as well.                                       *'
+echo '***********************************************************************'
+echo "Created files: $key_file, $csr_file"

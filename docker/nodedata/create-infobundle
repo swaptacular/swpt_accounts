@@ -1,0 +1,100 @@
+#!/bin/bash
+set -e
+
+function find_script_dir {
+    SOURCE=${BASH_SOURCE[0]}
+    while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is not a symlink
+        DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+        SOURCE=$(readlink "$SOURCE")
+        # If $SOURCE was a relative symlink, we need to resolve it relative
+        # to the path where the symlink file was located.
+        [[ $SOURCE != /* ]] && SOURCE=$DIR/$SOURCE
+    done
+    DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+    export SWPT_CA_DIR="$DIR"
+}
+
+function delete_temp_dir {
+    rm -rf "$temp_dir"
+}
+
+find_script_dir || exit 3
+
+if [[ "$#" != 1 || "$1" == "--help" ]]; then
+    echo 'Creates a info-bundle file (a "zip" file). All files and'
+    echo "sub-directories that the $DIR/nodeinfo"
+    echo 'directory contains, will be included in the created bundle. Those files'
+    echo 'may contain additional information about your Swaptacular node.'
+    echo
+    echo 'Usage: create-infobundle INFOBUNDLE_FILEPATH[.zip]'
+    exit 2
+fi
+
+if [ ! -s "$DIR/db/root-ca.csr" ]; then
+    echo
+    echo 'To be able to set up permanent authenticated connections with other'
+    echo 'Swaptacular nodes, a certificate signing request (CSR) must be'
+    echo 'created first.'
+    echo
+    openssl req -new \
+            -config "$DIR/root-ca.conf" \
+            -out "$DIR/db/root-ca.csr" \
+            -key "$DIR/private/root-ca.key" \
+            -reqexts ca_official_ext
+    [ -s "$DIR/db/root-ca.csr" ] || exit 3;
+    echo 'Successfully created a certificate signing request.'
+    echo
+fi
+
+bundle_file=$(echo "$1" | sed s/\.zip$//).zip
+if [ -s "$bundle_file" ]; then
+    echo
+    echo "ERROR: $bundle_file already exists."
+    echo
+    exit 1
+fi
+
+required_files=("$DIR/root-ca.crt" "$DIR/db/root-ca.csr")
+for file in ${required_files[@]} "$DIR/nodeinfo/stomp.toml"; do
+    if [ ! -f "$file" ]; then
+        echo
+        echo "ERROR: $file does not exist."
+        echo
+        exit 1
+    fi
+done
+
+temp_dir=$(mktemp -d)
+trap delete_temp_dir EXIT
+
+echo 'Creating nodeinfo.zip file...'
+pushd . > /dev/null
+cd "$DIR/nodeinfo"
+date -I > updated-at.txt
+zip -rX "$temp_dir/nodeinfo.zip" *
+popd > /dev/null
+echo
+
+echo 'The contents of the "nodeinfo" directory has been packaged into a "zip"'
+echo 'file. This file should be digitally signed and included in the'
+echo 'info-bundle...'
+echo
+openssl dgst -sha256 \
+    -sign "$DIR/private/root-ca.key" \
+    -out "$temp_dir/nodeinfo.signature" \
+    "$temp_dir/nodeinfo.zip"
+
+zip -Xj -n ".zip" "$bundle_file" \
+    ${required_files[@]} \
+    "$temp_dir/nodeinfo.zip" \
+    "$temp_dir/nodeinfo.signature"
+
+echo
+echo '***********************************************************************'
+echo '* IMPORTANT: A new info-bundle file has been created. If you want     *'
+echo '*            to establish a permanent authenticated connection with   *'
+echo '*            another Swaptacular node, you should send this file to   *'
+echo '*            the owners of the Swaptacular node, and wait for a       *'
+echo '*            signed peer certificate.                                 *'
+echo '***********************************************************************'
+echo "File location: $bundle_file"

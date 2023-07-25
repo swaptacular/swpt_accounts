@@ -1,0 +1,230 @@
+#!/bin/bash
+set -e
+set -o pipefail
+
+if [[ "$#" != 0 ]]; then
+    echo 'Initialises the database for the certificate authority (CA). This'
+    echo 'command should be run once in the beginning, after the public/private'
+    echo 'key pair for the CA has been generated. See the "generate-masterkey"'
+    echo 'command.'
+    echo
+    echo 'NOTE: Generally, it should be safe to run this command on an already'
+    echo '      initialised database. In this case, it will try to find typical'
+    echo '      problems in the existing database, and fix them.'
+    echo
+    echo 'Usage: init-ca'
+    exit 2
+fi
+
+for dependency in openssl envsubst zip unzip hexdump
+do
+    if ! which "$dependency" &> /dev/null; then
+        echo
+        echo "ERROR: $dependency is not installed on your system."
+        echo
+        exit 2
+    fi
+done
+
+function find_script_dir {
+    SOURCE=${BASH_SOURCE[0]}
+    while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is not a symlink
+        DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+        SOURCE=$(readlink "$SOURCE")
+        # If $SOURCE was a relative symlink, we need to resolve it relative
+        # to the path where the symlink file was located.
+        [[ $SOURCE != /* ]] && SOURCE=$DIR/$SOURCE
+    done
+    DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+    export SWPT_CA_DIR="$DIR"
+}
+
+function generate_serial_numbber {
+    echo
+    echo 'Every Swaptacular node has an unique ID. The ID for your Swaptacular'
+    echo 'node will be automatically generated from the public key of your'
+    echo 'certificate authority...'
+    serial_numbber=$(openssl rsa -in "$key_file" -pubout |
+        openssl pkey -pubin -outform DER |
+        openssl dgst -sha256 -binary |
+        hexdump -n 16 -ve '/1 "%02x"')
+    echo "$serial_numbber" > db/nodeid
+}
+
+function delete_self_csr {
+    rm -f "$self_csr"
+}
+
+function generate_conf_file {
+    export ORGANIZATIONAL_UNIT_NAME=$(cat db/nodetype)
+    export SERIAL_NUMBER=$(cat db/nodeid)
+    envsubst '$ORGANIZATIONAL_UNIT_NAME $SERIAL_NUMBER' \
+             < root-ca.conf.template \
+             > root-ca.conf
+}
+
+function ask_for_aa_serial_numbber {
+    echo
+    echo 'Debtor IDs are 64-bit numbers. Every accounting authority is responsible'
+    echo 'for a specific range of debtor IDs. The "accounting authority prefix"'
+    echo 'defines this range, and consists of exactly 8 hexadecimal symbols'
+    echo '(32-bits). For example, if the accounting authority prefix is "0abcdef1",'
+    echo 'the accounting authority would be responsible for debtor IDs from'
+    echo '"0abcdef100000000" to "0abcdef1ffffffff".'
+    echo
+    while read -p 'Enter your accounting authority prefix (8 hexadecimals): ' aa_prefix
+    do
+        if echo "$aa_prefix" | grep -E '^[0-9a-fA-F]{8}$' > /dev/null; then
+            break
+        fi
+        echo
+        echo "An invalid accounting authority prefix has been entered."
+    done
+    echo $aa_prefix | tr '[:upper:]' '[:lower:]' > db/nodeid
+}
+
+function release_unused_debtor_subnets {
+    # Sometimes a subnet lock file is created, but a corresponding peer is
+    # not created. With the limited number of debtor subnets (256), this can
+    # become a problem. Here we try to find broken subnet lock files and
+    # remove them.
+    if [ -s "db/subnets/debtors/SEQNUM" ]; then
+        for fullname in db/subnets/debtors/*;
+        do
+            name="$(basename "$fullname")"
+            if [[ "$name" != "SEQNUM" ]]; then
+                node_id="$(cat "$fullname")"
+                node_subnet="$(cat "peers/$node_id/subnet.txt" 2> /dev/null || true)"
+                if [[ "$name" != "$node_subnet" ]]; then
+                    released_subnet=yes
+                    rm "$fullname"
+                    echo "Released unused subnet: $fullname"
+                fi
+            fi
+        done
+        if [[ -n "$released_subnet" ]]; then
+            echo "-1" > db/subnets/debtors/SEQNUM
+            echo 'Rebooted subnet counter: db/subnets/debtors/SEQNUM'
+            echo
+        fi
+    fi
+}
+
+find_script_dir || exit 3
+key_file="$DIR/private/root-ca.key"
+if [ ! -s "$key_file" ]; then
+    echo
+    echo "ERROR: $key_file file does not exist."
+    echo
+    echo '       Before initialising the CA database, an encrypted public/private'
+    echo '       key pair should be generated. See the "generate-masterkey" command.'
+    exit 1
+fi
+
+cd "$DIR"
+mkdir certs db nodeinfo peers 2> /dev/null || true
+touch db/index
+[ -s db/serial ] || openssl rand -hex 16  > db/serial
+[ -s db/crlnumber ] || echo 1001 > db/crlnumber
+release_unused_debtor_subnets
+
+if [ ! -s db/nodetype -o ! -s db/nodeid ]; then
+    echo
+    PS3="Specify the type of your Swaptacular node: "
+    select opt in "Creditors agent" "Debtors agent" "Accounting authority"
+    do
+        case $opt in
+            "Creditors agent")
+                echo "000001" > creditors-subnet.txt
+                echo "Creditors Agents" > db/nodetype
+                generate_serial_numbber
+                break
+                ;;
+            "Debtors agent")
+                echo "Debtors Agents" > db/nodetype
+                generate_serial_numbber
+                break
+                ;;
+            "Accounting authority")
+                echo "Accounting Authorities" > db/nodetype
+                mkdir db/subnets 2> /dev/null || true
+                mkdir db/subnets/debtors 2> /dev/null || true
+                mkdir db/subnets/creditors 2> /dev/null || true
+                echo "-1" > db/subnets/debtors/SEQNUM
+                echo "0" > db/subnets/creditors/SEQNUM
+                ask_for_aa_serial_numbber
+                break
+                ;;
+            *)
+                echo
+                echo "Invalid option: $REPLY"
+                ;;
+        esac
+    done
+fi
+
+[ -s root-ca.conf ] || generate_conf_file
+
+if [ ! -s nodeinfo/stomp.toml ]; then
+    echo
+    echo 'You must specify the network address of your server(s). The network'
+    echo 'address consists of a domain name and a port number, separated by a'
+    echo 'colon. For example: "myserver.example.com:1234". If you are unsure'
+    echo 'what to enter here, do not worry, whatever you enter now, you will'
+    echo 'be able to easily change later.'
+    echo
+    read -p 'Network address: ' server_address
+    case "$(cat db/nodetype)" in
+        "Creditors Agents")
+            stomp_destination='/exchange/creditors_in'
+            break
+            ;;
+        "Debtors Agents")
+            stomp_destination='/exchange/debtors_in'
+            break
+            ;;
+        "Accounting Authorities")
+            stomp_destination='/exchange/accounts_in'
+            break
+            ;;
+        *)
+            echo "ERROR: Invalid node type."
+            echo
+            exit 1
+            ;;
+    esac
+    echo
+    echo "servers = [\"$server_address\"]" > nodeinfo/stomp.toml
+    echo 'host = "/"' >> nodeinfo/stomp.toml
+    echo "destination = \"$stomp_destination\"" >> nodeinfo/stomp.toml
+fi
+
+if [ ! -s root-ca.crt ]; then
+    echo
+    echo 'A certificate signing request (CSR) must be created for your CA...'
+    self_csr=$(mktemp)
+    trap delete_self_csr EXIT
+    openssl req -new \
+            -config root-ca.conf \
+            -out "$self_csr" \
+            -key private/root-ca.key \
+            -reqexts ca_ext
+    [ -s "$self_csr" ] || exit 3;
+    echo 'Successfully created a certificate signing request.'
+    echo
+    echo "A self-signed certificate must be created for your CA..."
+    openssl ca -selfsign \
+            -config root-ca.conf \
+            -in "$self_csr" \
+            -out root-ca.crt \
+            -extensions ca_ext
+    [ -s root-ca.crt ] || exit 3
+    echo
+    echo '***********************************************************************'
+    echo '* IMPORTANT: A new self-signed certificate file has been created for  *'
+    echo '*            your Swaptacular node. You should use this certificate   *'
+    echo '*            as a trusted root certificate authority (CA) for your    *'
+    echo '*            SSL connections with other Swaptacular nodes.            *'
+    echo '***********************************************************************'
+    echo "File location: $DIR/root-ca.crt"
+fi
