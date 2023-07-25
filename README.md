@@ -292,6 +292,9 @@ server, a RabbitMQ server, and a HTTP-proxy server, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
 
+Note that the `docker/nodedata` directory contains an already populated
+[root-CA database](https://github.com/swaptacular/swpt_ca_scripts), which
+can be used for end-to-end testing.
 
 
 [Swaptacular]: https://swaptacular.github.io/overview
