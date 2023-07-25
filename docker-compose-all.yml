@@ -166,6 +166,54 @@ services:
     restart: always
 
 
+  # The purpose of this container is to create and configure the RabbitMQ
+  # queue, from which the "accounts-peer-1ec0f50644f3eac2f3fa6cdaac18f5f8"
+  # container will consume messages (to send them to the given peer). It has
+  # to be run only once, but running it multiple times should not do any
+  # harm.
+  accounts-peer-1ec0f50644f3eac2f3fa6cdaac18f5f8-config:
+    image: ghcr.io/swaptacular/swpt_stomp:$SWPT_STOMP_VERSION
+    environment:
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'SWPT_SERVER_CERT=/etc/swpt/server.crt'
+      - 'SWPT_SERVER_KEY=/secrets/swpt-server.key'
+      - 'SWPT_NODEDATA_URL=file:///var/lib/swpt-nodedata'
+      - 'APP_LOG_LEVEL=info'
+      - 'APP_LOG_FORMAT=json'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
+    volumes:
+      - './docker/nodedata/server.crt:/etc/swpt/server.crt'
+      - './docker/nodedata/server.key:/secrets/swpt-server.key'
+      - './docker/nodedata:/var/lib/swpt-nodedata'
+    command: configure-queue 1ec0f50644f3eac2f3fa6cdaac18f5f8 aa.1ec0f50644f3eac2f3fa6cdaac18f5f8
+    restart: on-failure
+
+
+  # The purpose of this container is to open and maintain a permanent client
+  # STOMP connection to the "1ec0f50644f3eac2f3fa6cdaac18f5f8" peer, sending
+  # outgoing Swaptacular Messaging Protocol messages to this peer.
+  #
+  # NOTE: Similar containers must be configured for every added peer!
+  accounts-peer-1ec0f50644f3eac2f3fa6cdaac18f5f8:
+    image: ghcr.io/swaptacular/swpt_stomp:$SWPT_STOMP_VERSION
+    environment:
+      - 'PROTOCOL_BROKER_URL=amqp://guest:guest@rabbitmq:5672'
+      - 'SWPT_SERVER_CERT=/etc/swpt/server.crt'
+      - 'SWPT_SERVER_KEY=/secrets/swpt-server.key'
+      - 'SWPT_NODEDATA_URL=file:///var/lib/swpt-nodedata'
+      - 'APP_LOG_LEVEL=info'
+      - 'APP_LOG_FORMAT=json'
+      - 'SUBSTITUTE_LOCALHOST_IN_VARS=PROTOCOL_BROKER_URL'
+    volumes:
+      - './docker/nodedata/server.crt:/etc/swpt/server.crt'
+      - './docker/nodedata/server.key:/secrets/swpt-server.key'
+      - './docker/nodedata:/var/lib/swpt-nodedata'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: swpt-client 1ec0f50644f3eac2f3fa6cdaac18f5f8 aa.1ec0f50644f3eac2f3fa6cdaac18f5f8
+    restart: always
+
+
 volumes:
   pg-data-volume:
   rabbitmq-data-volume:
