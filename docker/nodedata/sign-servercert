@@ -1,0 +1,80 @@
+#!/bin/bash
+set -e
+
+if [[ "$#" != 2 && "$#" != 3 || "$1" == "--help" ]]; then
+    echo 'Generates a certificate file from a certificate signing request (CSR)'
+    echo 'file. The CSR file should be created by/for your server(s), using a'
+    echo 'secret private key. The generated certificate should be used as a'
+    echo '"leaf" certificate by your server(s), to establish secure SSL connections'
+    echo 'with other Swaptacular servers. See the "generate-serverkey" command.'
+    echo
+    echo 'DAYS is the number of days of certificate validity (365 by default).'
+    echo
+    echo 'Usage: sign-servercert CSR_FILEPATH CERTIFICATE_FILEPATH [DAYS]'
+    exit 2
+fi
+
+function find_script_dir {
+    SOURCE=${BASH_SOURCE[0]}
+    while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is not a symlink
+        DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+        SOURCE=$(readlink "$SOURCE")
+        # If $SOURCE was a relative symlink, we need to resolve it relative
+        # to the path where the symlink file was located.
+        [[ $SOURCE != /* ]] && SOURCE=$DIR/$SOURCE
+    done
+    DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+    export SWPT_CA_DIR="$DIR"
+}
+
+function get_dn_filed {
+    sed_expr='s/^.*\b'
+    sed_expr+="$1"
+    sed_expr+=' = ([^,]*).*$/\1/p'
+    echo "$2" | sed -nE "$sed_expr"
+}
+
+find_script_dir || exit 3
+
+csr_file="$1"
+crt_file="$2"
+
+if [ -s "$crt_file" ]; then
+    echo
+    echo "ERROR: $crt_file file already exists."
+    echo
+    exit 1
+fi
+
+DN=$(openssl req -noout -subject -in "$csr_file")
+DN_O=$(get_dn_filed O "$DN")
+DN_OU=$(get_dn_filed OU "$DN")
+DN_SERIAL_NUMBER=$(get_dn_filed serialNumber "$DN")
+
+if [[ "$DN_O" != "Swaptacular Nodes Registry" || \
+      "$DN_OU" != "$(cat "$DIR/db/nodetype")" || \
+      "$DN_SERIAL_NUMBER" != "$(cat "$DIR/db/nodeid")" ]]; then
+    echo
+    echo 'ERROR: The subject in the certificate signing request is not the same as'
+    echo '       the issuer of your root CA certificate. You are not supposed to'
+    echo '       issue server certificates for Swaptacular nodes other than your own.'
+    echo
+    exit 1
+fi
+
+echo "Signing server certificate..."
+openssl ca \
+    -config "$DIR/root-ca.conf" \
+    -in "$csr_file" \
+    -out "$crt_file" \
+    -days "${3-365}" \
+    -extensions server_ext
+
+[ -s "$crt_file" ] || exit 3
+echo
+echo '***********************************************************************'
+echo '* IMPORTANT: A new certificate file has been created. You can use     *'
+echo '*            it to establish secure SSL connections with other        *'
+echo '*            Swaptacular nodes.                                       *'
+echo '***********************************************************************'
+echo "File location: $crt_file"

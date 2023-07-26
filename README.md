@@ -61,8 +61,7 @@ the following servers:
    **Note:** If you execute the "configure" command (see below), with
    the environment variable `SETUP_RABBITMQ_BINDINGS` set to `yes`, an
    attempt will be made to automatically setup all the required
-   RabbitMQ queues, exchanges, and the bindings between them. However,
-   this works only for the most basic setup.
+   RabbitMQ queues, exchanges, and the bindings between them.
 
 3. *RabbitMQ server instance*, which is responsible for queuing local
    database tasks (chores).
@@ -292,6 +291,9 @@ server, a RabbitMQ server, and a HTTP-proxy server, use this command:
 
     $ docker-compose -f docker-compose-all.yml up --build
 
+Note that the `docker/nodedata` directory contains an already populated
+[root-CA database](https://github.com/swaptacular/swpt_ca_scripts), which
+can be used for end-to-end testing.
 
 
 [Swaptacular]: https://swaptacular.github.io/overview

@@ -1,0 +1,51 @@
+#!/bin/bash
+set -e
+
+if [[ "$#" != 0 ]]; then
+    echo 'Generates an encrypted public/private key pair. The generated'
+    echo 'private key will be used as a master secret for your certificate'
+    echo 'authority (CA).'
+    echo
+    echo 'Usage: generate-masterkey'
+    exit 2
+fi
+
+function find_script_dir {
+    SOURCE=${BASH_SOURCE[0]}
+    while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is not a symlink
+        DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+        SOURCE=$(readlink "$SOURCE")
+        # If $SOURCE was a relative symlink, we need to resolve it relative
+        # to the path where the symlink file was located.
+        [[ $SOURCE != /* ]] && SOURCE=$DIR/$SOURCE
+    done
+    DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+    export SWPT_CA_DIR="$DIR"
+}
+
+find_script_dir || exit 3
+mkdir "$DIR/private" 2> /dev/null || true
+chmod 700 "$DIR/private"
+key_file="$DIR/private/root-ca.key"
+
+if [ -s "$key_file" ]; then
+    echo
+    echo "ERROR: $key_file file already exists."
+    echo
+    exit 1
+fi
+
+openssl genrsa -aes128 -out "$key_file" 3072
+[ -s "$key_file" ] || exit 3
+
+echo
+echo '***********************************************************************'
+echo '* IMPORTANT: An encrypted public/private key pair has been generated  *'
+echo '*            and stored in a file. Make sure that you do not lose     *'
+echo '*            this file, and its content is always kept secret.        *'
+echo '*                                                                     *'
+echo '*            You may use the "init-ca" command to initialise your     *'
+echo '*            certificate authority. To view your public key, run      *'
+echo '*            "openssl rsa -pubout -in private/root-ca.key".           *'
+echo '***********************************************************************'
+echo "File location: $key_file"

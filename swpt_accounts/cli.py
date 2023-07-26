@@ -34,9 +34,7 @@ def subscribe():  # pragma: no cover
     """
 
     from .extensions import ACCOUNTS_IN_EXCHANGE, \
-        TO_CREDITORS_EXCHANGE, TO_DEBTORS_EXCHANGE, TO_COORDINATORS_EXCHANGE, \
-        DEBTORS_IN_EXCHANGE, DEBTORS_OUT_EXCHANGE, \
-        CREDITORS_IN_EXCHANGE, CREDITORS_OUT_EXCHANGE
+        TO_CREDITORS_EXCHANGE, TO_DEBTORS_EXCHANGE, TO_COORDINATORS_EXCHANGE
 
     logger = logging.getLogger(__name__)
     queue_name = current_app.config['PROTOCOL_BROKER_QUEUE']
@@ -51,14 +49,8 @@ def subscribe():  # pragma: no cover
     channel.exchange_declare(TO_CREDITORS_EXCHANGE, exchange_type='topic', durable=True)
     channel.exchange_declare(TO_DEBTORS_EXCHANGE, exchange_type='topic', durable=True)
     channel.exchange_declare(TO_COORDINATORS_EXCHANGE, exchange_type='headers', durable=True)
-    channel.exchange_declare(CREDITORS_IN_EXCHANGE, exchange_type='topic', durable=True)
-    channel.exchange_declare(CREDITORS_OUT_EXCHANGE, exchange_type='topic', durable=True)
-    channel.exchange_declare(DEBTORS_IN_EXCHANGE, exchange_type='topic', durable=True)
-    channel.exchange_declare(DEBTORS_OUT_EXCHANGE, exchange_type='fanout', durable=True)
 
     # declare exchange bindings
-    channel.exchange_bind(source=TO_CREDITORS_EXCHANGE, destination=CREDITORS_IN_EXCHANGE, routing_key="#")
-    channel.exchange_bind(source=TO_DEBTORS_EXCHANGE, destination=DEBTORS_IN_EXCHANGE, routing_key="#")
     channel.exchange_bind(source=TO_COORDINATORS_EXCHANGE, destination=TO_CREDITORS_EXCHANGE, arguments={
         "x-match": "all",
         "coordinator-type": "direct",
@@ -67,8 +59,6 @@ def subscribe():  # pragma: no cover
         "x-match": "all",
         "coordinator-type": "issuing",
     })
-    channel.exchange_bind(source=CREDITORS_OUT_EXCHANGE, destination=ACCOUNTS_IN_EXCHANGE, routing_key="#")
-    channel.exchange_bind(source=DEBTORS_OUT_EXCHANGE, destination=ACCOUNTS_IN_EXCHANGE)
 
     # declare a corresponding dead-letter queue
     channel.queue_declare(dead_letter_queue_name, durable=True, arguments={

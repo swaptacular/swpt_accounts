@@ -1,0 +1,278 @@
+#!/bin/bash
+set -e
+set -o pipefail
+
+if [[ "$#" != 1 || "$1" == "--help" ]]; then
+    echo 'Creates a peer certificate file, given an info-bundle file. The'
+    echo 'info-bundle file should be created by another Swaptacular node,'
+    echo 'which wants to establish a permanent authenticated connection'
+    echo 'with your Swaptacular node. See the "create-infobundle" command.'
+    echo
+    echo 'NOTE: If this command is executed for an already established peer,'
+    echo "      it will try to update the peer's \"nodeinfo\" directory."
+    echo
+    echo 'Usage: sign-peercert INFOBUNDLE_FILEPATH'
+    exit 2
+fi
+
+function find_script_dir {
+    SOURCE=${BASH_SOURCE[0]}
+    while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is not a symlink
+        DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+        SOURCE=$(readlink "$SOURCE")
+        # If $SOURCE was a relative symlink, we need to resolve it relative
+        # to the path where the symlink file was located.
+        [[ $SOURCE != /* ]] && SOURCE=$DIR/$SOURCE
+    done
+    DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+    export SWPT_CA_DIR="$DIR"
+}
+
+function get_dn_filed {
+    sed_expr='s/^.*\b'
+    sed_expr+="$1"
+    sed_expr+=' = ([^,]*).*$/\1/p'
+    echo "$2" | sed -nE "$sed_expr"
+}
+
+function delete_temp_dir {
+    rm -rf "$temp_dir"
+}
+
+function invalid_node_type {
+    echo
+    echo "ERROR: The node type is invalid."
+    echo
+    exit 1
+}
+
+function invalid_certificate {
+    echo
+    echo 'ERROR: The certificate is invalid.'
+    echo
+    exit 1
+}
+
+function can_not_reserve_subnet {
+    echo
+    echo "ERROR: Can not reserve a subnet."
+    echo
+    exit 1
+}
+
+function verify_root_crt_files {
+    echo
+    echo 'Verifying the self-signed certificate...'
+    cert_count=0
+    while openssl x509 -noout &> /dev/null; do
+        cert_count=$((cert_count+1))
+    done < "$1"
+    [[ "$cert_count" == 1 ]] || invalid_certificate
+    crt_pubkey="$(openssl x509 -in "$1" -noout -pubkey)"
+    csr_pubkey="$(openssl req -in "$2" -noout -pubkey)"
+    [[ "$crt_pubkey" == "$csr_pubkey" ]] || invalid_certificate
+    DN=$(openssl req -in "$2" -noout -subject )
+    [[ "$DN" == "$(openssl x509 -in "$1" -noout -subject)" ]] || invalid_certificate
+    openssl verify -check_ss_sig -trusted "$1" "$1" || invalid_certificate
+}
+
+function verify_nodeinfo {
+    echo
+    echo "Verifying nodeinfo's signature..."
+    temp_pubkey_file=$(mktemp)
+    echo "$crt_pubkey" > "$temp_pubkey_file"
+    if ! openssl dgst -sha256 -verify "$temp_pubkey_file" -signature "$2" "$1" 2> /dev/null; then
+        echo
+        echo 'ERROR: The signature is invalid.'
+        echo
+        rm "$temp_pubkey_file"
+        exit 1
+    fi
+    rm "$temp_pubkey_file"
+}
+
+function match_public_key_hash {
+    public_key_hash=$(echo "$crt_pubkey" |
+        openssl pkey -pubin -outform DER |
+        openssl dgst -sha256 -binary |
+        hexdump -n 16 -ve '/1 "%02x"')
+    [[ "$public_key_hash" == "$DN_SERIAL_NUMBER" ]] || invalid_certificate
+}
+
+function lock_seqnum_file {
+    if which flock &> /dev/null; then
+        flock "$seqnum_file" "$@"
+    else
+        "$@"
+    fi
+}
+
+function reserve_subnet {
+    subnet=
+    subnet_dir="$1"
+    subnet_len="$2"
+    subnet_nodeid="$3"
+    prefix="$4"
+    format_str="%0${subnet_len}x\n"
+    seqnum_file="$subnet_dir/SEQNUM"
+    seqnum=$(lock_seqnum_file cat "$seqnum_file")
+    error_code=0
+    set -o noclobber
+    while true
+    do
+        seqnum=$((seqnum+1))
+        subnet_without_prefix=$(printf "$format_str" "$seqnum")
+        if [ "${#subnet_without_prefix}" -gt "$subnet_len" ]; then
+            error_code=1
+            break
+        fi
+        subnet="$prefix$subnet_without_prefix"
+        if echo "$subnet_nodeid" > "$subnet_dir/$subnet"; then
+            break
+        fi
+    done
+    set +o noclobber
+    lock_seqnum_file echo "$seqnum" > "$seqnum_file"
+    return "$error_code"
+}
+
+function reserve_creditor_subnet {
+    reserve_subnet "$DIR/db/subnets/creditors" 6 "$1"
+}
+
+function reserve_debtor_subnet {
+    reserve_subnet "$DIR/db/subnets/debtors" 2 "$1" "$(cat "$DIR/db/nodeid")"
+}
+
+function reserve_exclusive_subnet {
+    subnet=
+    for filename in "$DIR/peers"/*
+    do
+        if [ -d "$filename" ]; then
+            return 1
+        fi
+    done
+    return 0
+}
+
+function save_subnet {
+    case "$(cat "$DIR/db/nodetype")" in
+        "Creditors Agents")
+            # Creditors agents do not allocate subnets.
+            [[ "$DN_OU" == "Accounting Authorities" ]] || invalid_node_type
+            ;;
+        "Debtors Agents")
+            # Debtors agents are allowed to have only one peer.
+            [[ "$DN_OU" == "Accounting Authorities" ]] || invalid_node_type
+            reserve_exclusive_subnet "$DN_SERIAL_NUMBER" || can_not_reserve_subnet
+            ;;
+        "Accounting Authorities")
+            match_public_key_hash
+            case "$DN_OU" in
+                "Creditors Agents")
+                    reserve_creditor_subnet "$DN_SERIAL_NUMBER" || can_not_reserve_subnet
+                    ;;
+                "Debtors Agents")
+                    reserve_debtor_subnet "$DN_SERIAL_NUMBER" || can_not_reserve_subnet
+                    ;;
+                *)
+                    invalid_node_type
+                    ;;
+            esac
+            echo "$subnet" > "$1"
+            ;;
+        *)
+            invalid_node_type
+            ;;
+    esac
+}
+
+find_script_dir || exit 3
+
+temp_dir=$(mktemp -d)
+chmod a+x "$temp_dir"
+trap delete_temp_dir EXIT
+
+unzip "$1" -d "$temp_dir"
+temp_csr_file="$temp_dir/root-ca.csr"
+verify_root_crt_files "$temp_dir/root-ca.crt" "$temp_csr_file"
+verify_nodeinfo "$temp_dir/nodeinfo.zip" "$temp_dir/nodeinfo.signature"
+echo
+unzip -d "$temp_dir/nodeinfo" "$temp_dir/nodeinfo.zip"
+rm "$temp_dir/nodeinfo.zip" "$temp_dir/nodeinfo.signature"
+
+export DN_O=$(get_dn_filed O "$DN")
+export DN_OU=$(get_dn_filed OU "$DN")
+export DN_SERIAL_NUMBER=$(get_dn_filed serialNumber "$DN")
+
+[[ "$DN_O" == "Swaptacular Nodes Registry" ]] || invalid_certificate
+[[ -n "$DN_OU" ]] || invalid_node_type
+[[ "$DN_SERIAL_NUMBER" != "$(cat "$DIR/db/nodeid")" ]] || invalid_node_type
+echo "$DN_SERIAL_NUMBER" | grep -E '[a-f0-9]+' > /dev/null || invalid_node_type
+
+mkdir "$DIR/peers" 2> /dev/null || true
+peer_dir="$DIR/peers/$DN_SERIAL_NUMBER"
+peercert_filename=peercert.crt
+peercert_file="$peer_dir/$peercert_filename"
+
+if [[ -d "$peer_dir" ]]; then
+    if [ ! -s "$peercert_file" ]; then
+        echo
+        echo "FATAL ERROR: $peercert_file is missing!"
+        exit 3;
+    fi
+    if cmp "$temp_dir/root-ca.crt" "$peer_dir/root-ca.crt"; then
+        new_date="$(cat "$temp_dir/nodeinfo/updated-at.txt" || true)"
+        if [[ -n "$new_date" ]]; then
+            old_date="$(cat "$peer_dir/nodeinfo/updated-at.txt" || true)"
+            if [[ -z "$old_date" || "$old_date" < "$new_date" ]]; then
+                echo
+                echo 'Updating nodeinfo...'
+                rm -rf "$peer_dir/nodeinfo"
+                cp -r "$temp_dir/nodeinfo" "$peer_dir"
+            fi
+        fi
+    else
+        echo
+        echo 'ERROR: A certificate signing request from the Swaptacular node'
+        echo "       \"$DN_SERIAL_NUMBER\" has been approved already."
+        echo
+        echo '       Signing another certificate for the same Swaptacular node'
+        echo '       can not be allowed, because this can result in a serious'
+        echo '       security breach.'
+        exit 1
+    fi
+fi
+
+if [ ! -s "$peercert_file" ]; then
+    temp_peercert_file="$temp_dir/$peercert_filename"
+    echo "$DN_OU" > "$temp_dir/nodetype.txt"
+    temp_subnet_file="$temp_dir/subnet.txt"
+    save_subnet "$temp_subnet_file"
+    if [ -s "$temp_subnet_file" ]; then
+        export SWPT_SUBNET="Subnet: $(cat "$temp_subnet_file")"
+    fi
+    echo
+    echo "Signing peer's certificate..."
+    openssl ca \
+            -config "$DIR/root-ca.conf" \
+            -in "$temp_csr_file" \
+            -out "$temp_peercert_file" \
+            -extensions sub_ca_ext
+    [ -s "$temp_peercert_file" ] || exit 3;
+    rm "$temp_csr_file"
+    mv "$temp_dir" "$peer_dir"
+fi
+
+echo
+echo '***********************************************************************'
+echo '* IMPORTANT: A peer certificate file has been created. You should     *'
+echo '*            send this file to the owner of the Swaptacular node that *'
+echo '*            made the certificate signing request.                    *'
+echo '*                                                                     *'
+echo '*            Also, do not forget to send your own info-bundle file    *'
+echo '*            as well (see the "create-infobundle" command), so that   *'
+echo '*            you too, could receive a peer certificate from your      *'
+echo '*            peer node.                                               *'
+echo '***********************************************************************'
+echo "File location: $peercert_file"

@@ -1,0 +1,92 @@
+[default]
+name                    = root-ca
+default_ca              = ca_default
+name_opt                = utf8,esc_ctrl,multiline,lname,align
+SWPT_SUBNET             =
+DN_O                    =
+DN_OU                   =
+DN_SERIAL_NUMBER        =
+subnet                  = $ENV::SWPT_SUBNET
+dn_org                  = $ENV::DN_O
+dn_orgunit              = $ENV::DN_OU
+dn_serialnum            = $ENV::DN_SERIAL_NUMBER
+
+[ca_dn]
+organizationName        = "Swaptacular Nodes Registry"
+organizationalUnitName  = "$ORGANIZATIONAL_UNIT_NAME"
+serialNumber            = "$SERIAL_NUMBER"
+
+[ca_default]
+home                    = $ENV::SWPT_CA_DIR
+database                = $home/db/index
+serial                  = $home/db/serial
+crlnumber               = $home/db/crlnumber
+certificate             = $home/$name.crt
+private_key             = $home/private/$name.key
+RANDFILE                = $home/private/random
+new_certs_dir           = $home/certs
+unique_subject          = no
+copy_extensions         = none
+default_days            = 365000
+default_crl_days        = 365
+default_md              = sha256
+policy                  = policy_has_serial_number
+
+[policy_has_serial_number]
+countryName             = optional
+stateOrProvinceName     = optional
+organizationName        = match
+organizationalUnitName  = supplied
+commonName              = optional
+emailAddress            = optional
+serialNumber            = supplied
+
+[req]
+default_bits            = 3072
+encrypt_key             = yes
+default_md              = sha256
+utf8                    = yes
+string_mask             = utf8only
+prompt                  = no
+distinguished_name      = ca_dn
+
+[ca_ext]
+basicConstraints        = critical,CA:true,pathlen:1
+keyUsage                = critical,keyCertSign,cRLSign
+subjectKeyIdentifier    = hash
+
+[ca_official_ext]
+basicConstraints        = critical,CA:true,pathlen:0
+extendedKeyUsage        = clientAuth,serverAuth
+keyUsage                = critical,keyCertSign,cRLSign
+subjectKeyIdentifier    = hash
+
+[sub_ca_ext]
+authorityKeyIdentifier  = keyid:always
+basicConstraints        = critical,CA:true,pathlen:0
+extendedKeyUsage        = clientAuth,serverAuth
+keyUsage                = critical,keyCertSign,cRLSign
+nameConstraints         = critical,@name_constraints
+subjectKeyIdentifier    = hash
+nsComment               = $default::subnet
+
+[server_ext]
+authorityKeyIdentifier  = keyid:always
+basicConstraints        = critical,CA:false
+extendedKeyUsage        = clientAuth,serverAuth
+keyUsage                = critical,digitalSignature,keyEncipherment
+subjectKeyIdentifier    = hash
+
+[server_official_ext]
+basicConstraints        = critical,CA:false
+extendedKeyUsage        = clientAuth,serverAuth
+keyUsage                = critical,digitalSignature,keyEncipherment
+subjectKeyIdentifier    = hash
+
+[name_constraints]
+permitted;dirName       = req_distinguished_name
+
+[req_distinguished_name]
+organizationName        = $default::dn_org
+organizationalUnitName  = $default::dn_orgunit
+serialNumber            = $default::dn_serialnum

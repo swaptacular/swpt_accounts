@@ -1,0 +1,191 @@
+#!/bin/bash
+set -e
+
+if [[ "$#" != 1 || "$1" == "--help" ]]; then
+    echo 'Verifies a peer certificate file and stores it. The peer certificate'
+    echo 'file should be created and sent to you by another Swaptacular node,'
+    echo 'which wants to establish a permanent authenticated connection with'
+    echo 'your Swaptacular node. See the "sign-peercert" command.'
+    echo
+    echo 'NOTE: If this command is executed for an already established peer,'
+    echo '      it will only try to verify the passed certificate file.'
+    echo
+    echo 'Usage: register-peer PEERCERT_FILEPATH'
+    exit 2
+fi
+
+function find_script_dir {
+    SOURCE=${BASH_SOURCE[0]}
+    while [ -L "$SOURCE" ]; do # resolve $SOURCE until the file is not a symlink
+        DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+        SOURCE=$(readlink "$SOURCE")
+        # If $SOURCE was a relative symlink, we need to resolve it relative
+        # to the path where the symlink file was located.
+        [[ $SOURCE != /* ]] && SOURCE=$DIR/$SOURCE
+    done
+    DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
+    export SWPT_CA_DIR="$DIR"
+}
+
+function get_dn_filed {
+    sed_expr='s/^.*\b'
+    sed_expr+="$1"
+    sed_expr+=' = ([^,]*).*$/\1/p'
+    echo "$2" | sed -nE "$sed_expr"
+}
+
+function invalid_node_type {
+    echo
+    echo "ERROR: The node type is invalid."
+    echo
+    exit 1
+}
+
+function invalid_certificate {
+    echo
+    echo 'ERROR: The certificate is invalid.'
+    echo
+    exit 1
+}
+
+function parse_year {
+    if date --version &> /dev/null; then
+        # GNU date is installed.
+        date --date="$1" "+%Y"
+    else
+        # Try BSD date.
+        date -j -f '%b %e %T %Y %Z' "$1" "+%Y"
+    fi
+}
+
+function verify_cert_file {
+    cert_count=0
+    while openssl x509 -noout &> /dev/null; do
+        cert_count=$((cert_count+1))
+    done < "$1"
+    [[ "$cert_count" == 1 ]] || invalid_certificate
+}
+
+function verify_issuer {
+    DN=$(openssl x509 -noout -issuer -in "$1")
+    DN_O=$(get_dn_filed O "$DN")
+    DN_OU=$(get_dn_filed OU "$DN")
+    DN_SERIAL_NUMBER=$(get_dn_filed serialNumber "$DN")
+
+    [[ -n "$DN_SERIAL_NUMBER" ]] || invalid_certificate
+    [[ "$DN_O" == "Swaptacular Nodes Registry" ]] || invalid_certificate
+
+    case "$node_type" in
+        "Creditors Agents")
+            [[ "$DN_OU" == "Accounting Authorities" ]] || invalid_node_type
+            ;;
+        "Debtors Agents")
+            [[ "$DN_OU" == "Accounting Authorities" ]] || invalid_node_type
+            ;;
+        "Accounting Authorities")
+            [[ "$DN_OU" == "Creditors Agents" ]] || [[ "$DN_OU" == "Debtors Agents" ]] \
+                || invalid_node_type
+            ;;
+        *)
+            invalid_node_type
+            ;;
+    esac
+
+    peer_dir="$DIR/peers/$DN_SERIAL_NUMBER"
+    if [[ ! -d "$peer_dir" ]]; then
+        echo
+        echo "ERROR: Unknown peer node \"$DN_SERIAL_NUMBER\"".
+        echo
+        echo '       To successfully register a peer, first you need to receive an'
+        echo '       info-bundle file from the owner of the other Swaptacular'
+        echo '       node. Then you should use the "sign-peercert" command, to'
+        echo '       create a peer certificate for your peer.'
+        exit 1
+    fi
+}
+
+function verify_basic_constraints {
+    bconstraints="$(openssl x509 -noout -ext basicConstraints -in "$1")"
+    echo "$bconstraints" | grep -E '\bcritical\b' > /dev/null || invalid_certificate
+    echo "$bconstraints" | grep -E '\bCA: *TRUE\b' > /dev/null || invalid_certificate
+}
+
+function verify_subject {
+    sbj_dn=$(openssl x509 -noout -subject -in "$1")
+    sbj_dn_o=$(get_dn_filed O "$sbj_dn")
+    sbj_dn_ou=$(get_dn_filed OU "$sbj_dn")
+    sbj_dn_sn=$(get_dn_filed serialNumber "$sbj_dn")
+
+    [[ "$sbj_dn_o" == "Swaptacular Nodes Registry" ]] || invalid_certificate
+    [[ "$sbj_dn_ou" == "$node_type" ]] || invalid_certificate
+    [[ "$sbj_dn_sn" == "$(cat "$DIR/db/nodeid")" ]] || invalid_certificate
+}
+
+function verify_enddate {
+    enddate_output=$(openssl x509 -noout -enddate -in "$1")
+    enddate=$(echo "$enddate_output" | sed -nE 's/^.*\bnotAfter=(.*)$/\1/p')
+    [[ -n "$enddate" ]] || invalid_certificate
+    endyear=$(parse_year "$enddate")
+    thisyear=$(date "+%Y")
+    aheadyear=$((thisyear+500))
+    if [ "$aheadyear" -gt "$endyear" ]; then
+        echo
+        echo 'ERROR: The end date of the certificate is not far enough in the future.'
+        echo
+        exit 1
+    fi
+}
+
+find_script_dir || exit 3
+
+echo 'Verifying peer certificate...'
+crt_file="$1"
+node_type="$(cat "$DIR/db/nodetype")"
+
+verify_cert_file "$crt_file"
+verify_basic_constraints "$crt_file"
+verify_issuer "$crt_file"
+verify_subject "$crt_file"
+verify_enddate "$crt_file"
+
+ca_file="$peer_dir/root-ca.crt"
+openssl verify -trusted "$ca_file" "$crt_file" || invalid_certificate
+
+peer_crt_file="$peer_dir/sub-ca.crt"
+
+if [ -s "$peer_crt_file" ]; then
+    if  ! cmp "$crt_file" "$peer_crt_file"; then
+        echo
+        echo "ERROR: This peer has already been registered."
+        echo
+        exit 1
+    fi
+else
+    ns_comment_ext="$(openssl x509 -noout -ext nsComment -in "$crt_file")"
+    subnet="$(echo "$ns_comment_ext" | sed -nE 's/^.*\bSubnet: ([a-f0-9]{6,16})$/\1/p')"
+    case "$node_type" in
+        "Creditors Agents")
+            [[ -n "$subnet" ]] || invalid_certificate
+            creditors_subnet="$(cat "$DIR/creditors-subnet.txt")"
+            [[ "${#creditors_subnet}" == "${#subnet}" ]] || invalid_certificate
+            echo "$subnet" > "$peer_dir/masq-subnet.txt"
+            ;;
+        "Debtors Agents")
+            [[ -n "$subnet" ]] || invalid_certificate
+            echo "$subnet" | grep -E "^${DN_SERIAL_NUMBER}" || invalid_certificate
+            echo "$subnet" > "$DIR/debtors-subnet.txt"
+            ;;
+    esac
+    cp "$crt_file" "$peer_crt_file"
+fi
+
+echo
+echo '***********************************************************************'
+echo '* IMPORTANT: The peer certificate file has been verified and stored.  *'
+echo '*                                                                     *'
+echo '*            You should use this peer certificate as an intermediary  *'
+echo "*            certificate, together with your server's (leaf)          *"
+echo '*            certificate, to establish authenticated SSL connections  *'
+echo '*            with the peer node. See the "sign-servercert" command.   *'
+echo '***********************************************************************'
+echo "File location: $peer_crt_file"

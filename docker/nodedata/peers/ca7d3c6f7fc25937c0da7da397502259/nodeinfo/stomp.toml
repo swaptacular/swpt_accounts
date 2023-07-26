@@ -1,0 +1,3 @@
+servers = ["host.docker.internal:1235"]
+host = "/"
+destination = "/exchange/creditors_in"
