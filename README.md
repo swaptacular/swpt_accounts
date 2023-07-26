@@ -61,8 +61,7 @@ the following servers:
    **Note:** If you execute the "configure" command (see below), with
    the environment variable `SETUP_RABBITMQ_BINDINGS` set to `yes`, an
    attempt will be made to automatically setup all the required
-   RabbitMQ queues, exchanges, and the bindings between them. However,
-   this works only for the most basic setup.
+   RabbitMQ queues, exchanges, and the bindings between them.
 
 3. *RabbitMQ server instance*, which is responsible for queuing local
    database tasks (chores).
