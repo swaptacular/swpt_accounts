@@ -75,6 +75,11 @@ def calc_k(interest_rate: float) -> float:
     return math.log(1.0 + interest_rate / 100.0) / SECONDS_IN_YEAR
 
 
+def is_valid_account(debtor_id: int, creditor_id: int, match_parent=False) -> bool:
+    sharding_realm = current_app.config['SHARDING_REALM']
+    return sharding_realm.match(debtor_id, creditor_id, match_parent=match_parent)
+
+
 def contain_principal_overflow(value: int) -> int:
     if value <= MIN_INT64:
         return -MAX_INT64
@@ -459,9 +464,9 @@ class Signal(db.Model):
 
     @classmethod
     def send_signalbus_messages(cls, objects):
-        assert(all(isinstance(obj, cls) for obj in objects))
-        messages = [obj._create_message() for obj in objects]
-        publisher.publish_messages(messages)
+        assert all(isinstance(obj, cls) for obj in objects)
+        messages = (obj._create_message() for obj in objects)
+        publisher.publish_messages([m for m in messages if m is not None])
 
     def send_signalbus_message(self):
         self.send_signalbus_messages([self])
@@ -469,10 +474,22 @@ class Signal(db.Model):
     def _create_message(self):
         data = self.__marshmallow_schema__.dump(self)
         message_type = data['type']
+        creditor_id = data['creditor_id']
+        debtor_id = data['debtor_id']
+
+        if message_type != 'PendingBalanceChange' and not is_valid_account(debtor_id, creditor_id):
+            if (current_app.config['DELETE_PARENT_SHARD_RECORDS']
+                    and is_valid_account(debtor_id, creditor_id, match_parent=True)):
+                # This message most probably is a left-over from the
+                # previous splitting of the parent shard into children
+                # shards. Therefore we should just ignore it.
+                return None
+            raise RuntimeError('The shard is not responsible for this account.')  # pragma: no cover
+
         headers = {
             'message-type': message_type,
-            'debtor-id': data['debtor_id'],
-            'creditor-id': data['creditor_id'],
+            'debtor-id': debtor_id,
+            'creditor-id': creditor_id,
         }
         if 'coordinator_id' in data:
             headers['coordinator-id'] = data['coordinator_id']

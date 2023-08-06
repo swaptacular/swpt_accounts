@@ -7,6 +7,7 @@ from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root
 from swpt_accounts import procedures as p
 from swpt_accounts.actors import _configure_and_initialize_account
 from swpt_accounts.chores import ChoresConsumer
+from swpt_pythonlib.utils import ShardingRealm
 
 D_ID = -1
 C_ID = 1
@@ -179,6 +180,52 @@ def test_scan_accounts(app_unsafe_session, mocker):
     PendingBalanceChangeSignal.query.delete()
     db.session.commit()
 
+    _clear_root_config_data()
+
+
+def test_delete_parent_accounts(app_unsafe_session):
+    from swpt_accounts.models import Account, AccountUpdateSignal
+    from swpt_accounts.fetch_api_client import _clear_root_config_data
+
+    current_ts = datetime.now(tz=timezone.utc)
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    db.session.commit()
+    # p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0,
+    #                     config_data='{"rate": 0.0, "info": {"iri": "http://example.com"}}')
+    AccountUpdateSignal.query.delete()
+    account = Account(
+        debtor_id=D_ID,
+        creditor_id=12,
+        creation_date=date(1970, 1, 1),
+        principal=1000,
+        total_locked_amount=500,
+        pending_transfers_count=1,
+        last_transfer_id=3,
+        last_change_ts=current_ts,
+        last_heartbeat_ts=current_ts,
+        debtor_info_iri='http://example.com',
+    )
+    db.session.add(account)
+    db.session.commit()
+    app = app_unsafe_session
+    orig_sharding_realm = app.config['SHARDING_REALM']
+    app.config['SHARDING_REALM'] = ShardingRealm('0.#')
+    app.config['DELETE_PARENT_SHARD_RECORDS'] = True
+
+    db.engine.execute('ANALYZE account')
+    assert len(Account.query.all()) == 1
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_accounts', 'scan_accounts', '--hours', '0.000024', '--quit-early'])
+    assert result.exit_code == 0
+    assert len(Account.query.all()) == 0
+
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    db.session.commit()
+
+    app.config['DELETE_PARENT_SHARD_RECORDS'] = False
+    app.config['SHARDING_REALM'] = orig_sharding_realm
     _clear_root_config_data()
 
 

@@ -7,6 +7,7 @@ import os
 import os.path
 from typing import List
 from datetime import datetime, timezone, timedelta
+from swpt_pythonlib.utils import ShardingRealm
 
 
 def _parse_datetime(s: str) -> datetime:
@@ -196,6 +197,7 @@ class Configuration(metaclass=MetaEnvReader):
     PROCESS_FINALIZATION_REQUESTS_THREADS = 1
     PROCESS_BALANCE_CHANGES_THREADS = 1
 
+    DELETE_PARENT_SHARD_RECORDS = False
     REMOVE_FROM_ARCHIVE_THRESHOLD_DATE: _parse_datetime = _parse_datetime('1970-01-01')
 
     APP_PROCESS_BALANCE_CHANGES_WAIT = 2.0
@@ -288,6 +290,7 @@ def create_app(config_dict={}):
     app.url_map.converters['i64'] = Int64Converter
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
+    app.config['SHARDING_REALM'] = ShardingRealm(Configuration.PROTOCOL_BROKER_QUEUE_ROUTING_KEY)
     db.init_app(app)
     migrate.init_app(app, db)
     publisher.init_app(app)

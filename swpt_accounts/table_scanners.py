@@ -8,7 +8,7 @@ from flask import current_app
 from swpt_accounts.extensions import db, chores_publisher
 from swpt_accounts.models import Account, AccountUpdateSignal, AccountPurgeSignal, PreparedTransfer, \
     PreparedTransferSignal, RegisteredBalanceChange, ROOT_CREDITOR_ID, calc_current_balance, \
-    is_negligible_balance, contain_principal_overflow
+    is_negligible_balance, contain_principal_overflow, is_valid_account
 from swpt_accounts.fetch_api_client import get_root_config_data_dict
 from swpt_accounts.chores import create_chore_message
 
@@ -56,11 +56,34 @@ class AccountScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
+        if current_app.config['DELETE_PARENT_SHARD_RECORDS']:
+            self._delete_parent_shard_accounts(rows, current_ts)
         self._purge_accounts(rows, current_ts)
         self._send_heartbeats(rows, current_ts)
         self._delete_accounts(rows, current_ts)
         self._capitalize_interests(rows, current_ts)
         self._change_debtor_settings(rows, current_ts)
+
+    def _delete_parent_shard_accounts(self, rows, current_ts):
+        c = self.table.c
+        c_debtor_id = c.debtor_id
+        c_creditor_id = c.creditor_id
+
+        def belongs_to_parent_shard(row) -> bool:
+            return (
+                not is_valid_account(row[c_debtor_id], row[c_creditor_id])
+                and is_valid_account(row[c_debtor_id], row[c_creditor_id], match_parent=True)
+            )
+
+        pks_to_delete = [(row[c_debtor_id], row[c_creditor_id]) for row in rows if belongs_to_parent_shard(row)]
+        if pks_to_delete:
+            to_delete = Account.query.\
+                filter(self.pk.in_(pks_to_delete)).\
+                with_for_update(skip_locked=True).\
+                all()
+
+            for account in to_delete:
+                db.session.delete(account)
 
     def _purge_accounts(self, rows, current_ts):
         c = self.table.c
@@ -84,7 +107,7 @@ class AccountScanner(TableScanner):
                 filter(Account.status_flags.op('&')(deleted_flag) == deleted_flag).\
                 filter(Account.last_change_ts < purge_cutoff_ts).\
                 filter(Account.creation_date < date_few_days_ago).\
-                with_for_update().\
+                with_for_update(skip_locked=True).\
                 all()
 
             if to_purge:
@@ -120,7 +143,7 @@ class AccountScanner(TableScanner):
                     Account.last_heartbeat_ts < heartbeat_cutoff_ts,
                     Account.pending_account_update == true(),
                 )).\
-                with_for_update().\
+                with_for_update(skip_locked=True).\
                 all()
 
             if to_heartbeat:

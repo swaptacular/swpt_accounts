@@ -399,7 +399,7 @@ def get_accounts_with_finalization_requests(max_count: int = None) -> Iterable[T
 
 
 @atomic
-def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> None:
+def process_finalization_requests(debtor_id: int, sender_creditor_id: int, ignore_all=False) -> None:
     current_ts = datetime.now(tz=timezone.utc)
 
     requests = db.session.query(FinalizationRequest, PreparedTransfer).\
@@ -420,7 +420,7 @@ def process_finalization_requests(debtor_id: int, sender_creditor_id: int) -> No
             min_account_balance = _get_min_account_balance(sender_creditor_id)
 
         for finalization_request, prepared_transfer in requests:
-            if sender_account and prepared_transfer:
+            if (not ignore_all) and sender_account and prepared_transfer:
                 expendable_amount = (
                     + starting_balance
                     + principal_delta
