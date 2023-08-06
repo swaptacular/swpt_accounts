@@ -7,6 +7,7 @@ import os
 import os.path
 from typing import List
 from datetime import datetime, timezone, timedelta
+from swpt_pythonlib.utils import ShardingRealm
 
 
 def _parse_datetime(s: str) -> datetime:
@@ -234,6 +235,11 @@ class Configuration(metaclass=MetaEnvReader):
     APP_REGISTERED_BALANCE_CHANGES_SCAN_BLOCKS_PER_QUERY = 40
     APP_REGISTERED_BALANCE_CHANGES_SCAN_BEAT_MILLISECS = 25
 
+    # Set this to "true" after splitting a parent database shard into two
+    # children shards. Set this back to "false", once all left-over records
+    # have been deleted from the child shard.
+    APP_DELETE_PARENT_SHARD_RECORDS = False
+
 
 def _check_config_sanity(c):  # pragma: nocover
     if (c['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'] < c['APP_SIGNALBUS_MAX_DELAY_DAYS']):
@@ -288,6 +294,7 @@ def create_app(config_dict={}):
     app.url_map.converters['i64'] = Int64Converter
     app.config.from_object(Configuration)
     app.config.from_mapping(config_dict)
+    app.config['SHARDING_REALM'] = ShardingRealm(Configuration.PROTOCOL_BROKER_QUEUE_ROUTING_KEY)
     db.init_app(app)
     migrate.init_app(app, db)
     publisher.init_app(app)

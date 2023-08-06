@@ -19,7 +19,7 @@ alembic = "^1.8.1"
 pytest = "^7.1.2"
 pytest-mock = "^3.8.2"
 marshmallow = "^3.17.0"
-swpt_pythonlib = {git = "https://github.com/swaptacular/swpt_pythonlib.git", tag = "v0.8.4"}
+swpt_pythonlib = {git = "https://github.com/swaptacular/swpt_pythonlib.git", tag = "v0.8.6"}
 requests = "^2.31.0"
 aiohttp = "^3.8.5"
 

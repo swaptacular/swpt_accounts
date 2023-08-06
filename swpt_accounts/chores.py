@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from marshmallow import ValidationError
 from flask import current_app
 from swpt_pythonlib import rabbitmq
-from swpt_accounts.models import SECONDS_IN_DAY
+from swpt_accounts.models import SECONDS_IN_DAY, is_valid_account
 from swpt_accounts import procedures
 from swpt_accounts import schemas
 
@@ -150,7 +150,13 @@ class ChoresConsumer(rabbitmq.Consumer):
             _LOGGER.error('Message validation error: %s', str(e))
             return False
 
-        actor(**message_content)
+        if is_valid_account(message_content['debtor_id'], message_content['creditor_id']):
+            # NOTE: Simply ignore chores for accounts this shard is not
+            #       responsible for. This is important because otherwise,
+            #       for example, an interest payment could be performed
+            #       twice, on both children shards.
+            actor(**message_content)
+
         return True
 
 

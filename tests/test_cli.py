@@ -3,6 +3,7 @@ from sqlalchemy.sql.expression import true
 from swpt_accounts import procedures as p
 from swpt_accounts.models import RejectedTransferSignal, TransferRequest, FinalizationRequest, \
     FinalizedTransferSignal, PreparedTransfer, PendingBalanceChangeSignal, RegisteredBalanceChange
+from swpt_pythonlib.utils import ShardingRealm
 
 
 def _flush_balance_change_signals():
@@ -86,6 +87,37 @@ def test_process_transfers_finalization_requests(app, db_session):
     assert not result.output
     assert len(FinalizedTransferSignal.query.all()) == 1
     assert len(FinalizationRequest.query.all()) == 0
+
+
+def test_ignore_transfers_finalization_requests(app, db_session):
+    orig_sharding_realm = app.config['SHARDING_REALM']
+    app.config['SHARDING_REALM'] = ShardingRealm('0.#')
+    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = True
+    p.make_debtor_payment('test', D_ID, C_ID, 1000)
+    p.process_pending_balance_changes(D_ID, C_ID)
+    p.prepare_transfer(
+        coordinator_type='test',
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=1,
+        max_locked_amount=200,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient_creditor_id=0,
+        ts=datetime.now(tz=timezone.utc),
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    pt = PreparedTransfer.query.one()
+    p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'test', 1, 2, 1)
+    assert len(FinalizationRequest.query.all()) == 1
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_accounts', 'process_finalization_requests', '--quit-early', '--wait=0'])
+    assert result.exit_code == 0
+    assert not result.output
+    assert len(FinalizedTransferSignal.query.all()) == 0
+    assert len(FinalizationRequest.query.all()) == 0
+    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = False
+    app.config['SHARDING_REALM'] = orig_sharding_realm
 
 
 def test_spawn_worker_processes():

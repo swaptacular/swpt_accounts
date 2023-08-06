@@ -9,7 +9,7 @@ from flask import current_app
 from flask.cli import with_appcontext
 from swpt_accounts import procedures
 from swpt_accounts.extensions import db
-from swpt_accounts.models import SECONDS_IN_DAY
+from swpt_accounts.models import SECONDS_IN_DAY, is_valid_account
 from swpt_accounts.multiproc_utils import ThreadPoolProcessor, spawn_worker_processes, \
     try_unblock_signals, HANDLED_SIGNALS
 
@@ -216,8 +216,23 @@ def process_finalization_requests(threads, wait, quit_early):
     wait = wait if wait is not None else current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_WAIT']
     max_count = current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_MAX_COUNT']
 
+    def should_ignore_requests(debtor_id: int, creditor_id: int) -> bool:
+        if not is_valid_account(debtor_id, creditor_id):
+            if (current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']
+                    and is_valid_account(debtor_id, creditor_id, match_parent=True)):
+                # NOTE: Finalization requests that have been created by the
+                #       parent shard, should be processed only by one of the
+                #       children shards.
+                return True
+            raise RuntimeError('The shard is not responsible for this account.')  # pragma: no cover
+        return False
+
     def get_args_collection():
-        return procedures.get_accounts_with_finalization_requests(max_count=max_count)
+        return [
+            (debtor_id, creditor_id, should_ignore_requests(debtor_id, creditor_id))
+            for debtor_id, creditor_id
+            in procedures.get_accounts_with_finalization_requests(max_count=max_count)
+        ]
 
     logger = logging.getLogger(__name__)
     logger.info('Started finalization requests processor.')

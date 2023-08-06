@@ -60,6 +60,35 @@ def test_send_signalbus_message(app, mocker):
     )
 
 
+def test_send_signalbus_message_wrong_shard(app, mocker):
+    from swpt_accounts import models as m
+    from swpt_pythonlib.utils import ShardingRealm
+    orig_sharding_realm = app.config['SHARDING_REALM']
+    app.config['SHARDING_REALM'] = ShardingRealm('0.#')
+    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = True
+    current_ts = datetime.now()
+    publisher = mocker.patch('swpt_accounts.models.publisher')
+    s = m.RejectedTransferSignal(
+        debtor_id=1,
+        sender_creditor_id=2,
+        coordinator_type='direct',
+        coordinator_id=666,
+        coordinator_request_id=777,
+        status_code='TEST_ERROR',
+        total_locked_amount=0,
+        inserted_at=current_ts,
+    )
+    s.send_signalbus_message()
+    publisher.publish_messages.assert_called_once()
+    args, kwargs = publisher.publish_messages.call_args
+    assert len(args) == 1
+    assert kwargs == {}
+    messages = args[0]
+    assert len(messages) == 0
+    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = False
+    app.config['SHARDING_REALM'] = orig_sharding_realm
+
+
 def test_properties(app):
     from swpt_accounts import models as m
     from swpt_accounts.extensions import TO_COORDINATORS_EXCHANGE, TO_DEBTORS_EXCHANGE, \

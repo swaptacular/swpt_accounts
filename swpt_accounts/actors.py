@@ -6,7 +6,7 @@ from marshmallow import ValidationError
 from swpt_pythonlib import rabbitmq
 from swpt_pythonlib.utils import u64_to_i64
 import swpt_pythonlib.protocol_schemas as ps
-from swpt_accounts.models import SECONDS_IN_DAY
+from swpt_accounts.models import SECONDS_IN_DAY, is_valid_account
 from swpt_accounts.fetch_api_client import get_if_account_is_reachable, get_root_config_data_dict
 from swpt_accounts import procedures
 
@@ -209,6 +209,9 @@ class SmpConsumer(rabbitmq.Consumer):
         except ValidationError as e:
             _LOGGER.error('Message validation error: %s', str(e))
             return False
+
+        if not is_valid_account(message_content['debtor_id'], message_content['creditor_id']):
+            raise RuntimeError('The shard is not responsible for this account.')  # pragma: no cover
 
         actor(**message_content)
         return True
