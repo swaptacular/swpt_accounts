@@ -197,6 +197,7 @@ class Configuration(metaclass=MetaEnvReader):
     PROCESS_FINALIZATION_REQUESTS_THREADS = 1
     PROCESS_BALANCE_CHANGES_THREADS = 1
 
+    DELETE_PARENT_SHARD_RECORDS = False
     REMOVE_FROM_ARCHIVE_THRESHOLD_DATE: _parse_datetime = _parse_datetime('1970-01-01')
 
     APP_PROCESS_BALANCE_CHANGES_WAIT = 2.0
@@ -234,11 +235,6 @@ class Configuration(metaclass=MetaEnvReader):
     APP_PREPARED_TRANSFERS_SCAN_BEAT_MILLISECS = 25
     APP_REGISTERED_BALANCE_CHANGES_SCAN_BLOCKS_PER_QUERY = 40
     APP_REGISTERED_BALANCE_CHANGES_SCAN_BEAT_MILLISECS = 25
-
-    # Set this to "true" after splitting a parent database shard into two
-    # children shards. Set this back to "false", once all left-over records
-    # have been deleted from the child shard.
-    APP_DELETE_PARENT_SHARD_RECORDS = False
 
 
 def _check_config_sanity(c):  # pragma: nocover

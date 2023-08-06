@@ -56,7 +56,7 @@ class AccountScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
-        if current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']:
+        if current_app.config['DELETE_PARENT_SHARD_RECORDS']:
             self._delete_parent_shard_accounts(rows, current_ts)
         self._purge_accounts(rows, current_ts)
         self._send_heartbeats(rows, current_ts)

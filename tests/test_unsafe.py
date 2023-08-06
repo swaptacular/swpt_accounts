@@ -211,7 +211,7 @@ def test_delete_parent_accounts(app_unsafe_session):
     app = app_unsafe_session
     orig_sharding_realm = app.config['SHARDING_REALM']
     app.config['SHARDING_REALM'] = ShardingRealm('0.#')
-    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = True
+    app.config['DELETE_PARENT_SHARD_RECORDS'] = True
 
     db.engine.execute('ANALYZE account')
     assert len(Account.query.all()) == 1
@@ -224,7 +224,7 @@ def test_delete_parent_accounts(app_unsafe_session):
     AccountUpdateSignal.query.delete()
     db.session.commit()
 
-    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = False
+    app.config['DELETE_PARENT_SHARD_RECORDS'] = False
     app.config['SHARDING_REALM'] = orig_sharding_realm
     _clear_root_config_data()
 

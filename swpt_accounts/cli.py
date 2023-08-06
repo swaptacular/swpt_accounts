@@ -218,7 +218,7 @@ def process_finalization_requests(threads, wait, quit_early):
 
     def should_ignore_requests(debtor_id: int, creditor_id: int) -> bool:
         if not is_valid_account(debtor_id, creditor_id):
-            if (current_app.config['APP_DELETE_PARENT_SHARD_RECORDS']
+            if (current_app.config['DELETE_PARENT_SHARD_RECORDS']
                     and is_valid_account(debtor_id, creditor_id, match_parent=True)):
                 # NOTE: Finalization requests that have been created by the
                 #       parent shard, should be processed only by one of the

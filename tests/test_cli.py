@@ -92,7 +92,7 @@ def test_process_transfers_finalization_requests(app, db_session):
 def test_ignore_transfers_finalization_requests(app, db_session):
     orig_sharding_realm = app.config['SHARDING_REALM']
     app.config['SHARDING_REALM'] = ShardingRealm('0.#')
-    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = True
+    app.config['DELETE_PARENT_SHARD_RECORDS'] = True
     p.make_debtor_payment('test', D_ID, C_ID, 1000)
     p.process_pending_balance_changes(D_ID, C_ID)
     p.prepare_transfer(
@@ -116,7 +116,7 @@ def test_ignore_transfers_finalization_requests(app, db_session):
     assert not result.output
     assert len(FinalizedTransferSignal.query.all()) == 0
     assert len(FinalizationRequest.query.all()) == 0
-    app.config['APP_DELETE_PARENT_SHARD_RECORDS'] = False
+    app.config['DELETE_PARENT_SHARD_RECORDS'] = False
     app.config['SHARDING_REALM'] = orig_sharding_realm
 
 
