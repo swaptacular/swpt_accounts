@@ -61,9 +61,7 @@ def subscribe():  # pragma: no cover
     })
 
     # declare a corresponding dead-letter queue
-    channel.queue_declare(dead_letter_queue_name, durable=True, arguments={
-        'x-message-ttl': 604800000,
-    })
+    channel.queue_declare(dead_letter_queue_name, durable=True)
     logger.info('Declared "%s" dead-letter queue.', dead_letter_queue_name)
 
     # declare the queue
@@ -92,9 +90,7 @@ def create_chores_queue():  # pragma: no cover
     channel = connection.channel()
 
     # declare a corresponding dead-letter queue
-    channel.queue_declare(dead_letter_queue_name, durable=True, arguments={
-        'x-message-ttl': 604800000,
-    })
+    channel.queue_declare(dead_letter_queue_name, durable=True)
     logger.info('Declared "%s" dead-letter queue.', dead_letter_queue_name)
 
     # declare the queue
