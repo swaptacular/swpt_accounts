@@ -6,7 +6,7 @@ authors = ["Evgeni Pandurski <epandurski@gmail.com>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.9"
 gunicorn = "*"
 python-json-logger = "^2.0.4"
 flask = "^2.2.5"

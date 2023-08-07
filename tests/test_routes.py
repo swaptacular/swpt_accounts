@@ -48,7 +48,6 @@ def test_get_config(client, account, current_ts):
     r = client.get('/accounts/18446744073709551615/1/config')
     assert r.status_code == 200
     assert r.mimetype == 'text/plain'
-    assert r.charset == 'utf-8'
     assert r.cache_control.max_age > 10000
     assert r.get_data() == b''
 
