@@ -26,7 +26,6 @@ def test_scan_accounts(app_unsafe_session, mocker):
         PendingBalanceChangeSignal
     from swpt_accounts.fetch_api_client import _clear_root_config_data
 
-    # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
     past_ts = datetime(1970, 1, 1, tzinfo=timezone.utc)
     app = app_unsafe_session
@@ -232,7 +231,6 @@ def test_delete_parent_accounts(app_unsafe_session):
 def test_scan_prepared_transfers(app_unsafe_session):
     from swpt_accounts.models import Account, PreparedTransfer, PreparedTransferSignal
 
-    # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
     past_ts = datetime(1970, 1, 1, tzinfo=timezone.utc)
     app = app_unsafe_session
@@ -322,7 +320,6 @@ def test_scan_prepared_transfers(app_unsafe_session):
 def test_scan_registered_balance_changes(app_unsafe_session):
     from swpt_accounts.models import RegisteredBalanceChange
 
-    # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
     past_ts = datetime(1970, 1, 1, tzinfo=timezone.utc)
     app = app_unsafe_session
@@ -425,7 +422,6 @@ def test_set_interest_rate_on_new_accounts(app_unsafe_session):
     from swpt_accounts.models import Account, AccountUpdateSignal
     from swpt_accounts.fetch_api_client import _clear_root_config_data
 
-    # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
     Account.query.delete()
     AccountUpdateSignal.query.delete()

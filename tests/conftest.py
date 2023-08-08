@@ -28,7 +28,6 @@ def _restart_savepoint(session, transaction):
 @pytest.fixture(scope='module')
 def app_unsafe_session():
     app = create_app(config_dict)
-    db.signalbus.autoflush = False
     with app.app_context():
         flask_migrate.upgrade()
         yield app
@@ -57,14 +56,13 @@ def db_session(app):
 
     """
 
-    db.signalbus.autoflush = False
     engines_by_table = db.get_binds()
     connections_by_engine = {engine: engine.connect() for engine in set(engines_by_table.values())}
     transactions = [connection.begin() for connection in connections_by_engine.values()]
     session_options = dict(
         binds={table: connections_by_engine[engine] for table, engine in engines_by_table.items()},
     )
-    session = db.create_scoped_session(options=session_options)
+    session = db._make_scoped_session(options=session_options)
     session.begin_nested()
     sqlalchemy.event.listen(session, 'after_transaction_end', _restart_savepoint)
     with mock.patch(DB_SESSION, new=session):

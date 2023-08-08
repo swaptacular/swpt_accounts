@@ -546,19 +546,19 @@ Flask-SQLAlchemy = ">=1.0"
 
 [[package]]
 name = "flask-sqlalchemy"
-version = "2.5.1"
-description = "Adds SQLAlchemy support to your Flask application."
+version = "3.0.5"
+description = "Add SQLAlchemy support to your Flask application."
 category = "main"
 optional = false
-python-versions = ">= 2.7, != 3.0.*, != 3.1.*, != 3.2.*, != 3.3.*"
+python-versions = ">=3.7"
 files = [
-    {file = "Flask-SQLAlchemy-2.5.1.tar.gz", hash = "sha256:2bda44b43e7cacb15d4e05ff3cc1f8bc97936cc464623424102bfc2c35e95912"},
-    {file = "Flask_SQLAlchemy-2.5.1-py2.py3-none-any.whl", hash = "sha256:f12c3d4cc5cc7fdcc148b9527ea05671718c3ea45d50c7e732cceb33f574b390"},
+    {file = "flask_sqlalchemy-3.0.5-py3-none-any.whl", hash = "sha256:cabb6600ddd819a9f859f36515bb1bd8e7dbf30206cc679d2b081dff9e383283"},
+    {file = "flask_sqlalchemy-3.0.5.tar.gz", hash = "sha256:c5765e58ca145401b52106c0f46178569243c5da25556be2c231ecc60867c5b1"},
 ]
 
 [package.dependencies]
-Flask = ">=0.10"
-SQLAlchemy = ">=0.8.0"
+flask = ">=2.2.5"
+sqlalchemy = ">=1.4.18"
 
 [[package]]
 name = "frozenlist"
@@ -1744,7 +1744,7 @@ sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
 name = "Swpt-Pythonlib"
-version = "0.8.7"
+version = "0.9.0"
 description = "A Python library used by many Swaptacular micro-services"
 category = "main"
 optional = false
@@ -1753,17 +1753,17 @@ files = []
 develop = false
 
 [package.dependencies]
-Flask = ">=1.0"
-Flask-SQLAlchemy = ">=2.4,<3.0"
+Flask = ">=2.2.5"
+Flask-SQLAlchemy = ">=3.0.5"
 marshmallow = ">=3.10"
 pika = ">=1.3"
-SQLAlchemy = ">=1.3,<2.0"
+SQLAlchemy = ">=1.4.18"
 
 [package.source]
 type = "git"
 url = "https://github.com/swaptacular/swpt_pythonlib.git"
-reference = "v0.8.7"
-resolved_reference = "c8ec79d58ef159fc962da73fe491e91d8ec791a9"
+reference = "v0.9.0"
+resolved_reference = "1dd5ef3bf58727cf293b7dc8cd6845bd7be647e6"
 
 [[package]]
 name = "toml"
@@ -2185,4 +2185,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "c482edbfb7cdf0ad5061317544ade285e54648c76be7c3e7087bc258e8464f98"
+content-hash = "8d3cf23c7bf0bf1d9543126f122f7237f1828f3ee6d02a7f9653eb7bb8000851"
