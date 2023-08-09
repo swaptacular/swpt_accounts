@@ -69,7 +69,6 @@ def get_requests_session():
 
 
 db = CustomAlchemy()
-db.signalbus.autoflush = False
 migrate = Migrate()
 asyncio_loop = LocalProxy(get_asyncio_loop)
 aiohttp_session = LocalProxy(get_aiohttp_session)

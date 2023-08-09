@@ -1,8 +1,12 @@
+import pytest
 from datetime import datetime, timezone
 from sqlalchemy.sql.expression import true
+from swpt_accounts.extensions import db
 from swpt_accounts import procedures as p
 from swpt_accounts.models import RejectedTransferSignal, TransferRequest, FinalizationRequest, \
-    FinalizedTransferSignal, PreparedTransfer, PendingBalanceChangeSignal, RegisteredBalanceChange
+    FinalizedTransferSignal, PreparedTransfer, PendingBalanceChangeSignal, RegisteredBalanceChange, \
+    Account, AccountUpdateSignal, AccountTransferSignal, PendingBalanceChange, \
+    PreparedTransferSignal
 from swpt_pythonlib.utils import ShardingRealm
 
 
@@ -26,7 +30,19 @@ D_ID = -1
 C_ID = 1
 
 
-def test_process_transfers_pending_balance_changes(app, db_session):
+@pytest.mark.unsafe
+def test_process_transfers_pending_balance_changes(app_unsafe_session):
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    PreparedTransfer.query.delete()
+    PreparedTransferSignal.query.delete()
+    AccountTransferSignal.query.delete()
+    PendingBalanceChange.query.delete()
+    PendingBalanceChangeSignal.query.delete()
+    RegisteredBalanceChange.query.delete()
+    db.session.commit()
+
+    app = app_unsafe_session
     p.make_debtor_payment('test', D_ID, C_ID, 1000)
     assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID) is None
     _flush_balance_change_signals()
@@ -39,8 +55,32 @@ def test_process_transfers_pending_balance_changes(app, db_session):
     assert p.get_available_amount(D_ID, p.ROOT_CREDITOR_ID) == -1000
     assert RegisteredBalanceChange.query.filter(RegisteredBalanceChange.is_applied == true()).all()
 
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    PreparedTransfer.query.delete()
+    PreparedTransferSignal.query.delete()
+    AccountTransferSignal.query.delete()
+    PendingBalanceChange.query.delete()
+    PendingBalanceChangeSignal.query.delete()
+    RegisteredBalanceChange.query.delete()
+    db.session.commit()
 
-def test_process_transfers_transfer_requests(app, db_session):
+
+@pytest.mark.unsafe
+def test_process_transfers_transfer_requests(app_unsafe_session):
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    PreparedTransfer.query.delete()
+    PreparedTransferSignal.query.delete()
+    AccountTransferSignal.query.delete()
+    TransferRequest.query.delete()
+    RejectedTransferSignal.query.delete()
+    PendingBalanceChange.query.delete()
+    RegisteredBalanceChange.query.delete()
+    PendingBalanceChangeSignal.query.delete()
+    db.session.commit()
+
+    app = app_unsafe_session
     current_ts = datetime.now(tz=timezone.utc)
     p.configure_account(D_ID, 1234, current_ts, 0)
     p.prepare_transfer(
@@ -62,8 +102,32 @@ def test_process_transfers_transfer_requests(app, db_session):
     assert len(RejectedTransferSignal.query.all()) == 1
     assert len(TransferRequest.query.all()) == 0
 
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    PreparedTransfer.query.delete()
+    PreparedTransferSignal.query.delete()
+    AccountTransferSignal.query.delete()
+    TransferRequest.query.delete()
+    RejectedTransferSignal.query.delete()
+    PendingBalanceChange.query.delete()
+    RegisteredBalanceChange.query.delete()
+    PendingBalanceChangeSignal.query.delete()
+    db.session.commit()
 
-def test_process_transfers_finalization_requests(app, db_session):
+
+@pytest.mark.unsafe
+def test_process_transfers_finalization_requests(app_unsafe_session):
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    PreparedTransfer.query.delete()
+    PreparedTransferSignal.query.delete()
+    AccountTransferSignal.query.delete()
+    PendingBalanceChange.query.delete()
+    RegisteredBalanceChange.query.delete()
+    PendingBalanceChangeSignal.query.delete()
+    db.session.commit()
+
+    app = app_unsafe_session
     p.make_debtor_payment('test', D_ID, C_ID, 1000)
     p.process_pending_balance_changes(D_ID, C_ID)
     p.prepare_transfer(
@@ -88,8 +152,32 @@ def test_process_transfers_finalization_requests(app, db_session):
     assert len(FinalizedTransferSignal.query.all()) == 1
     assert len(FinalizationRequest.query.all()) == 0
 
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    PreparedTransfer.query.delete()
+    PreparedTransferSignal.query.delete()
+    AccountTransferSignal.query.delete()
+    PendingBalanceChange.query.delete()
+    RegisteredBalanceChange.query.delete()
+    PendingBalanceChangeSignal.query.delete()
+    db.session.commit()
 
-def test_ignore_transfers_finalization_requests(app, db_session):
+
+@pytest.mark.unsafe
+def test_ignore_transfers_finalization_requests(app_unsafe_session):
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    PreparedTransfer.query.delete()
+    PreparedTransferSignal.query.delete()
+    AccountTransferSignal.query.delete()
+    PendingBalanceChange.query.delete()
+    RegisteredBalanceChange.query.delete()
+    PendingBalanceChangeSignal.query.delete()
+    FinalizedTransferSignal.query.delete()
+    FinalizationRequest.query.delete()
+    db.session.commit()
+
+    app = app_unsafe_session
     orig_sharding_realm = app.config['SHARDING_REALM']
     app.config['SHARDING_REALM'] = ShardingRealm('0.#')
     app.config['DELETE_PARENT_SHARD_RECORDS'] = True
@@ -118,6 +206,18 @@ def test_ignore_transfers_finalization_requests(app, db_session):
     assert len(FinalizationRequest.query.all()) == 0
     app.config['DELETE_PARENT_SHARD_RECORDS'] = False
     app.config['SHARDING_REALM'] = orig_sharding_realm
+
+    Account.query.delete()
+    AccountUpdateSignal.query.delete()
+    PreparedTransfer.query.delete()
+    PreparedTransferSignal.query.delete()
+    AccountTransferSignal.query.delete()
+    PendingBalanceChange.query.delete()
+    RegisteredBalanceChange.query.delete()
+    PendingBalanceChangeSignal.query.delete()
+    FinalizedTransferSignal.query.delete()
+    FinalizationRequest.query.delete()
+    db.session.commit()
 
 
 def test_spawn_worker_processes():

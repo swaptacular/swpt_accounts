@@ -61,9 +61,7 @@ def subscribe():  # pragma: no cover
     })
 
     # declare a corresponding dead-letter queue
-    channel.queue_declare(dead_letter_queue_name, durable=True, arguments={
-        'x-message-ttl': 604800000,
-    })
+    channel.queue_declare(dead_letter_queue_name, durable=True)
     logger.info('Declared "%s" dead-letter queue.', dead_letter_queue_name)
 
     # declare the queue
@@ -92,9 +90,7 @@ def create_chores_queue():  # pragma: no cover
     channel = connection.channel()
 
     # declare a corresponding dead-letter queue
-    channel.queue_declare(dead_letter_queue_name, durable=True, arguments={
-        'x-message-ttl': 604800000,
-    })
+    channel.queue_declare(dead_letter_queue_name, durable=True)
     logger.info('Declared "%s" dead-letter queue.', dead_letter_queue_name)
 
     # declare the queue
@@ -148,6 +144,7 @@ def process_balance_changes(threads, wait, quit_early):
         get_args_collection=get_args_collection,
         process_func=procedures.process_pending_balance_changes,
         wait_seconds=wait,
+        max_count=max_count,
     ).run(quit_early=quit_early)
 
 
@@ -190,6 +187,7 @@ def process_transfer_requests(threads, wait, quit_early):
         get_args_collection=get_args_collection,
         process_func=procedures.process_transfer_requests,
         wait_seconds=wait,
+        max_count=max_count,
     ).run(quit_early=quit_early)
 
 
@@ -242,6 +240,7 @@ def process_finalization_requests(threads, wait, quit_early):
         get_args_collection=get_args_collection,
         process_func=procedures.process_finalization_requests,
         wait_seconds=wait,
+        max_count=max_count,
     ).run(quit_early=quit_early)
 
 

@@ -1,3 +1,4 @@
+import pytest
 import logging
 from datetime import date, datetime, timezone, timedelta
 from flask import current_app
@@ -13,6 +14,7 @@ D_ID = -1
 C_ID = 1
 
 
+@pytest.mark.unsafe
 def test_scan_accounts(app_unsafe_session, mocker):
     chores = []
 
@@ -26,7 +28,6 @@ def test_scan_accounts(app_unsafe_session, mocker):
         PendingBalanceChangeSignal
     from swpt_accounts.fetch_api_client import _clear_root_config_data
 
-    # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
     past_ts = datetime(1970, 1, 1, tzinfo=timezone.utc)
     app = app_unsafe_session
@@ -183,6 +184,7 @@ def test_scan_accounts(app_unsafe_session, mocker):
     _clear_root_config_data()
 
 
+@pytest.mark.unsafe
 def test_delete_parent_accounts(app_unsafe_session):
     from swpt_accounts.models import Account, AccountUpdateSignal
     from swpt_accounts.fetch_api_client import _clear_root_config_data
@@ -229,10 +231,10 @@ def test_delete_parent_accounts(app_unsafe_session):
     _clear_root_config_data()
 
 
+@pytest.mark.unsafe
 def test_scan_prepared_transfers(app_unsafe_session):
     from swpt_accounts.models import Account, PreparedTransfer, PreparedTransferSignal
 
-    # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
     past_ts = datetime(1970, 1, 1, tzinfo=timezone.utc)
     app = app_unsafe_session
@@ -319,10 +321,10 @@ def test_scan_prepared_transfers(app_unsafe_session):
     db.session.commit()
 
 
+@pytest.mark.unsafe
 def test_scan_registered_balance_changes(app_unsafe_session):
     from swpt_accounts.models import RegisteredBalanceChange
 
-    # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
     past_ts = datetime(1970, 1, 1, tzinfo=timezone.utc)
     app = app_unsafe_session
@@ -365,6 +367,7 @@ def test_scan_registered_balance_changes(app_unsafe_session):
     db.session.commit()
 
 
+@pytest.mark.unsafe
 def test_get_if_account_is_reachable(app_unsafe_session, caplog):
     from swpt_accounts.models import Account, AccountUpdateSignal
 
@@ -390,6 +393,7 @@ def test_get_if_account_is_reachable(app_unsafe_session, caplog):
     db.session.commit()
 
 
+@pytest.mark.unsafe
 def test_get_root_config_data_dict(app_unsafe_session, caplog):
     from swpt_accounts.models import Account, AccountUpdateSignal
     from swpt_accounts.fetch_api_client import _clear_root_config_data
@@ -421,11 +425,11 @@ def test_get_root_config_data_dict(app_unsafe_session, caplog):
     _clear_root_config_data()
 
 
+@pytest.mark.unsafe
 def test_set_interest_rate_on_new_accounts(app_unsafe_session):
     from swpt_accounts.models import Account, AccountUpdateSignal
     from swpt_accounts.fetch_api_client import _clear_root_config_data
 
-    # db.signalbus.autoflush = False
     current_ts = datetime.now(tz=timezone.utc)
     Account.query.delete()
     AccountUpdateSignal.query.delete()
