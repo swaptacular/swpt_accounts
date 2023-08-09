@@ -56,20 +56,14 @@ def db_session(app):
 
     """
 
-    engines_by_table = db.get_binds()
-    connections_by_engine = {engine: engine.connect() for engine in set(engines_by_table.values())}
-    transactions = [connection.begin() for connection in connections_by_engine.values()]
-    session_options = dict(
-        binds={table: connections_by_engine[engine] for table, engine in engines_by_table.items()},
-    )
-    session = db._make_scoped_session(options=session_options)
+    connection = db.engine.connect()
+    transaction = connection.begin()
+    session = db._make_scoped_session(options={})
     session.begin_nested()
     sqlalchemy.event.listen(session, 'after_transaction_end', _restart_savepoint)
     with mock.patch(DB_SESSION, new=session):
         yield session
     sqlalchemy.event.remove(session, 'after_transaction_end', _restart_savepoint)
     session.remove()
-    for transaction in transactions:
-        transaction.rollback()
-    for connection in connections_by_engine.values():
-        connection.close()
+    transaction.rollback()
+    connection.close()
