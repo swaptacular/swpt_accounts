@@ -1,3 +1,4 @@
+import pytest
 from datetime import datetime, timezone
 from sqlalchemy.sql.expression import true
 from swpt_accounts.extensions import db
@@ -29,6 +30,7 @@ D_ID = -1
 C_ID = 1
 
 
+@pytest.mark.unsafe
 def test_process_transfers_pending_balance_changes(app_unsafe_session):
     Account.query.delete()
     AccountUpdateSignal.query.delete()
@@ -64,6 +66,7 @@ def test_process_transfers_pending_balance_changes(app_unsafe_session):
     db.session.commit()
 
 
+@pytest.mark.unsafe
 def test_process_transfers_transfer_requests(app_unsafe_session):
     Account.query.delete()
     AccountUpdateSignal.query.delete()
@@ -112,6 +115,7 @@ def test_process_transfers_transfer_requests(app_unsafe_session):
     db.session.commit()
 
 
+@pytest.mark.unsafe
 def test_process_transfers_finalization_requests(app_unsafe_session):
     Account.query.delete()
     AccountUpdateSignal.query.delete()
@@ -159,6 +163,7 @@ def test_process_transfers_finalization_requests(app_unsafe_session):
     db.session.commit()
 
 
+@pytest.mark.unsafe
 def test_ignore_transfers_finalization_requests(app_unsafe_session):
     Account.query.delete()
     AccountUpdateSignal.query.delete()
