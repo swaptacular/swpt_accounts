@@ -403,13 +403,25 @@ class PreparedTransferScanner(TableScanner):
 
         if prepared_transfer_signal_mappings:
             pks_to_remind = prepared_transfer_signal_mappings.keys()
-            PreparedTransfer.query.\
+            to_update = db.session.query(PreparedTransfer.debtor_id,
+                                         PreparedTransfer.sender_creditor_id,
+                                         PreparedTransfer.transfer_id).\
                 filter(self.pk.in_(pks_to_remind)).\
-                update({
-                    PreparedTransfer.last_reminder_ts: current_ts,
-                }, synchronize_session=False)
+                with_for_update(skip_locked=True).\
+                all()
 
-            db.session.bulk_insert_mappings(PreparedTransferSignal, prepared_transfer_signal_mappings.values())
+            if to_update:
+                pks_to_update = {pk for pk in to_update}
+                PreparedTransfer.query.\
+                    filter(self.pk.in_(pks_to_update)).\
+                    update({
+                        PreparedTransfer.last_reminder_ts: current_ts,
+                    }, synchronize_session=False)
+
+                db.session.bulk_insert_mappings(
+                    PreparedTransferSignal,
+                    [v for k, v in prepared_transfer_signal_mappings.items() if k in pks_to_update],
+                )
 
 
 class RegisteredBalanceChangeScanner(TableScanner):
