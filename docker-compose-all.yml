@@ -28,13 +28,12 @@ services:
 
 
   # The purpose of this container is to serve as HTTP cache for the
-  # `account-server` container. In complex deployments, it is possible
-  # to run several `account-server` instances, each instance being
-  # responsible for a different range of creditors/debtors, and each
-  # instance making HTTP requests to other `account-server` instances
-  # (including itself). A properly configured HTTP cache ensures that
-  # the system scales well. (See the `FETCH_API_URL` configuration
-  # variable.)
+  # `account-apiproxy` container. In complex deployments, it is possible to
+  # run several `account-server` instances, each instance being responsible
+  # for a different range of creditors/debtors, and each instance making
+  # HTTP requests to other `account-server` instances (including itself). A
+  # properly configured HTTP cache ensures that the system scales well. (See
+  # the `FETCH_API_URL` configuration variable.)
   accounts-cache:
     image: nginx:1.19.4
     volumes:
@@ -49,6 +48,11 @@ services:
       - 'NGINX_ENTRYPOINT_QUIET_LOGS=1'
 
 
+  # This container acts as a reverse proxy. It extracts the debtor ID and
+  # the creditor ID from the the incoming HTTP request, calculates a
+  # sharding key, and then, based on the sharding key, decides to which
+  # server to forward the incoming request. In this simple example,
+  # `accounts-server` is the only shard.
   accounts-apiproxy:
     image: ghcr.io/swaptacular/swpt_apiproxy:latest
     volumes:
