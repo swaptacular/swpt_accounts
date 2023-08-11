@@ -260,7 +260,7 @@ container allows you to execute the following *documented commands*:
   start additional processes, dedicated to the flushing of particular type
   of messages, to handle the load.
 
-  The "FLUSH_message-type_WAIT"" environment variables control the number
+  The "FLUSH_*message-type*_WAIT" environment variables control the number
   of seconds to wait between two sequential flushes (default 2). For
   example, configuring "FLUSH_PREPARED_TRANSFERS_WAIT=0.5" will try to flush
   the outgoing "PraparedTransfer" messages every 0.5 seconds.
