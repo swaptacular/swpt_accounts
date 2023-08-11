@@ -162,7 +162,7 @@ CHORES_BROKER_PREFETCH_COUNT=10
 # (default 2). All outgoing Swaptacular Messaging Protocol messages
 # are first recorded in the PostgreSQL database, and then are
 # "fulshed" to the RabbitMQ message broker. The specal value "stop"
-# disables message flushing althogether.
+# disables collective message flushing althogether.
 FLUSH_ALL_WAIT=1.5
 
 # The processing of each transfer consists of several stages. The
