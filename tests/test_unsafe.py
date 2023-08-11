@@ -128,6 +128,7 @@ def test_scan_accounts(app_unsafe_session, mocker):
 
     # A heartbeat message
     acs = AccountUpdateSignal.query.one()
+    account = Account.query.filter_by(debtor_id=D_ID, creditor_id=12).one()
     assert acs.debtor_id == account.debtor_id
     assert acs.creditor_id == account.creditor_id
     assert acs.last_change_ts == account.last_change_ts == past_ts

@@ -85,6 +85,8 @@ class AccountScanner(TableScanner):
             for account in to_delete:
                 db.session.delete(account)
 
+            db.session.commit()
+
     def _purge_accounts(self, rows, current_ts):
         c = self.table.c
         deleted_flag = Account.STATUS_DELETED_FLAG
@@ -124,6 +126,8 @@ class AccountScanner(TableScanner):
                     )
                     for debtor_id, creditor_id, creation_date in to_purge
                 ])
+
+            db.session.commit()
 
     def _send_heartbeats(self, rows, current_ts):
         c = self.table.c
@@ -180,6 +184,8 @@ class AccountScanner(TableScanner):
                     )
                     for account in to_heartbeat
                 ])
+
+            db.session.commit()
 
     def _delete_accounts(self, rows, current_ts):
         c = self.table.c
@@ -423,6 +429,8 @@ class PreparedTransferScanner(TableScanner):
                     [v for k, v in prepared_transfer_signal_mappings.items() if k in pks_to_update],
                 )
 
+            db.session.commit()
+
 
 class RegisteredBalanceChangeScanner(TableScanner):
     """Attempts to delete stale registered balance changes."""
@@ -462,3 +470,4 @@ class RegisteredBalanceChangeScanner(TableScanner):
         )]
         if pks_to_delete:
             db.session.execute(self.table.delete().where(self.pk.in_(pks_to_delete)))
+            db.session.commit()
