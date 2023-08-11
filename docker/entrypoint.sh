@@ -132,7 +132,7 @@ case $1 in
         ;;
     flush_rejected_transfers | flush_prepared_transfers | flush_finalized_transfers \
         | flush_account_transfers | flush_account_updates | flush_account_purges \
-        | flush_rejected_configs | flush_pending_balance_changes)
+        | flush_rejected_configs | flush_pending_balance_changes | flush_all)
 
         flush_rejected_transfers=RejectedTransferSignal
         flush_prepared_transfers=PreparedTransferSignal
@@ -142,6 +142,7 @@ case $1 in
         flush_account_purges=AccountPurgeSignal
         flush_rejected_configs=RejectedConfigSignal
         flush_pending_balance_changes=PendingBalanceChangeSignal
+        flush_all=
 
         # For example: if `$1` is "flush_rejected_transfers",
         # `signal_name` will be "RejectedTransferSignal".
@@ -150,8 +151,11 @@ case $1 in
         # For example: if `$1` is "flush_rejected_transfers", `wait`
         # will get the value of the APP_FLUSH_REJECTED_TRANSFERS_WAIT
         # environment variable, defaulting to 2 if it is not defined.
-        eval wait=\${APP_$(echo "$1" | tr [:lower:] [:upper:])_WAIT-2}
+        eval wait=\${$(echo "$1" | tr [:lower:] [:upper:])_WAIT-2}
 
+        if [[ "$wait" == "stop" ]]; then
+            exit 2
+        fi
         exec flask signalbus flushmany --repeat=$wait $signal_name
         ;;
     all)
