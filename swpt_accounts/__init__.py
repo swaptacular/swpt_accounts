@@ -191,6 +191,9 @@ class Configuration(metaclass=MetaEnvReader):
     CHORES_BROKER_PREFETCH_SIZE = 0
     CHORES_BROKER_PREFETCH_COUNT = 1
 
+    FLUSH_PROCESSES = 1
+    FLUSH_PERIOD = 2.0
+
     FETCH_API_URL: str = None
 
     PROCESS_TRANSFER_REQUESTS_THREADS = 1

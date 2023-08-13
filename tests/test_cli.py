@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import Mock
 from datetime import datetime, timezone
 from sqlalchemy.sql.expression import true
 from swpt_accounts.extensions import db
@@ -220,17 +221,34 @@ def test_ignore_transfers_finalization_requests(app_unsafe_session):
     db.session.commit()
 
 
-def test_spawn_worker_processes():
-    from swpt_accounts.multiproc_utils import spawn_worker_processes, HANDLED_SIGNALS, try_unblock_signals
-
-    def _quit():
-        assert len(HANDLED_SIGNALS) > 0
-        try_unblock_signals()
-
-    spawn_worker_processes(
-        processes=2,
-        target=_quit,
+@pytest.mark.unsafe
+def test_flush_messages(mocker, app_unsafe_session):
+    send_signalbus_message = Mock()
+    mocker.patch('swpt_accounts.models.RejectedTransferSignal.send_signalbus_message',
+                 new_callable=send_signalbus_message)
+    RejectedTransferSignal.query.delete()
+    db.session.commit()
+    rts = RejectedTransferSignal(
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        coordinator_type='direct',
+        coordinator_id=C_ID,
+        coordinator_request_id=777,
+        status_code='FAILURE',
+        total_locked_amount=0,
     )
+    db.session.add(rts)
+    db.session.commit()
+    assert len(RejectedTransferSignal.query.all()) == 1
+    db.session.commit()
+    app = app_unsafe_session
+
+    runner = app.test_cli_runner()
+    result = runner.invoke(args=['swpt_accounts', 'flush_messages',
+                                 'RejectedTransferSignal', '--wait', '0.1', '--quit-early'])
+    assert result.exit_code == 1
+    assert send_signalbus_message.called_once()
+    assert len(RejectedTransferSignal.query.all()) == 0
 
 
 def test_consume_messages(app):

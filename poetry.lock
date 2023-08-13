@@ -1746,7 +1746,7 @@ sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
 name = "Swpt-Pythonlib"
-version = "0.9.0"
+version = "0.9.1"
 description = "A Python library used by many Swaptacular micro-services"
 category = "main"
 optional = false
@@ -1764,8 +1764,8 @@ SQLAlchemy = ">=1.4.18"
 [package.source]
 type = "git"
 url = "https://github.com/swaptacular/swpt_pythonlib.git"
-reference = "v0.9.0"
-resolved_reference = "1dd5ef3bf58727cf293b7dc8cd6845bd7be647e6"
+reference = "v0.9.1"
+resolved_reference = "7108e908ac21d84cf88e09eda2b8d73a7e8105e7"
 
 [[package]]
 name = "tomli"
@@ -2175,4 +2175,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "e0d301b0ff00c11a2ebd519f9eca5fb8dd22e2a3ec51c827791867106b7ce8c2"
+content-hash = "6979566f476f3f8c2c5030073b4c8c16b49cf985679606bfe404a782c8d14966"
