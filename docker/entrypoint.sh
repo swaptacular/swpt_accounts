@@ -148,15 +148,8 @@ case $1 in
         # `signal_name` will be "RejectedTransferSignal".
         eval signal_name=\$$1
 
-        # For example: if `$1` is "flush_rejected_transfers", `wait`
-        # will get the value of the APP_FLUSH_REJECTED_TRANSFERS_WAIT
-        # environment variable, defaulting to 2 if it is not defined.
-        eval wait=\${$(echo "$1" | tr [:lower:] [:upper:])_WAIT-2}
-
-        if [[ "$wait" == "stop" ]]; then
-            exit 2
-        fi
-        exec flask signalbus flushmany --repeat=$wait $signal_name
+        shift
+        exec flask swpt_accounts flush_messages $signal_name "$@"
         ;;
     all)
         # Spawns all the necessary processes in one container.

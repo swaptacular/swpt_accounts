@@ -1,17 +1,21 @@
 import logging
 import os
+import time
 import sys
 import click
 import signal
 import pika
+from typing import Optional, Any
 from datetime import timedelta
 from flask import current_app
 from flask.cli import with_appcontext
+from flask_sqlalchemy.model import Model
 from swpt_accounts import procedures
 from swpt_accounts.extensions import db
 from swpt_accounts.models import SECONDS_IN_DAY, is_valid_account
-from swpt_accounts.multiproc_utils import ThreadPoolProcessor, spawn_worker_processes, \
+from swpt_pythonlib.multiproc_utils import ThreadPoolProcessor, spawn_worker_processes, \
     try_unblock_signals, HANDLED_SIGNALS
+from swpt_pythonlib.flask_signalbus import SignalBus
 
 
 @click.group('swpt_accounts')
@@ -454,5 +458,97 @@ def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefet
         threads=threads,
         prefetch_size=prefetch_size,
         prefetch_count=prefetch_count,
+    )
+    sys.exit(1)
+
+
+@swpt_accounts.command('flush_messages')
+@with_appcontext
+@click.option(
+    '-p', '--processes', type=int, help='Then umber of worker processes.'
+    ' If not specified, the value of the FLUSH_PROCESSES environment'
+    ' variable will be used, defaulting to 1 if empty.')
+@click.option(
+    '-w', '--wait', type=float, help='Flush every FLOAT seconds.'
+    ' If not specified, the value of the FLUSH_PERIOD environment'
+    ' variable will be used, defaulting to 2 seconds if empty.')
+@click.option(
+    '--quit-early', is_flag=True, default=False,
+    help='Exit after some time (mainly useful during testing).')
+@click.argument('message_types', nargs=-1)
+def flush_messages(
+        message_types: list[str],
+        processes: int, wait:
+        float, quit_early: bool,
+) -> None:
+    """Send pending messages to the message broker.
+    If a list of MESSAGE_TYPES is given, flushes only these types of
+    messages. If no MESSAGE_TYPES are specified, flushes all messages.
+    """
+    signalbus: SignalBus = current_app.extensions['signalbus']
+    logger = logging.getLogger(__name__)
+
+    def _get_models_to_flush(model_names: list[str]) -> list[type[Model]]:
+        signal_names = set(model_names)
+        wrong_names = set()
+        models_to_flush = signalbus.get_signal_models()
+        if signal_names:
+            wrong_names = signal_names - {m.__name__ for m in models_to_flush}
+            models_to_flush = [
+                m for m in models_to_flush if m.__name__ in signal_names]
+
+        for name in wrong_names:  # pragma: no cover
+            logger.warning('A signal with name "%s" does not exist.', name)
+
+        return models_to_flush
+
+    models_to_flush = _get_models_to_flush(message_types)
+    logger.info('Started flushing %s.',
+                ', '.join(m.__name__ for m in models_to_flush))
+
+    def _flush(
+            models_to_flush: list[type[Model]],
+            wait: Optional[float],
+    ) -> None:  # pragma: no cover
+        from swpt_accounts import create_app
+        app = create_app()
+        stopped = False
+
+        def stop(signum: Any = None, frame: Any = None) -> None:
+            nonlocal stopped
+            stopped = True
+
+        for sig in HANDLED_SIGNALS:
+            signal.signal(sig, stop)
+        try_unblock_signals()
+
+        with app.app_context():
+            signalbus: SignalBus = current_app.extensions['signalbus']
+            while not stopped:
+                started_at = time.time()
+                try:
+                    count = signalbus.flushmany(models_to_flush)
+                except Exception:
+                    logger.exception(
+                        'Caught error while sending pending signals.')
+                    sys.exit(1)
+
+                if count > 0:
+                    logger.info(
+                        '%i signals have been successfully processed.', count)
+                else:
+                    logger.debug('0 signals have been processed.')
+
+                if quit_early:
+                    break
+                time.sleep(max(0.0, wait + started_at - time.time()))
+
+    spawn_worker_processes(
+        processes=(processes if processes is not None
+                   else current_app.config['FLUSH_PROCESSES']),
+        target=_flush,
+        models_to_flush=models_to_flush,
+        wait=(wait if wait is not None
+              else current_app.config['FLUSH_PERIOD']),
     )
     sys.exit(1)

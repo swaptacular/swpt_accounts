@@ -32,7 +32,7 @@ ARG FLASK_APP=swpt_accounts
 
 ENV FLASK_APP=$FLASK_APP
 ENV APP_ROOT_DIR=/usr/src/app
-ENV APP_ASSOCIATED_LOGGERS=swpt_pythonlib.flask_signalbus.signalbus_cli
+ENV APP_ASSOCIATED_LOGGERS="swpt_pythonlib.flask_signalbus.signalbus_cli swpt_pythonlib.multiproc_utils"
 ENV PYTHONPATH="$APP_ROOT_DIR"
 ENV PATH="/opt/venv/bin:$PATH"
 ENV GUNICORN_LOGLEVEL=warning
