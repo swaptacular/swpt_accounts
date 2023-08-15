@@ -2,11 +2,8 @@ import pytest
 import sqlalchemy
 import flask_migrate
 from datetime import datetime, timezone
-from unittest import mock
 from swpt_accounts import create_app
 from swpt_accounts.extensions import db
-
-DB_SESSION = 'swpt_accounts.extensions.db.session'
 
 server_name = 'example.com'
 config_dict = {
@@ -19,51 +16,38 @@ config_dict = {
 }
 
 
-def _restart_savepoint(session, transaction):
-    if transaction.nested and not transaction._parent.nested:
-        session.expire_all()
-        session.begin_nested()
-
-
 @pytest.fixture(scope='module')
-def app_unsafe_session():
+def app():
+    """Get a Flask application object."""
+
     app = create_app(config_dict)
     with app.app_context():
         flask_migrate.upgrade()
         yield app
 
 
-@pytest.fixture(scope='module')
-def app():
-    """Create a Flask application object."""
-
-    app = create_app(config_dict)
-    with app.app_context():
-        flask_migrate.upgrade()
-        forbidden = mock.Mock()
-        forbidden.side_effect = RuntimeError('Database accessed without "db_session" fixture.')
-        with mock.patch(DB_SESSION, new=forbidden):
-            yield app
-
-
 @pytest.fixture(scope='function')
 def db_session(app):
-    """Create a mocked Flask-SQLAlchmey session object.
+    """Get a Flask-SQLAlchmey session, with an automatic cleanup."""
 
-    The standard Flask-SQLAlchmey's session object is replaced with a
-    mock session that perform all database operations in a
-    transaction, which is rolled back at the end of the test.
+    yield db.session
 
-    """
-
-    connection = db.engine.connect()
-    transaction = connection.begin()
-    session = db._make_scoped_session(options={})
-    session.begin_nested()
-    sqlalchemy.event.listen(session, 'after_transaction_end', _restart_savepoint)
-    with mock.patch(DB_SESSION, new=session):
-        yield session
-    sqlalchemy.event.remove(session, 'after_transaction_end', _restart_savepoint)
-    session.remove()
-    transaction.rollback()
-    connection.close()
+    # Cleanup:
+    db.session.remove()
+    for cmd in [
+            'TRUNCATE TABLE account CASCADE',
+            'TRUNCATE TABLE transfer_request',
+            'TRUNCATE TABLE finalization_request',
+            'TRUNCATE TABLE registered_balance_change CASCADE',
+            'TRUNCATE TABLE pending_balance_change',
+            'TRUNCATE TABLE rejected_transfer_signal',
+            'TRUNCATE TABLE prepared_transfer_signal',
+            'TRUNCATE TABLE finalized_transfer_signal',
+            'TRUNCATE TABLE account_transfer_signal',
+            'TRUNCATE TABLE account_update_signal',
+            'TRUNCATE TABLE account_purge_signal',
+            'TRUNCATE TABLE rejected_config_signal',
+            'TRUNCATE TABLE pending_balance_change_signal',
+    ]:
+        db.session.execute(sqlalchemy.text(cmd))
+    db.session.commit()

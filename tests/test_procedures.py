@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime, timezone, timedelta
 from swpt_accounts import __version__
 from swpt_accounts import procedures as p
+from swpt_accounts.extensions import db
 from swpt_accounts.models import MAX_INT32, MAX_INT64, INTEREST_RATE_FLOOR, INTEREST_RATE_CEIL, \
     Account, PendingBalanceChangeSignal, RejectedTransferSignal, PreparedTransfer, PreparedTransferSignal, \
     AccountUpdateSignal, AccountTransferSignal, FinalizedTransferSignal, RejectedConfigSignal, \
@@ -950,7 +951,7 @@ def test_prepared_transfer_commit_timeout(db_session, current_ts):
     pt = PreparedTransfer.query.filter_by(debtor_id=D_ID, sender_creditor_id=C_ID).one()
     pt.prepared_at = pt.prepared_at - timedelta(days=100)
     pt.deadline = pt.prepared_at + timedelta(days=30)
-    db_session.commit()
+    db.session.commit()
     p.finalize_transfer(D_ID, C_ID, pt.transfer_id, 'direct', 1, 2, 40)
     p.process_finalization_requests(D_ID, C_ID)
     fts = FinalizedTransferSignal.query.one()
@@ -1093,7 +1094,7 @@ def test_account_purge_signal(db_session, current_ts):
         creditor_id=C_ID,
         creation_date=current_ts.date(),
     ))
-    db_session.commit()
+    db.session.commit()
     aps = AccountPurgeSignal.query.one()
     aps_obj = aps.__marshmallow_schema__.dump(aps)
     assert aps_obj['debtor_id'] == D_ID
