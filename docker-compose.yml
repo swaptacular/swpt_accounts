@@ -23,7 +23,7 @@ services:
     env_file: .env
     environment:
       - 'PYTHONDONTWRITEBYTECODE=1'
-      - 'POSTGRES_URL=postgresql://swpt_accounts:swpt_accounts@tests-pg:5432/${POSTGRES_DB}'
+      - 'POSTGRES_URL=postgresql+psycopg://swpt_accounts:swpt_accounts@tests-pg:5432/${POSTGRES_DB}'
     command: configure
     depends_on:
       - tests-pg
@@ -38,7 +38,7 @@ services:
     env_file: .env
     environment:
       - 'WEBSERVER_PORT=8080'
-      - 'POSTGRES_URL=postgresql://swpt_accounts:swpt_accounts@tests-pg:5432/${POSTGRES_DB}'
+      - 'POSTGRES_URL=postgresql+psycopg://swpt_accounts:swpt_accounts@tests-pg:5432/${POSTGRES_DB}'
       - 'PYTHONDONTWRITEBYTECODE=1'
       - 'PYTHONBREAKPOINT=web_pdb.set_trace'
     ports:
@@ -58,7 +58,7 @@ services:
     env_file: .env
     environment:
       - 'FETCH_API_URL=http://tests-web:8080'
-      - 'POSTGRES_URL=postgresql://swpt_accounts:swpt_accounts@tests-pg:5432/${POSTGRES_DB}'
+      - 'POSTGRES_URL=postgresql+psycopg://swpt_accounts:swpt_accounts@tests-pg:5432/${POSTGRES_DB}'
       - 'PYTHONDONTWRITEBYTECODE=1'
     command: echo This is a dummy container used only to run the tests.
     depends_on:

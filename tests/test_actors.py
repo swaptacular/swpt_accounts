@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from swpt_accounts import procedures as p
 from swpt_accounts.models import RejectedTransferSignal
 from swpt_pythonlib.rabbitmq import MessageProperties
+from swpt_accounts.actors import _configure_and_initialize_account
 
 D_ID = -1
 C_ID = 1
@@ -125,3 +126,17 @@ def test_consumer(db_session, actors):
       "config_data": ""
     }
     ''', props) is True
+
+
+def test_set_interest_rate_on_new_accounts(app, db_session):
+    from swpt_accounts.models import AccountUpdateSignal
+    from swpt_accounts.fetch_api_client import _clear_root_config_data
+
+    current_ts = datetime.now(tz=timezone.utc)
+    p.configure_account(D_ID, p.ROOT_CREDITOR_ID, current_ts, 0, config_data='{"rate": 3.567}')
+    _configure_and_initialize_account(debtor_id=D_ID, creditor_id=C_ID, ts=current_ts, seqnum=0)
+
+    signals = AccountUpdateSignal.query.filter_by(creditor_id=C_ID).all()
+    assert any(s.interest_rate == 3.567 for s in signals)
+
+    _clear_root_config_data()
