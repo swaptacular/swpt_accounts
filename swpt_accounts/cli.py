@@ -13,17 +13,21 @@ from flask_sqlalchemy.model import Model
 from swpt_accounts import procedures
 from swpt_accounts.extensions import db
 from swpt_accounts.models import SECONDS_IN_DAY, is_valid_account
-from swpt_pythonlib.multiproc_utils import ThreadPoolProcessor, spawn_worker_processes, \
-    try_unblock_signals, HANDLED_SIGNALS
+from swpt_pythonlib.multiproc_utils import (
+    ThreadPoolProcessor,
+    spawn_worker_processes,
+    try_unblock_signals,
+    HANDLED_SIGNALS,
+)
 from swpt_pythonlib.flask_signalbus import SignalBus
 
 
-@click.group('swpt_accounts')
+@click.group("swpt_accounts")
 def swpt_accounts():
     """Perform operations on Swaptacular accounts."""
 
 
-@swpt_accounts.command('subscribe')
+@swpt_accounts.command("subscribe")
 @with_appcontext
 def subscribe():  # pragma: no cover
     """Declare a RabbitMQ queue, and subscribe it to receive incoming
@@ -37,59 +41,91 @@ def subscribe():  # pragma: no cover
 
     """
 
-    from .extensions import ACCOUNTS_IN_EXCHANGE, \
-        TO_CREDITORS_EXCHANGE, TO_DEBTORS_EXCHANGE, TO_COORDINATORS_EXCHANGE
+    from .extensions import (
+        ACCOUNTS_IN_EXCHANGE,
+        TO_CREDITORS_EXCHANGE,
+        TO_DEBTORS_EXCHANGE,
+        TO_COORDINATORS_EXCHANGE,
+    )
 
     logger = logging.getLogger(__name__)
-    queue_name = current_app.config['PROTOCOL_BROKER_QUEUE']
-    routing_key = current_app.config['PROTOCOL_BROKER_QUEUE_ROUTING_KEY']
-    dead_letter_queue_name = queue_name + '.XQ'
-    broker_url = current_app.config['PROTOCOL_BROKER_URL']
+    queue_name = current_app.config["PROTOCOL_BROKER_QUEUE"]
+    routing_key = current_app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
+    dead_letter_queue_name = queue_name + ".XQ"
+    broker_url = current_app.config["PROTOCOL_BROKER_URL"]
     connection = pika.BlockingConnection(pika.URLParameters(broker_url))
     channel = connection.channel()
 
     # declare exchanges
-    channel.exchange_declare(ACCOUNTS_IN_EXCHANGE, exchange_type='topic', durable=True)
-    channel.exchange_declare(TO_CREDITORS_EXCHANGE, exchange_type='topic', durable=True)
-    channel.exchange_declare(TO_DEBTORS_EXCHANGE, exchange_type='topic', durable=True)
-    channel.exchange_declare(TO_COORDINATORS_EXCHANGE, exchange_type='headers', durable=True)
+    channel.exchange_declare(
+        ACCOUNTS_IN_EXCHANGE, exchange_type="topic", durable=True
+    )
+    channel.exchange_declare(
+        TO_CREDITORS_EXCHANGE, exchange_type="topic", durable=True
+    )
+    channel.exchange_declare(
+        TO_DEBTORS_EXCHANGE, exchange_type="topic", durable=True
+    )
+    channel.exchange_declare(
+        TO_COORDINATORS_EXCHANGE, exchange_type="headers", durable=True
+    )
 
     # declare exchange bindings
-    channel.exchange_bind(source=TO_COORDINATORS_EXCHANGE, destination=TO_CREDITORS_EXCHANGE, arguments={
-        "x-match": "all",
-        "coordinator-type": "direct",
-    })
-    channel.exchange_bind(source=TO_COORDINATORS_EXCHANGE, destination=TO_DEBTORS_EXCHANGE, arguments={
-        "x-match": "all",
-        "coordinator-type": "issuing",
-    })
+    channel.exchange_bind(
+        source=TO_COORDINATORS_EXCHANGE,
+        destination=TO_CREDITORS_EXCHANGE,
+        arguments={
+            "x-match": "all",
+            "coordinator-type": "direct",
+        },
+    )
+    channel.exchange_bind(
+        source=TO_COORDINATORS_EXCHANGE,
+        destination=TO_DEBTORS_EXCHANGE,
+        arguments={
+            "x-match": "all",
+            "coordinator-type": "issuing",
+        },
+    )
 
     # declare a corresponding dead-letter queue
     channel.queue_declare(dead_letter_queue_name, durable=True)
     logger.info('Declared "%s" dead-letter queue.', dead_letter_queue_name)
 
     # declare the queue
-    channel.queue_declare(queue_name, durable=True, arguments={
-        "x-dead-letter-exchange": "",
-        "x-dead-letter-routing-key": dead_letter_queue_name,
-    })
+    channel.queue_declare(
+        queue_name,
+        durable=True,
+        arguments={
+            "x-dead-letter-exchange": "",
+            "x-dead-letter-routing-key": dead_letter_queue_name,
+        },
+    )
     logger.info('Declared "%s" queue.', queue_name)
 
     # bind the queue
-    channel.queue_bind(exchange=ACCOUNTS_IN_EXCHANGE, queue=queue_name, routing_key=routing_key)
-    logger.info('Created a binding from "%s" to "%s" with routing key "%s".',
-                ACCOUNTS_IN_EXCHANGE, queue_name, routing_key)
+    channel.queue_bind(
+        exchange=ACCOUNTS_IN_EXCHANGE,
+        queue=queue_name,
+        routing_key=routing_key,
+    )
+    logger.info(
+        'Created a binding from "%s" to "%s" with routing key "%s".',
+        ACCOUNTS_IN_EXCHANGE,
+        queue_name,
+        routing_key,
+    )
 
 
-@swpt_accounts.command('create_chores_queue')
+@swpt_accounts.command("create_chores_queue")
 @with_appcontext
 def create_chores_queue():  # pragma: no cover
     """Declare a RabbitMQ queue for accounts' chores."""
 
     logger = logging.getLogger(__name__)
-    queue_name = current_app.config['CHORES_BROKER_QUEUE']
-    dead_letter_queue_name = queue_name + '.XQ'
-    broker_url = current_app.config['CHORES_BROKER_URL']
+    queue_name = current_app.config["CHORES_BROKER_QUEUE"]
+    dead_letter_queue_name = queue_name + ".XQ"
+    broker_url = current_app.config["CHORES_BROKER_URL"]
     connection = pika.BlockingConnection(pika.URLParameters(broker_url))
     channel = connection.channel()
 
@@ -98,19 +134,37 @@ def create_chores_queue():  # pragma: no cover
     logger.info('Declared "%s" dead-letter queue.', dead_letter_queue_name)
 
     # declare the queue
-    channel.queue_declare(queue_name, durable=True, arguments={
-        "x-dead-letter-exchange": "",
-        "x-dead-letter-routing-key": dead_letter_queue_name,
-    })
+    channel.queue_declare(
+        queue_name,
+        durable=True,
+        arguments={
+            "x-dead-letter-exchange": "",
+            "x-dead-letter-routing-key": dead_letter_queue_name,
+        },
+    )
     logger.info('Declared "%s" queue.', queue_name)
 
 
-@swpt_accounts.command('process_balance_changes')
+@swpt_accounts.command("process_balance_changes")
 @with_appcontext
-@click.option('-t', '--threads', type=int, help='The number of worker threads.')
-@click.option('-w', '--wait', type=float, help='The minimal number of seconds between'
-              ' the queries to obtain pending balance changes.')
-@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+@click.option(
+    "-t", "--threads", type=int, help="The number of worker threads."
+)
+@click.option(
+    "-w",
+    "--wait",
+    type=float,
+    help=(
+        "The minimal number of seconds between"
+        " the queries to obtain pending balance changes."
+    ),
+)
+@click.option(
+    "--quit-early",
+    is_flag=True,
+    default=False,
+    help="Exit after some time (mainly useful during testing).",
+)
 def process_balance_changes(threads, wait, quit_early):
     """Process pending balance changes.
 
@@ -133,15 +187,23 @@ def process_balance_changes(threads, wait, quit_early):
     #       CPU-bound, which is unlikely, especially if we
     #       re-implement the logic in stored procedures.
 
-    threads = threads or int(current_app.config['PROCESS_BALANCE_CHANGES_THREADS'])
-    wait = wait if wait is not None else current_app.config['APP_PROCESS_BALANCE_CHANGES_WAIT']
-    max_count = current_app.config['APP_PROCESS_BALANCE_CHANGES_MAX_COUNT']
+    threads = threads or int(
+        current_app.config["PROCESS_BALANCE_CHANGES_THREADS"]
+    )
+    wait = (
+        wait
+        if wait is not None
+        else current_app.config["APP_PROCESS_BALANCE_CHANGES_WAIT"]
+    )
+    max_count = current_app.config["APP_PROCESS_BALANCE_CHANGES_MAX_COUNT"]
 
     def get_args_collection():
-        return procedures.get_accounts_with_pending_balance_changes(max_count=max_count)
+        return procedures.get_accounts_with_pending_balance_changes(
+            max_count=max_count
+        )
 
     logger = logging.getLogger(__name__)
-    logger.info('Started balance changes processor.')
+    logger.info("Started balance changes processor.")
 
     ThreadPoolProcessor(
         threads,
@@ -152,12 +214,26 @@ def process_balance_changes(threads, wait, quit_early):
     ).run(quit_early=quit_early)
 
 
-@swpt_accounts.command('process_transfer_requests')
+@swpt_accounts.command("process_transfer_requests")
 @with_appcontext
-@click.option('-t', '--threads', type=int, help='The number of worker threads.')
-@click.option('-w', '--wait', type=float, help='The minimal number of seconds between'
-              ' the queries to obtain pending transfer requests.')
-@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+@click.option(
+    "-t", "--threads", type=int, help="The number of worker threads."
+)
+@click.option(
+    "-w",
+    "--wait",
+    type=float,
+    help=(
+        "The minimal number of seconds between"
+        " the queries to obtain pending transfer requests."
+    ),
+)
+@click.option(
+    "--quit-early",
+    is_flag=True,
+    default=False,
+    help="Exit after some time (mainly useful during testing).",
+)
 def process_transfer_requests(threads, wait, quit_early):
     """Process pending transfer requests.
 
@@ -171,19 +247,30 @@ def process_transfer_requests(threads, wait, quit_early):
 
     """
 
-    threads = threads or int(current_app.config['PROCESS_TRANSFER_REQUESTS_THREADS'])
-    wait = wait if wait is not None else current_app.config['APP_PROCESS_TRANSFER_REQUESTS_WAIT']
-    commit_period = current_app.config['APP_PREPARED_TRANSFER_MAX_DELAY_DAYS'] * SECONDS_IN_DAY
-    max_count = current_app.config['APP_PROCESS_TRANSFER_REQUESTS_MAX_COUNT']
+    threads = threads or int(
+        current_app.config["PROCESS_TRANSFER_REQUESTS_THREADS"]
+    )
+    wait = (
+        wait
+        if wait is not None
+        else current_app.config["APP_PROCESS_TRANSFER_REQUESTS_WAIT"]
+    )
+    commit_period = (
+        current_app.config["APP_PREPARED_TRANSFER_MAX_DELAY_DAYS"]
+        * SECONDS_IN_DAY
+    )
+    max_count = current_app.config["APP_PROCESS_TRANSFER_REQUESTS_MAX_COUNT"]
 
     logger = logging.getLogger(__name__)
-    logger.info('Started transfer requests processor.')
+    logger.info("Started transfer requests processor.")
 
     def get_args_collection():
+        rows = procedures.get_accounts_with_transfer_requests(
+            max_count=max_count
+        )
         return [
             (debtor_id, creditor_id, commit_period)
-            for debtor_id, creditor_id
-            in procedures.get_accounts_with_transfer_requests(max_count=max_count)
+            for debtor_id, creditor_id in rows
         ]
 
     ThreadPoolProcessor(
@@ -195,12 +282,26 @@ def process_transfer_requests(threads, wait, quit_early):
     ).run(quit_early=quit_early)
 
 
-@swpt_accounts.command('process_finalization_requests')
+@swpt_accounts.command("process_finalization_requests")
 @with_appcontext
-@click.option('-t', '--threads', type=int, help='The number of worker threads.')
-@click.option('-w', '--wait', type=float, help='The minimal number of seconds between'
-              ' the queries to obtain pending finalization requests.')
-@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+@click.option(
+    "-t", "--threads", type=int, help="The number of worker threads."
+)
+@click.option(
+    "-w",
+    "--wait",
+    type=float,
+    help=(
+        "The minimal number of seconds between"
+        " the queries to obtain pending finalization requests."
+    ),
+)
+@click.option(
+    "--quit-early",
+    is_flag=True,
+    default=False,
+    help="Exit after some time (mainly useful during testing).",
+)
 def process_finalization_requests(threads, wait, quit_early):
     """Process pending finalization requests.
 
@@ -214,30 +315,49 @@ def process_finalization_requests(threads, wait, quit_early):
 
     """
 
-    threads = threads if threads is not None else current_app.config['PROCESS_FINALIZATION_REQUESTS_THREADS']
-    wait = wait if wait is not None else current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_WAIT']
-    max_count = current_app.config['APP_PROCESS_FINALIZATION_REQUESTS_MAX_COUNT']
+    threads = (
+        threads
+        if threads is not None
+        else current_app.config["PROCESS_FINALIZATION_REQUESTS_THREADS"]
+    )
+    wait = (
+        wait
+        if wait is not None
+        else current_app.config["APP_PROCESS_FINALIZATION_REQUESTS_WAIT"]
+    )
+    max_count = current_app.config[
+        "APP_PROCESS_FINALIZATION_REQUESTS_MAX_COUNT"
+    ]
 
     def should_ignore_requests(debtor_id: int, creditor_id: int) -> bool:
         if not is_valid_account(debtor_id, creditor_id):
-            if (current_app.config['DELETE_PARENT_SHARD_RECORDS']
-                    and is_valid_account(debtor_id, creditor_id, match_parent=True)):
+            if current_app.config[
+                "DELETE_PARENT_SHARD_RECORDS"
+            ] and is_valid_account(debtor_id, creditor_id, match_parent=True):
                 # NOTE: Finalization requests that have been created by the
                 #       parent shard, should be processed only by one of the
                 #       children shards.
                 return True
-            raise RuntimeError('The shard is not responsible for this account.')  # pragma: no cover
+            raise RuntimeError(
+                "The shard is not responsible for this account."
+            )  # pragma: no cover
         return False
 
     def get_args_collection():
+        rows = procedures.get_accounts_with_finalization_requests(
+            max_count=max_count
+        )
         return [
-            (debtor_id, creditor_id, should_ignore_requests(debtor_id, creditor_id))
-            for debtor_id, creditor_id
-            in procedures.get_accounts_with_finalization_requests(max_count=max_count)
+            (
+                debtor_id,
+                creditor_id,
+                should_ignore_requests(debtor_id, creditor_id),
+            )
+            for debtor_id, creditor_id in rows
         ]
 
     logger = logging.getLogger(__name__)
-    logger.info('Started finalization requests processor.')
+    logger.info("Started finalization requests processor.")
 
     ThreadPoolProcessor(
         threads,
@@ -248,10 +368,15 @@ def process_finalization_requests(threads, wait, quit_early):
     ).run(quit_early=quit_early)
 
 
-@swpt_accounts.command('scan_accounts')
+@swpt_accounts.command("scan_accounts")
 @with_appcontext
-@click.option('-h', '--hours', type=float, help='The number of hours.')
-@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+@click.option("-h", "--hours", type=float, help="The number of hours.")
+@click.option(
+    "--quit-early",
+    is_flag=True,
+    default=False,
+    help="Exit after some time (mainly useful during testing).",
+)
 def scan_accounts(hours, quit_early):
     """Start a process that executes accounts maintenance operations.
 
@@ -266,17 +391,22 @@ def scan_accounts(hours, quit_early):
     from swpt_accounts.table_scanners import AccountScanner
 
     logger = logging.getLogger(__name__)
-    logger.info('Started accounts scanner.')
-    hours = hours or current_app.config['APP_ACCOUNTS_SCAN_HOURS']
+    logger.info("Started accounts scanner.")
+    hours = hours or current_app.config["APP_ACCOUNTS_SCAN_HOURS"]
     assert hours > 0.0
     scanner = AccountScanner()
     scanner.run(db.engine, timedelta(hours=hours), quit_early=quit_early)
 
 
-@swpt_accounts.command('scan_prepared_transfers')
+@swpt_accounts.command("scan_prepared_transfers")
 @with_appcontext
-@click.option('-d', '--days', type=float, help='The number of days.')
-@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+@click.option("-d", "--days", type=float, help="The number of days.")
+@click.option(
+    "--quit-early",
+    is_flag=True,
+    default=False,
+    help="Exit after some time (mainly useful during testing).",
+)
 def scan_prepared_transfers(days, quit_early):
     """Start a process that attempts to finalize staled prepared transfers.
 
@@ -291,17 +421,22 @@ def scan_prepared_transfers(days, quit_early):
     from swpt_accounts.table_scanners import PreparedTransferScanner
 
     logger = logging.getLogger(__name__)
-    logger.info('Started prepared transfers scanner.')
-    days = days or current_app.config['APP_PREPARED_TRANSFERS_SCAN_DAYS']
+    logger.info("Started prepared transfers scanner.")
+    days = days or current_app.config["APP_PREPARED_TRANSFERS_SCAN_DAYS"]
     assert days > 0.0
     scanner = PreparedTransferScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
 
 
-@swpt_accounts.command('scan_registered_balance_changes')
+@swpt_accounts.command("scan_registered_balance_changes")
 @with_appcontext
-@click.option('-d', '--days', type=float, help='The number of days.')
-@click.option('--quit-early', is_flag=True, default=False, help='Exit after some time (mainly useful during testing).')
+@click.option("-d", "--days", type=float, help="The number of days.")
+@click.option(
+    "--quit-early",
+    is_flag=True,
+    default=False,
+    help="Exit after some time (mainly useful during testing).",
+)
 def scan_registered_balance_changes(days, quit_early):
     """Start a process that deletes stale registered balance changes.
 
@@ -316,22 +451,45 @@ def scan_registered_balance_changes(days, quit_early):
     from swpt_accounts.table_scanners import RegisteredBalanceChangeScanner
 
     logger = logging.getLogger(__name__)
-    logger.info('Started registered balance changes scanner.')
-    days = days or current_app.config['APP_REGISTERED_BALANCE_CHANGES_SCAN_DAYS']
+    logger.info("Started registered balance changes scanner.")
+    days = (
+        days or current_app.config["APP_REGISTERED_BALANCE_CHANGES_SCAN_DAYS"]
+    )
     assert days > 0.0
     scanner = RegisteredBalanceChangeScanner()
     scanner.run(db.engine, timedelta(days=days), quit_early=quit_early)
 
 
-@swpt_accounts.command('consume_messages')
+@swpt_accounts.command("consume_messages")
 @with_appcontext
-@click.option('-u', '--url', type=str, help='The RabbitMQ connection URL.')
-@click.option('-q', '--queue', type=str, help='The name the queue to consume from.')
-@click.option('-p', '--processes', type=int, help='The number of worker processes.')
-@click.option('-t', '--threads', type=int, help='The number of threads running in each process.')
-@click.option('-s', '--prefetch-size', type=int, help='The prefetch window size in bytes.')
-@click.option('-c', '--prefetch-count', type=int, help='The prefetch window in terms of whole messages.')
-def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_count):
+@click.option("-u", "--url", type=str, help="The RabbitMQ connection URL.")
+@click.option(
+    "-q", "--queue", type=str, help="The name the queue to consume from."
+)
+@click.option(
+    "-p", "--processes", type=int, help="The number of worker processes."
+)
+@click.option(
+    "-t",
+    "--threads",
+    type=int,
+    help="The number of threads running in each process.",
+)
+@click.option(
+    "-s",
+    "--prefetch-size",
+    type=int,
+    help="The prefetch window size in bytes.",
+)
+@click.option(
+    "-c",
+    "--prefetch-count",
+    type=int,
+    help="The prefetch window in terms of whole messages.",
+)
+def consume_messages(
+    url, queue, processes, threads, prefetch_size, prefetch_count
+):
     """Consume and process incoming Swaptacular Messaging Protocol
     messages.
 
@@ -352,7 +510,9 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
 
     """
 
-    def _consume_messages(url, queue, threads, prefetch_size, prefetch_count):  # pragma: no cover
+    def _consume_messages(
+        url, queue, threads, prefetch_size, prefetch_count
+    ):  # pragma: no cover
         """Consume messages in a subprocess."""
 
         from swpt_accounts.actors import SmpConsumer, TerminatedConsumtion
@@ -360,7 +520,7 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
 
         consumer = SmpConsumer(
             app=create_app(),
-            config_prefix='PROTOCOL_BROKER',
+            config_prefix="PROTOCOL_BROKER",
             url=url,
             queue=queue,
             threads=threads,
@@ -373,17 +533,17 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
 
         pid = os.getpid()
         logger = logging.getLogger(__name__)
-        logger.info('Worker with PID %i started processing messages.', pid)
+        logger.info("Worker with PID %i started processing messages.", pid)
 
         try:
             consumer.start()
         except TerminatedConsumtion:
             pass
 
-        logger.info('Worker with PID %i stopped processing messages.', pid)
+        logger.info("Worker with PID %i stopped processing messages.", pid)
 
     spawn_worker_processes(
-        processes=processes or current_app.config['PROTOCOL_BROKER_PROCESSES'],
+        processes=processes or current_app.config["PROTOCOL_BROKER_PROCESSES"],
         target=_consume_messages,
         url=url,
         queue=queue,
@@ -394,15 +554,36 @@ def consume_messages(url, queue, processes, threads, prefetch_size, prefetch_cou
     sys.exit(1)
 
 
-@swpt_accounts.command('consume_chore_messages')
+@swpt_accounts.command("consume_chore_messages")
 @with_appcontext
-@click.option('-u', '--url', type=str, help='The RabbitMQ connection URL.')
-@click.option('-q', '--queue', type=str, help='The name the queue to consume from.')
-@click.option('-p', '--processes', type=int, help='The number of worker processes.')
-@click.option('-t', '--threads', type=int, help='The number of threads running in each process.')
-@click.option('-s', '--prefetch-size', type=int, help='The prefetch window size in bytes.')
-@click.option('-c', '--prefetch-count', type=int, help='The prefetch window in terms of whole messages.')
-def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefetch_count):
+@click.option("-u", "--url", type=str, help="The RabbitMQ connection URL.")
+@click.option(
+    "-q", "--queue", type=str, help="The name the queue to consume from."
+)
+@click.option(
+    "-p", "--processes", type=int, help="The number of worker processes."
+)
+@click.option(
+    "-t",
+    "--threads",
+    type=int,
+    help="The number of threads running in each process.",
+)
+@click.option(
+    "-s",
+    "--prefetch-size",
+    type=int,
+    help="The prefetch window size in bytes.",
+)
+@click.option(
+    "-c",
+    "--prefetch-count",
+    type=int,
+    help="The prefetch window in terms of whole messages.",
+)
+def consume_chore_messages(
+    url, queue, processes, threads, prefetch_size, prefetch_count
+):
     """Consume and process chore messages.
 
     If some of the available options are not specified directly, the
@@ -422,13 +603,15 @@ def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefet
 
     """
 
-    def _consume_chore_messages(url, queue, threads, prefetch_size, prefetch_count):  # pragma: no cover
+    def _consume_chore_messages(
+        url, queue, threads, prefetch_size, prefetch_count
+    ):  # pragma: no cover
         from swpt_accounts.chores import ChoresConsumer, TerminatedConsumtion
         from swpt_accounts import create_app
 
         consumer = ChoresConsumer(
             app=create_app(),
-            config_prefix='CHORES_BROKER',
+            config_prefix="CHORES_BROKER",
             url=url,
             queue=queue,
             threads=threads,
@@ -441,17 +624,17 @@ def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefet
 
         pid = os.getpid()
         logger = logging.getLogger(__name__)
-        logger.info('Worker with PID %i started processing messages.', pid)
+        logger.info("Worker with PID %i started processing messages.", pid)
 
         try:
             consumer.start()
         except TerminatedConsumtion:
             pass
 
-        logger.info('Worker with PID %i stopped processing messages.', pid)
+        logger.info("Worker with PID %i stopped processing messages.", pid)
 
     spawn_worker_processes(
-        processes=processes or current_app.config['CHORES_BROKER_PROCESSES'],
+        processes=processes or current_app.config["CHORES_BROKER_PROCESSES"],
         target=_consume_chore_messages,
         url=url,
         queue=queue,
@@ -462,30 +645,46 @@ def consume_chore_messages(url, queue, processes, threads, prefetch_size, prefet
     sys.exit(1)
 
 
-@swpt_accounts.command('flush_messages')
+@swpt_accounts.command("flush_messages")
 @with_appcontext
 @click.option(
-    '-p', '--processes', type=int, help='Then umber of worker processes.'
-    ' If not specified, the value of the FLUSH_PROCESSES environment'
-    ' variable will be used, defaulting to 1 if empty.')
+    "-p",
+    "--processes",
+    type=int,
+    help=(
+        "Then umber of worker processes."
+        " If not specified, the value of the FLUSH_PROCESSES environment"
+        " variable will be used, defaulting to 1 if empty."
+    ),
+)
 @click.option(
-    '-w', '--wait', type=float, help='Flush every FLOAT seconds.'
-    ' If not specified, the value of the FLUSH_PERIOD environment'
-    ' variable will be used, defaulting to 2 seconds if empty.')
+    "-w",
+    "--wait",
+    type=float,
+    help=(
+        "Flush every FLOAT seconds."
+        " If not specified, the value of the FLUSH_PERIOD environment"
+        " variable will be used, defaulting to 2 seconds if empty."
+    ),
+)
 @click.option(
-    '--quit-early', is_flag=True, default=False,
-    help='Exit after some time (mainly useful during testing).')
-@click.argument('message_types', nargs=-1)
+    "--quit-early",
+    is_flag=True,
+    default=False,
+    help="Exit after some time (mainly useful during testing).",
+)
+@click.argument("message_types", nargs=-1)
 def flush_messages(
-        message_types: list[str],
-        processes: int, wait:
-        float, quit_early: bool,
+    message_types: list[str],
+    processes: int,
+    wait: float,
+    quit_early: bool,
 ) -> None:
     """Send pending messages to the message broker.
     If a list of MESSAGE_TYPES is given, flushes only these types of
     messages. If no MESSAGE_TYPES are specified, flushes all messages.
     """
-    signalbus: SignalBus = current_app.extensions['signalbus']
+    signalbus: SignalBus = current_app.extensions["signalbus"]
     logger = logging.getLogger(__name__)
 
     def _get_models_to_flush(model_names: list[str]) -> list[type[Model]]:
@@ -495,7 +694,8 @@ def flush_messages(
         if signal_names:
             wrong_names = signal_names - {m.__name__ for m in models_to_flush}
             models_to_flush = [
-                m for m in models_to_flush if m.__name__ in signal_names]
+                m for m in models_to_flush if m.__name__ in signal_names
+            ]
 
         for name in wrong_names:  # pragma: no cover
             logger.warning('A signal with name "%s" does not exist.', name)
@@ -503,14 +703,16 @@ def flush_messages(
         return models_to_flush
 
     models_to_flush = _get_models_to_flush(message_types)
-    logger.info('Started flushing %s.',
-                ', '.join(m.__name__ for m in models_to_flush))
+    logger.info(
+        "Started flushing %s.", ", ".join(m.__name__ for m in models_to_flush)
+    )
 
     def _flush(
-            models_to_flush: list[type[Model]],
-            wait: Optional[float],
+        models_to_flush: list[type[Model]],
+        wait: Optional[float],
     ) -> None:  # pragma: no cover
         from swpt_accounts import create_app
+
         app = create_app()
         stopped = False
 
@@ -523,32 +725,38 @@ def flush_messages(
         try_unblock_signals()
 
         with app.app_context():
-            signalbus: SignalBus = current_app.extensions['signalbus']
+            signalbus: SignalBus = current_app.extensions["signalbus"]
             while not stopped:
                 started_at = time.time()
                 try:
                     count = signalbus.flushmany(models_to_flush)
                 except Exception:
                     logger.exception(
-                        'Caught error while sending pending signals.')
+                        "Caught error while sending pending signals."
+                    )
                     sys.exit(1)
 
                 if count > 0:
                     logger.info(
-                        '%i signals have been successfully processed.', count)
+                        "%i signals have been successfully processed.", count
+                    )
                 else:
-                    logger.debug('0 signals have been processed.')
+                    logger.debug("0 signals have been processed.")
 
                 if quit_early:
                     break
                 time.sleep(max(0.0, wait + started_at - time.time()))
 
     spawn_worker_processes(
-        processes=(processes if processes is not None
-                   else current_app.config['FLUSH_PROCESSES']),
+        processes=(
+            processes
+            if processes is not None
+            else current_app.config["FLUSH_PROCESSES"]
+        ),
         target=_flush,
         models_to_flush=models_to_flush,
-        wait=(wait if wait is not None
-              else current_app.config['FLUSH_PERIOD']),
+        wait=(
+            wait if wait is not None else current_app.config["FLUSH_PERIOD"]
+        ),
     )
     sys.exit(1)
