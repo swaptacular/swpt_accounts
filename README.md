@@ -111,7 +111,7 @@ WEBSERVER_PORT=8001
 FETCH_API_URL=http://localhost:8001
 
 # Connection string for a PostgreSQL database server to connect to.
-POSTGRES_URL=postgresql://swpt_accounts:swpt_accounts@localhost:5433/test
+POSTGRES_URL=postgresql+psycopg://swpt_accounts:swpt_accounts@localhost:5433/test
 
 # Parameters for the communication with the RabbitMQ server which is
 # responsible for brokering SMP messages. The container will connect
