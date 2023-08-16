@@ -681,8 +681,10 @@ def flush_messages(
     quit_early: bool,
 ) -> None:
     """Send pending messages to the message broker.
+
     If a list of MESSAGE_TYPES is given, flushes only these types of
     messages. If no MESSAGE_TYPES are specified, flushes all messages.
+
     """
     logger = logging.getLogger(__name__)
     models_to_flush = get_models_to_flush(
