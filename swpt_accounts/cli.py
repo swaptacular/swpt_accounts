@@ -19,7 +19,7 @@ from swpt_pythonlib.multiproc_utils import (
     try_unblock_signals,
     HANDLED_SIGNALS,
 )
-from swpt_pythonlib.flask_signalbus import SignalBus
+from swpt_pythonlib.flask_signalbus import SignalBus, get_models_to_flush
 
 
 @click.group("swpt_accounts")
@@ -684,25 +684,10 @@ def flush_messages(
     If a list of MESSAGE_TYPES is given, flushes only these types of
     messages. If no MESSAGE_TYPES are specified, flushes all messages.
     """
-    signalbus: SignalBus = current_app.extensions["signalbus"]
     logger = logging.getLogger(__name__)
-
-    def _get_models_to_flush(model_names: list[str]) -> list[type[Model]]:
-        signal_names = set(model_names)
-        wrong_names = set()
-        models_to_flush = signalbus.get_signal_models()
-        if signal_names:
-            wrong_names = signal_names - {m.__name__ for m in models_to_flush}
-            models_to_flush = [
-                m for m in models_to_flush if m.__name__ in signal_names
-            ]
-
-        for name in wrong_names:  # pragma: no cover
-            logger.warning('A signal with name "%s" does not exist.', name)
-
-        return models_to_flush
-
-    models_to_flush = _get_models_to_flush(message_types)
+    models_to_flush = get_models_to_flush(
+        current_app.extensions["signalbus"], message_types
+    )
     logger.info(
         "Started flushing %s.", ", ".join(m.__name__ for m in models_to_flush)
     )
