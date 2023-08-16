@@ -60,9 +60,9 @@ def _on_update_debtor_info(
         creditor_id=creditor_id,
         debtor_info_iri=debtor_info_iri or None,
         debtor_info_content_type=debtor_info_content_type or None,
-        debtor_info_sha256=b16decode(debtor_info_sha256)
-        if debtor_info_sha256
-        else None,
+        debtor_info_sha256=(
+            b16decode(debtor_info_sha256) if debtor_info_sha256 else None
+        ),
         ts=ts,
     )
 
