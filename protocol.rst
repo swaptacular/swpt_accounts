@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2022-08-16
-:Version: 0.4.6
+:Date: 2023-08-17
+:Version: 0.4.7
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -207,8 +207,9 @@ they MUST first verify whether the specified account already exists:
 .. [#reserved-creditor-ids] All ``creditor_id``\s between 0 and
   4294967295 are reserved. Implementations SHOULD NOT use numbers in
   this interval for *creditor's accounts*. In particular,
-  implementations may use the account with ``creditor_id = 0`` (*the
-  debtor's account*) to issue new currency tokens in circulation.
+  implementations SHOULD use the account with ``creditor_id = 0``
+  (*the debtor's account*) to issue new currency tokens in
+  circulation.
 
 .. [#delete-transfer] When an account with a non-zero principal is
   being deleted, an `AccountTransfer`_ message SHOULD be sent,
@@ -244,25 +245,30 @@ they MUST first verify whether the specified account already exists:
   ``config_data`` string MUST NOT be longer than 2000 bytes.
 
 .. [#debtor-creditor-id] To issue new tokens into existence, the
-  server MAY use a special account called "*the debtor's account*" (or
-  "*the root account*"):
+  server SHOULD use a special account called "*the debtor's account*"
+  (or "the root account"). The debtor's account is special in the
+  following ways:
 
-  * The balance on the debtor's account SHOULD be allowed to go
-    negative.
+  * The ``creditor_id`` for the debtor's account is ``0``.
 
-  * The debtor's account SHOULD always be able to receive incoming
+  * The balance on the debtor's account is allowed to go negative, as
+    long as it does not exceed the configured ``negligible_amount``
+    (with a negative sign) for the account.
+
+  * Interest is not accumulated on the debtor's account.
+
+  * All interest payments to/from creditor's accounts, come from/to
+    the debtor's account.
+
+  * `AccountTransfer`_ messages are not sent for transfers from/to the
+    debtor's account. This eliminates a potentially huge amount of
+    network traffic towards the debtor's account, especially for
+    interest payments.
+
+  * The debtor's account should always be able to receive incoming
     transfers, even if it does not exist yet, or is "scheduled for
-    deletion".
-
-  * Interest paid to/from creditor's accounts SHOULD come from/to the
-    debtor's account.
-
-  * Interest SHOULD NOT be accumulated on the debtor's account.
-
-  * The ``creditor_id`` for the debtor's account SHOULD be ``0``.
-
-  * Sending `AccountTransfer`_ messages for the debtor's account is
-    OPTIONAL.
+    deletion". Transferring money to the debtor's account is
+    equivalent to "destroying" the money.
 
 .. [#compare-config] To decide whether a `ConfigureAccount`_ message
   has been applied already, server implementations MUST compare the

@@ -1,4 +1,5 @@
 import math
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import TypeVar, Iterable, Tuple, Union, Optional, Callable
 from decimal import Decimal
@@ -21,6 +22,7 @@ from swpt_accounts.models import (
     AccountUpdateSignal,
     AccountTransferSignal,
     FinalizationRequest,
+    RootConfigData,
     ROOT_CREDITOR_ID,
     INTEREST_RATE_FLOOR,
     INTEREST_RATE_CEIL,
@@ -527,7 +529,7 @@ def process_finalization_requests(
             starting_balance = math.floor(
                 sender_account.calc_current_balance(current_ts)
             )
-            min_account_balance = _get_min_account_balance(sender_creditor_id)
+            min_account_balance = _get_min_account_balance(sender_account)
 
         for finalization_request, prepared_transfer in requests:
             if (not ignore_all) and sender_account and prepared_transfer:
@@ -1051,7 +1053,7 @@ def _process_transfer_request(
 
     available_amount = _get_available_amount(sender_account, current_ts)
     expendable_amount = available_amount - _get_min_account_balance(
-        tr.sender_creditor_id
+        sender_account
     )
     expendable_amount = min(expendable_amount, tr.max_locked_amount)
     expendable_amount = max(0, expendable_amount)
@@ -1134,5 +1136,20 @@ def _finalize_prepared_transfer(
     return None
 
 
-def _get_min_account_balance(creditor_id: int) -> int:
-    return 0 if creditor_id != ROOT_CREDITOR_ID else -MAX_INT64
+def _get_min_account_balance(account: Account) -> int:
+    if account.creditor_id == ROOT_CREDITOR_ID:
+        try:
+            config_data = parse_root_config_data(account.config_data)
+        except ValueError:  # pragma: no cover
+            # Normally, this should never happen. Nevertheless, when
+            # issuer's configuration data is messed up, falling back to the
+            # default configuration seems to be the reasonable thing to do.
+            logger = logging.getLogger(__name__)
+            logger.error("Invalid root config data for %s.", account)
+            config_data = RootConfigData()
+
+        limit1 = contain_principal_overflow(config_data.issuing_limit)
+        limit2 = contain_principal_overflow(int(account.negligible_amount))
+        return -min(limit1, limit2)
+
+    return 0

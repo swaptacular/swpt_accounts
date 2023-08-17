@@ -104,6 +104,15 @@ class RootConfigDataSchema(ValidateTypeMixin, Schema):
             example=0.0,
         ),
     )
+    issuing_limit = fields.Integer(
+        load_default=MAX_INT64,
+        validate=validate.Range(min=0, max=MAX_INT64),
+        data_key="limit",
+        metadata=dict(
+            description="Optional limit for the total issued amount.",
+            example=100000,
+        ),
+    )
     optional_info = fields.Nested(
         DebtorInfoSchema,
         data_key="info",
@@ -182,6 +191,7 @@ def parse_root_config_data(config_data: str) -> RootConfigData:
         raise ValueError(f"invalid root config data: '{config_data}'")
 
     interest_rate_target = data["interest_rate_target"]
+    issuing_limit = data["issuing_limit"]
     info = data.get("optional_info")
     if info:
         optional_sha256 = info.get("optional_sha256")
@@ -194,5 +204,9 @@ def parse_root_config_data(config_data: str) -> RootConfigData:
         info_content_type = None
 
     return RootConfigData(
-        interest_rate_target, info_iri, info_sha256, info_content_type
+        interest_rate_target,
+        info_iri,
+        info_sha256,
+        info_content_type,
+        issuing_limit,
     )
