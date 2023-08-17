@@ -1005,7 +1005,7 @@ def test_commit_prepared_transfer(db_session, current_ts):
 
 def test_commit_issuing_transfer(db_session, current_ts):
     p.configure_account(D_ID, 1234, current_ts, 0)
-    p.configure_account(D_ID, ROOT_CREDITOR_ID, current_ts, 0)
+    p.configure_account(D_ID, ROOT_CREDITOR_ID, current_ts, 0, 1e30)
     p.prepare_transfer(
         coordinator_type="issuing",
         coordinator_id=1,
@@ -1041,6 +1041,45 @@ def test_commit_issuing_transfer(db_session, current_ts):
     assert len(AccountUpdateSignal.query.all()) >= 2
     assert len(RejectedTransferSignal.query.all()) == 0
     assert len(FinalizedTransferSignal.query.all()) == 1
+
+
+def test_root_config_issuing_limit(db_session, current_ts):
+    cfg = '{"limit": 100}'
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    p.configure_account(D_ID, ROOT_CREDITOR_ID, current_ts, 0, 1e30, 0, cfg)
+    p.prepare_transfer(
+        coordinator_type="issuing",
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=200,
+        max_locked_amount=200,
+        debtor_id=D_ID,
+        creditor_id=ROOT_CREDITOR_ID,
+        recipient_creditor_id=1234,
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, ROOT_CREDITOR_ID)
+    assert len(RejectedTransferSignal.query.all()) == 1
+    assert len(PreparedTransfer.query.all()) == 0
+
+
+def test_negligible_amount_issuing_limit(db_session, current_ts):
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    p.configure_account(D_ID, ROOT_CREDITOR_ID, current_ts, 0, 100.0)
+    p.prepare_transfer(
+        coordinator_type="issuing",
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=200,
+        max_locked_amount=200,
+        debtor_id=D_ID,
+        creditor_id=ROOT_CREDITOR_ID,
+        recipient_creditor_id=1234,
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, ROOT_CREDITOR_ID)
+    assert len(RejectedTransferSignal.query.all()) == 1
+    assert len(PreparedTransfer.query.all()) == 0
 
 
 def test_zero_locked_amount_unsuccessful_commit(db_session, current_ts):

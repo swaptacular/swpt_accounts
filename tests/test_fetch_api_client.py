@@ -15,6 +15,13 @@ C_ID = 1
 
 
 def test_parse_root_config_data():
+    default = RootConfigData()
+    assert default.interest_rate_target == 0.0
+    assert default.info_content_type is None
+    assert default.info_iri is None
+    assert default.info_sha256 is None
+    assert default.issuing_limit == 9223372036854775807
+
     assert RootConfigData().interest_rate_target == 0.0
     assert parse_root_config_data("") == RootConfigData()
     assert parse_root_config_data("{}") == RootConfigData()
@@ -56,6 +63,12 @@ def test_parse_root_config_data():
     with pytest.raises(ValueError):
         parse_root_config_data('{"info": {"iri": "x", "contentType": "Щ"}}')
 
+    with pytest.raises(ValueError):
+        parse_root_config_data('{"limit": -1}')
+
+    with pytest.raises(ValueError):
+        parse_root_config_data('{"limit": 9223372036854775808}')
+
     assert parse_root_config_data(
         '{"info": {"iri": "http://example.com"}}'
     ) == RootConfigData(0.0, "http://example.com")
@@ -69,11 +82,12 @@ def test_parse_root_config_data():
                     "sha256": 32 * "20",
                     "contentType": "text/plain",
                 },
+                "limit": 1000,
             }
         )
     )
     assert data == RootConfigData(
-        1.0, "http://example.com", 32 * b" ", "text/plain"
+        1.0, "http://example.com", 32 * b" ", "text/plain", 1000
     )
 
 

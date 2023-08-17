@@ -68,6 +68,7 @@ class RootConfigData(NamedTuple):
     info_iri: Optional[str] = None
     info_sha256: Optional[bytes] = None
     info_content_type: Optional[str] = None
+    issuing_limit: int = MAX_INT64
 
 
 class classproperty(object):
