@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2023-08-17
-:Version: 0.4.7
+:Date: 2023-08-19
+:Version: 0.4.8
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -253,7 +253,9 @@ they MUST first verify whether the specified account already exists:
 
   * The balance on the debtor's account is allowed to go negative, as
     long as it does not exceed the configured ``negligible_amount``
-    (with a negative sign) for the account.
+    for the account (with a negative sign). This gives debtors agents
+    the option to reliably restrict the total amount that a debtor is
+    allowed to issue.
 
   * Interest is not accumulated on the debtor's account.
 
@@ -264,6 +266,11 @@ they MUST first verify whether the specified account already exists:
     debtor's account. This eliminates a potentially huge amount of
     network traffic towards the debtor's account, especially for
     interest payments.
+
+  * Each debtor can use its debtor's account ``config_data`` text
+    field, to configure various important parameters of the currency
+    (like the interest rate). The format for the ``config_data`` text
+    field will be specified in separate document(s).
 
   * The debtor's account should always be able to receive incoming
     transfers, even if it does not exist yet, or is "scheduled for
