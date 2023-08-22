@@ -22,9 +22,10 @@ the *accounting authority node* which is responsible for managing the
 given currency. The ``RootConfigData`` document format, which will be
 specified here, is one of the standard machine-readable formats that
 can be used to relay the currency parameters chosen by the issuer, to
-the accounting authority node. Note that in Swaptacular's terminology,
-the word "debtor" means a Swaptacular currency, with its respective
-issuer.
+the accounting authority node responsible for the currency.
+
+Note that in Swaptacular's terminology, the word "debtor" means a
+Swaptacular currency, with its respective issuer.
 
 **Note:** The key words "MUST", "MUST NOT", "REQUIRED", "SHALL",
 "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
@@ -40,20 +41,20 @@ authority nodes and their peer nodes, is the `Swaptacular Messaging
 Protocol`_ (SMP). In SMP, every account is uniquely identified by a
 ``(debtor_id``, ``creditor_id)`` number pair.
 
-A special account called "*the root account*" (or "the debtor's
+A special account called "*The Root Account*" (or "the debtor's
 account") [#root-creditor-id]_ is used to issue new currency tokens
-into existence, and to configure the currency parameters. In order to
-set their currency parameters, the currency issuers (aka debtors)
-should use the ``config_data`` text field of their root accounts.
-[#config-field]_
+into existence, and to configure the currency parameters. Each
+currency issuer (aka debtor) should use the ``config_data`` text field
+of its root account, to set its currency parameters. [#config-field]_
 
 .. [#root-creditor-id] The ``creditor_id`` for each debtor's root
   account is ``0`` (zero).
 
-.. [#config-field] That is: the currency issuer (aka the debtor) sends
-  a ``ConfigureAccount`` SMP message for the debtor's root account,
-  and the ``config_data`` field of this message contains the currency
-  parameters, in a standard machine-readable format.
+.. [#config-field] That is: the currency issuer (aka the debtor)
+  should send a ``ConfigureAccount`` SMP message for the debtor's root
+  account, and the ``config_data`` field of this message should
+  contain the currency parameters, in a standard machine-readable
+  format.
 
 
 The ``RootConfigData`` Format
@@ -65,7 +66,7 @@ below. `UTF-8`_ encoding MUST always be used for ``RootConfigData``
 documents.
 
 All compliant accounting authority nodes SHOULD support the
-``RootConfigData`` format as a standard way of specifying the currency
+``RootConfigData`` format as a standard way of specifying currency
 parameters, in the ``config_data`` fields of root accounts.
 [#alt-formats]_
 
@@ -106,10 +107,16 @@ Properties
 
 - **limit**
 
-  Optional limit for the total issued amount. The value must be a
-  non-negative 64-bit integer. Note that the correct handling of
-  integers outside the safe range from ``-(2 ** 53 - 1)`` to ``2 **
-  53`` may be a problem for some JSON parsers and serializers.
+  Optional limit for the total issued amount. The balance on the
+  debtor's root account will be allowed to go negative, as long as it
+  does not exceed the configured ``limit`` (with a negative sign).
+  This gives the issuers the option to reliably restrict the total
+  amount that they are allowed to issue.
+
+  The value must be a non-negative 64-bit integer. Note that
+  processing integers outside the safe range from ``-(2 ** 53 - 1)``
+  to ``2 ** 53`` may be a problem for some JSON parsers and
+  serializers.
 
   - Type: ``integer``
   - path: #/properties/limit
