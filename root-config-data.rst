@@ -14,16 +14,17 @@ Overview
 
 This document specifies the format for ``RootConfigData`` documents.
 
-In `Swaptacular`_, each *currency issuer* is able to configure various
-important parameters of its issued currency (the annual interest rate,
-for example). In order to take effect, the chosen currency parameters
-must be put together in a machine-readable document, and sent over the
-network, to the *accounting authority node* that is responsible for
-managing the currency. The ``RootConfigData`` document format,
+In `Swaptacular`_, the *currency issuers* are able to configure
+various parameters of their respective currencies (like the interest
+rate). In order for the chosen currency parameters to take effect,
+they must be put together in a machine-readable document, and sent to
+the *accounting authority node* which is responsible for managing the
+given currency. The ``RootConfigData`` document format, which will be
 specified here, is one of the standard machine-readable formats that
-can be used to transmit the chosen currency parameters. Note that in
-Swaptacular's terminology, the word "debtor" means a Swaptacular
-currency, with its respective issuer.
+can be used to relay the currency parameters chosen by the issuer, to
+the accounting authority node. Note that in Swaptacular's terminology,
+the word "debtor" means a Swaptacular currency, with its respective
+issuer.
 
 **Note:** The key words "MUST", "MUST NOT", "REQUIRED", "SHALL",
 "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
@@ -31,44 +32,46 @@ currency, with its respective issuer.
 RFC 2119.
 
 
-The Debtor's Account
-====================
+The Root Account's ``config_data``
+==================================
 
-The `Swaptacular Messaging Protocol`_ (SMP) governs the network
-communication between accounting authority nodes and their peer
-*debtors agent nodes*. In SMP, every account is uniquely identified by
-a ``(debtor_id``, ``creditor_id)`` number pair.
+The network protocol that governs the communication between accounting
+authority nodes and their peer nodes, is the `Swaptacular Messaging
+Protocol`_ (SMP). In SMP, every account is uniquely identified by a
+``(debtor_id``, ``creditor_id)`` number pair.
 
-To to issue new tokens into existence, and to manage the various
-important currency parameters, a special account called "*the debtor's
-account*" (or "the root account") is used. The ``creditor_id`` for the
-debtor's account is ``0``.
+A special account called "*the root account*" (or "the debtor's
+account") [#root-creditor-id]_ is used to issue new currency tokens
+into existence, and to configure the currency parameters. In order to
+set their currency parameters, the currency issuers (aka debtors)
+should use the ``config_data`` text field of their root accounts.
+[#config-field]_
 
-To transmit their chosen currency parameters, debtors use the
-``config_data`` text field of their root accounts. Accounting
-authority nodes MAY support different formats for the ``config_data``
-text field, but all accounting authority nodes MUST understand and
-support the ``RootConfigData`` format specified here.
+.. [#root-creditor-id] The ``creditor_id`` for each debtor's root
+  account is ``0`` (zero).
+
+.. [#config-field] That is: the currency issuer (aka the debtor) sends
+  a ``ConfigureAccount`` SMP message for the debtor's root account,
+  and the ``config_data`` field of this message contains the currency
+  parameters, in a standard machine-readable format.
 
 
-``RootConfigData`` Documents Structure
-======================================
+The ``RootConfigData`` Format
+=============================
 
 ``RootConfigData`` documents are `JSON`_ documents whose structure and
 content can be correctly validated by the `JSON Schema`_ specified
-below.
-
-`UTF-8`_ encoding MUST always be used for ``RootConfigData``
+below. `UTF-8`_ encoding MUST always be used for ``RootConfigData``
 documents.
 
+All compliant accounting authority nodes SHOULD support the
+``RootConfigData`` format as a standard way of specifying the currency
+parameters, in the ``config_data`` fields of root accounts.
+[#alt-formats]_
 
-MIME Type
-=========
-
-Over HTTP connections, ``RootConfigData`` documents SHOULD be
-transferred with ``application/vnd.swaptacular.root-config-data+json``
-`MIME type`_.
-
+.. [#alt-formats] Accounting authority nodes MAY support other
+  machine-readable formats as well.
+  
 
 JSON Schema
 ===========
@@ -146,7 +149,7 @@ Properties
 
 - **iri** ``required``
 
-  A link (Internationalized Resource Identifier) referring to a
+  A link (`Internationalized Resource Identifier`_) referring to a
   document containing information about the debtor.
 
   - Type: ``string``
@@ -156,7 +159,8 @@ Properties
 
 - **contentType**
 
-  Optional MIME type of the document that the ``iri`` field refers to.
+  Optional `MIME type`_ of the document that the ``iri`` field refers
+  to.
 
   - Type: ``string``
   - path: #/definitions/DebtorInfo/properties/contentType
@@ -240,9 +244,8 @@ documents::
 
 .. _Swaptacular: https://swaptacular.github.io/overview
 .. _Swaptacular Messaging Protocol: https://swaptacular.github.io/public/docs/protocol.pdf
-.. _MIME Type: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+.. _MIME type: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
 .. _UTF-8: https://en.wikipedia.org/wiki/UTF-8
 .. _JSON: https://www.json.org/json-en.html
 .. _JSON Schema: http://json-schema.org/
-.. _URL: https://en.wikipedia.org/wiki/URL
-.. _IRI: https://en.wikipedia.org/wiki/Internationalized_Resource_Identifier
+.. _Internationalized Resource Identifier: https://en.wikipedia.org/wiki/Internationalized_Resource_Identifier
