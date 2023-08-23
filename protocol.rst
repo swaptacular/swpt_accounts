@@ -116,6 +116,9 @@ RFC 2119.
 Incoming messages
 =================
 
+Incoming massages are messages that the clients send to the accounting
+server. There are 3 types of incoming messages:
+
 ConfigureAccount
 ----------------
 
@@ -546,6 +549,9 @@ server's database: [#transfer-match]_
 
 Outgoing messages
 =================
+
+Outgoing massages are messages that the accounting server sends to the
+clients. There are 7 types of incoming messages:
 
 
 RejectedConfig
