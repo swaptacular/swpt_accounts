@@ -52,20 +52,26 @@ in this direction. The protocol supports the following operations:
    exchanges between different currencies is an important goal of this
    protocol.
 
-5. Actors other than creditors (called *coordinators*), can make
-   transfers from one creditor's account to another creditor's
-   account. This can be useful for implementing automated direct
-   debit, and automated exchange systems.
-
-6. Creditors receive notification events for every non-negligible
+5. Creditors receive notification events for every non-negligible
    transfer in which they participate (that is: all outgoing
    transfers, and all non-negligible incoming transfers). Those
    notification events are properly ordered, so that the creditor can
    reliably assemble the transfer history for each account (the
    account ledger).
 
-The protocol has been designed with these important properties in
-mind:
+6. Actors other than creditors (called *coordinators*), can make
+   transfers from one creditor's account to another creditor's
+   account. This can be useful for implementing automated direct
+   debit, and automated exchange systems.
+
+It is important to note that the currency issuers (aka the debtors)
+use the same protocol to communicate with the accounting server as the
+currency holders (aka the creditors). The "only" difference being that
+issuers' accounts (also called debtors' accounts) will have negative
+account balances.
+
+The protocol has been designed with the following important properties
+in mind:
 
 1. In case of prolonged network disconnect, creditors can synchronize
    their state with the server, without losing data or money.
@@ -75,8 +81,8 @@ mind:
    delays).
 
 3. In the case of lost messages, or even a complete database loss on
-   the client’s side, eventually, creditors should be able to
-   synchronize their state with the server, without losing money
+   the client’s side, eventually, the client should be able to
+   synchronize its state with the server, without losing money
    (obviously some data may have been lost).
 
 4. The protocol is generic enough to support different "backend"
