@@ -74,7 +74,8 @@ The protocol has been designed with the following important properties
 in mind:
 
 1. In case of prolonged network disconnect, creditors can synchronize
-   their state with the server, without losing data or money.
+   their state with the accounting server, without losing data or
+   money.
 
 2. Messages may arrive out-of-order, or be delivered more than once,
    without causing any problems (with the exception of possible
@@ -82,8 +83,8 @@ in mind:
 
 3. In the case of lost messages, or even a complete database loss on
    the client’s side, eventually, the client should be able to
-   synchronize its state with the server, without losing money
-   (obviously some data may have been lost).
+   synchronize its state with the accounting server, without losing
+   money (obviously some data may have been lost).
 
 4. The protocol is generic enough to support different "backend"
    implementations. For example, it should be possible to implement a
