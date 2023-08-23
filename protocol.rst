@@ -362,8 +362,8 @@ max_locked_amount : int64
    equal or bigger than the value of ``min_locked_amount``.
 
 recipient : string
-   A string which (along with ``debtor_id``) globally identifies the
-   recipient's account. [#account-id]_
+   A string which (along with ``debtor_id``) publicly and globally
+   identifies the recipient's account. [#account-id]_
 
 min_interest_rate : float
    Determines the minimal approved interest rate. This instructs the
@@ -929,11 +929,12 @@ config_data : string
    current configuration settings. [#config-data-limitations]_
 
 account_id : string
-   A string which (along with ``debtor_id``) globally identifies the
-   account. [#account-id]_ An empty string indicates that the account
-   does not have an identity yet. [#missing-identity]_ Once the
-   account have got an identity, the identity SHOULD NOT be changed
-   until the account is removed from the server's database.
+   A string which (along with ``debtor_id``) publicly and globally
+   identifies the account. [#account-id]_ An empty string indicates
+   that the account does not have an identity yet.
+   [#missing-identity]_ Once the account have got an identity, the
+   identity SHOULD NOT be changed until the account is removed from
+   the server's database.
 
 debtor_info_iri : string
    A link (Internationalized Resource Identifier) for obtaining
@@ -1048,9 +1049,9 @@ allowing clients to detect "dead" account records in their databases.
 .. [#account-id] The account identifier MUST have at most 100 symbols,
    ASCII only. Different server implementations may use different
    formats for this identifier. Note that ``creditor_id`` is an ID
-   which is recognizable only by the system that created the
-   account. The account identifier (along with ``debtor_id``), on the
-   other hand, MUST provide enough information to globally identify
+   which is known only to the client that created the account. The
+   account identifier (along with ``debtor_id``), on the other hand,
+   MUST provide enough information to publicly and globally identify
    the account (an IBAN for example).
 
 .. [#missing-identity] When the account does not have an identity, it
