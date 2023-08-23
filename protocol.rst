@@ -1366,9 +1366,10 @@ from the client's database; otherwise, the message SHOULD be ignored.
   field MUST be a set to some huge number, so as to ensure that the
   account will be successfully deleted by the server.
 
-.. [#adr-pk] Another alternative is the primary key for `AD record`_\s
-  to be the (``creditor_id``, ``debtor_id``) tuple. In this case,
-  later ``creation_date``\s will override earlier ``creation_date``\s.
+.. [#adr-pk] Another, probably more practical alternative, is the
+  primary key for `AD record`_\s to be the (``creditor_id``,
+  ``debtor_id``) tuple. In this case, later ``creation_date``\s should
+  simply override earlier ``creation_date``\s.
 
 .. [#matching-adr] The corresponding `AD record`_ would have the same
   values, as in the received message, for the fields included in the
