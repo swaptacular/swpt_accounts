@@ -33,46 +33,52 @@ Swaptacular currency, with its respective issuer.
 RFC 2119.
 
 
-The Root Account's ``config_data``
-==================================
+The Root Account's ``config_data`` Field
+========================================
 
 The network protocol that governs the communication between accounting
-authority nodes and their peer nodes, is the `Swaptacular Messaging
-Protocol`_ (SMP). In SMP, every account is uniquely identified by a
-``(debtor_id``, ``creditor_id)`` number pair.
+authority nodes and their peers, is the `Swaptacular Messaging Protocol`_
+(SMP). Every SMP account is uniquely identified by a ``(debtor_id``,
+``creditor_id)`` number pair.
 
-A special account called "*The Root Account*" (or "the debtor's
-account") [#root-creditor-id]_ is used to issue new currency tokens
-into existence, and to configure the currency parameters. Each
-currency issuer (aka debtor) should use the ``config_data`` text field
-of its root account, to set its currency parameters. [#config-field]_
+In SMP, a special account called "*The Root Account*" (or "the debtor's
+account") [#root-creditor-id]_ is used to issue new currency tokens into
+existence, and to configure the currency parameters. Each currency issuer
+(aka debtor) should use the ``config_data`` text field of its root account,
+to configure the parameters of its currency.
+
+That is: To set or update the parameters of its currency, the currency
+issuer (aka the debtor) should send a ``ConfigureAccount`` SMP message for
+the debtor's root account, and the ``config_data`` field of this message
+should contain the currency parameters, encoded in a standard
+machine-readable format.
 
 .. [#root-creditor-id] The ``creditor_id`` for each debtor's root
   account is ``0`` (zero).
 
-.. [#config-field] That is: the currency issuer (aka the debtor)
-  should send a ``ConfigureAccount`` SMP message for the debtor's root
-  account, and the ``config_data`` field of this message should
-  contain the currency parameters, in a standard machine-readable
-  format.
 
-
-The ``RootConfigData`` Format
-=============================
+The ``RootConfigData`` Machine-readable Format
+==============================================
 
 ``RootConfigData`` documents are `JSON`_ documents whose structure and
 content can be correctly validated by the `JSON Schema`_ specified
 below. `UTF-8`_ encoding MUST always be used for ``RootConfigData``
 documents.
 
-All compliant accounting authority nodes SHOULD support the
-``RootConfigData`` format as a standard way of specifying currency
-parameters, in the ``config_data`` fields of root accounts.
-[#alt-formats]_
+All compliant accounting authority node implementations SHOULD support the
+``RootConfigData`` format, as a standard way of specifying currency
+parameters, in the ``config_data`` field of root accounts. [#alt-formats]_
+[#empty-config-data]_
 
 .. [#alt-formats] Accounting authority nodes MAY support other
   machine-readable formats as well.
   
+.. [#empty-config-data] Note that the SMP specification requires that an
+  empty string must always be a valid value for the ``config_data`` field,
+  which represents the default configuration settings. In the root account's
+  case, the default configuration settings are: zero interest rate, and no
+  issuing limits.
+
 
 JSON Schema
 ===========
@@ -107,16 +113,16 @@ Properties
 
 - **limit**
 
-  Optional limit for the total issued amount. The balance on the
-  debtor's root account will be allowed to go negative, as long as it
-  does not exceed the configured ``limit`` (with a negative sign).
-  This gives the issuers the option to reliably restrict the total
-  amount that they are allowed to issue.
+  Optional limit for the total issued amount. The balance on the debtor's
+  root account will be allowed to go negative, as long as it does not exceed
+  the configured ``limit`` (with a negative sign). This gives currency
+  issuers the ability to reliably restrict the total amount that they allow
+  themselves to issue.
 
   The value must be a non-negative 64-bit integer. Note that
   processing integers outside the safe range from ``-(2 ** 53 - 1)``
-  to ``2 ** 53`` may be a problem for some JSON parsers and
-  serializers.
+  to ``2 ** 53`` could be a problem for the standard ECMAScript JSON
+  parser and serializer.
 
   - Type: ``integer``
   - path: #/properties/limit
