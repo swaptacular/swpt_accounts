@@ -137,7 +137,9 @@ negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
    a *finite* non-negative number. It can be used to: 1) decide
    whether an account can be safely deleted; 2) decide whether an
-   incoming transfer is insignificant.
+   incoming transfer is insignificant; 3) decide whether to allow new
+   currency tokens to be issued (when the account is a debtor's
+   account).
 
 config_flags : int32
    Account configuration bit-flags. Different server implementations
