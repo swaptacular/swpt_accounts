@@ -74,12 +74,17 @@ mind:
    without causing any problems (with the exception of possible
    delays).
 
-3. The protocol is generic enough to support different "backend"
+3. In the case of lost messages, or even a complete database loss on
+   the client’s side, eventually, creditors should be able to
+   synchronize their state with the server, without losing money
+   (obviously some data may have been lost).
+
+4. The protocol is generic enough to support different "backend"
    implementations. For example, it should be possible to implement a
    proxy/adapter that allows clients that "talk" this protocol to
    create bank accounts and make bank transfers.
 
-4. The protocol works well both with positive and negative interest
+5. The protocol works well both with positive and negative interest
    rates on creditors' accounts.
 
 This document defines the high-level semantics of the protocol, the
