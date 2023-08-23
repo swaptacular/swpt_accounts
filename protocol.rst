@@ -62,7 +62,12 @@ in this direction. The protocol supports the following operations:
 6. Actors other than creditors (called *coordinators*), can make
    transfers from one creditor's account to another creditor's
    account. This can be useful for implementing automated direct
-   debit, and automated exchange systems.
+   debit, and a wide range of other automated exchange systems. In
+   fact, when a currency holder (aka creditor) makes a transfer, it is
+   treated as a transfer initiated by a coordinator of type "direct".
+   When a currency issuer (aka debtor) creates new money into
+   existence, this is treated as a transfer initiated by a coordinator
+   of type "issuing".
 
 It is important to note that the currency issuers (aka the debtors)
 use the same protocol to communicate with the accounting server as the
