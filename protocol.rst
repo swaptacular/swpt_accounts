@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2023-08-19
-:Version: 0.4.8
+:Date: 2023-08-23
+:Version: 1.0
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
