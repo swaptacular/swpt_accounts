@@ -66,7 +66,7 @@ in this direction. The protocol supports the following operations:
 
 It is important to note that the currency issuers (aka the debtors)
 use the same protocol to communicate with the accounting server as the
-currency holders (aka the creditors). The "only" difference being that
+currency holders (aka the creditors). The "only" difference is that
 issuers' accounts (also called debtors' accounts) will have negative
 account balances.
 
