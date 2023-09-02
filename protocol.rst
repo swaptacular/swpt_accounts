@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2023-08-19
-:Version: 0.4.8
+:Date: 2023-08-23
+:Version: 1.0
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -20,9 +20,9 @@ This protocol is centered around two types of actors: *debtors* and
 digital currency. A creditor is a person or an organization that owns
 tokens in one or more debtors' digital currencies. The relationship is
 asymmetrical: Currency tokens express the fact that the debtor owes
-something to the creditor. Although a creditor can have a negative
-account balance, the relationship is not supposed to work in the
-reverse direction. The protocol supports the following operations:
+something to the creditor. Although a creditor theoretically can have
+a negative account balance, the relationship is not supposed to work
+in this direction. The protocol supports the following operations:
 
 1. Creditors can open accounts with debtors. [#one-account-limit]_
 
@@ -52,34 +52,51 @@ reverse direction. The protocol supports the following operations:
    exchanges between different currencies is an important goal of this
    protocol.
 
-5. Actors other than creditors (called *coordinators*), can make
-   transfers from one creditor's account to another creditor's
-   account. This can be useful for implementing automated direct
-   debit, and automated exchange systems.
-
-6. Creditors receive notification events for every non-negligible
+5. Creditors receive notification events for every non-negligible
    transfer in which they participate (that is: all outgoing
    transfers, and all non-negligible incoming transfers). Those
    notification events are properly ordered, so that the creditor can
    reliably assemble the transfer history for each account (the
    account ledger).
 
-The protocol has been designed with these important properties in
-mind:
+6. Actors other than creditors (called *coordinators*), can make
+   transfers from one creditor's account to another creditor's
+   account. This can be useful for implementing automated direct
+   debit, and a wide range of other automated exchange systems. In
+   fact, when a currency holder (aka creditor) makes a transfer, it is
+   treated as a transfer initiated by a coordinator of type "direct".
+   When a currency issuer (aka debtor) creates new money into
+   existence, this is treated as a transfer initiated by a coordinator
+   of type "issuing".
+
+It is important to note that the currency issuers (aka the debtors)
+use the same protocol to communicate with the accounting server as the
+currency holders (aka the creditors). The "only" difference is that
+issuers' accounts (also called debtors' accounts) will have negative
+account balances.
+
+The protocol has been designed with the following important properties
+in mind:
 
 1. In case of prolonged network disconnect, creditors can synchronize
-   their state with the server, without losing data or money.
+   their state with the accounting server, without losing data or
+   money.
 
 2. Messages may arrive out-of-order, or be delivered more than once,
    without causing any problems (with the exception of possible
    delays).
 
-3. The protocol is generic enough to support different "backend"
+3. In the case of lost messages, or even a complete database loss on
+   the client’s side, eventually, the client should be able to
+   synchronize its state with the accounting server, without losing
+   money (obviously some data may have been lost).
+
+4. The protocol is generic enough to support different "backend"
    implementations. For example, it should be possible to implement a
    proxy/adapter that allows clients that "talk" this protocol to
    create bank accounts and make bank transfers.
 
-4. The protocol works well both with positive and negative interest
+5. The protocol works well both with positive and negative interest
    rates on creditors' accounts.
 
 This document defines the high-level semantics of the protocol, the
@@ -104,6 +121,9 @@ RFC 2119.
 Incoming messages
 =================
 
+Incoming massages are messages that the clients send to the accounting
+server. There are 3 types of incoming messages:
+
 ConfigureAccount
 ----------------
 
@@ -122,7 +142,9 @@ negligible_amount : float
    The maximum amount that can be considered negligible. This MUST be
    a *finite* non-negative number. It can be used to: 1) decide
    whether an account can be safely deleted; 2) decide whether an
-   incoming transfer is insignificant.
+   incoming transfer is insignificant; 3) decide whether to allow new
+   currency tokens to be issued (when the account is a debtor's
+   account).
 
 config_flags : int32
    Account configuration bit-flags. Different server implementations
@@ -340,8 +362,8 @@ max_locked_amount : int64
    equal or bigger than the value of ``min_locked_amount``.
 
 recipient : string
-   A string which (along with ``debtor_id``) globally identifies the
-   recipient's account. [#account-id]_
+   A string which (along with ``debtor_id``) publicly and globally
+   identifies the recipient's account. [#account-id]_
 
 min_interest_rate : float
    Determines the minimal approved interest rate. This instructs the
@@ -534,6 +556,9 @@ server's database: [#transfer-match]_
 
 Outgoing messages
 =================
+
+Outgoing massages are messages that the accounting server sends to the
+clients. There are 7 types of incoming messages:
 
 
 RejectedConfig
@@ -904,11 +929,12 @@ config_data : string
    current configuration settings. [#config-data-limitations]_
 
 account_id : string
-   A string which (along with ``debtor_id``) globally identifies the
-   account. [#account-id]_ An empty string indicates that the account
-   does not have an identity yet. [#missing-identity]_ Once the
-   account have got an identity, the identity SHOULD NOT be changed
-   until the account is removed from the server's database.
+   A string which (along with ``debtor_id``) publicly and globally
+   identifies the account. [#account-id]_ An empty string indicates
+   that the account does not have an identity yet.
+   [#missing-identity]_ Once the account have got an identity, the
+   identity SHOULD NOT be changed until the account is removed from
+   the server's database.
 
 debtor_info_iri : string
    A link (Internationalized Resource Identifier) for obtaining
@@ -1023,9 +1049,9 @@ allowing clients to detect "dead" account records in their databases.
 .. [#account-id] The account identifier MUST have at most 100 symbols,
    ASCII only. Different server implementations may use different
    formats for this identifier. Note that ``creditor_id`` is an ID
-   which is recognizable only by the system that created the
-   account. The account identifier (along with ``debtor_id``), on the
-   other hand, MUST provide enough information to globally identify
+   which is known only to the client that created the account. The
+   account identifier (along with ``debtor_id``), on the other hand,
+   MUST provide enough information to publicly and globally identify
    the account (an IBAN for example).
 
 .. [#missing-identity] When the account does not have an identity, it
@@ -1173,7 +1199,6 @@ prepared
    message. [#db-crash]_
 
 settled
-
    Indicates that a `PrepareTransfer`_ request has been sent, a
    `PreparedTransfer`_ response has been received, and a
    `FinalizeTransfer`_ message has been sent to dismiss or commit the
@@ -1341,9 +1366,10 @@ from the client's database; otherwise, the message SHOULD be ignored.
   field MUST be a set to some huge number, so as to ensure that the
   account will be successfully deleted by the server.
 
-.. [#adr-pk] Another alternative is the primary key for `AD record`_\s
-  to be the (``creditor_id``, ``debtor_id``) tuple. In this case,
-  later ``creation_date``\s will override earlier ``creation_date``\s.
+.. [#adr-pk] Another, probably more practical alternative, is the
+  primary key for `AD record`_\s to be the (``creditor_id``,
+  ``debtor_id``) tuple. In this case, later ``creation_date``\s should
+  simply override earlier ``creation_date``\s.
 
 .. [#matching-adr] The corresponding `AD record`_ would have the same
   values, as in the received message, for the fields included in the
