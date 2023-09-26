@@ -152,8 +152,8 @@ config_flags : int32
 
    The lowest 16 bits are reserved:
 
-   **Bit ``0``** has the meaning "scheduled for deletion". If all of
-   the following conditions are met, an account SHOULD eventually be
+   **Bit 0** has the meaning "scheduled for deletion". If all of the
+   following conditions are met, an account SHOULD eventually be
    removed from the server's database: [#delete-transfer]_
 
    * The account is "scheduled for deletion". [#forbid-transfers]_
@@ -183,8 +183,8 @@ config_flags : int32
    server's database, an `AccountPurge`_ message MUST be sent to
    inform about this. [#purge-delay]_
 
-   **Bit ``1``** has the meaning "system account". Clients can use
-   this flag to mark a given account as "special". Different client
+   **Bit 1** has the meaning "system account". Clients can use this
+   flag to mark a given account as "special". Different client
    implementations can use this flag for different purposes, and the
    server does not need to be aware of the meaning that the client
    assigns to it.
