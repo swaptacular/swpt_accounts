@@ -6,7 +6,12 @@ from marshmallow import ValidationError
 from swpt_pythonlib import rabbitmq
 from swpt_pythonlib.utils import u64_to_i64
 import swpt_pythonlib.protocol_schemas as ps
-from swpt_accounts.models import SECONDS_IN_DAY, is_valid_account
+from swpt_accounts.models import (
+    SECONDS_IN_DAY,
+    CT_AGENT,
+    is_valid_account,
+    are_managed_by_same_agent,
+)
 from swpt_accounts.fetch_api_client import (
     get_if_account_is_reachable,
     get_root_config_data_dict,
@@ -61,9 +66,16 @@ def _on_prepare_transfer_signal(
     except ValueError:
         is_reachable = False
     else:
-        is_reachable = get_if_account_is_reachable(
-            debtor_id, recipient_creditor_id
-        )
+        if coordinator_type == CT_AGENT:
+            if not are_managed_by_same_agent(creditor_id, coordinator_id):
+                raise RuntimeError(
+                    "Invalid coordinator ID for agent transfer."
+                )  # pragma: no cover
+            is_reachable = True
+        else:
+            is_reachable = get_if_account_is_reachable(
+                debtor_id, recipient_creditor_id
+            )
 
     procedures.prepare_transfer(
         coordinator_type=coordinator_type,

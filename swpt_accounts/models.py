@@ -39,6 +39,7 @@ TRANSFER_NOTE_MAX_BYTES = 500
 CONFIG_DATA_MAX_BYTES = 2000
 IRI_MAX_LENGTH = 200
 CONTENT_TYPE_MAX_BYTES = 100
+CREDITOR_SUBNET_MASK = 0xffffff0000000000
 DEBTOR_INFO_SHA256_REGEX = r"^([0-9A-F]{64}|[0-9a-f]{64})?$"
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
@@ -50,6 +51,7 @@ ROOT_CREDITOR_ID = 0
 CT_INTEREST = "interest"
 CT_DELETE = "delete"
 CT_DIRECT = "direct"
+CT_AGENT = "agent"
 CT_ISSUING = "issuing"
 
 # Transfer status codes:
@@ -132,6 +134,16 @@ def calc_current_balance(
 
 def is_negligible_balance(balance, negligible_amount):
     return balance <= negligible_amount or balance <= 2.0
+
+
+def are_managed_by_same_agent(
+        sender_creditor_id: int,
+        recipient_creditor_id: int,
+) -> bool:
+    return (
+        sender_creditor_id & CREDITOR_SUBNET_MASK
+        == recipient_creditor_id & CREDITOR_SUBNET_MASK
+    )
 
 
 class Account(db.Model):

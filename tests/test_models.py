@@ -179,3 +179,24 @@ def test_configure_account():
         1000, committed_at, committed_at + timedelta(days=1)
     )
     assert abs(i) == 0
+
+
+def test_are_managed_by_same_agent(app):
+    from swpt_accounts import models as m
+
+    assert m.are_managed_by_same_agent(1, 2)
+    assert m.are_managed_by_same_agent(-1, -1)
+    assert m.are_managed_by_same_agent(-1, -2)
+    assert m.are_managed_by_same_agent(
+        0xffffff0000000000, 0xffffff1111111111
+    )
+    assert m.are_managed_by_same_agent(
+        0xffffff0000000000, 0xffffff0000000000
+    )
+    assert not m.are_managed_by_same_agent(
+        0xffffff0000000000, 0xfffffe0000000000
+    )
+    assert not m.are_managed_by_same_agent(
+        0xffffff0000000000, 0xefffff0000000000
+    )
+    assert not m.are_managed_by_same_agent(-1, -1 - 0x0000010000000000)

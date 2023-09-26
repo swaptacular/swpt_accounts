@@ -806,6 +806,29 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
     assert rts.status_code == p.SC_TOO_MANY_TRANSFERS
 
 
+def test_prepare_transfer_not_managed_by_same_agent(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 0x0000010000001234, current_ts, 0)
+    p.prepare_transfer(
+        coordinator_type="agent",
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=0,
+        max_locked_amount=0,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient_creditor_id=0x0000010000001234,
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    rts = RejectedTransferSignal.query.one()
+    assert rts.debtor_id == D_ID
+    assert rts.coordinator_type == "agent"
+    assert rts.coordinator_id == 1
+    assert rts.coordinator_request_id == 2
+    assert rts.status_code == p.SC_RECIPIENT_IS_UNREACHABLE
+
+
 def test_prepare_transfer_invalid_recipient(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)

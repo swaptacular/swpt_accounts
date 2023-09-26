@@ -156,7 +156,7 @@ config_flags : int32
    following conditions are met, an account SHOULD eventually be
    removed from the server's database: [#delete-transfer]_
 
-   * The account is "scheduled for deletion". [#forbid-transfers]_
+   * The account is "scheduled for deletion".
 
    * At least one day has passed since account's
      creation. [#creation-date]_
@@ -244,11 +244,6 @@ they MUST first verify whether the specified account already exists:
   being deleted, an `AccountTransfer`_ message SHOULD be sent,
   informing the owner of the account about the zeroing out of the
   account's principal before the deletion.
-
-.. [#forbid-transfers] Server implementations must not accept incoming
-  transfers for "scheduled for deletion" accounts. That is:
-  `PrepareTransfer`_ messages that has a "scheduled for deletion"
-  creditor's account as a recipient MUST be rejected.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
@@ -350,6 +345,20 @@ coordinator_type : string
    Indicates the subsystem which sent this message. MUST be between 1
    and 30 symbols, ASCII only. [#coordinator-type]_
 
+   The following special rules apply for transfers with ``"agent"``
+   coordinator type:
+
+   * For transfers with ``"agent"`` coordinator type, if there are no
+     other impediments to the transfer, the transfer MUST be prepared
+     successfully even when the recipient's account is scheduled for
+     deletion.
+
+   * Incoming transfers with ``"agent"`` coordinator type MUST NOT be
+     treated as *negligible transfers*. [#negligible-transfer]_
+
+   * Transfers with ``"agent"`` coordinator type MUST NOT be allowed
+     between accounts managed by different creditors agents.
+
 coordinator_id : int64
    Along with ``coordinator_type``, identifies the client that sent
    this message (the *coordinator*).
@@ -398,7 +407,7 @@ ts : date-time
 When server implementations process a `PrepareTransfer`_ message they:
 
 * MUST NOT allow a transfer without verifying that the recipient's
-  account exists, and does accept incoming transfers.
+  account accepts incoming transfers. [#forbid-transfers]_
 
 * MUST NOT allow a transfer in which the sender and the recipient is
   the same account.
@@ -429,11 +438,15 @@ commit.
 
 
 .. [#coordinator-type] The coordinator type ``"direct"`` is reserved
-  for payments initiated directly by the owner of the account, and for
-  such transfers ``coordinator_id`` MUST be equal to ``creditor_id``;
-  The coordinator type ``"issuing"`` is reserved for transfers which
-  create new money into existence, and for such transfers
-  ``coordinator_id`` MUST be equal to ``debtor_id``, and the
+  for payments initiated directly by the owner of the account (the
+  creditor), and for such transfers ``coordinator_id`` MUST be equal
+  to ``creditor_id``; The coordinator type ``"agent"`` is reserved for
+  transfers initiated by creditors agents on behalf of creditors that
+  they represent, and for such transfers ``coordinator_id`` MUST be a
+  number in the interval of creditor IDs reserved for the given
+  creditors agent; The coordinator type ``"issuing"`` is reserved for
+  transfers which create new money into existence, and for such
+  transfers ``coordinator_id`` MUST be equal to ``debtor_id``, and the
   ``creditor_id`` of the sender must be ``0``; ``"interest"`` MUST be
   used for transfers initiated by the interest capitalization service;
   ``"delete"`` MUST be used for transfers which zero out the principal
@@ -445,6 +458,14 @@ commit.
   or less. (In this case, the secured amount will be zero.) This is
   useful when the sender wants to verify whether the recipient's
   account exists and accepts incoming transfers.
+
+.. [#forbid-transfers] Except for transfers to the debtor's account,
+  and transfers with "agent" coordinator type, server implementations
+  must not accept incoming transfers for deleted or "scheduled for
+  deletion" accounts. That is: `PrepareTransfer`_ messages with
+  ``coordinator_type`` different from ``"agent"``, that have a
+  non-existing or "scheduled for deletion" creditor's account as a
+  recipient, MUST be rejected.
 
 
 FinalizeTransfer
@@ -1168,7 +1189,8 @@ recipient's. Therefore, two separate `AccountTransfer`_ messages would
 be emitted for each committed non-negligible transfer.
 
 .. [#negligible-transfer] A *negligible transfer* is an incoming
-   transfer for which the transferred amount does not exceed the
+   transfer whose coordinator type is different from "agent", for
+   which the transferred amount does not exceed the
    ``negligible_amount`` configured for the recipient's account (that
    is: ``0 < acquired_amount <= negligible_amount``).
 

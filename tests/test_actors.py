@@ -43,14 +43,27 @@ def test_prepare_transfer(db_session, actors):
         max_commit_delay=1000000,
         ts=datetime.now(tz=timezone.utc),
     )
+    actors._on_prepare_transfer_signal(
+        coordinator_type="agent",
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=1,
+        max_locked_amount=200,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient="1234",
+        min_interest_rate=-100.0,
+        max_commit_delay=1000000,
+        ts=datetime.now(tz=timezone.utc),
+    )
 
     p.process_transfer_requests(D_ID, C_ID)
     signals = RejectedTransferSignal.query.all()
-    assert len(signals) == 2
+    assert len(signals) == 3
 
     for rts in signals:
         assert rts.debtor_id == D_ID
-        assert rts.coordinator_type == "test"
+        assert rts.coordinator_type in ["test", "agent"]
         assert rts.coordinator_id == 1
         assert rts.coordinator_request_id == 2
 
