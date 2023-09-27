@@ -46,9 +46,11 @@ the following servers:
      exchange, will have a correctly set "coordinator_type" header.
      The routing key will represent the coordinator ID as hexadecimal
      (lowercase). Note that for "direct" transfers, the coordinator ID
-     is guaranteed to be the same as the creditor ID; and for
-     "issuing" transfers, the coordinator ID is guaranteed to be the
-     same as the debtor ID.
+     is guaranteed to be the same as the creditor ID; for "agent"
+     transfers, the highest 24-bits of the coordinator ID are
+     guaranteed to be the same as the highest 24-bits of the creditor
+     ID; and for "issuing" transfers, the coordinator ID is guaranteed
+     to be the same as the debtor ID.
 
    - **`accounts_in`**: For messages that must be send to this
      accounting authority itself (self-posting). The routing key will

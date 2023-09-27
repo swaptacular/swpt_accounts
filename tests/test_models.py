@@ -184,7 +184,7 @@ def test_configure_account():
 def test_are_managed_by_same_agent(app):
     from swpt_accounts import models as m
 
-    assert m.are_managed_by_same_agent(1, 2)
+    assert m.are_managed_by_same_agent(0x0000010000000001, 0x0000010000000002)
     assert m.are_managed_by_same_agent(-1, -1)
     assert m.are_managed_by_same_agent(-1, -2)
     assert m.are_managed_by_same_agent(

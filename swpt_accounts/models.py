@@ -143,6 +143,7 @@ def are_managed_by_same_agent(
     return (
         sender_creditor_id & CREDITOR_SUBNET_MASK
         == recipient_creditor_id & CREDITOR_SUBNET_MASK
+        != 0  # Creditor IDs starting with 32 zero bits are reserved.
     )
 
 

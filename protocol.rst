@@ -343,10 +343,19 @@ creditor_id : int64
 
 coordinator_type : string
    Indicates the subsystem which sent this message. MUST be between 1
-   and 30 symbols, ASCII only. [#coordinator-type]_
+   and 30 symbols, ASCII only.
 
-   The following special rules apply for transfers with ``"agent"``
-   coordinator type:
+   **The coordinator type "direct"** is reserved for payments
+   initiated directly by the owner of the account (the creditor), and
+   for such transfers ``coordinator_id`` MUST be equal to
+   ``creditor_id``.
+
+   **The coordinator type "agent"** is reserved for transfers
+   initiated by creditors agents on behalf of creditors that they
+   represent, and for such transfers ``coordinator_id`` MUST be a
+   number in the interval of creditor IDs reserved for the given
+   creditors agent. The following special rules apply for transfers
+   with ``"agent"`` coordinator type:
 
    * For transfers with ``"agent"`` coordinator type, if there are no
      other impediments to the transfer, the transfer MUST be prepared
@@ -358,6 +367,17 @@ coordinator_type : string
 
    * Transfers with ``"agent"`` coordinator type MUST NOT be allowed
      between accounts managed by different creditors agents.
+
+   **The coordinator type "issuing"** is reserved for transfers which
+   create new money into existence, and for such transfers
+   ``coordinator_id`` MUST be equal to ``debtor_id``, and the
+   ``creditor_id`` of the sender MUST be ``0``.
+
+   **The coordinator type "interest"** MUST be used for transfers
+   initiated by the interest capitalization service.
+
+   **The coordinator type "delete"** MUST be used for transfers which
+   zero out the principal on deleted accounts.
 
 coordinator_id : int64
    Along with ``coordinator_type``, identifies the client that sent
@@ -437,21 +457,6 @@ will depend on whether the ``committed_amount``, sent with the
 commit.
 
 
-.. [#coordinator-type] The coordinator type ``"direct"`` is reserved
-  for payments initiated directly by the owner of the account (the
-  creditor), and for such transfers ``coordinator_id`` MUST be equal
-  to ``creditor_id``; The coordinator type ``"agent"`` is reserved for
-  transfers initiated by creditors agents on behalf of creditors that
-  they represent, and for such transfers ``coordinator_id`` MUST be a
-  number in the interval of creditor IDs reserved for the given
-  creditors agent; The coordinator type ``"issuing"`` is reserved for
-  transfers which create new money into existence, and for such
-  transfers ``coordinator_id`` MUST be equal to ``debtor_id``, and the
-  ``creditor_id`` of the sender must be ``0``; ``"interest"`` MUST be
-  used for transfers initiated by the interest capitalization service;
-  ``"delete"`` MUST be used for transfers which zero out the principal
-  on deleted accounts.
-
 .. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
   no other impediments to the transfer, the transfer MUST be prepared
   successfully even when the amount available on the account is zero
@@ -460,12 +465,13 @@ commit.
   account exists and accepts incoming transfers.
 
 .. [#forbid-transfers] Except for transfers to the debtor's account,
-  and transfers with "agent" coordinator type, server implementations
+  and transfers with special coordinator types, server implementations
   must not accept incoming transfers for deleted or "scheduled for
   deletion" accounts. That is: `PrepareTransfer`_ messages with
-  ``coordinator_type`` different from ``"agent"``, that have a
-  non-existing or "scheduled for deletion" creditor's account as a
-  recipient, MUST be rejected.
+  non-special ``coordinator_type``\s, that have a non-existing or
+  "scheduled for deletion" creditor's account as a recipient, MUST be
+  rejected. Note that the only special coordinator type defined in
+  this specification is "agent".
 
 
 FinalizeTransfer
@@ -1189,7 +1195,7 @@ recipient's. Therefore, two separate `AccountTransfer`_ messages would
 be emitted for each committed non-negligible transfer.
 
 .. [#negligible-transfer] A *negligible transfer* is an incoming
-   transfer whose coordinator type is different from "agent", for
+   transfer whose coordinator type is different from "agent", and for
    which the transferred amount does not exceed the
    ``negligible_amount`` configured for the recipient's account (that
    is: ``0 < acquired_amount <= negligible_amount``).
