@@ -149,7 +149,6 @@ def are_managed_by_same_agent(
 
 class Account(db.Model):
     CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
-    CONFIG_SYSTEM_ACCOUNT_FLAG = 1 << 1
 
     STATUS_DELETED_FLAG = 1 << 0
     STATUS_OVERFLOWN_FLAG = 1 << 1

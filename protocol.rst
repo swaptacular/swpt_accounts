@@ -4,7 +4,7 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2023-09-28
+:Date: 2023-10-08
 :Version: 1.1
 :Copyright: This document has been placed in the public domain.
 
@@ -183,11 +183,8 @@ config_flags : int32
    database, an `AccountPurge`_ message MUST be sent to inform about
    this.
 
-   **Bit 1** has the meaning "system account". Clients can use this
-   flag to mark a given account as "special". Different client
-   implementations can use this flag for different purposes, and the
-   server does not need to be aware of the meaning that the client
-   assigns to it.
+   **Bits from 1 to 15** may be used in future version of this
+   specification.
 
 config_data : string
    Additional account configuration settings. Different server
