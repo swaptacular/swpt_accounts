@@ -4,7 +4,7 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2023-10-08
+:Date: 2023-10-11
 :Version: 1.1
 :Copyright: This document has been placed in the public domain.
 
@@ -969,7 +969,7 @@ account_id : string
    identifies the account. [#account-id]_ An empty string indicates
    that the account does not have an identity yet.
    [#missing-identity]_ Once the account have got an identity, the
-   identity SHOULD NOT be changed until the account is removed from
+   identity MUST NOT be changed until the account is removed from
    the server's database.
 
 debtor_info_iri : string
