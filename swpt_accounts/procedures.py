@@ -33,6 +33,7 @@ from swpt_accounts.models import (
     CT_INTEREST,
     CT_DELETE,
     CT_DIRECT,
+    CT_AGENT,
     SC_OK,
     SC_SENDER_IS_UNREACHABLE,
     SC_RECIPIENT_IS_UNREACHABLE,
@@ -43,6 +44,7 @@ from swpt_accounts.models import (
     T0,
     is_negligible_balance,
     contain_principal_overflow,
+    are_managed_by_same_agent,
 )
 
 T = TypeVar("T")
@@ -673,6 +675,7 @@ def make_debtor_payment(
     transfer_note: str = "",
 ) -> None:
     assert coordinator_type != CT_DIRECT
+    assert coordinator_type != CT_AGENT
 
     current_ts = datetime.now(tz=timezone.utc)
     account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
@@ -843,7 +846,10 @@ def _insert_account_transfer_signal(
 ) -> None:
     assert acquired_amount != 0
 
-    is_negligible = 0 < acquired_amount <= account.negligible_amount
+    is_negligible = (
+        coordinator_type != CT_AGENT
+        and 0 < acquired_amount <= account.negligible_amount
+    )
 
     # We do not send notifications for transfers from/to the debtor's
     # account, because the debtor's account does not have a real
@@ -1035,6 +1041,11 @@ def _process_transfer_request(
 
     assert sender_account.debtor_id == tr.debtor_id
     assert sender_account.creditor_id == tr.sender_creditor_id
+
+    if tr.coordinator_type == CT_AGENT and not are_managed_by_same_agent(
+        sender_account.creditor_id, tr.recipient_creditor_id
+    ):
+        return reject(SC_RECIPIENT_IS_UNREACHABLE, 0)
 
     if sender_account.pending_transfers_count >= MAX_INT32:
         return reject(

@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2023-08-23
-:Version: 1.0
+:Date: 2023-10-11
+:Version: 1.1
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -150,12 +150,13 @@ config_flags : int32
    Account configuration bit-flags. Different server implementations
    may use these flags for different purposes.
 
-   The lowest 16 bits are reserved. Bit ``0`` has the meaning
-   "scheduled for deletion". If all of the following conditions are
-   met, an account SHOULD eventually be removed from the server's
-   database: [#delete-transfer]_
+   The lowest 16 bits are reserved:
 
-   * The account is "scheduled for deletion". [#forbid-transfers]_
+   **Bit 0** has the meaning "scheduled for deletion". If all of the
+   following conditions are met, an account SHOULD eventually be
+   removed from the server's database: [#delete-transfer]_
+
+   * The account is "scheduled for deletion".
 
    * At least one day has passed since account's
      creation. [#creation-date]_
@@ -177,10 +178,13 @@ config_flags : int32
      access his funds, this implies that the account can not receive
      incoming transfers after being deleted.
 
-   If those condition are *not met*, accounts MUST NOT be
-   removed. Some time after an account has been removed from the
-   server's database, an `AccountPurge`_ message MUST be sent to
-   inform about this. [#purge-delay]_
+   If those condition are *not met*, accounts MUST NOT be removed.
+   Some time after an account has been removed from the server's
+   database, an `AccountPurge`_ message MUST be sent to inform about
+   this.
+
+   **Bits from 1 to 15** may be used in future version of this
+   specification.
 
 config_data : string
    Additional account configuration settings. Different server
@@ -215,12 +219,11 @@ they MUST first verify whether the specified account already exists:
 
 2. If the specified account does not exist, the message's timestamp
    MUST be checked. If it is more that ``MAX_CONFIG_DELAY`` seconds in
-   the past, the message MUST be ignored. [#config-delay]_ Otherwise,
-   an attempt MUST be made to create a new account with the requested
-   configuration settings. [#creation-date]_ \ [#zero-principal]_ \
-   [#for-deletion]_ If a new account has been successfully created, an
-   `AccountUpdate`_ message MUST be sent; otherwise a
-   `RejectedConfig`_ message MUST be sent.
+   the past, the message MUST be ignored. Otherwise, an attempt MUST
+   be made to create a new account with the requested configuration
+   settings. [#zero-principal]_ \ [#for-deletion]_ If a new account
+   has been successfully created, an `AccountUpdate`_ message MUST be
+   sent; otherwise a `RejectedConfig`_ message MUST be sent.
 
 .. [#config-frequency] As a rough guideline, on average,
   `ConfigureAccount`_ messages for one account should not be sent more
@@ -237,11 +240,6 @@ they MUST first verify whether the specified account already exists:
   being deleted, an `AccountTransfer`_ message SHOULD be sent,
   informing the owner of the account about the zeroing out of the
   account's principal before the deletion.
-
-.. [#forbid-transfers] Server implementations must not accept incoming
-  transfers for "scheduled for deletion" accounts. That is:
-  `PrepareTransfer`_ messages that has a "scheduled for deletion"
-  creditor's account as a recipient MUST be rejected.
 
 .. [#creation-date] Note that an account can be removed from the
   server's database, and then a new account with the same
@@ -265,39 +263,6 @@ they MUST first verify whether the specified account already exists:
 
 .. [#config-data-limitations] The UTF-8 encoding of the
   ``config_data`` string MUST NOT be longer than 2000 bytes.
-
-.. [#debtor-creditor-id] To issue new tokens into existence, the
-  server SHOULD use a special account called "*the debtor's account*"
-  (or "the root account"). The debtor's account is special in the
-  following ways:
-
-  * The ``creditor_id`` for the debtor's account is ``0``.
-
-  * The balance on the debtor's account is allowed to go negative, as
-    long as it does not exceed the configured ``negligible_amount``
-    for the account (with a negative sign). This gives debtors agents
-    the option to reliably restrict the total amount that a debtor is
-    allowed to issue.
-
-  * Interest is not accumulated on the debtor's account.
-
-  * All interest payments to/from creditor's accounts, come from/to
-    the debtor's account.
-
-  * `AccountTransfer`_ messages are not sent for transfers from/to the
-    debtor's account. This eliminates a potentially huge amount of
-    network traffic towards the debtor's account, especially for
-    interest payments.
-
-  * Each debtor can use its debtor's account ``config_data`` text
-    field, to configure various important parameters of the currency
-    (like the interest rate). The format for the ``config_data`` text
-    field will be specified in separate document(s).
-
-  * The debtor's account should always be able to receive incoming
-    transfers, even if it does not exist yet, or is "scheduled for
-    deletion". Transferring money to the debtor's account is
-    equivalent to "destroying" the money.
 
 .. [#compare-config] To decide whether a `ConfigureAccount`_ message
   has been applied already, server implementations MUST compare the
@@ -341,7 +306,41 @@ creditor_id : int64
 
 coordinator_type : string
    Indicates the subsystem which sent this message. MUST be between 1
-   and 30 symbols, ASCII only. [#coordinator-type]_
+   and 30 symbols, ASCII only.
+
+   **The coordinator type "direct"** is reserved for payments
+   initiated directly by the owner of the account (the creditor), and
+   for such transfers ``coordinator_id`` MUST be equal to
+   ``creditor_id``.
+
+   **The coordinator type "agent"** is reserved for transfers
+   initiated by creditors agents on behalf of creditors that they
+   represent, and for such transfers ``coordinator_id`` MUST be a
+   number in the interval of creditor IDs reserved for the given
+   creditors agent. The following special rules apply for transfers
+   with ``"agent"`` coordinator type:
+
+   * For transfers with ``"agent"`` coordinator type, if there are no
+     other impediments to the transfer, the transfer MUST be prepared
+     successfully even when the recipient's account is scheduled for
+     deletion.
+
+   * Incoming transfers with ``"agent"`` coordinator type MUST NOT be
+     treated as *negligible transfers*. [#negligible-transfer]_
+
+   * Transfers with ``"agent"`` coordinator type MUST NOT be allowed
+     between accounts managed by different creditors agents.
+
+   **The coordinator type "issuing"** is reserved for transfers which
+   create new money into existence, and for such transfers
+   ``coordinator_id`` MUST be equal to ``debtor_id``, and the
+   ``creditor_id`` of the sender MUST be ``0``.
+
+   **The coordinator type "interest"** MUST be used for transfers
+   initiated by the interest capitalization service.
+
+   **The coordinator type "delete"** MUST be used for transfers which
+   zero out the principal on deleted accounts.
 
 coordinator_id : int64
    Along with ``coordinator_type``, identifies the client that sent
@@ -391,19 +390,20 @@ ts : date-time
 When server implementations process a `PrepareTransfer`_ message they:
 
 * MUST NOT allow a transfer without verifying that the recipient's
-  account exists, and does accept incoming transfers.
+  account accepts incoming transfers. [#forbid-transfers]_
 
 * MUST NOT allow a transfer in which the sender and the recipient is
   the same account.
 
-* MUST try to secure *as big amount as possible* within the requested
-  limits (between ``min_locked_amount`` and ``max_locked_amount``).
+* MUST try to secure *as big amount as possible* amount within the
+  requested limits (between ``min_locked_amount`` and
+  ``max_locked_amount``).
 
 * MUST guarantee that if a transfer is successfully prepared, the
   probability for successful commit of the secured amount is very
-  high. [#demurrage]_ \ [#creditor-trick]_ Notably, the secured amount
-  MUST be locked, so that until the prepared transfer is finalized,
-  the amount is not available for other transfers.
+  high. Notably, the secured amount MUST be locked, so that until the
+  prepared transfer is finalized, the amount is not available for
+  other transfers.
 
 * If the requested transfer has been successfully prepared, MUST send
   a `PreparedTransfer`_ message, and MUST create a new prepared
@@ -420,17 +420,11 @@ will depend on whether the ``committed_amount``, sent with the
 `FinalizeTransfer`_ message, will be available at the time of the
 commit.
 
-
-.. [#coordinator-type] The coordinator type ``"direct"`` is reserved
-  for payments initiated directly by the owner of the account, and for
-  such transfers ``coordinator_id`` MUST be equal to ``creditor_id``;
-  The coordinator type ``"issuing"`` is reserved for transfers which
-  create new money into existence, and for such transfers
-  ``coordinator_id`` MUST be equal to ``debtor_id``, and the
-  ``creditor_id`` of the sender must be ``0``; ``"interest"`` MUST be
-  used for transfers initiated by the interest capitalization service;
-  ``"delete"`` MUST be used for transfers which zero out the principal
-  on deleted accounts.
+.. [#negligible-transfer] A *negligible transfer* is an incoming
+   transfer whose coordinator type is different from "agent", and for
+   which the transferred amount does not exceed the
+   ``negligible_amount`` configured for the recipient's account (that
+   is: ``0 < acquired_amount <= negligible_amount``).
 
 .. [#zero-min-amount] If ``min_locked_amount`` is zero, and there are
   no other impediments to the transfer, the transfer MUST be prepared
@@ -438,6 +432,15 @@ commit.
   or less. (In this case, the secured amount will be zero.) This is
   useful when the sender wants to verify whether the recipient's
   account exists and accepts incoming transfers.
+
+.. [#forbid-transfers] Except for transfers to the debtor's account,
+  and transfers with special coordinator types, server implementations
+  must not accept incoming transfers for deleted or "scheduled for
+  deletion" accounts. That is: `PrepareTransfer`_ messages with
+  non-special ``coordinator_type``\s, that have a non-existing or
+  "scheduled for deletion" creditor's account as a recipient, MUST be
+  rejected. Note that the only special coordinator type defined in
+  this specification is "agent".
 
 
 FinalizeTransfer
@@ -547,6 +550,39 @@ server's database: [#transfer-match]_
   owes to the creditor (including the accumulated interest), minis the
   total sum secured (locked) for prepared transfers. Note that the
   available amount can be a negative number.
+
+.. [#debtor-creditor-id] To issue new tokens into existence, the
+  server SHOULD use a special account called "*the debtor's account*"
+  (or "the root account"). The debtor's account is special in the
+  following ways:
+
+  * The ``creditor_id`` for the debtor's account is ``0``.
+
+  * The balance on the debtor's account is allowed to go negative, as
+    long as it does not exceed the configured ``negligible_amount``
+    for the account (with a negative sign). This gives debtors agents
+    the option to reliably restrict the total amount that a debtor is
+    allowed to issue.
+
+  * Interest is not accumulated on the debtor's account.
+
+  * All interest payments to/from creditor's accounts, come from/to
+    the debtor's account.
+
+  * `AccountTransfer`_ messages are not sent for transfers from/to the
+    debtor's account. This eliminates a potentially huge amount of
+    network traffic towards the debtor's account, especially for
+    interest payments.
+
+  * Each debtor can use its debtor's account ``config_data`` text
+    field, to configure various important parameters of the currency
+    (like the interest rate). The format for the ``config_data`` text
+    field will be specified in separate document(s).
+
+  * The debtor's account should always be able to receive incoming
+    transfers, even if it does not exist yet, or is "scheduled for
+    deletion". Transferring money to the debtor's account is
+    equivalent to "destroying" the money.
 
 .. [#successful-commit] If the prepared transfer has been committed
   successfully, `AccountUpdate`_ messages will be sent eventually, and
@@ -703,8 +739,8 @@ prepared_at : date-time
 demurrage_rate : float
    The annual rate (in percents) at which the secured amount will
    diminish with time, in the worst possible case. This MUST be a
-   number between ``-100`` and ``0``. [#demurrage]_ \
-   [#demurrage-rate]_
+   number between ``-100`` and ``0``. [#creditor-trick]_ \
+   [#demurrage]_ \ [#demurrage-rate]_
 
 deadline : date-time
    The prepared transfer can be committed successfully only before
@@ -726,6 +762,13 @@ the ``ts`` field), to remind that a transfer has been prepared and is
 waiting for a resolution. This guarantees that prepared transfers will
 not remain in the server's database forever, even in the case of a
 lost message, or a complete database loss on the client's side.
+
+.. [#creditor-trick] There is a trick that opportunistic creditors may
+  try, to evade incurring negative interest on their accounts. The
+  trick is to prepare a transfer from one account to another account
+  for the whole available amount, wait for some long time, then commit
+  the prepared transfer and abandon the first account (whose balance
+  at that point would be significantly negative).
 
 .. [#demurrage] Note that when the interest rate on a given account is
   negative, the secured (locked) amount will be gradually consumed by
@@ -756,13 +799,6 @@ lost message, or a complete database loss on the client's side.
   exceed 980. (That is: The value of the ``committed_amount`` field in
   the `FinalizeTransfer`_ message that the coordinator sends to commit
   the transfer, should not exceed ``980``.)
-
-.. [#creditor-trick] There is a trick that opportunistic creditors may
-  try to evade incurring negative interest on their accounts. The
-  trick is to prepare a transfer from one account to another account
-  for the whole available amount, wait for some long time, then commit
-  the prepared transfer and abandon the first account (which at that
-  point would be significantly in red).
 
 .. [#demurrage-rate] The value of the ``demurrage_rate`` field in
   `PreparedTransfer`_ messages SHOULD be equal to the most negative
@@ -852,7 +888,7 @@ creditor_id : int64
 creation_date : date
    The date on which the account was created. Until the account is
    removed from the server's database, its ``creation_date`` MUST NOT
-   be changed. [#creation-date]_
+   be changed.
 
 last_change_ts : date-time
    The moment at which the latest meaningful change in the state of
@@ -933,7 +969,7 @@ account_id : string
    identifies the account. [#account-id]_ An empty string indicates
    that the account does not have an identity yet.
    [#missing-identity]_ Once the account have got an identity, the
-   identity SHOULD NOT be changed until the account is removed from
+   identity MUST NOT be changed until the account is removed from
    the server's database.
 
 debtor_info_iri : string
@@ -1084,8 +1120,10 @@ can safely remove a given account from their databases.
 AccountTransfer
 ---------------
 
-Emitted when a non-negligible committed transfer has affected a
-creditor's account. [#negligible-transfer]_ \ [#debtor-creditor-id]_
+Emitted when a non-negligible committed transfer
+[#negligible-transfer]_ has affected a creditor's account. Note that
+`AccountTransfer`_ messages are not sent for *debtors' accounts* (that
+is: ``creditor_id = 0``).
 
 debtor_id : int64
    The ID of the debtor.
@@ -1160,11 +1198,6 @@ Every committed transfer affects two accounts: the sender's, and the
 recipient's. Therefore, two separate `AccountTransfer`_ messages would
 be emitted for each committed non-negligible transfer.
 
-.. [#negligible-transfer] A *negligible transfer* is an incoming
-   transfer for which the transferred amount does not exceed the
-   ``negligible_amount`` configured for the recipient's account (that
-   is: ``0 < acquired_amount <= negligible_amount``).
-
 .. [#transfer-number] Note that when an account has been removed from
   the database, and then recreated again, the generation of transfer
   numbers MAY start from ``1`` again.
@@ -1225,8 +1258,8 @@ Received `PreparedTransfer`_ message
 
 When client implementations process a `PreparedTransfer`_ message,
 they MUST first try to find a matching `RT record`_ in the client's
-database. [#crr-match]_ If a matching record does not exist, the newly
-prepared transfer MUST be immediately dismissed [#dismiss-transfer]_;
+database. If a matching record does not exist, the newly prepared
+transfer MUST be immediately dismissed [#dismiss-transfer]_;
 otherwise, the way to proceed depends on the status of the RT record:
 
 initiated
@@ -1240,7 +1273,7 @@ prepared
    fields in the received `PreparedTransfer`_ message MUST be compared
    to the values stored in the `RT record`_. If they are the same, no
    action SHOULD be taken; if they differ, the newly prepared transfer
-   MUST be immediately dismissed. [#dismiss-transfer]_
+   MUST be immediately dismissed.
 
 settled
    The values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
@@ -1249,7 +1282,7 @@ settled
    same `FinalizeTransfer`_ message (except for the ``ts`` field),
    which was sent to finalize the transfer, MUST be sent again; if
    they differ, the newly prepared transfer MUST be immediately
-   dismissed. [#dismiss-transfer]_
+   dismissed.
 
 **Important note:** Eventually a `FinalizeTransfer`_ message MUST be
 sent for each "prepared" `RT record`_, and the record's status set to
@@ -1263,13 +1296,12 @@ Received `FinalizedTransfer`_ message
 
 When client implementations process a `FinalizedTransfer`_ message,
 they should first try to find a matching `RT record`_ in the client's
-database. [#crr-match]_ If a matching record exists, its status is
-"settled", and the values of ``debtor_id``, ``creditor_id``, and
-``transfer_id`` fields in the received message are the same as the
-values stored in the RT record, then the outcome of the finalized
-transfer can be reported, and the RT record MAY be deleted; otherwise
-the message SHOULD be ignored.
-
+database. If a matching record exists, its status is "settled", and
+the values of ``debtor_id``, ``creditor_id``, and ``transfer_id``
+fields in the received message are the same as the values stored in
+the RT record, then the outcome of the finalized transfer can be
+reported, and the RT record MAY be deleted; otherwise the message
+SHOULD be ignored.
 
 .. [#cr-retention] The retention of committed `RT record`_\s is
   necessary to prevent problems caused by message
@@ -1301,9 +1333,10 @@ the message SHOULD be ignored.
 .. [#crr-match] The matching `RT record`_ MUST have the same
   ``coordinator_type``, ``coordinator_id``, and
   ``coordinator_request_id`` values as the received
-  `PreparedTransfer`_ message. Additionally, the values of other
-  fields in the received message MAY be verified as well, so as to
-  ensure that the server behaves as expected.
+  `RejectedTransfer`_, `PreparedTransfer`_, or `FinalizedTransfer`_
+  message. Additionally, the values of other fields in the received
+  message MAY be verified as well, so as to ensure that the server
+  behaves as expected.
 
 .. [#dismiss-transfer] A prepared transfer is dismissed by sending a
   `FinalizeTransfer`_ message, with zero ``committed_amount``.
@@ -1319,7 +1352,7 @@ records is the (``creditor_id``, ``debtor_id``, ``creation_date``)
 tuple. [#adr-pk]_ As a minimum, `AD record`_\s MUST also be able to
 store the values of ``last_change_ts`` and ``last_change_seqnum``
 fields from the latest received `AccountUpdate`_ message, plus they
-SHOULD have a ``last_heartbeat_ts`` field. [#latest-heartbeat]_
+SHOULD have a ``last_heartbeat_ts`` field.
 
 
 Received `AccountUpdate`_ message
@@ -1390,15 +1423,15 @@ AL record
 ---------
 
 Client implementations MAY maintain *account ledger records* (AL
-records) in their databases, to store accounts' transfer history
-data. The main function of `AL record`_\s is to reconstruct the
-original order in which the processed `AccountTransfer`_ messages were
-sent. [#sequential-transfer]_ The primary key for account ledger
-records is the (``creditor_id``, ``debtor_id``, ``creation_date``)
-tuple. As a minimum, AL records must also be able to store a set of
-processed `AccountTransfer`_ messages, plus a ``last_transfer_number``
-field, which contains the transfer number of the latest transfer that
-has been added to the given account's ledger.  [#transfer-chain]_
+records) in their databases, to store accounts' transfer history data.
+The main function of `AL record`_\s is to reconstruct the original
+order in which the processed `AccountTransfer`_ messages were sent.
+[#sequential-transfer]_ The primary key for account ledger records is
+the (``creditor_id``, ``debtor_id``, ``creation_date``) tuple. As a
+minimum, AL records must also be able to store a set of processed
+`AccountTransfer`_ messages, plus a ``last_transfer_number`` field,
+which contains the transfer number of the latest transfer that has
+been added to the given account's ledger. [#transfer-chain]_
 
 
 Received `AccountTransfer`_ message
@@ -1420,12 +1453,12 @@ following steps must be performed:
    ``last_transfer_number`` field in the corresponding `AL record`_,
    the ``last_transfer_number``\'s value must be updated to contain
    the transfer number of the *latest sequential transfer* in the set
-   of processed `AccountTransfer`_ messages. [#sequential-transfer]_ \
-   [#transfer-chain]_ Note that when between two `AccountTransfer`_
-   messages that are being added to the ledger, there were one or more
-   negligible transfers, a dummy in-between ledger entry must be added
-   as well, so as to compensate for the negligible transfers (for
-   wihch `AccountTransfer`_ messages have not been sent).
+   of processed `AccountTransfer`_ messages. Note that when between
+   two `AccountTransfer`_ messages that are being added to the ledger,
+   there were one or more negligible transfers, a dummy in-between
+   ledger entry must be added as well, so as to compensate for the
+   negligible transfers (for wihch `AccountTransfer`_ messages have
+   not been sent).
 
 **Note:** Client implementations should have some way to remove
 created `AL record`_\s that are not needed anymore.

@@ -81,6 +81,14 @@ def subscribe():  # pragma: no cover
     )
     channel.exchange_bind(
         source=TO_COORDINATORS_EXCHANGE,
+        destination=TO_CREDITORS_EXCHANGE,
+        arguments={
+            "x-match": "all",
+            "coordinator-type": "agent",
+        },
+    )
+    channel.exchange_bind(
+        source=TO_COORDINATORS_EXCHANGE,
         destination=TO_DEBTORS_EXCHANGE,
         arguments={
             "x-match": "all",
