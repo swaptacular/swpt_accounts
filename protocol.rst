@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2023-10-11
-:Version: 1.1
+:Date: 2024-01-20
+:Version: 1.2
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -975,25 +975,25 @@ account_id : string
 debtor_info_iri : string
    A link (Internationalized Resource Identifier) for obtaining
    information about the account's debtor. This provides a reliable
-   way for creditors to get up-to-date information about the
-   debtor. Note that changing the IRI will likely cause the clients to
-   make requests to the new IRI, so as to obtain updated information
-   about the debtor. The link MUST have at most 200 Unicode
-   characters. If no link is available, the value SHOULD be an empty
-   string.
+   way for creditors to get up-to-date information about the debtor.
+   Note that changing the IRI will likely cause the clients to make
+   requests to the new IRI, so as to obtain updated information about
+   the debtor. The link MUST have at most 200 Unicode characters. If
+   no link is available (which is NOT RECOMMENDED), the value SHOULD
+   be an empty string.
 
 debtor_info_content_type : string
    The content type of the document that the ``debtor_info_iri`` link
    refers to. It MUST have at most 100 symbols, ASCII only. If no link
-   is available, or the content type of the document is unknown, the
-   value SHOULD be an empty string.
+   is available, or the content type of the document is unknown (which
+   is NOT RECOMMENDED), the value SHOULD be an empty string.
 
 debtor_info_sha256 : bytes
    The SHA-256 cryptographic hash of the content of the document that
    the ``debtor_info_iri`` link refers to. MUST contain exactly 0, or
    exactly 32 bytes. If no link is available, or the SHA-256
-   cryptographic hash of the document is unknown, the value SHOULD
-   contain 0 bytes.
+   cryptographic hash of the document is unknown (which is NOT
+   RECOMMENDED), the value SHOULD contain 0 bytes.
 
 last_transfer_number : int64
    MUST contain the value of the ``transfer_number`` field in the
@@ -1030,8 +1030,9 @@ transfer_note_max_bytes: int32
    The maximal number of bytes that the ``transfer_note`` field in
    `FinalizeTransfer`_ messages is allowed to contain when UTF-8
    encoded. This MUST be a non-negative number which does not exceed
-   the general limit imposed by this protocol. [#note-limitations]_
-   When changed, it SHOULD NOT be decreased.
+   the general limit imposed by this protocol [#note-limitations]_ ,
+   and MUST be the same for all accounts with the given debtor. When
+   changed, it MUST NOT be decreased.
 
 ts : date-time
    The moment at which this message was sent (the message's
