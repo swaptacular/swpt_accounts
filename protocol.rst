@@ -46,9 +46,9 @@ in this direction. The protocol supports the following operations:
    currency (that is: same debtor). The execution of the transfer
    follows the "two phase commit" paradigm. First the transfer is
    *prepared*, and then *finalized* (committed or dismissed). A
-   successfully prepared transfer, gives a very high probability for
-   the success of the eventual subsequent *commit*. This paradigm
-   allows many transfers to be committed atomically. Enabling circular
+   successfully prepared transfer promises a virtual certainty for the
+   success of the eventual subsequent *commit*. This paradigm allows
+   many transfers to be committed atomically. Enabling circular
    exchanges between different currencies is an important goal of this
    protocol.
 
@@ -399,11 +399,12 @@ When server implementations process a `PrepareTransfer`_ message they:
   requested limits (between ``min_locked_amount`` and
   ``max_locked_amount``).
 
-* MUST guarantee that if a transfer is successfully prepared, the
-  probability for successful commit of the secured amount is very
-  high. Notably, the secured amount MUST be locked, so that until the
-  prepared transfer is finalized, the amount is not available for
-  other transfers.
+* MUST guarantee that if a transfer is successfully prepared, it is
+  virtually certain that the eventual commit of the secured amount
+  (although reduced according to the *demurrage rate* [#demurrage]_)
+  will be successful. Notably, the secured amount MUST be locked, so
+  that until the prepared transfer is finalized, the amount is not
+  available for other transfers.
 
 * If the requested transfer has been successfully prepared, MUST send
   a `PreparedTransfer`_ message, and MUST create a new prepared
