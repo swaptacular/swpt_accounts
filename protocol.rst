@@ -400,10 +400,10 @@ When server implementations process a `PrepareTransfer`_ message they:
   ``max_locked_amount``).
 
 * MUST guarantee that if a transfer is successfully prepared, it is
-  virtually certain that the eventual commit of the secured amount
-  (although reduced according to the *demurrage rate* [#demurrage]_)
-  will be successful. Notably, the secured amount MUST be locked, so
-  that until the prepared transfer is finalized, the amount is not
+  certain that the eventual commit of the secured amount (although
+  reduced according to the *demurrage rate* [#demurrage]_) will be
+  successful. Notably, the secured amount MUST be locked, so that
+  until the prepared transfer is finalized, the amount is not
   available for other transfers.
 
 * If the requested transfer has been successfully prepared, MUST send
