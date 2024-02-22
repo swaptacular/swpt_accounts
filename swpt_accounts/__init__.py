@@ -289,7 +289,14 @@ def _check_config_sanity(c):  # pragma: nocover
     if c["APP_ACCOUNTS_SCAN_HOURS"] > 48:
         raise RuntimeError(
             "The configured value for APP_ACCOUNTS_SCAN_HOURS is too big."
-            " Thismay result in lagging account status updates. Choose a more"
+            " This may result in lagging account status updates. Choose a more"
+            " appropriate value."
+        )
+
+    if c["APP_ACCOUNT_HEARTBEAT_DAYS"] > 14:
+        raise RuntimeError(
+            "The configured value for APP_ACCOUNT_HEARTBEAT_DAYS is too big."
+            " This may result in a missed account heartbeats. Choose a more"
             " appropriate value."
         )
 
