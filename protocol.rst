@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2024-01-20
-:Version: 1.2
+:Date: 2024-02-22
+:Version: 1.3
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -1045,13 +1045,14 @@ ttl : int32
    message was emitted (``ts``). This MUST be a non-negative number.
 
 If for a given account, no `AccountUpdate`_ messages have been sent
-for a long while (1 week for example), the server MUST send a new
-`AccountUpdate`_ message identical to the previous one (except for the
-``ts`` field), to remind that the account still exist. This guarantees
-that accounts will not remain in the server's database forever, even
-in the case of a lost message, or a complete database loss on the
-client's side. Also, this serves the purpose of a "heartbeat",
-allowing clients to detect "dead" account records in their databases.
+for a period of several days (this period NOT SHOULD be longer than 2
+weeks), the server MUST send a new `AccountUpdate`_ message identical
+to the previous one (except for the ``ts`` field), to remind that the
+account still exist. This guarantees that accounts will not remain in
+the server's database forever, even in the case of a lost message, or
+a complete database loss on the client's side. Also, this serves the
+purpose of a "heartbeat", allowing clients to detect "dead" account
+records in their databases.
 
 .. [#meaningful-change] Every change in the value of one of the fields
   included in `AccountUpdate`_ messages (except for ``ts`` and ``ttl``
