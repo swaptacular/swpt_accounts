@@ -138,6 +138,7 @@ class AccountScanner(TableScanner):
                 row[c.status_flags] & deleted_flag
                 and row[c.last_change_ts] < purge_cutoff_ts
                 and row[c.creation_date] < date_few_days_ago
+                and is_valid_account(row[c.debtor_id], row[c.creditor_id])
             )
         ]
 
@@ -195,6 +196,7 @@ class AccountScanner(TableScanner):
                     row[c.last_heartbeat_ts] < heartbeat_cutoff_ts
                     or row[c.pending_account_update]
                 )
+                and is_valid_account(row[c.debtor_id], row[c.creditor_id])
             )
         ]
 
