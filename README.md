@@ -75,6 +75,9 @@ the following servers:
    servers, it might be a good idea to store the local database
    "chores" queue, as close to the database as possible.
 
+   For this RabbitMQ server instance, the tolerance for data loss is
+   relatively high, because it only contains messages which trigger
+   periodic tasks.
 
 Configuration
 -------------
