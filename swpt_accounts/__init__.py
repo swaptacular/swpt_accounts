@@ -252,11 +252,11 @@ class Configuration(metaclass=MetaEnvReader):
     APP_MAX_INTEREST_TO_PRINCIPAL_RATIO = 0.0001
     APP_DELETION_ATTEMPTS_MIN_DAYS = 14.0
     APP_ACCOUNTS_SCAN_BLOCKS_PER_QUERY = 40
-    APP_ACCOUNTS_SCAN_BEAT_MILLISECS = 25
+    APP_ACCOUNTS_SCAN_BEAT_MILLISECS = 100
     APP_PREPARED_TRANSFERS_SCAN_BLOCKS_PER_QUERY = 40
-    APP_PREPARED_TRANSFERS_SCAN_BEAT_MILLISECS = 25
+    APP_PREPARED_TRANSFERS_SCAN_BEAT_MILLISECS = 100
     APP_REGISTERED_BALANCE_CHANGES_SCAN_BLOCKS_PER_QUERY = 40
-    APP_REGISTERED_BALANCE_CHANGES_SCAN_BEAT_MILLISECS = 25
+    APP_REGISTERED_BALANCE_CHANGES_SCAN_BEAT_MILLISECS = 100
 
 
 def _check_config_sanity(c):  # pragma: nocover
@@ -289,7 +289,14 @@ def _check_config_sanity(c):  # pragma: nocover
     if c["APP_ACCOUNTS_SCAN_HOURS"] > 48:
         raise RuntimeError(
             "The configured value for APP_ACCOUNTS_SCAN_HOURS is too big."
-            " Thismay result in lagging account status updates. Choose a more"
+            " This may result in lagging account status updates. Choose a more"
+            " appropriate value."
+        )
+
+    if c["APP_ACCOUNT_HEARTBEAT_DAYS"] > 14:
+        raise RuntimeError(
+            "The configured value for APP_ACCOUNT_HEARTBEAT_DAYS is too big."
+            " This may result in a missed account heartbeats. Choose a more"
             " appropriate value."
         )
 

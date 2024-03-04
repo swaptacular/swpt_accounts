@@ -138,6 +138,7 @@ class AccountScanner(TableScanner):
                 row[c.status_flags] & deleted_flag
                 and row[c.last_change_ts] < purge_cutoff_ts
                 and row[c.creation_date] < date_few_days_ago
+                and is_valid_account(row[c.debtor_id], row[c.creditor_id])
             )
         ]
 
@@ -195,6 +196,7 @@ class AccountScanner(TableScanner):
                     row[c.last_heartbeat_ts] < heartbeat_cutoff_ts
                     or row[c.pending_account_update]
                 )
+                and is_valid_account(row[c.debtor_id], row[c.creditor_id])
             )
         ]
 
@@ -497,6 +499,8 @@ class PreparedTransferScanner(TableScanner):
     @atomic
     def process_rows(self, rows):
         c = self.table.c
+        c_debtor_id = c.debtor_id
+        c_sender_creditor_id = c.sender_creditor_id
         c_last_reminder_ts = c.last_reminder_ts
         c_prepared_at = c.prepared_at
         current_ts = datetime.now(tz=timezone.utc)
@@ -504,6 +508,11 @@ class PreparedTransferScanner(TableScanner):
         prepared_transfer_signal_mappings = {}
 
         for row in rows:
+            if not is_valid_account(
+                    row[c_debtor_id], row[c_sender_creditor_id]
+            ):
+                continue  # pragma: no cover
+
             last_reminder_ts = row[c_last_reminder_ts]
             has_big_delay = row[c_prepared_at] < reminder_cutoff_ts
             has_recent_reminder = (
