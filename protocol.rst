@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2024-02-22
-:Version: 1.3
+:Date: 2024-04-25
+:Version: 1.4
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -790,16 +790,17 @@ lost message, or a complete database loss on the client's side.
   transfer, which he knows, because of the still unrealized condition,
   will take up to 1 month to get finalized. Then, a
   `PreparedTransfer`_ message for this transfer is received, with a
-  ``locked_amount`` of 1000, and a ``demurrage_rate`` of -79.5
+  ``locked_amount`` of 1000, and a ``demurrage_rate`` of -21.5
   percent. The coordinator figures out that if he keeps this prepared
-  transfer around, and does not finalize it, for each passed month, up
-  to 2% of the locked amount will be eaten up (0.98 to the power of 12
-  equals 0.795). Therefore, the coordinator can calculate that in
-  order to be certain that, after one month, he will be able to commit
-  this prepared transfer successfully, the committed amount should not
-  exceed 980. (That is: The value of the ``committed_amount`` field in
-  the `FinalizeTransfer`_ message that the coordinator sends to commit
-  the transfer, should not exceed ``980``.)
+  transfer around without finalizing it, for each passed month, up to
+  2% of the locked amount will be eaten up (0.98 to the power of 12 is
+  0.785, which equals 100% - 21.5%). Therefore, the coordinator can
+  calculate that in order to be certain that, after one month, he will
+  be able to commit this prepared transfer successfully, the committed
+  amount should not exceed 980. (That is: The value of the
+  ``committed_amount`` field in the `FinalizeTransfer`_ message that
+  the coordinator sends to commit the transfer, should not exceed
+  ``980``.)
 
 .. [#demurrage-rate] The value of the ``demurrage_rate`` field in
   `PreparedTransfer`_ messages SHOULD be equal to the most negative
@@ -921,6 +922,10 @@ interest_rate : float
    account. This can be a negative number, but MUST NOT be smaller
    than -100, and MUST be *finite*.
 
+   When the ``interest_rate`` on the account changes, the server
+   SHOULD send an `AccountUpdate`_ message to inform about this change
+   *as soon as possible*.
+
 last_interest_rate_change_ts : date-time
    The moment at which the latest change in the account's interest
    rate happened. For a given account, later `AccountUpdate`_ messages
@@ -1014,7 +1019,8 @@ demurrage_rate : float
    is: the value of the ``demurrage_rate`` field in new
    `PreparedTransfer`_ messages. This MUST be a number between
    ``-100`` and ``0``, which SHOULD be the same for all accounts with
-   the given debtor. [#demurrage-rate]_
+   the given debtor, and SHOULD NOT be smaller than ``-50``.
+   [#demurrage-rate]_
 
 commit_period : int32
    The maximal allowed period (in seconds) during which new prepared
