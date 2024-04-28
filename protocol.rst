@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2024-04-25
-:Version: 1.4
+:Date: 2024-04-28
+:Version: 1.5
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -683,9 +683,12 @@ ts : date-time
    * ``"RECIPIENT_IS_UNREACHABLE"`` signifies that the recipient's
      account does not exist, or does not accept incoming transfers.
 
-   * ``"TERMINATED"`` or anything that starts with "TERMINATED",
-     signifies that the transfer has been terminated due to expired
-     deadline or unapproved interest rate change.
+   * ``"TIMEOUT"`` signifies that the transfer has been terminated due
+     to expired deadline.
+
+   * ``"TOO_LOW_INTEREST_RATE"`` signifies that the transfer has been
+     terminated because the current interest rate on the account is
+     smaller than the specified ``min_interest_rate``.
 
    * ``"TRANSFER_NOTE_IS_TOO_LONG"`` signifies that the transfer has been
      rejected because the transfer note's byte-length is too big.
@@ -922,9 +925,9 @@ interest_rate : float
    account. This can be a negative number, but MUST NOT be smaller
    than -100, and MUST be *finite*.
 
-   When the ``interest_rate`` on the account changes, the server
-   SHOULD send an `AccountUpdate`_ message to inform about this change
-   *as soon as possible*.
+   When the ``interest_rate`` on the account changes, the server MUST
+   send an `AccountUpdate`_ message to inform about this change *as
+   soon as possible*.
 
 last_interest_rate_change_ts : date-time
    The moment at which the latest change in the account's interest
@@ -1031,7 +1034,7 @@ commit_period : int32
    ``commit_period`` seconds to the ``prepared_at`` timestamp. The
    value of this filed MUST be a non-negative number, SHOULD be the
    same for all accounts with the given debtor, and SHOULD be at least
-   ``86400`` (24 hours).
+   ``2592000`` (30 days).
 
 transfer_note_max_bytes: int32
    The maximal number of bytes that the ``transfer_note`` field in
