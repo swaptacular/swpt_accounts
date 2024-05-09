@@ -81,7 +81,7 @@ def configure_account(
     negligible_amount: float = 0.0,
     config_flags: int = 0,
     config_data: str = "",
-    signalbus_max_delay_seconds: float = 1e30,
+    message_max_delay_seconds: float = 1e30,
 ) -> bool:
     current_ts = datetime.now(tz=timezone.utc)
     should_be_initialized = False
@@ -152,8 +152,8 @@ def configure_account(
         if this_event > last_event:
             try_to_configure(account)
     else:
-        signal_age_seconds = (current_ts - ts).total_seconds()
-        if signal_age_seconds <= signalbus_max_delay_seconds:
+        message_delay_seconds = (current_ts - ts).total_seconds()
+        if message_delay_seconds <= message_max_delay_seconds:
             try_to_configure(account)
 
     return should_be_initialized
@@ -318,7 +318,7 @@ def change_interest_rate(
     creditor_id: int,
     interest_rate: float,
     ts: datetime = None,
-    signalbus_max_delay_seconds: float = 0.0,
+    message_max_delay_seconds: float = 0.0,
 ) -> None:
     if creditor_id == ROOT_CREDITOR_ID:  # pragma: nocover
         return
@@ -347,7 +347,7 @@ def change_interest_rate(
 
         old_interest_rate = account.interest_rate
         change_min_interval_seconds = (
-            signalbus_max_delay_seconds + SECONDS_IN_DAY
+            message_max_delay_seconds + SECONDS_IN_DAY
         )
         seconds_since_last_change = (
             current_ts - account.last_interest_rate_change_ts

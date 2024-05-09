@@ -31,8 +31,8 @@ def _on_change_interest_rate(
         creditor_id=creditor_id,
         interest_rate=interest_rate,
         ts=ts,
-        signalbus_max_delay_seconds=current_app.config[
-            "APP_SIGNALBUS_MAX_DELAY_DAYS"
+        message_max_delay_seconds=current_app.config[
+            "APP_MESSAGE_MAX_DELAY_DAYS"
         ]
         * SECONDS_IN_DAY,
     )

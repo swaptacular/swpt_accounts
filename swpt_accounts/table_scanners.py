@@ -34,8 +34,8 @@ class AccountScanner(TableScanner):
 
     def __init__(self):
         super().__init__()
-        signalbus_max_delay = timedelta(
-            days=current_app.config["APP_SIGNALBUS_MAX_DELAY_DAYS"]
+        message_max_delay = timedelta(
+            days=current_app.config["APP_MESSAGE_MAX_DELAY_DAYS"]
         )
         account_heartbeat_interval = timedelta(
             days=current_app.config["APP_ACCOUNT_HEARTBEAT_DAYS"]
@@ -55,7 +55,7 @@ class AccountScanner(TableScanner):
             days=current_app.config["APP_DELETION_ATTEMPTS_MIN_DAYS"]
         )
         self.interest_rate_change_min_interval = (
-            signalbus_max_delay + timedelta(days=1)
+            message_max_delay + timedelta(days=1)
         )
         self.max_interest_to_principal_ratio = current_app.config[
             "APP_MAX_INTEREST_TO_PRINCIPAL_RATIO"
@@ -68,7 +68,7 @@ class AccountScanner(TableScanner):
         # we ensure that the account heartbeat interval is not shorter
         # than the allowed delay in the signal bus.
         self.account_heartbeat_interval = max(
-            account_heartbeat_interval, signalbus_max_delay
+            account_heartbeat_interval, message_max_delay
         )
 
         assert self.max_interest_to_principal_ratio > 0.0
@@ -483,7 +483,7 @@ class PreparedTransferScanner(TableScanner):
             timedelta(
                 days=current_app.config["APP_PREPARED_TRANSFER_REMAINDER_DAYS"]
             ),
-            timedelta(days=current_app.config["APP_SIGNALBUS_MAX_DELAY_DAYS"]),
+            timedelta(days=current_app.config["APP_MESSAGE_MAX_DELAY_DAYS"]),
         )
 
     @property

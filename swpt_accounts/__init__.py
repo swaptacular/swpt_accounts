@@ -240,7 +240,7 @@ class Configuration(metaclass=MetaEnvReader):
     APP_PREPARED_TRANSFERS_SCAN_DAYS = 1.0
     APP_REGISTERED_BALANCE_CHANGES_SCAN_DAYS = 7.0
     APP_INTRANET_EXTREME_DELAY_DAYS = 14.0
-    APP_SIGNALBUS_MAX_DELAY_DAYS = 7.0
+    APP_MESSAGE_MAX_DELAY_DAYS = 7.0
     APP_ACCOUNT_HEARTBEAT_DAYS = 7.0
     APP_PREPARED_TRANSFER_REMAINDER_DAYS = 7.0
     APP_PREPARED_TRANSFER_MAX_DELAY_DAYS = 30.0
@@ -262,12 +262,12 @@ class Configuration(metaclass=MetaEnvReader):
 def _check_config_sanity(c):  # pragma: nocover
     if (
         c["APP_PREPARED_TRANSFER_MAX_DELAY_DAYS"]
-        < c["APP_SIGNALBUS_MAX_DELAY_DAYS"]
+        < c["APP_MESSAGE_MAX_DELAY_DAYS"]
     ):
         raise RuntimeError(
             "The configured value for APP_PREPARED_TRANSFER_MAX_DELAY_DAYS is"
             " too small compared to the configured value for"
-            " APP_SIGNALBUS_MAX_DELAY_DAYS. This may result in frequent timing"
+            " APP_MESSAGE_MAX_DELAY_DAYS. This may result in frequent timing"
             " out of prepared transfers due to message delays. Choose more"
             " appropriate configuration values."
         )

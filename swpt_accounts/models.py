@@ -914,7 +914,7 @@ class AccountUpdateSignal(Signal):
     @property
     def ttl(self):
         return int(
-            current_app.config["APP_SIGNALBUS_MAX_DELAY_DAYS"] * SECONDS_IN_DAY
+            current_app.config["APP_MESSAGE_MAX_DELAY_DAYS"] * SECONDS_IN_DAY
         )
 
     @property
