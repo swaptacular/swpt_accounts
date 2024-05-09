@@ -161,8 +161,8 @@ def _configure_and_initialize_account(
     config_flags: int = 0,
     config_data: str = ""
 ) -> None:
-    signalbus_max_delay_seconds = (
-        current_app.config["APP_SIGNALBUS_MAX_DELAY_DAYS"] * SECONDS_IN_DAY
+    message_max_delay_seconds = (
+        current_app.config["APP_MESSAGE_MAX_DELAY_DAYS"] * SECONDS_IN_DAY
     )
     should_be_initialized = procedures.configure_account(
         debtor_id=debtor_id,
@@ -172,7 +172,7 @@ def _configure_and_initialize_account(
         negligible_amount=negligible_amount,
         config_flags=config_flags,
         config_data=config_data,
-        signalbus_max_delay_seconds=signalbus_max_delay_seconds,
+        message_max_delay_seconds=message_max_delay_seconds,
     )
     if should_be_initialized:
         root_config_data = get_root_config_data_dict([debtor_id]).get(
@@ -184,7 +184,7 @@ def _configure_and_initialize_account(
                 debtor_id=debtor_id,
                 creditor_id=creditor_id,
                 interest_rate=root_config_data.interest_rate_target,
-                signalbus_max_delay_seconds=signalbus_max_delay_seconds,
+                message_max_delay_seconds=message_max_delay_seconds,
             )
             procedures.update_debtor_info(
                 debtor_id=debtor_id,

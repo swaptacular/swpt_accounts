@@ -170,7 +170,7 @@ def test_invalid_config(db_session, current_ts):
         C_ID,
         current_ts - timedelta(days=1000),
         123,
-        signalbus_max_delay_seconds=900 * 86400,
+        message_max_delay_seconds=900 * 86400,
     )
     assert p.get_account(D_ID, C_ID) is None
     assert len(AccountUpdateSignal.query.all()) == 0
