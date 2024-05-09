@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2024-04-28
-:Version: 1.5
+:Date: 2024-05-09
+:Version: 1.6
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -933,14 +933,14 @@ last_interest_rate_change_ts : date-time
    The moment at which the latest change in the account's interest
    rate happened. For a given account, later `AccountUpdate`_ messages
    MUST have later or equal ``last_interest_rate_change_ts``\s,
-   compared to earlier messages.  The minimum time interval between
-   two changes in the account's interest rate MUST be big enough so as
-   to provide a reasonable guarantee that, even in case of a temporary
-   network disconnect, at least 24 hours have passed since the
-   `AccountUpdate`_ message sent for the previous interest rate change
-   has been processed by all clients. If there have not been any
-   changes in the interest rate yet, the value MUST be
-   "1970-01-01T00:00:00+00:00".
+   compared to earlier messages. The minimum time interval between two
+   changes in the account's interest rate MUST be big enough so as to
+   provide a reasonable guarantee that, even in case of a temporary
+   network disconnect [#network-disconnect]_, at least 24 hours have
+   passed since the `AccountUpdate`_ message sent for the previous
+   interest rate change has been processed by the client.
+   [#min-change-interval]_ If there have not been any changes in the
+   interest rate yet, the value MUST be "1970-01-01T00:00:00+00:00".
 
 last_config_ts : date-time
    MUST contain the value of the ``ts`` field in the latest applied
@@ -1089,6 +1089,13 @@ records in their databases.
   "wire" the accumulated interest to another account. Accordingly,
   accumulated negative interest MUST be subtracted from the account's
   available amount.
+
+.. [#network-disconnect] Client and server implementations SHOULD
+   expect, and be able to handle uneventfully, network disconnects
+   that last for *at least 7 days*.
+
+.. [#min-change-interval] Therefore, any two changes in the account's
+   interest rate SHOULD be separated by at least 8 days.
 
 .. [#verify-config] Note that clents can use ``last_config_ts`` and
   ``last_config_seqnum`` to determine whether a sent
