@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, timezone
 from swpt_accounts import procedures as p
-from swpt_accounts.models import RejectedTransferSignal
+from swpt_accounts.models import RejectedTransferSignal, T_INFINITY
 from swpt_pythonlib.rabbitmq import MessageProperties
 from swpt_accounts.actors import _configure_and_initialize_account
 
@@ -26,7 +26,7 @@ def test_prepare_transfer(db_session, actors):
         debtor_id=D_ID,
         creditor_id=C_ID,
         recipient="1234",
-        min_interest_rate=-100.0,
+        final_interest_rate_ts=T_INFINITY,
         max_commit_delay=1000000,
         ts=datetime.now(tz=timezone.utc),
     )
@@ -39,7 +39,7 @@ def test_prepare_transfer(db_session, actors):
         debtor_id=D_ID,
         creditor_id=C_ID,
         recipient="invalid",
-        min_interest_rate=-100.0,
+        final_interest_rate_ts=T_INFINITY,
         max_commit_delay=1000000,
         ts=datetime.now(tz=timezone.utc),
     )
@@ -52,7 +52,7 @@ def test_prepare_transfer(db_session, actors):
         debtor_id=D_ID,
         creditor_id=0x0000010000000002,
         recipient="1234",
-        min_interest_rate=-100.0,
+        final_interest_rate_ts=T_INFINITY,
         max_commit_delay=1000000,
         ts=datetime.now(tz=timezone.utc),
     )

@@ -364,14 +364,17 @@ recipient : string
    A string which (along with ``debtor_id``) publicly and globally
    identifies the recipient's account. [#account-id]_
 
-min_interest_rate : float
-   Determines the minimal approved interest rate. This instructs the
-   server that if the interest rate on the account becomes lower than
-   this value, the transfer MUST NOT be successful. This can be useful
-   when the transferred amount may need to be decreased if the
-   interest rate on the account has decreased. The value MUST be
-   *finite* and equal or bigger than ``-100``. Normally, this would be
-   ``-100``.
+final_interest_rate_ts : date-time
+   When the transferred amount would need to be changed if the
+   interest rate on the account had been changed unexpectedly by the
+   server, this field specifies the onset moment of the account's
+   current interest rate, from the client's perspective. For plain
+   transfers, this field SHOULD represent a moment in the very distant
+   future ("9999-12-31T23:59:59+00:00" for example).
+
+   If the interest rate on the account has been changed after the
+   moment specified by this field, the server MUST NOT allow the
+   transfer.
 
 max_commit_delay : int32
    The period (in seconds) during which the prepared transfer can be
@@ -686,9 +689,9 @@ ts : date-time
    * ``"TIMEOUT"`` signifies that the transfer has been terminated due
      to expired deadline.
 
-   * ``"TOO_LOW_INTEREST_RATE"`` signifies that the transfer has been
+   * ``"NEWER_INTEREST_RATE"`` signifies that the transfer has been
      terminated because the current interest rate on the account is
-     smaller than the specified ``min_interest_rate``.
+     more recent than the specified ``final_interest_rate_ts``.
 
    * ``"TRANSFER_NOTE_IS_TOO_LONG"`` signifies that the transfer has been
      rejected because the transfer note's byte-length is too big.
@@ -751,9 +754,9 @@ deadline : date-time
    this moment. If the client ties to commit the prepared transfer
    after this moment, the commit MUST NOT be successful.
 
-min_interest_rate : float
-   The value of the ``min_interest_rate`` field in the corresponding
-   `PrepareTransfer`_ message.
+final_interest_rate_ts : date-time
+   The value of the ``final_interest_rate_ts`` field in the
+   corresponding `PrepareTransfer`_ message.
 
 ts : date-time
    The moment at which this message was sent (the message's

@@ -31,6 +31,7 @@ MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 T0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
+T_INFINITY = datetime(9999, 12, 31, 12, 59, 59, tzinfo=timezone.utc)
 SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 INTEREST_RATE_FLOOR = -50.0
@@ -57,7 +58,7 @@ CT_ISSUING = "issuing"
 # Transfer status codes:
 SC_OK = "OK"
 SC_TIMEOUT = "TIMEOUT"
-SC_TOO_LOW_INTEREST_RATE = "TOO_LOW_INTEREST_RATE"
+SC_NEWER_INTEREST_RATE = "NEWER_INTEREST_RATE"
 SC_SENDER_IS_UNREACHABLE = "SENDER_IS_UNREACHABLE"
 SC_RECIPIENT_IS_UNREACHABLE = "RECIPIENT_IS_UNREACHABLE"
 SC_INSUFFICIENT_AVAILABLE_AMOUNT = "INSUFFICIENT_AVAILABLE_AMOUNT"
@@ -356,12 +357,13 @@ class TransferRequest(db.Model):
     min_locked_amount = db.Column(db.BigInteger, nullable=False)
     max_locked_amount = db.Column(db.BigInteger, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    min_interest_rate = db.Column(db.REAL, nullable=False)
+    final_interest_rate_ts = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False
+    )
     recipient_creditor_id = db.Column(db.BigInteger, nullable=False)
     __table_args__ = (
         db.CheckConstraint(min_locked_amount >= 0),
         db.CheckConstraint(min_locked_amount <= max_locked_amount),
-        db.CheckConstraint(min_interest_rate >= -100.0),
         {
             "comment": (
                 "Represents a request to secure (prepare) some amount for"
@@ -412,7 +414,9 @@ class PreparedTransfer(db.Model):
     prepared_at = db.Column(
         db.TIMESTAMP(timezone=True), nullable=False, default=get_now_utc
     )
-    min_interest_rate = db.Column(db.REAL, nullable=False)
+    final_interest_rate_ts = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False
+    )
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     locked_amount = db.Column(db.BigInteger, nullable=False)
@@ -432,7 +436,6 @@ class PreparedTransfer(db.Model):
             ondelete="CASCADE",
         ),
         db.CheckConstraint(transfer_id > 0),
-        db.CheckConstraint(min_interest_rate >= -100.0),
         db.CheckConstraint(locked_amount >= 0),
         db.CheckConstraint(
             (demurrage_rate > -100.0) & (demurrage_rate <= 0.0)
@@ -451,7 +454,7 @@ class PreparedTransfer(db.Model):
         self,
         committed_amount: int,
         expendable_amount: int,
-        interest_rate: float,
+        last_interest_rate_change_ts: datetime,
         current_ts: datetime,
     ) -> str:
         assert committed_amount >= 0
@@ -487,8 +490,8 @@ class PreparedTransfer(db.Model):
             if current_ts > self.deadline:
                 return SC_TIMEOUT
 
-            if interest_rate < self.min_interest_rate:
-                return SC_TOO_LOW_INTEREST_RATE
+            if last_interest_rate_change_ts > self.final_interest_rate_ts:
+                return SC_NEWER_INTEREST_RATE
 
             if not (get_is_expendable() or get_is_reserved()):
                 return SC_INSUFFICIENT_AVAILABLE_AMOUNT
@@ -681,7 +684,7 @@ class PreparedTransferSignal(Signal):
         inserted_at = fields.DateTime(data_key="ts")
         demurrage_rate = fields.Float()
         deadline = fields.DateTime()
-        min_interest_rate = fields.Float()
+        final_interest_rate_ts = fields.DateTime()
 
     __marshmallow_schema__ = __marshmallow__()
 
@@ -697,7 +700,9 @@ class PreparedTransferSignal(Signal):
     prepared_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     demurrage_rate = db.Column(db.FLOAT, nullable=False)
     deadline = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
-    min_interest_rate = db.Column(db.REAL, nullable=False)
+    final_interest_rate_ts = db.Column(
+        db.TIMESTAMP(timezone=True), nullable=False
+    )
 
     @classproperty
     def signalbus_burst_count(self):
