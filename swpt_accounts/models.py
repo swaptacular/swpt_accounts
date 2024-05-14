@@ -31,7 +31,7 @@ MAX_INT32 = (1 << 31) - 1
 MIN_INT64 = -1 << 63
 MAX_INT64 = (1 << 63) - 1
 T0 = datetime(1970, 1, 1, tzinfo=timezone.utc)
-T_INFINITY = datetime(9999, 12, 31, 12, 59, 59, tzinfo=timezone.utc)
+T_INFINITY = datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
 SECONDS_IN_DAY = 24 * 60 * 60
 SECONDS_IN_YEAR = 365.25 * SECONDS_IN_DAY
 INTEREST_RATE_FLOOR = -50.0
