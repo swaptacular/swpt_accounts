@@ -23,6 +23,7 @@ from swpt_accounts.models import (
     AccountTransferSignal,
     FinalizationRequest,
     RootConfigData,
+    T_INFINITY,
     ROOT_CREDITOR_ID,
     INTEREST_RATE_FLOOR,
     INTEREST_RATE_CEIL,
@@ -40,7 +41,7 @@ from swpt_accounts.models import (
     SC_INSUFFICIENT_AVAILABLE_AMOUNT,
     SC_RECIPIENT_SAME_AS_SENDER,
     SC_TOO_MANY_TRANSFERS,
-    SC_TOO_LOW_INTEREST_RATE,
+    SC_NEWER_INTEREST_RATE,
     T0,
     is_negligible_balance,
     contain_principal_overflow,
@@ -171,7 +172,7 @@ def prepare_transfer(
     recipient_creditor_id: Optional[int],
     ts: datetime,
     max_commit_delay: int = MAX_INT32,
-    min_interest_rate: float = -100.0,
+    final_interest_rate_ts: datetime = T_INFINITY,
 ) -> None:
     if recipient_creditor_id is None:
         db.session.add(
@@ -198,7 +199,7 @@ def prepare_transfer(
                 sender_creditor_id=creditor_id,
                 recipient_creditor_id=recipient_creditor_id,
                 deadline=ts + timedelta(seconds=max_commit_delay),
-                min_interest_rate=min_interest_rate,
+                final_interest_rate_ts=final_interest_rate_ts,
             )
         )
 
@@ -983,22 +984,9 @@ def _process_transfer_request(
         )
         sender_account.pending_transfers_count += 1
         sender_account.last_transfer_id += 1
-        min_interest_rate = tr.min_interest_rate
-
-        # When a real interest rate constraint is set, we put an upper
-        # limit of one day on the deadline, to ensure that no more
-        # than one change in the interest rate will happen before the
-        # transfer gets finalized. This should be OK, because distant
-        # deadlines are not needed in this case.
-        if min_interest_rate > INTEREST_RATE_FLOOR:
-            transfer_commit_period = min(
-                commit_period, SECONDS_IN_DAY
-            )  # pragma: no cover
-        else:
-            transfer_commit_period = commit_period
 
         deadline = min(
-            current_ts + timedelta(seconds=transfer_commit_period), tr.deadline
+            current_ts + timedelta(seconds=commit_period), tr.deadline
         )
 
         db.session.add(
@@ -1011,7 +999,7 @@ def _process_transfer_request(
                 coordinator_request_id=tr.coordinator_request_id,
                 locked_amount=amount,
                 recipient_creditor_id=tr.recipient_creditor_id,
-                min_interest_rate=min_interest_rate,
+                final_interest_rate_ts=tr.final_interest_rate_ts,
                 demurrage_rate=INTEREST_RATE_FLOOR,
                 deadline=deadline,
                 prepared_at=current_ts,
@@ -1030,7 +1018,7 @@ def _process_transfer_request(
             prepared_at=current_ts,
             demurrage_rate=INTEREST_RATE_FLOOR,
             deadline=deadline,
-            min_interest_rate=min_interest_rate,
+            final_interest_rate_ts=tr.final_interest_rate_ts,
             inserted_at=current_ts,
         )
 
@@ -1057,9 +1045,9 @@ def _process_transfer_request(
             SC_RECIPIENT_SAME_AS_SENDER, sender_account.total_locked_amount
         )
 
-    if sender_account.interest_rate < tr.min_interest_rate:
+    if sender_account.last_interest_rate_change_ts > tr.final_interest_rate_ts:
         return reject(
-            SC_TOO_LOW_INTEREST_RATE, sender_account.total_locked_amount
+            SC_NEWER_INTEREST_RATE, sender_account.total_locked_amount
         )
 
     available_amount = _get_available_amount(sender_account, current_ts)
@@ -1096,9 +1084,11 @@ def _finalize_prepared_transfer(
     sender_account.pending_transfers_count = max(
         0, sender_account.pending_transfers_count - 1
     )
-    interest_rate = sender_account.interest_rate
     status_code = pt.calc_status_code(
-        fr.committed_amount, expendable_amount, interest_rate, current_ts
+        fr.committed_amount,
+        expendable_amount,
+        sender_account.last_interest_rate_change_ts,
+        current_ts,
     )
     committed_amount = fr.committed_amount if status_code == SC_OK else 0
 

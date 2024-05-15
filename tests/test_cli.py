@@ -12,6 +12,7 @@ from swpt_accounts.models import (
     PreparedTransfer,
     PendingBalanceChangeSignal,
     RegisteredBalanceChange,
+    T_INFINITY,
 )
 from swpt_accounts.chores import ChoresConsumer
 from swpt_pythonlib.utils import ShardingRealm
@@ -496,7 +497,7 @@ def test_scan_prepared_transfers(app, db_session):
             coordinator_request_id=111,
             locked_amount=400,
             recipient_creditor_id=1234,
-            min_interest_rate=-100.0,
+            final_interest_rate_ts=T_INFINITY,
             prepared_at=current_ts,
             deadline=current_ts + timedelta(days=30),
             demurrage_rate=0.0,
@@ -512,7 +513,7 @@ def test_scan_prepared_transfers(app, db_session):
             coordinator_request_id=112,
             locked_amount=100,
             recipient_creditor_id=1234,
-            min_interest_rate=-100.0,
+            final_interest_rate_ts=T_INFINITY,
             prepared_at=past_ts,
             deadline=current_ts + timedelta(days=30),
             demurrage_rate=0.0,

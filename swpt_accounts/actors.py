@@ -7,6 +7,7 @@ from swpt_pythonlib import rabbitmq
 from swpt_pythonlib.utils import u64_to_i64
 import swpt_pythonlib.protocol_schemas as ps
 from swpt_accounts.models import (
+    T_INFINITY,
     SECONDS_IN_DAY,
     CT_AGENT,
     is_valid_account,
@@ -54,7 +55,7 @@ def _on_prepare_transfer_signal(
     recipient: str,
     ts: datetime,
     max_commit_delay: int,
-    min_interest_rate: float = -100.0,
+    final_interest_rate_ts: datetime = T_INFINITY,
     *args,
     **kwargs
 ) -> None:
@@ -88,7 +89,7 @@ def _on_prepare_transfer_signal(
         recipient_creditor_id=recipient_creditor_id if is_reachable else None,
         ts=ts,
         max_commit_delay=max_commit_delay,
-        min_interest_rate=min_interest_rate,
+        final_interest_rate_ts=final_interest_rate_ts,
     )
 
 

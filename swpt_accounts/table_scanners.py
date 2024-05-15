@@ -539,7 +539,7 @@ class PreparedTransferScanner(TableScanner):
                     prepared_at=row[c_prepared_at],
                     demurrage_rate=row[c.demurrage_rate],
                     deadline=row[c.deadline],
-                    min_interest_rate=row[c.min_interest_rate],
+                    final_interest_rate_ts=row[c.final_interest_rate_ts],
                     inserted_at=max(current_ts, row[c_prepared_at]),
                 )
 
