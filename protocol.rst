@@ -4,8 +4,8 @@ Swaptacular Messaging Protocol
 :Description: Swaptacular Messaging Protocol Specification
 :Author: Evgeni Pandurksi
 :Contact: epandurski@gmail.com
-:Date: 2024-05-11
-:Version: 2.0
+:Date: 2024-05-20
+:Version: 2.1
 :Copyright: This document has been placed in the public domain.
 
 .. contents::
@@ -1046,6 +1046,8 @@ transfer_note_max_bytes: int32
    the general limit imposed by this protocol [#note-limitations]_ ,
    and MUST be the same for all accounts with the given debtor. When
    changed, it MUST NOT be decreased.
+
+   The value SHOULD NOT be smaller than 150.
 
 ts : date-time
    The moment at which this message was sent (the message's
