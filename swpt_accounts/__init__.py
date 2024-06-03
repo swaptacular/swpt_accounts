@@ -243,7 +243,7 @@ class Configuration(metaclass=MetaEnvReader):
     APP_MESSAGE_MAX_DELAY_DAYS = 7.0
     APP_ACCOUNT_HEARTBEAT_DAYS = 7.0
     APP_PREPARED_TRANSFER_REMAINDER_DAYS = 7.0
-    APP_PREPARED_TRANSFER_MAX_DELAY_DAYS = 30.0
+    APP_PREPARED_TRANSFER_MAX_DELAY_DAYS = 90.0
     APP_FETCH_API_TIMEOUT_SECONDS = 5.0
     APP_FETCH_DNS_CACHE_SECONDS = 10.0
     APP_FETCH_CONNECTIONS = 100
@@ -260,6 +260,12 @@ class Configuration(metaclass=MetaEnvReader):
 
 
 def _check_config_sanity(c):  # pragma: nocover
+    if c["APP_PREPARED_TRANSFER_MAX_DELAY_DAYS"] < 30:
+        raise RuntimeError(
+            "The configured value for APP_PREPARED_TRANSFER_MAX_DELAY_DAYS"
+            " must not be smaller than 30 days."
+        )
+
     if (
         c["APP_PREPARED_TRANSFER_MAX_DELAY_DAYS"]
         < c["APP_MESSAGE_MAX_DELAY_DAYS"]
