@@ -401,7 +401,7 @@ def test_scan_accounts(app, db_session, mocker):
     )
 
     with db.engine.connect() as conn:
-        conn.execute(sqlalchemy.text("ANALYZE account"))
+        conn.execute(sqlalchemy.text("ANALYZE prepared_transfer"))
 
     result = runner.invoke(
         args=[
@@ -522,7 +522,7 @@ def test_scan_prepared_transfers(app, db_session):
     db.session.commit()
 
     with db.engine.connect() as conn:
-        conn.execute(sqlalchemy.text("ANALYZE account"))
+        conn.execute(sqlalchemy.text("ANALYZE prepared_transfer"))
 
     assert len(Account.query.all()) == 1
     assert len(PreparedTransfer.query.all()) == 2
@@ -558,7 +558,7 @@ def test_scan_prepared_transfers(app, db_session):
     assert pts.prepared_at == past_ts
 
     with db.engine.connect() as conn:
-        conn.execute(sqlalchemy.text("ANALYZE account"))
+        conn.execute(sqlalchemy.text("ANALYZE prepared_transfer"))
 
     result = runner.invoke(
         args=[
@@ -611,7 +611,7 @@ def test_scan_registered_balance_changes(app, db_session):
     db.session.commit()
 
     with db.engine.connect() as conn:
-        conn.execute(sqlalchemy.text("ANALYZE account"))
+        conn.execute(sqlalchemy.text("ANALYZE registered_balance_change"))
 
     assert len(RegisteredBalanceChange.query.all()) == 3
     runner = app.test_cli_runner()
