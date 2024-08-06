@@ -261,7 +261,7 @@ def process_transfer_requests(threads, wait, quit_early):
         if wait is not None
         else current_app.config["APP_PROCESS_TRANSFER_REQUESTS_WAIT"]
     )
-    commit_period = (
+    commit_period = int(
         current_app.config["APP_PREPARED_TRANSFER_MAX_DELAY_DAYS"]
         * SECONDS_IN_DAY
     )

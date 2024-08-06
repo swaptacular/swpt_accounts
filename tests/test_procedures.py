@@ -25,6 +25,7 @@ from swpt_accounts.models import (
     SC_OK,
     SC_TIMEOUT,
     SC_INSUFFICIENT_AVAILABLE_AMOUNT,
+    SC_SENDER_IS_UNREACHABLE,
 )
 
 
@@ -713,6 +714,32 @@ def test_resurrect_deleted_account_transfer(db_session, current_ts):
     assert a.config_flags & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
 
 
+def test_prepare_no_sender_account(db_session, current_ts):
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    assert len(AccountUpdateSignal.query.all()) == 1
+    p.prepare_transfer(
+        coordinator_type="test",
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=1,
+        max_locked_amount=200,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient_creditor_id=1234,
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    assert p.get_account(D_ID, C_ID) is None
+    assert len(PreparedTransfer.query.all()) == 0
+    assert len(PreparedTransferSignal.query.all()) == 0
+    rts = RejectedTransferSignal.query.one()
+    assert rts.debtor_id == D_ID
+    assert rts.coordinator_type == "test"
+    assert rts.coordinator_id == 1
+    assert rts.coordinator_request_id == 2
+    assert rts.status_code == SC_SENDER_IS_UNREACHABLE
+
+
 def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     p.configure_account(D_ID, 1234, current_ts, 0)
     p.configure_account(D_ID, C_ID, current_ts, 0)
@@ -745,6 +772,7 @@ def test_prepare_transfer_insufficient_funds(db_session, current_ts):
     assert rts.coordinator_type == "test"
     assert rts.coordinator_id == 1
     assert rts.coordinator_request_id == 2
+    assert rts.status_code == SC_INSUFFICIENT_AVAILABLE_AMOUNT
     rts_obj = rts.__marshmallow_schema__.dump(rts)
     assert rts_obj["debtor_id"] == D_ID
     assert rts_obj["creditor_id"] == C_ID
@@ -807,8 +835,8 @@ def test_prepare_transfer_too_many_prepared_transfers(db_session, current_ts):
     assert rts.status_code == p.SC_TOO_MANY_TRANSFERS
 
 
-def test_prepare_transfer_not_managed_by_same_agent(db_session, current_ts):
-    p.configure_account(D_ID, C_ID, current_ts, 0)
+def test_prepare_transfer_managed_by_same_agent(db_session, current_ts):
+    p.configure_account(D_ID, 0x000001ffffffffff, current_ts, 0)
     p.configure_account(D_ID, 0x0000010000001234, current_ts, 0)
     p.prepare_transfer(
         coordinator_type="agent",
@@ -817,11 +845,29 @@ def test_prepare_transfer_not_managed_by_same_agent(db_session, current_ts):
         min_locked_amount=0,
         max_locked_amount=0,
         debtor_id=D_ID,
-        creditor_id=C_ID,
+        creditor_id=0x000001ffffffffff,
         recipient_creditor_id=0x0000010000001234,
         ts=current_ts,
     )
-    p.process_transfer_requests(D_ID, C_ID)
+    p.process_transfer_requests(D_ID, 0x000001ffffffffff)
+    assert len(PreparedTransferSignal.query.all()) == 1
+
+
+def test_prepare_transfer_not_managed_by_same_agent(db_session, current_ts):
+    p.configure_account(D_ID, 0x0000020000001234, current_ts, 0)
+    p.configure_account(D_ID, 0x0000010000001234, current_ts, 0)
+    p.prepare_transfer(
+        coordinator_type="agent",
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=0,
+        max_locked_amount=0,
+        debtor_id=D_ID,
+        creditor_id=0x0000020000001234,
+        recipient_creditor_id=0x0000010000001234,
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, 0x0000020000001234)
     rts = RejectedTransferSignal.query.one()
     assert rts.debtor_id == D_ID
     assert rts.coordinator_type == "agent"
