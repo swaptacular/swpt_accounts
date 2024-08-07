@@ -32,8 +32,8 @@ contain_principal_overflow_sp = ReplaceableObject(
     """
     RETURNS BIGINT AS $$
     DECLARE
-      min_value value%TYPE = -9223372036854775807;
-      max_value value%TYPE = 9223372036854775807;
+      min_value value%TYPE = -0x7fffffffffffffff;
+      max_value value%TYPE = 0x7fffffffffffffff;
     BEGIN
       IF value < min_value THEN
         RETURN min_value;
@@ -126,6 +126,23 @@ insert_account_update_signal_sp = ReplaceableObject(
     BEGIN
       acc.last_heartbeat_ts := current_ts;
       acc.pending_account_update := FALSE;
+
+      UPDATE account
+      SET
+        creation_date=acc.creation_date,
+        last_change_seqnum=acc.last_change_seqnum,
+        last_change_ts=acc.last_change_ts,
+        principal=acc.principal,
+        interest=acc.interest,
+        last_transfer_number=acc.last_transfer_number,
+        last_transfer_committed_at=acc.last_transfer_committed_at,
+        status_flags=acc.status_flags,
+        total_locked_amount=acc.total_locked_amount,
+        pending_transfers_count=acc.pending_transfers_count,
+        last_transfer_id=acc.last_transfer_id,
+        last_heartbeat_ts=acc.last_heartbeat_ts,
+        pending_account_update=acc.pending_account_update
+      WHERE debtor_id=acc.debtor_id AND creditor_id=acc.creditor_id;
 
       INSERT INTO account_update_signal (
          debtor_id, creditor_id, last_change_seqnum,
