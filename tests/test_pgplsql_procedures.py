@@ -321,3 +321,121 @@ def test_apply_account_change(db_session, current_ts, overflow):
         == max(last_change_ts, current_ts)
         == acc.last_change_ts
     )
+
+
+def test_calc_status_code_sp(db_session, current_ts):
+    from swpt_accounts.models import SC_OK
+
+    def calc_status_code(
+        committed_amount: int,
+        expendable_amount: int,
+        last_interest_rate_change_ts: datetime,
+        current_ts: datetime,
+    ) -> str:
+        return (
+            db_session.execute(
+                text(
+                    "SELECT calc_status_code("
+                    " (SELECT p FROM prepared_transfer p),"
+                    " :committed_amount,"
+                    " :expendable_amount,"
+                    " :last_interest_rate_change_ts,"
+                    " :current_ts"
+                    ")"
+                ),
+                {
+                    "committed_amount": committed_amount,
+                    "expendable_amount": expendable_amount,
+                    "last_interest_rate_change_ts": (
+                        last_interest_rate_change_ts
+                    ),
+                    "current_ts": current_ts,
+                },
+            )
+            .scalar()
+        )
+
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 0, current_ts, 0)
+    pt = models.PreparedTransfer(
+        debtor_id=D_ID,
+        sender_creditor_id=C_ID,
+        transfer_id=1,
+        coordinator_type="test",
+        coordinator_id=11,
+        coordinator_request_id=22,
+        recipient_creditor_id=1,
+        prepared_at=current_ts,
+        final_interest_rate_ts=current_ts,
+        demurrage_rate=-50,
+        deadline=current_ts + timedelta(days=10000),
+        locked_amount=1000,
+    )
+    db_session.add(pt)
+    db_session.commit()
+
+    assert (
+        calc_status_code(
+            1000, 0, current_ts + timedelta(minutes=1), current_ts
+        ) != SC_OK
+    )
+    assert calc_status_code(1000, 0, current_ts, current_ts) == SC_OK
+    assert (
+        calc_status_code(
+            1000, 0, current_ts, current_ts - timedelta(days=10)
+        ) == SC_OK
+    )
+    assert (
+        calc_status_code(
+            1000, 0, current_ts, current_ts + timedelta(days=10)
+        )
+        == SC_OK
+    )
+    assert (
+        calc_status_code(1000, -1, current_ts, current_ts) == SC_OK
+    )
+    assert (
+        calc_status_code(
+            1000, -1, current_ts, current_ts + timedelta(seconds=1)
+        ) != SC_OK
+    )
+    assert (
+        calc_status_code(
+            1000, -1, current_ts, current_ts - timedelta(days=10)
+        ) == SC_OK
+    )
+    assert (
+        calc_status_code(
+            999, -5, current_ts, current_ts + timedelta(days=10)
+        ) != SC_OK
+    )
+    assert (
+        calc_status_code(
+            995, -5, current_ts, current_ts + timedelta(days=10)
+        ) == SC_OK
+    )
+    assert (
+        calc_status_code(
+            995, -50000, current_ts, current_ts + timedelta(days=10)
+        ) != SC_OK
+    )
+    assert (
+        calc_status_code(
+            980, -50000, current_ts, current_ts + timedelta(days=10)
+        ) == SC_OK
+    )
+    pt.recipient_creditor_id = 0
+    db_session.commit()
+    assert (
+        calc_status_code(
+            1000, -50000, current_ts, current_ts + timedelta(days=10)
+        ) != SC_OK
+    )
+    pt.recipient_creditor_id = 1
+    pt.sender_creditor_id = 0
+    db_session.commit()
+    assert (
+        calc_status_code(
+            1000, -50000, current_ts, current_ts + timedelta(days=10)
+        ) == SC_OK
+    )

@@ -74,11 +74,11 @@ calc_current_balance_sp = ReplaceableObject(
             current_balance := current_balance * exp(
               calc_k(interest_rate)
               * GREATEST(
-                 0::FLOAT,
-                 (
-                   EXTRACT(EPOCH FROM current_ts)
-                   - EXTRACT(EPOCH FROM last_change_ts)
-                 )::FLOAT
+                0::FLOAT,
+                (
+                  EXTRACT(EPOCH FROM current_ts)
+                  - EXTRACT(EPOCH FROM last_change_ts)
+                )::FLOAT
               )
             )::NUMERIC;
           EXCEPTION
@@ -521,6 +521,62 @@ apply_account_change_sp = ReplaceableObject(
     """
 )
 
+calc_status_code_sp = ReplaceableObject(
+    "calc_status_code("
+    " pt prepared_transfer,"
+    " committed_amount BIGINT,"
+    " expendable_amount BIGINT,"
+    " last_interest_rate_change_ts TIMESTAMP WITH TIME ZONE,"
+    " current_ts TIMESTAMP WITH TIME ZONE"
+    ")",
+    """
+    RETURNS TEXT AS $$
+    DECLARE
+      status_code TEXT;
+    BEGIN
+      IF committed_amount > 0 THEN
+        IF current_ts > pt.deadline THEN
+          status_code := 'TIMEOUT';
+
+        ELSIF last_interest_rate_change_ts > pt.final_interest_rate_ts THEN
+          status_code := 'NEWER_INTEREST_RATE';
+
+        ELSIF
+           NOT (
+              (
+                -- is expendable
+                committed_amount <= expendable_amount::NUMERIC(24) + pt.locked_amount::NUMERIC(24)
+              )
+              OR (
+                -- is reserved
+                committed_amount <= pt.locked_amount
+                AND (
+                  pt.sender_creditor_id = 0
+                  OR committed_amount <= pt.locked_amount * (
+                    exp(
+                      calc_k(pt.demurrage_rate)
+                      * GREATEST(
+                        0::FLOAT,
+                        (
+                          EXTRACT(EPOCH FROM current_ts)
+                          - EXTRACT(EPOCH FROM pt.prepared_at)
+                        )::FLOAT
+                      )
+                    )
+                  )
+                )
+              )
+            ) THEN
+          status_code := 'INSUFFICIENT_AVAILABLE_AMOUNT';
+        END IF;
+      END IF;
+
+      RETURN COALESCE(status_code, 'OK');
+    END;
+    $$ LANGUAGE plpgsql;
+    """
+)
+
 
 def upgrade():
     op.create_sp(calc_k_sp)
@@ -534,6 +590,7 @@ def upgrade():
     op.create_sp(prepare_transfer_sp)
     op.create_sp(process_transfer_requests_sp)
     op.create_sp(apply_account_change_sp)
+    op.create_sp(calc_status_code_sp)
 
 
 def downgrade():
@@ -548,3 +605,4 @@ def downgrade():
     op.drop_sp(prepare_transfer_sp)
     op.drop_sp(process_transfer_requests_sp)
     op.drop_sp(apply_account_change_sp)
+    op.drop_sp(calc_status_code_sp)
