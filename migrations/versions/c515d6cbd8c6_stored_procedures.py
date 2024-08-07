@@ -233,7 +233,7 @@ get_min_account_balance_sp = ReplaceableObject(
         RETURN -LEAST(
           GREATEST(
             contain_principal_overflow(
-              COALESCE(issuing_limit, 9223372036854775807::NUMERIC(24))
+              COALESCE(issuing_limit, 9.999e23::NUMERIC(24))
             ),
             0::BIGINT
           ),
