@@ -21,7 +21,7 @@ calc_k_sp = ReplaceableObject(
     """
     RETURNS FLOAT AS $$
     BEGIN
-      RETURN ln(1 + interest_rate / 100) / 31557600::FLOAT;
+      RETURN ln(1 + interest_rate / 100) / 31557600;
     END;
     $$ LANGUAGE plpgsql;
     """
@@ -36,11 +36,11 @@ contain_principal_overflow_sp = ReplaceableObject(
       max_value value%TYPE = 9223372036854775807;
     BEGIN
       IF value < min_value THEN
-        RETURN min_value::BIGINT;
+        RETURN min_value;
       ELSIF value > max_value THEN
-        RETURN max_value::BIGINT;
+        RETURN max_value;
       ELSE
-        RETURN value::BIGINT;
+        RETURN value;
       END IF;
     END;
     $$ LANGUAGE plpgsql;
@@ -64,7 +64,7 @@ calc_current_balance_sp = ReplaceableObject(
       passed_seconds FLOAT;
     BEGIN
       IF creditor_id != 0 THEN
-        current_balance := current_balance + interest;
+        current_balance := current_balance + interest::NUMERIC(32,8);
 
         IF current_balance > 0 THEN
           k := calc_k(interest_rate);
@@ -75,7 +75,7 @@ calc_current_balance_sp = ReplaceableObject(
                - EXTRACT(EPOCH FROM last_change_ts)
              )::FLOAT
           );
-          current_balance := current_balance * exp(k * passed_seconds);
+          current_balance := current_balance * exp(k * passed_seconds)::NUMERIC;
         END IF;
       END IF;
 
@@ -243,7 +243,7 @@ get_min_account_balance_sp = ReplaceableObject(
         );
       END IF;
 
-      RETURN 0::BIGINT;
+      RETURN 0;
     END;
     $$ LANGUAGE plpgsql;
     """
@@ -394,23 +394,26 @@ process_transfer_requests_sp = ReplaceableObject(
           PERFORM reject_transfer(tr, 'NEWER_INTEREST_RATE', sender_account.total_locked_amount);
 
         ELSE
-          expendable_amount := contain_principal_overflow(
-            floor(
-              calc_current_balance(
-                sender_account.creditor_id,
-                sender_account.principal,
-                sender_account.interest,
-                sender_account.interest_rate,
-                sender_account.last_change_ts,
-                current_ts
+          expendable_amount := GREATEST(
+            0::BIGINT,
+            LEAST(
+              tr.max_locked_amount,
+              contain_principal_overflow(
+                floor(
+                  calc_current_balance(
+                    sender_account.creditor_id,
+                    sender_account.principal,
+                    sender_account.interest,
+                    sender_account.interest_rate,
+                    sender_account.last_change_ts,
+                    current_ts
+                  )
+                )::NUMERIC(24)
+                - sender_account.total_locked_amount::NUMERIC(24)
+                - get_min_account_balance(sender_account)::NUMERIC(24)
               )
-            )::NUMERIC(24)
-            - sender_account.total_locked_amount::NUMERIC(24)
-            - get_min_account_balance(sender_account)::NUMERIC(24)
+            )
           );
-          expendable_amount := LEAST(expendable_amount, tr.max_locked_amount);
-          expendable_amount := GREATEST(0::BIGINT, expendable_amount);
-
           IF expendable_amount < tr.min_locked_amount THEN
             PERFORM reject_transfer(tr, 'INSUFFICIENT_AVAILABLE_AMOUNT', sender_account.total_locked_amount);
           ELSE
