@@ -70,16 +70,21 @@ calc_current_balance_sp = ReplaceableObject(
         END;
 
         IF current_balance > 0 THEN
-          current_balance := current_balance * exp(
-            calc_k(interest_rate)
-            * GREATEST(
-               0::FLOAT,
-               (
-                 EXTRACT(EPOCH FROM current_ts)
-                 - EXTRACT(EPOCH FROM last_change_ts)
-               )::FLOAT
-            )
-          )::NUMERIC;
+          BEGIN
+            current_balance := current_balance * exp(
+              calc_k(interest_rate)
+              * GREATEST(
+                 0::FLOAT,
+                 (
+                   EXTRACT(EPOCH FROM current_ts)
+                   - EXTRACT(EPOCH FROM last_change_ts)
+                 )::FLOAT
+              )
+            )::NUMERIC;
+          EXCEPTION
+            WHEN numeric_value_out_of_range THEN
+              current_balance := 9.999e23::NUMERIC(32,8);
+          END;
         END IF;
       END IF;
 
