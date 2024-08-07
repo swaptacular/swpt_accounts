@@ -21,7 +21,7 @@ calc_k_sp = ReplaceableObject(
     """
     RETURNS FLOAT AS $$
     BEGIN
-      RETURN ln(1 + interest_rate / 100) / 31557600;
+      RETURN ln(1 + interest_rate / 100) / 31557600;  -- seconds in an year
     END;
     $$ LANGUAGE plpgsql;
     """
@@ -60,22 +60,26 @@ calc_current_balance_sp = ReplaceableObject(
     RETURNS NUMERIC(32,8) AS $$
     DECLARE
       current_balance NUMERIC(32,8) = principal;
-      k FLOAT;
-      passed_seconds FLOAT;
     BEGIN
       IF creditor_id != 0 THEN
-        current_balance := current_balance + interest::NUMERIC(32,8);
+        BEGIN
+          current_balance := current_balance + interest::NUMERIC(32,8);
+        EXCEPTION
+          WHEN numeric_value_out_of_range THEN
+            current_balance := sign(interest) * 9.999e23::NUMERIC(32,8);
+        END;
 
         IF current_balance > 0 THEN
-          k := calc_k(interest_rate);
-          passed_seconds := GREATEST(
-             0::FLOAT,
-             (
-               EXTRACT(EPOCH FROM current_ts)
-               - EXTRACT(EPOCH FROM last_change_ts)
-             )::FLOAT
-          );
-          current_balance := current_balance * exp(k * passed_seconds)::NUMERIC;
+          current_balance := current_balance * exp(
+            calc_k(interest_rate)
+            * GREATEST(
+               0::FLOAT,
+               (
+                 EXTRACT(EPOCH FROM current_ts)
+                 - EXTRACT(EPOCH FROM last_change_ts)
+               )::FLOAT
+            )
+          )::NUMERIC;
         END IF;
       END IF;
 
