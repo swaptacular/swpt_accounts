@@ -199,7 +199,7 @@ lock_or_create_account_sp = ReplaceableObject(
       IF acc.status_flags & 1 != 0 THEN
         acc.status_flags := acc.status_flags & ~(1::INTEGER);
         acc.last_change_seqnum := CASE
-          WHEN acc.last_change_seqnum = 2147483647 THEN -2147483648
+          WHEN acc.last_change_seqnum = 0x7fffffff THEN -0x80000000
           ELSE acc.last_change_seqnum + 1
         END;
         acc.last_change_ts := GREATEST(acc.last_change_ts, current_ts);
@@ -289,7 +289,7 @@ prepare_transfer_sp = ReplaceableObject(
     " INOUT sender_account account,"
     " current_ts TIMESTAMP WITH TIME ZONE,"
     " commit_period INTEGER,"
-    " amount BIGINT"
+    " amount_to_lock BIGINT"
     ")",
     """
     AS $$
@@ -297,7 +297,8 @@ prepare_transfer_sp = ReplaceableObject(
       deadline TIMESTAMP WITH TIME ZONE;
     BEGIN
       sender_account.total_locked_amount := contain_principal_overflow(
-        sender_account.total_locked_amount::NUMERIC(24) + amount::NUMERIC(24)
+        sender_account.total_locked_amount::NUMERIC(24)
+        + amount_to_lock::NUMERIC(24)
       );
       sender_account.pending_transfers_count := (
         sender_account.pending_transfers_count + 1
@@ -319,7 +320,7 @@ prepare_transfer_sp = ReplaceableObject(
       VALUES (
         tr.debtor_id, tr.sender_creditor_id, sender_account.last_transfer_id,
         tr.coordinator_type, tr.coordinator_id, tr.coordinator_request_id,
-        amount, tr.recipient_creditor_id, tr.final_interest_rate_ts,
+        amount_to_lock, tr.recipient_creditor_id, tr.final_interest_rate_ts,
         -50, deadline, current_ts
       );
 
@@ -332,7 +333,7 @@ prepare_transfer_sp = ReplaceableObject(
       VALUES (
         tr.debtor_id, tr.sender_creditor_id, sender_account.last_transfer_id,
         tr.coordinator_type, tr.coordinator_id, tr.coordinator_request_id,
-        amount, tr.recipient_creditor_id, current_ts,
+        amount_to_lock, tr.recipient_creditor_id, current_ts,
         -50, deadline, tr.final_interest_rate_ts, current_ts
       );
     END;
@@ -347,10 +348,9 @@ process_transfer_requests_sp = ReplaceableObject(
     DECLARE
       tr transfer_request%ROWTYPE;
       sender_account account%ROWTYPE;
-      expendable_amount BIGINT;
-      current_ts TIMESTAMP WITH TIME ZONE = CURRENT_TIMESTAMP;
-      subnet_mask BIGINT = -0x0000010000000000;
-      prepared_transfers BOOLEAN = FALSE;
+      amount_to_lock BIGINT;
+      subnet_mask BIGINT = -0x0000010000000000;  -- This is 0xffffff0000000000
+      had_prepared_transfers BOOLEAN = FALSE;
     BEGIN
       FOR tr IN
         SELECT *
@@ -370,31 +370,35 @@ process_transfer_requests_sp = ReplaceableObject(
           AND transfer_request_id=tr.transfer_request_id;
 
         IF sender_account.creditor_id IS NULL THEN
-          PERFORM reject_transfer(tr, 'SENDER_IS_UNREACHABLE', 0);
-
-        ELSIF (
-          tr.coordinator_type = 'agent'
-          AND (
-            sender_account.creditor_id & subnet_mask = 0
-            OR (
-               sender_account.creditor_id & subnet_mask
-               != tr.recipient_creditor_id & subnet_mask
-            )
-          )
-        ) THEN
-          PERFORM reject_transfer(tr, 'RECIPIENT_IS_UNREACHABLE', 0);
-
-        ELSIF sender_account.pending_transfers_count >= 2147483647 THEN
-          PERFORM reject_transfer(tr, 'TOO_MANY_TRANSFERS', sender_account.total_locked_amount);
-
+          PERFORM reject_transfer(
+            tr, 'SENDER_IS_UNREACHABLE', 0
+          );
+        ELSIF tr.coordinator_type = 'agent'
+            AND (
+              sender_account.creditor_id & subnet_mask = 0
+              OR (
+                 sender_account.creditor_id & subnet_mask
+                 != tr.recipient_creditor_id & subnet_mask
+              )
+            ) THEN
+          PERFORM reject_transfer(
+            tr, 'RECIPIENT_IS_UNREACHABLE', 0
+          );
+        ELSIF sender_account.pending_transfers_count >= 0x7fffffff THEN
+          PERFORM reject_transfer(
+            tr, 'TOO_MANY_TRANSFERS', sender_account.total_locked_amount
+          );
         ELSIF tr.sender_creditor_id = tr.recipient_creditor_id THEN
-          PERFORM reject_transfer(tr, 'RECIPIENT_SAME_AS_SENDER', sender_account.total_locked_amount);
-
-        ELSIF sender_account.last_interest_rate_change_ts > tr.final_interest_rate_ts THEN
-          PERFORM reject_transfer(tr, 'NEWER_INTEREST_RATE', sender_account.total_locked_amount);
-
+          PERFORM reject_transfer(
+            tr, 'RECIPIENT_SAME_AS_SENDER', sender_account.total_locked_amount
+          );
+        ELSIF sender_account.last_interest_rate_change_ts
+            > tr.final_interest_rate_ts THEN
+          PERFORM reject_transfer(
+            tr, 'NEWER_INTEREST_RATE', sender_account.total_locked_amount
+          );
         ELSE
-          expendable_amount := GREATEST(
+          amount_to_lock := GREATEST(
             0::BIGINT,
             LEAST(
               tr.max_locked_amount,
@@ -406,7 +410,7 @@ process_transfer_requests_sp = ReplaceableObject(
                     sender_account.interest,
                     sender_account.interest_rate,
                     sender_account.last_change_ts,
-                    current_ts
+                    CURRENT_TIMESTAMP
                   )
                 )::NUMERIC(24)
                 - sender_account.total_locked_amount::NUMERIC(24)
@@ -414,18 +418,22 @@ process_transfer_requests_sp = ReplaceableObject(
               )
             )
           );
-          IF expendable_amount < tr.min_locked_amount THEN
-            PERFORM reject_transfer(tr, 'INSUFFICIENT_AVAILABLE_AMOUNT', sender_account.total_locked_amount);
+          IF amount_to_lock < tr.min_locked_amount THEN
+            PERFORM reject_transfer(
+              tr, 'INSUFFICIENT_AVAILABLE_AMOUNT',
+              sender_account.total_locked_amount
+            );
           ELSE
             sender_account := prepare_transfer(
-              tr, sender_account, current_ts, commit_period, expendable_amount
+              tr, sender_account, CURRENT_TIMESTAMP,
+              commit_period, amount_to_lock
             );
-            prepared_transfers := TRUE;
+            had_prepared_transfers := TRUE;
           END IF;
         END IF;
       END LOOP;
 
-      IF prepared_transfers THEN
+      IF had_prepared_transfers THEN
         UPDATE account
         SET
           total_locked_amount=sender_account.total_locked_amount,
