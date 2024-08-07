@@ -222,15 +222,20 @@ get_min_account_balance_sp = ReplaceableObject(
     BEGIN
       IF acc.creditor_id=0 THEN
         BEGIN
-          issuing_limit := acc.config_data::JSON -> 'limit';
+          issuing_limit := CAST(
+            acc.config_data::JSON ->> 'limit' AS NUMERIC(24)
+          );
         EXCEPTION
-          WHEN invalid_text_representation THEN
+          WHEN invalid_text_representation OR numeric_value_out_of_range THEN
             NULL;
         END;
 
         RETURN -LEAST(
-          contain_principal_overflow(
-            COALESCE(issuing_limit, 9223372036854775807)
+          GREATEST(
+            contain_principal_overflow(
+              COALESCE(issuing_limit, 9223372036854775807::NUMERIC(24))
+            ),
+            0::BIGINT
           ),
           contain_principal_overflow(
             LEAST(acc.negligible_amount, 9.999e23)::NUMERIC(24)
