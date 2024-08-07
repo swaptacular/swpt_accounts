@@ -231,19 +231,16 @@ get_min_account_balance_sp = ReplaceableObject(
         END;
 
         RETURN -LEAST(
-          GREATEST(
-            contain_principal_overflow(
-              COALESCE(issuing_limit, 9.999e23::NUMERIC(24))
-            ),
-            0::BIGINT
+          contain_principal_overflow(
+            COALESCE(issuing_limit, 9.999e23::NUMERIC(24))
           ),
           contain_principal_overflow(
             LEAST(acc.negligible_amount, 9.999e23::REAL)::NUMERIC(24)
           )
         );
+      ELSE
+        RETURN 0;
       END IF;
-
-      RETURN 0;
     END;
     $$ LANGUAGE plpgsql;
     """
@@ -259,24 +256,14 @@ reject_transfer_sp = ReplaceableObject(
     RETURNS void AS $$
     BEGIN
       INSERT INTO rejected_transfer_signal (
-        debtor_id,
-        coordinator_type,
-        coordinator_id,
-        coordinator_request_id,
-        status_code,
-        total_locked_amount,
-        sender_creditor_id,
-        inserted_at
+        debtor_id, coordinator_type, coordinator_id,
+        coordinator_request_id, status_code, total_locked_amount,
+        sender_creditor_id, inserted_at
       )
       VALUES (
-        tr.debtor_id,
-        tr.coordinator_type,
-        tr.coordinator_id,
-        tr.coordinator_request_id,
-        status_code,
-        total_locked_amount,
-        tr.sender_creditor_id,
-        CURRENT_TIMESTAMP
+        tr.debtor_id, tr.coordinator_type, tr.coordinator_id,
+        tr.coordinator_request_id, status_code, total_locked_amount,
+        tr.sender_creditor_id, CURRENT_TIMESTAMP
       );
     END;
     $$ LANGUAGE plpgsql;
