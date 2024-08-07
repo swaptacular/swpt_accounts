@@ -543,25 +543,23 @@ calc_status_code_sp = ReplaceableObject(
 
         ELSIF
            NOT (
-              (
-                -- is expendable
-                committed_amount <= expendable_amount::NUMERIC(24) + pt.locked_amount::NUMERIC(24)
+              -- The expendable amount is big enough.
+              committed_amount <= (
+                expendable_amount::NUMERIC(24) + pt.locked_amount::NUMERIC(24)
               )
               OR (
-                -- is reserved
+                -- The locked amount is big enough.
                 committed_amount <= pt.locked_amount
                 AND (
                   pt.sender_creditor_id = 0
-                  OR committed_amount <= pt.locked_amount * (
-                    exp(
-                      calc_k(pt.demurrage_rate)
-                      * GREATEST(
-                        0::FLOAT,
-                        (
-                          EXTRACT(EPOCH FROM current_ts)
-                          - EXTRACT(EPOCH FROM pt.prepared_at)
-                        )::FLOAT
-                      )
+                  OR committed_amount::FLOAT <= pt.locked_amount * exp(
+                    calc_k(pt.demurrage_rate)  -- check?
+                    * GREATEST(
+                      0::FLOAT,
+                      (
+                        EXTRACT(EPOCH FROM current_ts)
+                        - EXTRACT(EPOCH FROM pt.prepared_at)
+                      )::FLOAT
                     )
                   )
                 )
