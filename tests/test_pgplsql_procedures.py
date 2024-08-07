@@ -241,3 +241,83 @@ def test_lock_or_create_account(db_session, current_ts):
     assert account["status_flags"] == 0
     assert account["last_change_ts"] == current_ts + timedelta(days=1)
     assert account["last_change_seqnum"] == last_change_seqnum + 1
+
+
+@pytest.mark.parametrize("overflow", [True, False])
+def test_apply_account_change(db_session, current_ts, overflow):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    acc = (
+        models.Account.query
+        .filter_by(debtor_id=D_ID, creditor_id=C_ID)
+        .one()
+    )
+    assert acc
+    last_change_seqnum = acc.last_change_seqnum
+    last_change_ts = acc.last_change_ts
+    flags = acc.status_flags
+
+    if overflow:
+        acc.principal = models.MAX_INT64 - 999
+        acc.last_change_seqnum = 0x7fffffff
+    db_session.commit()
+
+    account = (
+        db_session.execute(
+            text(
+                "SELECT * FROM apply_account_change("
+                " (SELECT a FROM account a),"
+                " :principal_delta,"
+                " :interest_delta,"
+                " :current_ts"
+                ")"
+            ),
+            {
+                "principal_delta": 1000,
+                "interest_delta": 100.0,
+                "current_ts": current_ts,
+            },
+        )
+        .mappings()
+        .one_or_none()
+    )
+    db_session.commit()
+    acc = (
+        models.Account.query
+        .filter_by(debtor_id=D_ID, creditor_id=C_ID)
+        .one()
+    )
+    assert acc
+
+    assert account
+    assert account["creditor_id"] == C_ID == acc.creditor_id
+    assert account["debtor_id"] == D_ID == acc.debtor_id
+
+    if overflow:
+        ovrf = models.Account.STATUS_OVERFLOWN_FLAG
+        assert account["principal"] == 0x7fffffffffffffff == acc.principal
+        assert account["status_flags"] == flags | ovrf == acc.status_flags
+        assert (
+            account["last_change_seqnum"]
+            == -0x80000000
+            == acc.last_change_seqnum
+        )
+    else:
+        assert account["principal"] == 1000 == acc.principal
+        assert account["status_flags"] == flags == acc.status_flags
+        assert (
+            account["last_change_seqnum"]
+            == last_change_seqnum + 1
+            == acc.last_change_seqnum
+        )
+
+    assert account["interest"] == 100.0 == acc.interest
+    assert (
+        account["pending_account_update"]
+        == bool(True)
+        == acc.pending_account_update
+    )
+    assert (
+        account["last_change_ts"]
+        == max(last_change_ts, current_ts)
+        == acc.last_change_ts
+    )

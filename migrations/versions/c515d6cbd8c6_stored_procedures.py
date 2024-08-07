@@ -461,6 +461,66 @@ process_transfer_requests_sp = ReplaceableObject(
     """
 )
 
+apply_account_change_sp = ReplaceableObject(
+    "apply_account_change("
+    " INOUT acc account,"
+    " principal_delta BIGINT,"
+    " interest_delta FLOAT,"
+    " current_ts TIMESTAMP WITH TIME ZONE"
+    ")",
+    """
+    AS $$
+    DECLARE
+      new_principal NUMERIC(24) = (
+        acc.principal::NUMERIC(24) + principal_delta::NUMERIC(24)
+      );
+    BEGIN
+      acc.interest := (
+        calc_current_balance(
+          acc.creditor_id,
+          acc.principal,
+          acc.interest,
+          acc.interest_rate,
+          acc.last_change_ts,
+          current_ts
+        )::FLOAT
+        - acc.principal::FLOAT
+        + interest_delta
+      );
+
+      acc.principal := contain_principal_overflow(new_principal);
+      IF acc.principal != new_principal THEN
+         acc.status_flags := acc.status_flags | 0b10;  -- set an overflow flag
+      END IF;
+
+      acc.last_change_seqnum := CASE
+        WHEN acc.last_change_seqnum = 0x7fffffff THEN -0x80000000
+        ELSE acc.last_change_seqnum + 1
+      END;
+      acc.last_change_ts := GREATEST(acc.last_change_ts, current_ts);
+      acc.pending_account_update := TRUE;
+
+      UPDATE account
+      SET
+        creation_date=acc.creation_date,
+        last_change_seqnum=acc.last_change_seqnum,
+        last_change_ts=acc.last_change_ts,
+        principal=acc.principal,
+        interest=acc.interest,
+        last_transfer_number=acc.last_transfer_number,
+        last_transfer_committed_at=acc.last_transfer_committed_at,
+        status_flags=acc.status_flags,
+        total_locked_amount=acc.total_locked_amount,
+        pending_transfers_count=acc.pending_transfers_count,
+        last_transfer_id=acc.last_transfer_id,
+        last_heartbeat_ts=acc.last_heartbeat_ts,
+        pending_account_update=acc.pending_account_update
+      WHERE debtor_id=acc.debtor_id AND creditor_id=acc.creditor_id;
+    END;
+    $$ LANGUAGE plpgsql;
+    """
+)
+
 
 def upgrade():
     op.create_sp(calc_k_sp)
@@ -473,6 +533,7 @@ def upgrade():
     op.create_sp(reject_transfer_sp)
     op.create_sp(prepare_transfer_sp)
     op.create_sp(process_transfer_requests_sp)
+    op.create_sp(apply_account_change_sp)
 
 
 def downgrade():
@@ -486,3 +547,4 @@ def downgrade():
     op.drop_sp(reject_transfer_sp)
     op.drop_sp(prepare_transfer_sp)
     op.drop_sp(process_transfer_requests_sp)
+    op.drop_sp(apply_account_change_sp)
