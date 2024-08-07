@@ -382,6 +382,11 @@ def test_calc_status_code_sp(db_session, current_ts):
     assert calc_status_code(1000, 0, current_ts, current_ts) == SC_OK
     assert (
         calc_status_code(
+            1000, 0, current_ts, current_ts + timedelta(days=20000)
+        )
+    ) != SC_OK
+    assert (
+        calc_status_code(
             1000, 0, current_ts, current_ts - timedelta(days=10)
         ) == SC_OK
     )

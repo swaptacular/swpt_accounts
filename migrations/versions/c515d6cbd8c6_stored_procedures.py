@@ -542,7 +542,7 @@ calc_status_code_sp = ReplaceableObject(
           status_code := 'NEWER_INTEREST_RATE';
 
         ELSIF
-           NOT (
+            NOT (
               -- The expendable amount is big enough.
               committed_amount <= (
                 expendable_amount::NUMERIC(24) + pt.locked_amount::NUMERIC(24)
@@ -553,7 +553,7 @@ calc_status_code_sp = ReplaceableObject(
                 AND (
                   pt.sender_creditor_id = 0
                   OR committed_amount::FLOAT <= pt.locked_amount * exp(
-                    calc_k(pt.demurrage_rate)  -- check?
+                    calc_k(pt.demurrage_rate)
                     * GREATEST(
                       0::FLOAT,
                       (
