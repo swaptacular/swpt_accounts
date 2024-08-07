@@ -21,7 +21,7 @@ calc_k_sp = ReplaceableObject(
     """
     RETURNS FLOAT AS $$
     BEGIN
-      RETURN ln(1 + interest_rate / 100) / 31557600;
+      RETURN ln(1 + interest_rate / 100) / 31557600::FLOAT;
     END;
     $$ LANGUAGE plpgsql;
     """
@@ -238,12 +238,12 @@ get_min_account_balance_sp = ReplaceableObject(
             0::BIGINT
           ),
           contain_principal_overflow(
-            LEAST(acc.negligible_amount, 9.999e23)::NUMERIC(24)
+            LEAST(acc.negligible_amount, 9.999e23::REAL)::NUMERIC(24)
           )
         );
       END IF;
 
-      RETURN 0;
+      RETURN 0::BIGINT;
     END;
     $$ LANGUAGE plpgsql;
     """
