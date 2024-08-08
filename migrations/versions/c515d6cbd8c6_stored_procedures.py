@@ -650,6 +650,7 @@ process_finalization_requests_sp = ReplaceableObject(
       expendable_amount NUMERIC(24);
       committed_amount NUMERIC(24);
       principal_delta NUMERIC(24) = 0;
+      had_unlocked_amounts BOOLEAN = FALSE;
     BEGIN
       FOR pair IN
         SELECT fr, pt
@@ -697,7 +698,6 @@ process_finalization_requests_sp = ReplaceableObject(
             - min_account_balance
           );
 
-          -- TODO: Update sender_account at the end!
           sender_account.total_locked_amount := GREATEST(
               0::BIGINT,
               sender_account.total_locked_amount - current_pt.locked_amount
@@ -706,6 +706,8 @@ process_finalization_requests_sp = ReplaceableObject(
               0::INTEGER,
               sender_account.pending_transfers_count - 1
           );
+          had_unlocked_amounts := TRUE;
+
           status_code := calc_status_code(
               current_pt,
               current_fr.committed_amount,
@@ -778,7 +780,7 @@ process_finalization_requests_sp = ReplaceableObject(
           AND transfer_id = current_fr.transfer_id;
       END LOOP;
 
-      IF principal_delta != 0 THEN
+      IF principal_delta != 0 OR had_unlocked_amounts THEN
         PERFORM apply_account_change(
           sender_account,
           contain_principal_overflow(principal_delta),
