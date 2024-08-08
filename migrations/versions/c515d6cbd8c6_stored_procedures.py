@@ -525,7 +525,7 @@ calc_status_code_sp = ReplaceableObject(
     "calc_status_code("
     " pt prepared_transfer,"
     " committed_amount BIGINT,"
-    " expendable_amount BIGINT,"
+    " expendable_amount NUMERIC(24),"
     " last_interest_rate_change_ts TIMESTAMP WITH TIME ZONE,"
     " current_ts TIMESTAMP WITH TIME ZONE"
     ")",
@@ -545,7 +545,7 @@ calc_status_code_sp = ReplaceableObject(
             NOT (
               -- The expendable amount is big enough.
               committed_amount <= (
-                expendable_amount::NUMERIC(24) + pt.locked_amount::NUMERIC(24)
+                expendable_amount + pt.locked_amount::NUMERIC(24)
               )
               OR (
                 -- The locked amount is big enough.
@@ -575,8 +575,225 @@ calc_status_code_sp = ReplaceableObject(
     """
 )
 
+finalization_request_pair_type = ReplaceableObject(
+    "finalization_request_pair",
+    """
+    AS (
+      fr finalization_request,
+      pt prepared_transfer
+    )
+    """
+)
+
+insert_account_transfer_signal_sp = ReplaceableObject(
+    "insert_account_transfer_signal("
+    " INOUT acc account,"
+    " coordinator_type TEXT,"
+    " other_creditor_id BIGINT,"
+    " committed_at TIMESTAMP WITH TIME ZONE,"
+    " acquired_amount BIGINT,"
+    " transfer_note_format TEXT,"
+    " transfer_note TEXT,"
+    " principal BIGINT"
+    ")",
+    """
+    AS $$
+    DECLARE
+      previous_transfer_number BIGINT;
+    BEGIN
+      IF acc.creditor_id != 0
+          AND NOT (
+              coordinator_type != 'agent'
+              AND 0 < acquired_amount
+              AND acquired_amount::FLOAT <= acc.negligible_amount
+          ) THEN
+        previous_transfer_number := acc.last_transfer_number;
+        acc.last_transfer_number := acc.last_transfer_number + 1;
+        acc.last_transfer_committed_at = committed_at;
+
+        INSERT INTO account_transfer_signal (
+          debtor_id, creditor_id, transfer_number,
+          coordinator_type, other_creditor_id, committed_at,
+          acquired_amount, transfer_note_format, transfer_note,
+          creation_date, principal, previous_transfer_number,
+          inserted_at
+        )
+        VALUES (
+          acc.debtor_id, acc.creditor_id, acc.last_transfer_number,
+          coordinator_type, other_creditor_id, committed_at,
+          acquired_amount, transfer_note_format, transfer_note,
+          acc.creation_date, principal, previous_transfer_number,
+          CURRENT_TIMESTAMP
+        );
+      END IF;
+    END;
+    $$ LANGUAGE plpgsql;
+    """
+)
+
+process_finalization_requests_sp = ReplaceableObject(
+    "process_finalization_requests("
+    " did BIGINT,"
+    " sender_cid BIGINT,"
+    " ignore_all BOOLEAN"
+    ")",
+    """
+    RETURNS void AS $$
+    DECLARE
+      sender_account account%ROWTYPE;
+      current_fr finalization_request%ROWTYPE;
+      current_pt prepared_transfer%ROWTYPE;
+      pair finalization_request_pair;
+      status_code TEXT;
+      starting_balance NUMERIC(24);
+      min_account_balance NUMERIC(24);
+      expendable_amount NUMERIC(24);
+      committed_amount NUMERIC(24);
+      principal_delta NUMERIC(24) = 0;
+    BEGIN
+      FOR pair IN
+        SELECT fr, pt
+        FROM
+          finalization_request fr
+          LEFT OUTER JOIN prepared_transfer pt ON (
+            pt.debtor_id = fr.debtor_id
+            AND pt.sender_creditor_id = fr.sender_creditor_id
+            AND pt.transfer_id = fr.transfer_id
+            AND pt.coordinator_type = fr.coordinator_type
+            AND pt.coordinator_id = fr.coordinator_id
+            AND pt.coordinator_request_id = fr.coordinator_request_id
+          )
+        WHERE fr.debtor_id = did AND fr.sender_creditor_id = sender_cid
+        FOR UPDATE OF fr SKIP LOCKED
+
+      LOOP
+        IF sender_account IS NULL THEN
+          sender_account := lock_account(did, sender_cid);
+
+          IF sender_account.creditor_id IS NOT NULL THEN
+            starting_balance := calc_current_balance(
+              sender_account.creditor_id,
+              sender_account.principal,
+              sender_account.interest,
+              sender_account.interest_rate,
+              sender_account.last_change_ts,
+              CURRENT_TIMESTAMP
+            );
+            min_account_balance := get_min_account_balance(sender_account);
+          END IF;
+        END IF;
+
+        current_fr = pair.fr;
+        current_pt = pair.pt;
+        IF (
+              (NOT ignore_all)
+              AND sender_account.creditor_id IS NOT NULL
+              AND current_pt.transfer_id IS NOT NULL
+            ) THEN
+          expendable_amount := (
+            + starting_balance
+            + principal_delta
+            - sender_account.total_locked_amount::NUMERIC(24)
+            - min_account_balance
+          );
+
+          -- TODO: Update sender_account at the end!
+          sender_account.total_locked_amount := GREATEST(
+              0::BIGINT,
+              sender_account.total_locked_amount - current_pt.locked_amount
+          );
+          sender_account.pending_transfers_count := GREATEST(
+              0::INTEGER,
+              sender_account.pending_transfers_count - 1
+          );
+          status_code := calc_status_code(
+              current_pt,
+              current_fr.committed_amount,
+              expendable_amount,
+              sender_account.last_interest_rate_change_ts,
+              CURRENT_TIMESTAMP
+          );
+          committed_amount := CASE WHEN status_code = 'OK'
+            THEN current_fr.committed_amount
+            ELSE 0
+          END;
+
+          INSERT INTO finalized_transfer_signal (
+            debtor_id, sender_creditor_id,
+            transfer_id, coordinator_type,
+            coordinator_id, coordinator_request_id,
+            prepared_at, finalized_at,
+            committed_amount, total_locked_amount,
+            status_code, inserted_at
+          )
+          VALUES (
+            current_pt.debtor_id, current_pt.sender_creditor_id,
+            current_pt.transfer_id, current_pt.coordinator_type,
+            current_pt.coordinator_id, current_pt.coordinator_request_id,
+            current_pt.prepared_at, CURRENT_TIMESTAMP,
+            committed_amount, sender_account.total_locked_amount,
+            status_code, CURRENT_TIMESTAMP
+          );
+
+          IF committed_amount > 0 THEN
+            sender_account := insert_account_transfer_signal(
+                sender_account,
+                current_pt.coordinator_type,
+                current_pt.recipient_creditor_id,
+                CURRENT_TIMESTAMP,
+                -contain_principal_overflow(committed_amount),
+                current_fr.transfer_note_format,
+                current_fr.transfer_note,
+                contain_principal_overflow(
+                    sender_account.principal::NUMERIC(24) - committed_amount
+                )
+            );
+            INSERT INTO pending_balance_change_signal (
+              debtor_id, other_creditor_id,
+              creditor_id, committed_at,
+              coordinator_type, transfer_note_format,
+              transfer_note, principal_delta, inserted_at
+            )
+            VALUES (
+              current_pt.debtor_id, current_pt.sender_creditor_id,
+              current_pt.recipient_creditor_id, CURRENT_TIMESTAMP,
+              current_pt.coordinator_type, current_fr.transfer_note_format,
+              current_fr.transfer_note, committed_amount, CURRENT_TIMESTAMP
+            );
+          END IF;
+
+          principal_delta := principal_delta - committed_amount;
+
+          DELETE FROM prepared_transfer
+          WHERE
+            debtor_id = current_pt.debtor_id
+            AND sender_creditor_id = current_pt.sender_creditor_id
+            AND transfer_id = current_pt.transfer_id;
+        END IF;
+
+        DELETE FROM finalization_request
+        WHERE
+          debtor_id = current_fr.debtor_id
+          AND sender_creditor_id = current_fr.sender_creditor_id
+          AND transfer_id = current_fr.transfer_id;
+      END LOOP;
+
+      IF principal_delta != 0 THEN
+        PERFORM apply_account_change(
+          sender_account,
+          contain_principal_overflow(principal_delta),
+          0,
+          CURRENT_TIMESTAMP
+        );
+      END IF;
+    END;
+    $$ LANGUAGE plpgsql;
+    """
+)
+
 
 def upgrade():
+    op.create_type(finalization_request_pair_type)
     op.create_sp(calc_k_sp)
     op.create_sp(contain_principal_overflow_sp)
     op.create_sp(calc_current_balance_sp)
@@ -589,18 +806,23 @@ def upgrade():
     op.create_sp(process_transfer_requests_sp)
     op.create_sp(apply_account_change_sp)
     op.create_sp(calc_status_code_sp)
+    op.create_sp(process_finalization_requests_sp)
+    op.create_sp(insert_account_transfer_signal_sp)
 
 
 def downgrade():
-    op.drop_sp(calc_k_sp)
-    op.drop_sp(contain_principal_overflow_sp)
-    op.drop_sp(calc_current_balance_sp)
-    op.drop_sp(lock_account_sp)
-    op.drop_sp(insert_account_update_signal_sp)
-    op.drop_sp(lock_or_create_account_sp)
-    op.drop_sp(get_min_account_balance_sp)
-    op.drop_sp(reject_transfer_sp)
-    op.drop_sp(prepare_transfer_sp)
-    op.drop_sp(process_transfer_requests_sp)
-    op.drop_sp(apply_account_change_sp)
+    op.drop_sp(insert_account_transfer_signal_sp)
+    op.drop_sp(process_finalization_requests_sp)
     op.drop_sp(calc_status_code_sp)
+    op.drop_sp(apply_account_change_sp)
+    op.drop_sp(process_transfer_requests_sp)
+    op.drop_sp(prepare_transfer_sp)
+    op.drop_sp(reject_transfer_sp)
+    op.drop_sp(get_min_account_balance_sp)
+    op.drop_sp(lock_or_create_account_sp)
+    op.drop_sp(insert_account_update_signal_sp)
+    op.drop_sp(lock_account_sp)
+    op.drop_sp(calc_current_balance_sp)
+    op.drop_sp(contain_principal_overflow_sp)
+    op.drop_sp(calc_k_sp)
+    op.drop_type(finalization_request_pair_type)

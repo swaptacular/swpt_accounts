@@ -80,6 +80,19 @@ class DropSPOp(ReversibleOp):  # pragma: no cover
         return CreateSPOp(self.target)
 
 
+@Operations.register_operation("create_type", "invoke_for_target")
+@Operations.register_operation("replace_type", "replace")
+class CreateTypeOp(ReversibleOp):  # pragma: no cover
+    def reverse(self):
+        return DropTypeOp(self.target)
+
+
+@Operations.register_operation("drop_type", "invoke_for_target")
+class DropTypeOp(ReversibleOp):  # pragma: no cover
+    def reverse(self):
+        return CreateTypeOp(self.target)
+
+
 @Operations.implementation_for(CreateViewOp)
 def create_view(operations, operation):  # pragma: no cover
     operations.execute("CREATE VIEW %s AS %s" % (
@@ -105,3 +118,17 @@ def create_sp(operations, operation):  # pragma: no cover
 @Operations.implementation_for(DropSPOp)
 def drop_sp(operations, operation):  # pragma: no cover
     operations.execute("DROP FUNCTION %s" % operation.target.name)
+
+
+@Operations.implementation_for(CreateTypeOp)
+def create_type(operations, operation):  # pragma: no cover
+    operations.execute(
+        "CREATE TYPE %s %s" % (
+            operation.target.name, operation.target.sqltext
+        )
+    )
+
+
+@Operations.implementation_for(DropTypeOp)
+def drop_type(operations, operation):  # pragma: no cover
+    operations.execute("DROP TYPE %s" % operation.target.name)
