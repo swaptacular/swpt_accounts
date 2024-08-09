@@ -608,7 +608,7 @@ insert_account_transfer_signal_sp = ReplaceableObject(
               AND acquired_amount::FLOAT <= acc.negligible_amount
           ) THEN
         previous_transfer_number := acc.last_transfer_number;
-        acc.last_transfer_number := acc.last_transfer_number + 1;
+        acc.last_transfer_number := previous_transfer_number + 1;
         acc.last_transfer_committed_at = committed_at;
 
         INSERT INTO account_transfer_signal (
@@ -640,17 +640,16 @@ process_finalization_requests_sp = ReplaceableObject(
     """
     RETURNS void AS $$
     DECLARE
-      sender_account account%ROWTYPE;
+      principal_delta NUMERIC(24) = 0;
+      decreased_pending_transfers_count BOOLEAN = FALSE;
+      pair finalization_request_pair%ROWTYPE;
       current_fr finalization_request%ROWTYPE;
       current_pt prepared_transfer%ROWTYPE;
-      pair finalization_request_pair;
-      status_code TEXT;
+      sender_account account%ROWTYPE;
       starting_balance NUMERIC(24);
       min_account_balance NUMERIC(24);
-      expendable_amount NUMERIC(24);
-      committed_amount NUMERIC(24);
-      principal_delta NUMERIC(24) = 0;
-      had_unlocked_amounts BOOLEAN = FALSE;
+      status_code TEXT;
+      committed_amount BIGINT;
     BEGIN
       FOR pair IN
         SELECT fr, pt
@@ -668,6 +667,15 @@ process_finalization_requests_sp = ReplaceableObject(
         FOR UPDATE OF fr SKIP LOCKED
 
       LOOP
+        current_fr = pair.fr;
+        current_pt = pair.pt;
+
+        DELETE FROM finalization_request
+        WHERE
+          debtor_id = current_fr.debtor_id
+          AND sender_creditor_id = current_fr.sender_creditor_id
+          AND transfer_id = current_fr.transfer_id;
+
         IF sender_account IS NULL THEN
           sender_account := lock_account(did, sender_cid);
 
@@ -684,19 +692,34 @@ process_finalization_requests_sp = ReplaceableObject(
           END IF;
         END IF;
 
-        current_fr = pair.fr;
-        current_pt = pair.pt;
         IF (
-              (NOT ignore_all)
-              AND sender_account.creditor_id IS NOT NULL
-              AND current_pt.transfer_id IS NOT NULL
+            sender_account.creditor_id IS NOT NULL
+            AND current_pt.transfer_id IS NOT NULL
+            AND NOT ignore_all
             ) THEN
-          expendable_amount := (
-            + starting_balance
-            + principal_delta
-            - sender_account.total_locked_amount::NUMERIC(24)
-            - min_account_balance
+          status_code := calc_status_code(
+              current_pt,
+              current_fr.committed_amount,
+              (
+                + starting_balance
+                + principal_delta
+                - sender_account.total_locked_amount::NUMERIC(24)
+                - min_account_balance
+              ),
+              sender_account.last_interest_rate_change_ts,
+              CURRENT_TIMESTAMP
           );
+          committed_amount := CASE WHEN status_code = 'OK'
+            THEN current_fr.committed_amount
+            ELSE 0
+          END;
+          principal_delta := principal_delta - committed_amount;
+
+          DELETE FROM prepared_transfer
+          WHERE
+            debtor_id = current_pt.debtor_id
+            AND sender_creditor_id = current_pt.sender_creditor_id
+            AND transfer_id = current_pt.transfer_id;
 
           sender_account.total_locked_amount := GREATEST(
               0::BIGINT,
@@ -706,19 +729,7 @@ process_finalization_requests_sp = ReplaceableObject(
               0::INTEGER,
               sender_account.pending_transfers_count - 1
           );
-          had_unlocked_amounts := TRUE;
-
-          status_code := calc_status_code(
-              current_pt,
-              current_fr.committed_amount,
-              expendable_amount,
-              sender_account.last_interest_rate_change_ts,
-              CURRENT_TIMESTAMP
-          );
-          committed_amount := CASE WHEN status_code = 'OK'
-            THEN current_fr.committed_amount
-            ELSE 0
-          END;
+          decreased_pending_transfers_count := TRUE;
 
           INSERT INTO finalized_transfer_signal (
             debtor_id, sender_creditor_id,
@@ -743,11 +754,12 @@ process_finalization_requests_sp = ReplaceableObject(
                 current_pt.coordinator_type,
                 current_pt.recipient_creditor_id,
                 CURRENT_TIMESTAMP,
-                -contain_principal_overflow(committed_amount),
+                -committed_amount,
                 current_fr.transfer_note_format,
                 current_fr.transfer_note,
                 contain_principal_overflow(
-                    sender_account.principal::NUMERIC(24) - committed_amount
+                  sender_account.principal::NUMERIC(24)
+                  - committed_amount::NUMERIC(24)
                 )
             );
             INSERT INTO pending_balance_change_signal (
@@ -763,30 +775,24 @@ process_finalization_requests_sp = ReplaceableObject(
               current_fr.transfer_note, committed_amount, CURRENT_TIMESTAMP
             );
           END IF;
-
-          principal_delta := principal_delta - committed_amount;
-
-          DELETE FROM prepared_transfer
-          WHERE
-            debtor_id = current_pt.debtor_id
-            AND sender_creditor_id = current_pt.sender_creditor_id
-            AND transfer_id = current_pt.transfer_id;
         END IF;
-
-        DELETE FROM finalization_request
-        WHERE
-          debtor_id = current_fr.debtor_id
-          AND sender_creditor_id = current_fr.sender_creditor_id
-          AND transfer_id = current_fr.transfer_id;
       END LOOP;
 
-      IF principal_delta != 0 OR had_unlocked_amounts THEN
+      IF principal_delta != 0 THEN
         PERFORM apply_account_change(
           sender_account,
           contain_principal_overflow(principal_delta),
           0,
           CURRENT_TIMESTAMP
         );
+      ELSIF decreased_pending_transfers_count THEN
+        UPDATE account
+        SET
+          total_locked_amount=sender_account.total_locked_amount,
+          pending_transfers_count=sender_account.pending_transfers_count
+        WHERE
+          debtor_id=sender_account.debtor_id
+          AND creditor_id=sender_account.creditor_id;
       END IF;
     END;
     $$ LANGUAGE plpgsql;

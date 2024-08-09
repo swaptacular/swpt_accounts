@@ -444,3 +444,51 @@ def test_calc_status_code_sp(db_session, current_ts):
             1000, -50000, current_ts, current_ts + timedelta(days=10)
         ) == SC_OK
     )
+
+
+def test_process_finalization_requests(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    q = models.Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    last_transfer_number = q.one().last_transfer_number
+    q.update({models.Account.principal: 100})
+    p.prepare_transfer(
+        coordinator_type="direct",
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=1,
+        max_locked_amount=200,
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        recipient_creditor_id=1234,
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, C_ID)
+    pt = models.PreparedTransfer.query.filter_by(
+        debtor_id=D_ID, sender_creditor_id=C_ID
+    ).one()
+    p.finalize_transfer(D_ID, C_ID, pt.transfer_id, "direct", 1, 2, 40)
+
+    db_session.execute(
+        text(
+            "SELECT process_finalization_requests("
+            " :debtor_id, :sender_creditor_id, :ignore_all)"
+        ),
+        {
+            "debtor_id": D_ID,
+            "sender_creditor_id": C_ID,
+            "ignore_all": False,
+        },
+    )
+
+    assert len(models.PreparedTransfer.query.all()) == 0
+    assert len(models.FinalizationRequest.query.all()) == 0
+    assert len(models.PendingBalanceChangeSignal.query.all()) == 1
+    assert len(models.AccountTransferSignal.query.all()) == 1
+
+    account = (
+        models.Account.query
+        .filter_by(debtor_id=D_ID, creditor_id=C_ID)
+        .one()
+    )
+    assert account.last_transfer_number == last_transfer_number + 1
