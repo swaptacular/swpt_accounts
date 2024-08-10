@@ -464,16 +464,14 @@ process_transfer_requests_sp = ReplaceableObject(
 apply_account_change_sp = ReplaceableObject(
     "apply_account_change("
     " INOUT acc account,"
-    " principal_delta BIGINT,"
+    " principal_delta NUMERIC(24),"
     " interest_delta FLOAT,"
     " current_ts TIMESTAMP WITH TIME ZONE"
     ")",
     """
     AS $$
     DECLARE
-      new_principal NUMERIC(24) = (
-        acc.principal::NUMERIC(24) + principal_delta::NUMERIC(24)
-      );
+      new_principal NUMERIC(24) = acc.principal::NUMERIC(24) + principal_delta;
     BEGIN
       acc.interest := (
         calc_current_balance(
@@ -713,7 +711,7 @@ process_finalization_requests_sp = ReplaceableObject(
             THEN current_fr.committed_amount
             ELSE 0
           END;
-          principal_delta := principal_delta - committed_amount;
+          principal_delta := principal_delta - committed_amount::NUMERIC(24);
 
           DELETE FROM prepared_transfer
           WHERE
@@ -780,10 +778,7 @@ process_finalization_requests_sp = ReplaceableObject(
 
       IF principal_delta != 0 THEN
         PERFORM apply_account_change(
-          sender_account,
-          contain_principal_overflow(principal_delta),
-          0,
-          CURRENT_TIMESTAMP
+          sender_account, principal_delta, 0, CURRENT_TIMESTAMP
         );
       ELSIF decreased_pending_transfers_count THEN
         UPDATE account
