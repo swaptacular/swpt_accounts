@@ -20,6 +20,8 @@ from swpt_accounts.models import (
     RejectedConfigSignal,
     AccountPurgeSignal,
     FinalizationRequest,
+    RegisteredBalanceChange,
+    PendingBalanceChange,
     ROOT_CREDITOR_ID,
     CT_DIRECT,
     SC_OK,
@@ -409,6 +411,45 @@ def test_process_pending_balance_changes(db_session, current_ts):
     _flush_balance_change_signals()
     assert len(p.get_accounts_with_pending_balance_changes()) == 0
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID).principal == -10000
+
+
+def test_process_pending_balance_changes_with_interest(db_session, current_ts):
+    p.configure_account(D_ID, C_ID, current_ts, 0)
+    q = Account.query.filter_by(debtor_id=D_ID, creditor_id=C_ID)
+    last_transfer_number = q.one().last_transfer_number
+    q.update({
+        Account.interest_rate: 15.0,
+        Account.last_interest_rate_change_ts: current_ts - timedelta(days=183),
+        Account.previous_interest_rate: 5.0,
+    })
+    db_session.add(
+        RegisteredBalanceChange(
+            debtor_id=D_ID,
+            other_creditor_id=p.ROOT_CREDITOR_ID,
+            change_id=1,
+            committed_at=current_ts - timedelta(days=365.25),
+        )
+    )
+    db.session.commit()
+    db_session.add(
+        PendingBalanceChange(
+            debtor_id=D_ID,
+            other_creditor_id=p.ROOT_CREDITOR_ID,
+            change_id=1,
+            creditor_id=C_ID,
+            coordinator_type="direct",
+            transfer_note_format="",
+            transfer_note="test",
+            committed_at=current_ts - timedelta(days=356.25),
+            principal_delta=1000,
+        )
+    )
+    db.session.commit()
+    p.process_pending_balance_changes(D_ID, C_ID)
+    account = q.one()
+    assert account.principal == 1000
+    assert 95.0 < account.interest <= 100.0
+    assert account.last_transfer_number == last_transfer_number + 1
 
 
 def test_positive_overflow(db_session, current_ts):

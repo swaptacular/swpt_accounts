@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, date
 from sqlalchemy import text
 from swpt_pythonlib.utils import date_to_int24
 from swpt_accounts import models
@@ -492,3 +492,64 @@ def test_process_finalization_requests(db_session, current_ts):
         .one()
     )
     assert account.last_transfer_number == last_transfer_number + 1
+
+
+def test_calc_due_interest(db_session, current_ts):
+    one_year = timedelta(days=365.25)
+    committed_at = current_ts - 2 * one_year
+    account = models.Account(
+        debtor_id=D_ID,
+        creditor_id=C_ID,
+        creation_date=date(1970, 1, 1),
+        principal=1000,
+        total_locked_amount=0,
+        pending_transfers_count=0,
+        last_transfer_id=0,
+        status_flags=0,
+        last_change_ts=current_ts,
+        previous_interest_rate=0.0,
+        last_interest_rate_change_ts=current_ts - one_year,
+        interest_rate=10.0,
+    )
+    db_session.add(account)
+    db_session.commit()
+
+    def calc_due_interest(amount, due_ts, curr_ts):
+        return (
+            db_session.execute(
+                text(
+                    "SELECT * FROM calc_due_interest("
+                    " (SELECT a FROM account a),"
+                    " :amount,"
+                    " :due_ts,"
+                    " :current_ts"
+                    ")"
+                ),
+                {
+                    "amount": amount,
+                    "due_ts": due_ts,
+                    "current_ts": curr_ts,
+                },
+            )
+            .scalar()
+        )
+
+    i = calc_due_interest(1000, committed_at, current_ts)
+    assert abs(i - 100) < 1e-12
+
+    i = calc_due_interest(-1000, committed_at, current_ts)
+    assert abs(i + 100) < 1e-12
+
+    assert calc_due_interest(1000, committed_at, committed_at) == 0
+    assert calc_due_interest(1000, current_ts, current_ts) == 0
+    assert calc_due_interest(1000, current_ts, committed_at) == 0
+
+    i = calc_due_interest(
+        1000, current_ts - timedelta(days=1), current_ts
+    )
+    assert abs(i - 0.26098) < 1e-3
+
+    i = calc_due_interest(
+        1000, committed_at, committed_at + timedelta(days=1)
+    )
+    assert abs(i) == 0

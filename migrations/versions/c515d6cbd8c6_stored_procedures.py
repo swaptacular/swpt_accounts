@@ -794,6 +794,108 @@ process_finalization_requests_sp = ReplaceableObject(
     """
 )
 
+calc_due_interest_sp = ReplaceableObject(
+    "calc_due_interest("
+    " acc account,"
+    " amount BIGINT,"
+    " due_ts TIMESTAMP WITH TIME ZONE,"
+    " current_ts TIMESTAMP WITH TIME ZONE"
+    ")",
+    """
+    RETURNS FLOAT AS $$
+    DECLARE
+      end_ts TIMESTAMP WITH TIME ZONE = GREATEST(due_ts, current_ts);
+      interest_rate_change_ts TIMESTAMP WITH TIME ZONE = LEAST(
+        acc.last_interest_rate_change_ts, end_ts
+      );
+      t FLOAT = (
+        EXTRACT(EPOCH FROM end_ts) - EXTRACT(EPOCH FROM due_ts)
+      );
+      t1 FLOAT = GREATEST(
+        0::FLOAT,
+        (
+          EXTRACT(EPOCH FROM interest_rate_change_ts)
+          - EXTRACT(EPOCH FROM due_ts)
+        )::FLOAT
+      );
+      t2 FLOAT = LEAST(
+        t,
+        (
+          EXTRACT(EPOCH FROM end_ts)
+          - EXTRACT(EPOCH FROM interest_rate_change_ts)
+        )::FLOAT
+      );
+      k1 FLOAT = calc_k(acc.previous_interest_rate);
+      k2 FLOAT = calc_k(acc.interest_rate);
+    BEGIN
+      RETURN amount::FLOAT * (exp(k1 * t1 + k2 * t2) - 1::FLOAT);
+    END;
+    $$ LANGUAGE plpgsql;
+    """
+)
+
+process_pending_balance_changes_sp = ReplaceableObject(
+    "process_pending_balance_changes(did BIGINT, cid BIGINT)",
+    """
+    RETURNS void AS $$
+    DECLARE
+      principal_delta NUMERIC(24) = 0;
+      interest_delta FLOAT = 0;
+      change pending_balance_change%ROWTYPE;
+      acc account%ROWTYPE;
+    BEGIN
+      FOR change IN
+        SELECT *
+        FROM pending_balance_change
+        WHERE debtor_id = did AND creditor_id = cid
+        FOR UPDATE SKIP LOCKED
+
+      LOOP
+        IF acc IS NULL THEN
+          acc := lock_or_create_account(did, cid, CURRENT_TIMESTAMP);
+        END IF;
+
+        principal_delta := (
+          principal_delta + change.principal_delta::NUMERIC(24)
+        );
+        interest_delta := interest_delta + calc_due_interest(
+          acc, change.principal_delta, change.committed_at, CURRENT_TIMESTAMP
+        );
+        acc := insert_account_transfer_signal(
+            acc,
+            change.coordinator_type,
+            change.other_creditor_id,
+            change.committed_at,
+            change.principal_delta,
+            change.transfer_note_format,
+            change.transfer_note,
+            contain_principal_overflow(
+              acc.principal::NUMERIC(24) + principal_delta
+            )
+        );
+
+        UPDATE registered_balance_change
+        SET is_applied = TRUE
+        WHERE
+          debtor_id=change.debtor_id
+          AND other_creditor_id=change.other_creditor_id
+          AND change_id=change.change_id;
+
+        DELETE FROM pending_balance_change
+        WHERE
+          debtor_id=change.debtor_id
+          AND other_creditor_id=change.other_creditor_id
+          AND change_id=change.change_id;
+      END LOOP;
+
+      PERFORM apply_account_change(
+        acc, principal_delta, interest_delta, CURRENT_TIMESTAMP
+      );
+    END;
+    $$ LANGUAGE plpgsql;
+    """
+)
+
 
 def upgrade():
     op.create_type(finalization_request_pair_type)
@@ -811,9 +913,13 @@ def upgrade():
     op.create_sp(calc_status_code_sp)
     op.create_sp(process_finalization_requests_sp)
     op.create_sp(insert_account_transfer_signal_sp)
+    op.create_sp(process_pending_balance_changes_sp)
+    op.create_sp(calc_due_interest_sp)
 
 
 def downgrade():
+    op.drop_sp(calc_due_interest_sp)
+    op.drop_sp(process_pending_balance_changes_sp)
     op.drop_sp(insert_account_transfer_signal_sp)
     op.drop_sp(process_finalization_requests_sp)
     op.drop_sp(calc_status_code_sp)
