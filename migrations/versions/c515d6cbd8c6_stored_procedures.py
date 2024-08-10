@@ -32,8 +32,8 @@ contain_principal_overflow_sp = ReplaceableObject(
     """
     RETURNS BIGINT AS $$
     DECLARE
-      min_value value%TYPE = -0x7fffffffffffffff;
-      max_value value%TYPE = 0x7fffffffffffffff;
+      min_value value%TYPE = -9223372036854775807;
+      max_value value%TYPE = 9223372036854775807;
     BEGIN
       IF value < min_value THEN
         RETURN min_value;
@@ -225,7 +225,7 @@ lock_or_create_account_sp = ReplaceableObject(
       IF acc.status_flags & 1 != 0 THEN
         acc.status_flags := acc.status_flags & ~(1::INTEGER);
         acc.last_change_seqnum := CASE
-          WHEN acc.last_change_seqnum = 0x7fffffff THEN -0x80000000
+          WHEN acc.last_change_seqnum = 2147483647 THEN -2147483648
           ELSE acc.last_change_seqnum + 1
         END;
         acc.last_change_ts := GREATEST(acc.last_change_ts, current_ts);
@@ -362,7 +362,7 @@ process_transfer_requests_sp = ReplaceableObject(
       tr transfer_request%ROWTYPE;
       sender_account account%ROWTYPE;
       amount_to_lock BIGINT;
-      subnet_mask BIGINT = -0x0000010000000000;  -- This is 0xffffff0000000000
+      subnet_mask BIGINT = -1099511627776;  -- This is 0xffffff0000000000
       had_prepared_transfers BOOLEAN = FALSE;
     BEGIN
       FOR tr IN
@@ -397,7 +397,7 @@ process_transfer_requests_sp = ReplaceableObject(
           PERFORM reject_transfer(
             tr, 'RECIPIENT_IS_UNREACHABLE', 0
           );
-        ELSIF sender_account.pending_transfers_count >= 0x7fffffff THEN
+        ELSIF sender_account.pending_transfers_count >= 2147483647 THEN
           PERFORM reject_transfer(
             tr, 'TOO_MANY_TRANSFERS', sender_account.total_locked_amount
           );
@@ -488,11 +488,11 @@ apply_account_change_sp = ReplaceableObject(
 
       acc.principal := contain_principal_overflow(new_principal);
       IF acc.principal != new_principal THEN
-         acc.status_flags := acc.status_flags | 0b10;  -- set an overflow flag
+         acc.status_flags := acc.status_flags | 2;  -- set an overflow flag
       END IF;
 
       acc.last_change_seqnum := CASE
-        WHEN acc.last_change_seqnum = 0x7fffffff THEN -0x80000000
+        WHEN acc.last_change_seqnum = 2147483647 THEN -2147483648
         ELSE acc.last_change_seqnum + 1
       END;
       acc.last_change_ts := GREATEST(acc.last_change_ts, current_ts);
