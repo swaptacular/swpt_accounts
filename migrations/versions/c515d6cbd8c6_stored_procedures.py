@@ -21,7 +21,10 @@ calc_k_sp = ReplaceableObject(
     """
     RETURNS FLOAT AS $$
     BEGIN
-      RETURN ln(1 + interest_rate / 100) / 31557600;  -- seconds in an year
+      RETURN (
+        ln(1::FLOAT + interest_rate / 100::FLOAT)
+        / 31557600::FLOAT -- the number of seconds in an year
+      );
     END;
     $$ LANGUAGE plpgsql;
     """
@@ -542,7 +545,7 @@ calc_status_code_sp = ReplaceableObject(
         ELSIF
             NOT (
               -- The expendable amount is big enough.
-              committed_amount <= (
+              committed_amount::NUMERIC(24) <= (
                 expendable_amount + pt.locked_amount::NUMERIC(24)
               )
               OR (
@@ -550,7 +553,7 @@ calc_status_code_sp = ReplaceableObject(
                 committed_amount <= pt.locked_amount
                 AND (
                   pt.sender_creditor_id = 0
-                  OR committed_amount::FLOAT <= pt.locked_amount * exp(
+                  OR committed_amount::FLOAT <= pt.locked_amount::FLOAT * exp(
                     calc_k(pt.demurrage_rate)
                     * GREATEST(
                       0::FLOAT,
@@ -603,7 +606,7 @@ insert_account_transfer_signal_sp = ReplaceableObject(
           AND NOT (
               coordinator_type != 'agent'
               AND 0 < acquired_amount
-              AND acquired_amount::FLOAT <= acc.negligible_amount
+              AND acquired_amount::REAL <= acc.negligible_amount
           ) THEN
         previous_transfer_number := acc.last_transfer_number;
         acc.last_transfer_number := previous_transfer_number + 1;
@@ -678,13 +681,15 @@ process_finalization_requests_sp = ReplaceableObject(
           sender_account := lock_account(did, sender_cid);
 
           IF sender_account.creditor_id IS NOT NULL THEN
-            starting_balance := calc_current_balance(
-              sender_account.creditor_id,
-              sender_account.principal,
-              sender_account.interest,
-              sender_account.interest_rate,
-              sender_account.last_change_ts,
-              CURRENT_TIMESTAMP
+            starting_balance := floor(
+              calc_current_balance(
+                sender_account.creditor_id,
+                sender_account.principal,
+                sender_account.interest,
+                sender_account.interest_rate,
+                sender_account.last_change_ts,
+                CURRENT_TIMESTAMP
+              )
             );
             min_account_balance := get_min_account_balance(sender_account);
           END IF;
