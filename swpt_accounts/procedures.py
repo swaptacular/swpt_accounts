@@ -3,6 +3,8 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import TypeVar, Iterable, Tuple, Union, Optional, Callable
 from decimal import Decimal
+from flask import current_app
+from sqlalchemy import text
 from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
 from swpt_pythonlib.utils import Seqnum, increment_seqnum
@@ -70,6 +72,17 @@ PREPARED_TRANSFER_JOIN_CLAUSE = and_(
     FinalizationRequest.coordinator_id == PreparedTransfer.coordinator_id,
     FinalizationRequest.coordinator_request_id
     == PreparedTransfer.coordinator_request_id,
+)
+CALL_PROCESS_TRANSFER_REQUESTS = text(
+    "SELECT process_transfer_requests(:debtor_id, :creditor_id, "
+    ":commit_period)"
+)
+CALL_PROCESS_FINALIZATION_REQUESTS = text(
+    "SELECT process_finalization_requests(:debtor_id, :sender_creditor_id, "
+    ":ignore_all)"
+)
+CALL_PENDING_BALANCE_CHANGES = text(
+    "SELECT process_pending_balance_changes(:debtor_id, :creditor_id)"
 )
 
 
@@ -458,6 +471,17 @@ def get_accounts_with_transfer_requests(
 def process_transfer_requests(
     debtor_id: int, creditor_id: int, commit_period: int = MAX_INT32
 ) -> None:
+    if current_app.config["APP_USE_PGPLSQL_FUNCTIONS"]:  # pragma: no cover
+        db.session.execute(
+            CALL_PROCESS_TRANSFER_REQUESTS,
+            {
+                "debtor_id": debtor_id,
+                "creditor_id": creditor_id,
+                "commit_period": commit_period,
+            },
+        )
+        return
+
     current_ts = datetime.now(tz=timezone.utc)
 
     transfer_requests = (
@@ -510,6 +534,17 @@ def get_accounts_with_finalization_requests(
 def process_finalization_requests(
     debtor_id: int, sender_creditor_id: int, ignore_all=False
 ) -> None:
+    if current_app.config["APP_USE_PGPLSQL_FUNCTIONS"]:  # pragma: no cover
+        db.session.execute(
+            CALL_PROCESS_FINALIZATION_REQUESTS,
+            {
+                "debtor_id": debtor_id,
+                "sender_creditor_id": sender_creditor_id,
+                "ignore_all": ignore_all,
+            },
+        )
+        return
+
     current_ts = datetime.now(tz=timezone.utc)
 
     requests = (
@@ -587,6 +622,16 @@ def get_accounts_with_pending_balance_changes(
 
 @atomic
 def process_pending_balance_changes(debtor_id: int, creditor_id: int) -> None:
+    if current_app.config["APP_USE_PGPLSQL_FUNCTIONS"]:  # pragma: no cover
+        db.session.execute(
+            CALL_PENDING_BALANCE_CHANGES,
+            {
+                "debtor_id": debtor_id,
+                "creditor_id": creditor_id,
+            },
+        )
+        return
+
     current_ts = datetime.now(tz=timezone.utc)
 
     changes = (

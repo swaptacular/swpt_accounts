@@ -18,10 +18,17 @@ config_dict = {
 }
 
 
+def pytest_addoption(parser):
+    parser.addoption("--use-pgplsql", action="store", default="false")
+
+
 @pytest.fixture(scope="module")
-def app():
+def app(request):
     """Get a Flask application object."""
 
+    config_dict["APP_USE_PGPLSQL_FUNCTIONS"] = (
+        request.config.option.use_pgplsql.lower() not in ["false", "no", "off"]
+    )
     app = create_app(config_dict)
     with app.app_context():
         flask_migrate.upgrade()
