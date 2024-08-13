@@ -842,7 +842,7 @@ def _get_account_instance(
         debtor_id=debtor_id, creditor_id=creditor_id
     )
     if lock:
-        query = query.with_for_update()
+        query = query.with_for_update(key_share=True)
 
     return query.one_or_none()
 
