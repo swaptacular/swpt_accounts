@@ -14,6 +14,29 @@ def current_ts():
 D_ID = -1
 C_ID = 1
 
+ACCOUNT_DATA_FIELDS = """
+    creditor_id,
+    debtor_id,
+    creation_date,
+    last_change_seqnum,
+    last_change_ts,
+    principal,
+    interest,
+    interest_rate,
+    previous_interest_rate,
+    last_transfer_number,
+    last_transfer_committed_at,
+    status_flags,
+    total_locked_amount,
+    pending_transfers_count,
+    last_transfer_id,
+    last_heartbeat_ts,
+    negligible_amount,
+    config_data,
+    last_interest_rate_change_ts,
+    pending_account_update
+"""
+
 
 def test_calc_k(db_session):
     for rate in [0.0, 10.0, 100.0, -5.0, -99.9]:
@@ -179,15 +202,9 @@ def test_lock_or_create_account(db_session, current_ts):
     )
     assert aus.last_transfer_number == account.last_transfer_number
     assert aus.last_transfer_committed_at == account.last_transfer_committed_at
-    assert aus.last_config_ts == account.last_config_ts
-    assert aus.last_config_seqnum == account.last_config_seqnum
     assert aus.creation_date == account.creation_date
     assert aus.negligible_amount == account.negligible_amount
     assert aus.config_data == account.config_data
-    assert aus.config_flags == account.config_flags
-    assert aus.debtor_info_iri == account.debtor_info_iri
-    assert aus.debtor_info_content_type == account.debtor_info_content_type
-    assert aus.debtor_info_sha256 == account.debtor_info_sha256
     assert aus.inserted_at == account.last_change_ts
 
     account = (
@@ -265,7 +282,10 @@ def test_apply_account_change(db_session, current_ts, overflow):
         db_session.execute(
             text(
                 "SELECT * FROM apply_account_change("
-                " (SELECT a FROM account a),"
+                "("
+                "  SELECT a::account_data "
+                f" FROM (SELECT {ACCOUNT_DATA_FIELDS} FROM account) a"
+                "),"
                 " :principal_delta,"
                 " :interest_delta,"
                 " :current_ts"
@@ -519,7 +539,10 @@ def test_calc_due_interest(db_session, current_ts):
             db_session.execute(
                 text(
                     "SELECT * FROM calc_due_interest("
-                    " (SELECT a FROM account a),"
+                    "("
+                    "  SELECT a::account_data "
+                    f" FROM (SELECT {ACCOUNT_DATA_FIELDS} FROM account) a"
+                    "),"
                     " :amount,"
                     " :due_ts,"
                     " :current_ts"

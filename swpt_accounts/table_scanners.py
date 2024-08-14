@@ -210,7 +210,7 @@ class AccountScanner(TableScanner):
                         Account.pending_account_update == true(),
                     )
                 )
-                .with_for_update(skip_locked=True)
+                .with_for_update(skip_locked=True, key_share=True)
                 .all()
             )
 
@@ -552,7 +552,7 @@ class PreparedTransferScanner(TableScanner):
                     PreparedTransfer.transfer_id,
                 )
                 .filter(self.pk.in_(pks_to_remind))
-                .with_for_update(skip_locked=True)
+                .with_for_update(skip_locked=True, key_share=True)
                 .all()
             )
 
