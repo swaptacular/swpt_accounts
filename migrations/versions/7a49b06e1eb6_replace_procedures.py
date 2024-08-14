@@ -17,6 +17,34 @@ branch_labels = None
 depends_on = None
 
 
+account_data_type = ReplaceableObject(
+    "account_data",
+    """
+    AS (
+      creditor_id BIGINT,
+      debtor_id BIGINT,
+      creation_date DATE,
+      last_change_seqnum INTEGER,
+      last_change_ts TIMESTAMP WITH TIME ZONE,
+      principal BIGINT,
+      interest FLOAT,
+      interest_rate REAL,
+      previous_interest_rate REAL,
+      last_transfer_number BIGINT,
+      last_transfer_committed_at TIMESTAMP WITH TIME ZONE,
+      status_flags INTEGER,
+      total_locked_amount BIGINT,
+      pending_transfers_count INTEGER,
+      last_transfer_id BIGINT,
+      last_heartbeat_ts TIMESTAMP WITH TIME ZONE,
+      negligible_amount REAL,
+      config_data VARCHAR,
+      last_interest_rate_change_ts TIMESTAMP WITH TIME ZONE,
+      pending_account_update BOOLEAN
+    )
+    """
+)
+
 calc_k_sp = ReplaceableObject(
     "calc_k(interest_rate FLOAT)",
     """
@@ -66,16 +94,19 @@ calc_current_balance_sp = ReplaceableObject(
       current_balance NUMERIC(32,8) = principal;
     BEGIN
       IF creditor_id != 0 THEN
-        BEGIN
-          current_balance := current_balance + interest::NUMERIC(32,8);
-        EXCEPTION
-          WHEN numeric_value_out_of_range THEN
-            current_balance := sign(interest) * 9.999e23::NUMERIC(32,8);
-        END;
-
+        current_balance := (
+          GREATEST(
+            -4.999e23::NUMERIC(32,8),
+            LEAST(current_balance, 4.999e23::NUMERIC(32,8))
+          )
+          + GREATEST(
+            -4.999e23::FLOAT,
+            LEAST(interest, 4.999e23::FLOAT)
+          )::NUMERIC(32,8)
+        );
         IF current_balance > 0 THEN
-          BEGIN
-            current_balance := current_balance * exp(
+          current_balance := LEAST(
+            current_balance * exp(
               calc_k(interest_rate)
               * GREATEST(
                 0::FLOAT,
@@ -84,11 +115,9 @@ calc_current_balance_sp = ReplaceableObject(
                   - EXTRACT(EPOCH FROM last_change_ts)
                 )::FLOAT
               )
-            )::NUMERIC;
-          EXCEPTION
-            WHEN numeric_value_out_of_range THEN
-              current_balance := 9.999e23::NUMERIC(32,8);
-          END;
+            )::NUMERIC,
+            9.999e23::NUMERIC
+          );
         END IF;
       END IF;
 
@@ -101,11 +130,32 @@ calc_current_balance_sp = ReplaceableObject(
 lock_account_sp = ReplaceableObject(
     "lock_account(did BIGINT, cid BIGINT)",
     """
-    RETURNS account AS $$
+    RETURNS account_data AS $$
     DECLARE
-      acc account%ROWTYPE;
+      data account_data%ROWTYPE;
     BEGIN
-      SELECT * INTO acc
+      SELECT
+        creditor_id,
+        debtor_id,
+        creation_date,
+        last_change_seqnum,
+        last_change_ts,
+        principal,
+        interest,
+        interest_rate,
+        previous_interest_rate,
+        last_transfer_number,
+        last_transfer_committed_at,
+        status_flags,
+        total_locked_amount,
+        pending_transfers_count,
+        last_transfer_id,
+        last_heartbeat_ts,
+        negligible_amount,
+        CASE WHEN creditor_id=0 THEN config_data ELSE '' END,
+        last_interest_rate_change_ts,
+        pending_account_update
+      INTO data
       FROM account
       WHERE
         debtor_id=did
@@ -113,7 +163,7 @@ lock_account_sp = ReplaceableObject(
         AND status_flags & 1 = 0
       FOR NO KEY UPDATE;
 
-      RETURN acc;
+      RETURN data;
     END;
     $$ LANGUAGE plpgsql;
     """
@@ -133,7 +183,6 @@ insert_account_update_signal_sp = ReplaceableObject(
 
       UPDATE account
       SET
-        creation_date=acc.creation_date,
         last_change_seqnum=acc.last_change_seqnum,
         last_change_ts=acc.last_change_ts,
         principal=acc.principal,
@@ -180,7 +229,7 @@ lock_or_create_account_sp = ReplaceableObject(
     " current_ts TIMESTAMP WITH TIME ZONE"
     ")",
     """
-    RETURNS account AS $$
+    RETURNS account_data AS $$
     DECLARE
       acc account%ROWTYPE;
       t0 TIMESTAMP WITH TIME ZONE;
@@ -237,14 +286,35 @@ lock_or_create_account_sp = ReplaceableObject(
         acc := insert_account_update_signal(acc, current_ts);
       END IF;
 
-      RETURN acc;
+      RETURN ROW(
+        acc.creditor_id,
+        acc.debtor_id,
+        acc.creation_date,
+        acc.last_change_seqnum,
+        acc.last_change_ts,
+        acc.principal,
+        acc.interest,
+        acc.interest_rate,
+        acc.previous_interest_rate,
+        acc.last_transfer_number,
+        acc.last_transfer_committed_at,
+        acc.status_flags,
+        acc.total_locked_amount,
+        acc.pending_transfers_count,
+        acc.last_transfer_id,
+        acc.last_heartbeat_ts,
+        acc.negligible_amount,
+        CASE WHEN acc.creditor_id=0 THEN acc.config_data ELSE '' END,
+        acc.last_interest_rate_change_ts,
+        acc.pending_account_update
+      );
     END;
     $$ LANGUAGE plpgsql;
     """
 )
 
 get_min_account_balance_sp = ReplaceableObject(
-    "get_min_account_balance(acc account)",
+    "get_min_account_balance(acc account_data)",
     """
     RETURNS BIGINT AS $$
     DECLARE
@@ -279,7 +349,7 @@ get_min_account_balance_sp = ReplaceableObject(
 reject_transfer_sp = ReplaceableObject(
     "reject_transfer("
     " tr transfer_request,"
-    " status_code TEXT,"
+    " status_code VARCHAR(30),"
     " total_locked_amount BIGINT"
     ")",
     """
@@ -303,7 +373,7 @@ reject_transfer_sp = ReplaceableObject(
 prepare_transfer_sp = ReplaceableObject(
     "prepare_transfer("
     " tr transfer_request,"
-    " INOUT sender_account account,"
+    " INOUT sender_account account_data,"
     " current_ts TIMESTAMP WITH TIME ZONE,"
     " commit_period INTEGER,"
     " amount_to_lock BIGINT"
@@ -364,8 +434,9 @@ process_transfer_requests_sp = ReplaceableObject(
     RETURNS void AS $$
     DECLARE
       tr transfer_request%ROWTYPE;
-      sender_account account%ROWTYPE;
+      sender_account account_data%ROWTYPE;
       amount_to_lock BIGINT;
+      min_account_balance NUMERIC(24);
       subnet_mask BIGINT = -1099511627776;  -- This is 0xffffff0000000000
       had_prepared_transfers BOOLEAN = FALSE;
     BEGIN
@@ -415,6 +486,10 @@ process_transfer_requests_sp = ReplaceableObject(
             tr, 'NEWER_INTEREST_RATE', sender_account.total_locked_amount
           );
         ELSE
+          IF min_account_balance IS NULL THEN
+            min_account_balance := get_min_account_balance(sender_account);
+          END IF;
+
           amount_to_lock := GREATEST(
             0::BIGINT,
             LEAST(
@@ -431,7 +506,7 @@ process_transfer_requests_sp = ReplaceableObject(
                   )
                 )::NUMERIC(24)
                 - sender_account.total_locked_amount::NUMERIC(24)
-                - get_min_account_balance(sender_account)::NUMERIC(24)
+                - min_account_balance
               )
             )
           );
@@ -467,7 +542,7 @@ process_transfer_requests_sp = ReplaceableObject(
 
 apply_account_change_sp = ReplaceableObject(
     "apply_account_change("
-    " INOUT acc account,"
+    " INOUT acc account_data,"
     " principal_delta NUMERIC(24),"
     " interest_delta FLOAT,"
     " current_ts TIMESTAMP WITH TIME ZONE"
@@ -504,7 +579,6 @@ apply_account_change_sp = ReplaceableObject(
 
       UPDATE account
       SET
-        creation_date=acc.creation_date,
         last_change_seqnum=acc.last_change_seqnum,
         last_change_ts=acc.last_change_ts,
         principal=acc.principal,
@@ -532,9 +606,9 @@ calc_status_code_sp = ReplaceableObject(
     " current_ts TIMESTAMP WITH TIME ZONE"
     ")",
     """
-    RETURNS TEXT AS $$
+    RETURNS VARCHAR(30) AS $$
     DECLARE
-      status_code TEXT;
+      status_code VARCHAR(30);
     BEGIN
       IF committed_amount > 0 THEN
         IF current_ts > pt.deadline THEN
@@ -589,8 +663,8 @@ finalization_request_pair_type = ReplaceableObject(
 
 insert_account_transfer_signal_sp = ReplaceableObject(
     "insert_account_transfer_signal("
-    " INOUT acc account,"
-    " coordinator_type TEXT,"
+    " INOUT acc account_data,"
+    " coordinator_type VARCHAR(30),"
     " other_creditor_id BIGINT,"
     " committed_at TIMESTAMP WITH TIME ZONE,"
     " acquired_amount BIGINT,"
@@ -647,10 +721,10 @@ process_finalization_requests_sp = ReplaceableObject(
       pair finalization_request_pair%ROWTYPE;
       current_fr finalization_request%ROWTYPE;
       current_pt prepared_transfer%ROWTYPE;
-      sender_account account%ROWTYPE;
+      sender_account account_data%ROWTYPE;
       starting_balance NUMERIC(24);
       min_account_balance NUMERIC(24);
-      status_code TEXT;
+      status_code VARCHAR(30);
       committed_amount BIGINT;
     BEGIN
       FOR pair IN
@@ -802,7 +876,7 @@ process_finalization_requests_sp = ReplaceableObject(
 
 calc_due_interest_sp = ReplaceableObject(
     "calc_due_interest("
-    " acc account,"
+    " acc account_data,"
     " amount BIGINT,"
     " due_ts TIMESTAMP WITH TIME ZONE,"
     " current_ts TIMESTAMP WITH TIME ZONE"
@@ -848,7 +922,7 @@ process_pending_balance_changes_sp = ReplaceableObject(
       principal_delta NUMERIC(24) = 0;
       interest_delta FLOAT = 0;
       change pending_balance_change%ROWTYPE;
-      acc account%ROWTYPE;
+      acc account_data%ROWTYPE;
     BEGIN
       FOR change IN
         SELECT *
@@ -904,6 +978,7 @@ process_pending_balance_changes_sp = ReplaceableObject(
 
 
 def upgrade():
+    op.create_type(account_data_type)
     op.replace_type(finalization_request_pair_type, replaces="c515d6cbd8c6.finalization_request_pair_type")
     op.replace_sp(calc_k_sp, replaces="c515d6cbd8c6.calc_k_sp")
     op.replace_sp(contain_principal_overflow_sp, replaces="c515d6cbd8c6.contain_principal_overflow_sp")
@@ -941,3 +1016,4 @@ def downgrade():
     op.replace_sp(contain_principal_overflow_sp, replace_with="c515d6cbd8c6.contain_principal_overflow_sp")
     op.replace_sp(calc_k_sp, replace_with="c515d6cbd8c6.calc_k_sp")
     op.replace_type(finalization_request_pair_type, replace_with="c515d6cbd8c6.finalization_request_pair_type")
+    op.drop_type(account_data_type)
