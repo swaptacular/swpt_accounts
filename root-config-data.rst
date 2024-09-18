@@ -96,7 +96,10 @@ Properties
 
   - Type: ``string``
   - path: #/properties/type
-  - The value must match this pattern: ``^RootConfigData(-v[1-9][0-9]{0,5})?$``
+  - The value MUST match this pattern:
+    ``^RootConfigData(-v[1-9][0-9]{0,5})?$``. For documents adhering
+    to version 1.0 of this specification, the value of this field
+    SHOULD be ``RootConfigData``.
 
 - **rate**
    
@@ -158,7 +161,10 @@ Properties
 
   - Type: ``string``
   - path: #/definitions/DebtorInfo/properties/type
-  - The value must match this pattern: ``^DebtorInfo(-v[1-9][0-9]{0,5})?$``
+  - The value MUST match this pattern:
+    ``^DebtorInfo(-v[1-9][0-9]{0,5})?$``. For documents adhering to
+    version 1.0 of this specification, the value of this field SHOULD
+    be ``DebtorInfo``.
 
 - **iri** ``required``
 
