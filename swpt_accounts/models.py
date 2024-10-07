@@ -623,7 +623,18 @@ class Signal(db.Model):
             routing_key=self.routing_key,
             body=body,
             properties=properties,
-            mandatory=True,
+            mandatory=not (
+                # When deactivating "Debtor Agents", most probably we
+                # will not be able to purge all root accounts, and for
+                # them we will continue to send heartbeat
+                # "AccountUpdate" messages.
+                message_type == "AccountUpdate"
+                and creditor_id == ROOT_CREDITOR_ID
+                and (
+                    data["config_flags"]
+                    & Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
+                )
+            ),
         )
 
     inserted_at = db.Column(
