@@ -40,16 +40,16 @@ def test_send_signalbus_message(app, mocker):
     assert kwargs == {}
     messages = args[0]
     assert len(messages) == 1
-    m = messages[0]
-    assert m.properties.headers["debtor-id"] == 1
-    assert m.properties.headers["creditor-id"] == 2
-    assert m.properties.headers["coordinator-type"] == "direct"
-    assert m.properties.headers["coordinator-id"] == 666
-    assert m.properties.type == "RejectedTransfer"
-    assert m.properties.content_type == "application/json"
-    assert m.properties.app_id == "swpt_accounts"
-    assert m.properties.delivery_mode == 2
-    assert s.__marshmallow_schema__.loads(m.body.decode("utf-8")) == dict(
+    msg = messages[0]
+    assert msg.properties.headers["debtor-id"] == 1
+    assert msg.properties.headers["creditor-id"] == 2
+    assert msg.properties.headers["coordinator-type"] == "direct"
+    assert msg.properties.headers["coordinator-id"] == 666
+    assert msg.properties.type == "RejectedTransfer"
+    assert msg.properties.content_type == "application/json"
+    assert msg.properties.app_id == "swpt_accounts"
+    assert msg.properties.delivery_mode == 2
+    assert s.__marshmallow_schema__.loads(msg.body.decode("utf-8")) == dict(
         type="RejectedTransfer",
         debtor_id=1,
         sender_creditor_id=2,
@@ -60,6 +60,27 @@ def test_send_signalbus_message(app, mocker):
         total_locked_amount=0,
         inserted_at=current_ts,
     )
+    m.AccountUpdateSignal(
+        debtor_id=1,
+        creditor_id=m.ROOT_CREDITOR_ID,
+        last_change_ts=m.T0,
+        last_change_seqnum=1,
+        principal=0,
+        interest=0.0,
+        interest_rate=0.0,
+        last_interest_rate_change_ts=m.T0,
+        last_transfer_number=1,
+        last_transfer_committed_at=m.T0,
+        last_config_ts=m.T0,
+        last_config_seqnum=1,
+        creation_date=m.T0.date(),
+        negligible_amount=1000.0,
+        config_data="",
+        config_flags=Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG,
+        debtor_info_iri=None,
+        debtor_info_content_type=None,
+        debtor_info_sha256=None,
+    ).send_signalbus_message()
 
 
 def test_send_signalbus_message_wrong_shard(app, mocker):
