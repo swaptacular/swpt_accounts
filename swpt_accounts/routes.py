@@ -10,6 +10,11 @@ HTTP_HEADERS = {
 fetch_api = Blueprint("fetch", __name__, url_prefix="/accounts")
 
 
+@fetch_api.route("/healthz")
+def health_check():
+    return "I am healthy", 200, {"Content-Type": "text/plain"}
+
+
 @fetch_api.route("/<i64:debtorId>/<i64:creditorId>/reachable")
 def reachable(debtorId, creditorId):
     if not is_valid_account(debtorId, creditorId):  # pragma: no cover

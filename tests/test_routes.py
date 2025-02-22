@@ -22,6 +22,13 @@ def account(app, db_session, current_ts):
     return p.configure_account(D_ID, C_ID, current_ts, 0)
 
 
+def test_get_healthz(client):
+    r = client.get("/accounts/invalid-url")
+    assert r.status_code == 404
+    r = client.get("/accounts/healthz")
+    assert r.status_code == 200
+
+
 def test_get_reachable(client, account, current_ts):
     r = client.post("/accounts/18446744073709551615/1/reachable", json={})
     assert r.status_code == 405
