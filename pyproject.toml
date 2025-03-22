@@ -1,13 +1,19 @@
-[tool.poetry]
+[project]
 name = "swpt_accounts"
 version = "0.1.0"
 description = "Swaptacural micro-service that manages user account balances"
-authors = ["Evgeni Pandurski <epandurski@gmail.com>"]
+authors = [
+  { name = "Evgeni Pandurski", email = "epandurski@gmail.com" }
+]
 license = "MIT"
+readme = "README.md"
+requires-python = ">=3.9"
+dynamic = [ "dependencies" ]
+
+[tool.poetry]
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.9"
 gunicorn = "*"
 python-json-logger = "^2.0.4"
 flask = "^3.0.2"
@@ -20,7 +26,7 @@ alembic = "^1.8.1"
 pytest = "^7.1.2"
 pytest-mock = "^3.8.2"
 marshmallow = "^3.17.0"
-swpt_pythonlib = {git = "https://github.com/swaptacular/swpt_pythonlib.git", tag = "v0.10.3"}
+swpt_pythonlib = {git = "https://github.com/swaptacular/swpt_pythonlib.git", tag = "v0.10.4"}
 requests = "^2.32.0"
 aiohttp = "^3.9.3"
 
