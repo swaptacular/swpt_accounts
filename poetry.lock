@@ -2039,7 +2039,7 @@ sqlcipher = ["sqlcipher3_binary"]
 
 [[package]]
 name = "Swpt-Pythonlib"
-version = "0.10.3"
+version = "0.10.4"
 description = "A Python library used by many Swaptacular micro-services"
 optional = false
 python-versions = "*"
