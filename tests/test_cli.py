@@ -1,3 +1,4 @@
+import pytest
 import sqlalchemy
 from unittest.mock import Mock
 from datetime import date, datetime, timezone, timedelta
@@ -628,3 +629,16 @@ def test_scan_registered_balance_changes(app, db_session):
     assert len(RegisteredBalanceChange.query.all()) == 2
     assert RegisteredBalanceChange.query.filter_by(change_id=1).one()
     assert RegisteredBalanceChange.query.filter_by(change_id=3).one()
+
+
+def test_alembic_current_head(app, request, capfd):
+    if request.config.option.capture != "no":
+        pytest.skip("needs to be run with --capture=no")
+
+    runner = app.test_cli_runner()
+    result = runner.invoke(
+        args=["db", "current"]
+    )
+    assert result.exit_code == 0
+    captured = capfd.readouterr()
+    assert captured.out.strip().endswith(" (head)")
