@@ -155,6 +155,12 @@ case $1 in
         # Spawns all the necessary processes in one container.
         exec supervisord -c "$APP_ROOT_DIR/supervisord.conf"
         ;;
+    await_migrations)
+        echo Awaiting database migrations to be applied...
+        while ! flask db current 2> /dev/null | grep '(head)'; do
+            sleep 10
+        done
+        ;;
     *)
         exec "$@"
         ;;

@@ -242,6 +242,11 @@ container allows you to execute the following *documented commands*:
   **IMPORTANT NOTE: This command has to be run only once (at the
   beginning), but running it multiple times should not do any harm.**
 
+* `await_migrations`
+
+  Blocks until the latest migration applied to the PostgreSQL server
+  instance matches the latest known migration.
+
 * `webserver`
 
   Starts only the "fetch API" server. This command allows you to start
