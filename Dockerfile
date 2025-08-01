@@ -62,6 +62,6 @@ RUN python -m compileall -x '^\./(migrations|tests)/' . \
     && rm -f .env \
     && chown -R "$FLASK_APP:$FLASK_APP" .
 
-USER $FLASK_APP
+USER $FLASK_APP:$FLASK_APP
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 CMD ["all"]
