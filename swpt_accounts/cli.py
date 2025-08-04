@@ -29,16 +29,36 @@ def swpt_accounts():
 
 @swpt_accounts.command("subscribe")
 @with_appcontext
-def subscribe():  # pragma: no cover
+@click.option(
+    "-u",
+    "--url",
+    type=str,
+    help="The RabbitMQ connection URL.",
+)
+@click.option(
+    "-q",
+    "--queue",
+    type=str,
+    help="The name of the queue to declare and subscribe.",
+)
+@click.option(
+    "-k",
+    "--queue-routing-key",
+    type=str,
+    help="The RabbitMQ binding key for the queue.",
+)
+def subscribe(url, queue, queue_routing_key):  # pragma: no cover
     """Declare a RabbitMQ queue, and subscribe it to receive incoming
     messages.
 
-    The value of the PROTOCOL_BROKER_QUEUE_ROUTING_KEY configuration
-    variable will be used as a binding key for the created queue. The
-    default binding key is "#".
+    If some of the available options are not specified directly, the
+    values of the following environment variables will be used:
 
-    This is mainly useful during development and testing.
+    * PROTOCOL_BROKER_URL (default "amqp://guest:guest@localhost:5672")
 
+    * PROTOCOL_BROKER_QUEUE (defalut "swpt_accounts")
+
+    * PROTOCOL_BROKER_QUEUE_ROUTING_KEY (default "#")
     """
 
     from .extensions import (
@@ -49,10 +69,13 @@ def subscribe():  # pragma: no cover
     )
 
     logger = logging.getLogger(__name__)
-    queue_name = current_app.config["PROTOCOL_BROKER_QUEUE"]
-    routing_key = current_app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
+    queue_name = queue or current_app.config["PROTOCOL_BROKER_QUEUE"]
+    routing_key = (
+        queue_routing_key
+        or current_app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
+    )
     dead_letter_queue_name = queue_name + ".XQ"
-    broker_url = current_app.config["PROTOCOL_BROKER_URL"]
+    broker_url = url or current_app.config["PROTOCOL_BROKER_URL"]
     connection = pika.BlockingConnection(pika.URLParameters(broker_url))
     channel = connection.channel()
 
@@ -125,6 +148,65 @@ def subscribe():  # pragma: no cover
     )
     logger.info(
         'Created a binding from "%s" to "%s" with routing key "%s".',
+        ACCOUNTS_IN_EXCHANGE,
+        queue_name,
+        routing_key,
+    )
+
+
+@swpt_accounts.command("unsubscribe")
+@with_appcontext
+@click.option(
+    "-u",
+    "--url",
+    type=str,
+    help="The RabbitMQ connection URL.",
+)
+@click.option(
+    "-q",
+    "--queue",
+    type=str,
+    help="The name of the queue to declare and subscribe.",
+)
+@click.option(
+    "-k",
+    "--queue-routing-key",
+    type=str,
+    help="The RabbitMQ binding key for the queue.",
+)
+def unsubscribe(url, queue, queue_routing_key):  # pragma: no cover
+    """Unsubscribe a RabbitMQ queue from receiving incoming messages.
+
+    If some of the available options are not specified directly, the
+    values of the following environment variables will be used:
+
+    * PROTOCOL_BROKER_URL (default "amqp://guest:guest@localhost:5672")
+
+    * PROTOCOL_BROKER_QUEUE (defalut "swpt_accounts")
+
+    * PROTOCOL_BROKER_QUEUE_ROUTING_KEY (default "#")
+
+    """
+
+    from .extensions import ACCOUNTS_IN_EXCHANGE
+
+    logger = logging.getLogger(__name__)
+    queue_name = queue or current_app.config["PROTOCOL_BROKER_QUEUE"]
+    routing_key = (
+        queue_routing_key
+        or current_app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
+    )
+    broker_url = url or current_app.config["PROTOCOL_BROKER_URL"]
+    connection = pika.BlockingConnection(pika.URLParameters(broker_url))
+    channel = connection.channel()
+
+    channel.queue_unbind(
+        exchange=ACCOUNTS_IN_EXCHANGE,
+        queue=queue_name,
+        routing_key=routing_key,
+    )
+    logger.info(
+        'Removed binding from "%s" to "%s" with routing key "%s".',
         ACCOUNTS_IN_EXCHANGE,
         queue_name,
         routing_key,

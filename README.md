@@ -283,6 +283,16 @@ container allows you to execute the following *documented commands*:
   to the flushing of particular type of messages. (See "FLUSH_PROCESSES" and
   "FLUSH_PERIOD" environment variables.)
 
+* `subscribe`
+
+  Declares a RabbitMQ queue, and subscribes it to receive incoming
+  messages. Normally, this command should not be executed directly.
+
+* `unsubscribe`
+
+  Unsubscribes a RabbitMQ queue from receiving incoming messages.
+  Normally, this command should not be executed directly.
+
 This [docker-compose example](../master/docker-compose-all.yml) shows
 how to use the generated docker image, along with the PostgerSQL
 server, and the RabbitMQ server.
