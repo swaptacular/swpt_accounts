@@ -631,6 +631,21 @@ def test_scan_registered_balance_changes(app, db_session):
     assert RegisteredBalanceChange.query.filter_by(change_id=3).one()
 
 
+@pytest.mark.parametrize("realm", ["0.#", "1.#"])
+def test_verify_shard_content(app, db_session, realm):
+    orig_sharding_realm = app.config["SHARDING_REALM"]
+    app.config["SHARDING_REALM"] = ShardingRealm(realm)
+    current_ts = datetime.now(tz=timezone.utc)
+    p.configure_account(D_ID, 1234, current_ts, 0)
+
+    runner = app.test_cli_runner()
+    result = runner.invoke(
+        args=["swpt_accounts", "verify_shard_content"]
+    )
+    assert result.exit_code == int(realm[0])
+    app.config["SHARDING_REALM"] = orig_sharding_realm
+
+
 def test_alembic_current_head(app, request, capfd):
     if request.config.option.capture != "no":
         pytest.skip("needs to be run with --capture=no")

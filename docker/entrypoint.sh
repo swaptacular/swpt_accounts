@@ -121,6 +121,9 @@ case $1 in
         export SQLALCHEMY_DATABASE_URI=postgresql+psycopg://localhost:5432/dummy
         exec flask swpt_accounts "$@"
         ;;
+    verify_shard_content)
+        exec flask swpt_accounts "$@"
+        ;;
     webserver)
         exec gunicorn --config "$APP_ROOT_DIR/gunicorn.conf.py" -b :${WEBSERVER_PORT:-8080} wsgi:app
         ;;
