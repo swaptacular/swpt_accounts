@@ -303,6 +303,8 @@ container allows you to execute the following *documented commands*:
   Verifies that the shard contains only records belonging to the
   shard. Normally, this command should not be executed directly.
 
+**Note:** The Docker image comes with `sh` and `psql` installed.
+
 This [docker-compose example](../master/docker-compose-all.yml) shows
 how to use the generated docker image, along with the PostgerSQL
 server, and the RabbitMQ server.
