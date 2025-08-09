@@ -40,6 +40,7 @@ ENV GUNICORN_LOGLEVEL=warning
 RUN apk add --no-cache \
     libffi \
     postgresql-libs \
+    postgresql-client \
     supervisor \
     gettext \
     && addgroup -S "$FLASK_APP" \
