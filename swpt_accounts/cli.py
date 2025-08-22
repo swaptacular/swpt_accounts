@@ -252,21 +252,32 @@ def delete_queue(url, queue):  # pragma: no cover
     queue_name = queue or current_app.config["PROTOCOL_BROKER_QUEUE"]
     broker_url = url or current_app.config["PROTOCOL_BROKER_URL"]
     connection = pika.BlockingConnection(pika.URLParameters(broker_url))
-    REPLY_CODE_PRECONDITION_FAILED = 406
+    REPLY_CODE_NOT_FOUND = 404
 
+    # Wait for the queue to become empty. Note that passing
+    # `if_empty=True` to queue_delete() currently does not work for
+    # quorum queues. Instead, we check the number of messages in the
+    # queue before deleting it.
     while True:
         channel = connection.channel()
         try:
-            channel.queue_delete(
-                queue=queue_name,
-                if_empty=True,
+            status = channel.queue_declare(
+                queue_name,
+                durable=True,
+                passive=True,
             )
+        except pika.exceptions.ChannelClosedByBroker as e:
+            if e.reply_code != REPLY_CODE_NOT_FOUND:
+                raise
+            break  # already deleted
+
+        if status.method.message_count == 0:
+            channel.queue_delete(queue=queue_name)
             logger.info('Deleted "%s" queue.', queue_name)
             break
-        except pika.exceptions.ChannelClosedByBroker as e:
-            if e.reply_code != REPLY_CODE_PRECONDITION_FAILED:
-                raise
-            time.sleep(3.0)
+
+        channel.close()
+        time.sleep(3.0)
 
 
 @swpt_accounts.command("verify_shard_content")
