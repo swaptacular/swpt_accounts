@@ -259,7 +259,6 @@ def delete_queue(url, queue):  # pragma: no cover
         try:
             channel.queue_delete(
                 queue=queue_name,
-                if_unused=True,
                 if_empty=True,
             )
             logger.info('Deleted "%s" queue.', queue_name)
