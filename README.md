@@ -290,8 +290,9 @@ container allows you to execute the following *documented commands*:
 
 * `unsubscribe`
 
-  Unsubscribes a RabbitMQ queue from receiving incoming messages.
-  Normally, this command should not be executed directly.
+  Unsubscribes the principal RabbitMQ queue from receiving incoming
+  messages, and deletes the chores queue. Normally, this command
+  should not be executed directly.
 
 * `delete_queue`
 

@@ -167,22 +167,41 @@ def subscribe(url, queue, queue_routing_key):  # pragma: no cover
     "-u",
     "--url",
     type=str,
-    help="The RabbitMQ connection URL.",
+    help="The RabbitMQ connection URL for the principal queue's broker.",
 )
 @click.option(
     "-q",
     "--queue",
     type=str,
-    help="The name of the queue to unsubscribe.",
+    help="The name of the principal queue to unsubscribe.",
 )
 @click.option(
     "-k",
     "--queue-routing-key",
     type=str,
-    help="The RabbitMQ binding key for the queue.",
+    help="The RabbitMQ binding key for the principal queue.",
 )
-def unsubscribe(url, queue, queue_routing_key):  # pragma: no cover
-    """Unsubscribe a RabbitMQ queue from receiving incoming messages.
+@click.option(
+    "-U",
+    "--chores-url",
+    type=str,
+    help="The RabbitMQ connection URL for the chores queue's broker.",
+)
+@click.option(
+    "-Q",
+    "--chores-queue",
+    type=str,
+    help="The name of the chores queue to delete.",
+)
+def unsubscribe(
+    url,
+    queue,
+    queue_routing_key,
+    chores_url,
+    chores_queue,
+):  # pragma: no cover
+    """Unsubscribe the principal RabbitMQ queue from receiving
+    incoming messages, and delete the chores queue.
 
     If some of the available options are not specified directly, the
     values of the following environment variables will be used:
@@ -192,17 +211,20 @@ def unsubscribe(url, queue, queue_routing_key):  # pragma: no cover
     * PROTOCOL_BROKER_QUEUE (defalut "swpt_accounts")
 
     * PROTOCOL_BROKER_QUEUE_ROUTING_KEY (default "#")
+
+    * CHORES_BROKER_URL (default "amqp://guest:guest@localhost:5672")
+
+    * CHORES_BROKER_QUEUE (defalut "swpt_accounts_chores")
+
     """
 
     from .extensions import ACCOUNTS_IN_EXCHANGE
 
     logger = logging.getLogger(__name__)
-    queue_name = queue or current_app.config["PROTOCOL_BROKER_QUEUE"]
-    routing_key = (
-        queue_routing_key
-        or current_app.config["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
-    )
-    broker_url = url or current_app.config["PROTOCOL_BROKER_URL"]
+    cfg = current_app.config
+    queue_name = queue or cfg["PROTOCOL_BROKER_QUEUE"]
+    routing_key = queue_routing_key or cfg["PROTOCOL_BROKER_QUEUE_ROUTING_KEY"]
+    broker_url = url or cfg["PROTOCOL_BROKER_URL"]
     connection = pika.BlockingConnection(pika.URLParameters(broker_url))
     channel = connection.channel()
 
@@ -217,6 +239,15 @@ def unsubscribe(url, queue, queue_routing_key):  # pragma: no cover
         queue_name,
         routing_key,
     )
+
+    chores_queue_name = chores_queue or cfg["CHORES_BROKER_QUEUE"]
+    chores_broker_url = chores_url or cfg["CHORES_BROKER_URL"]
+    chores_connection = pika.BlockingConnection(
+        pika.URLParameters(chores_broker_url)
+    )
+    chores_channel = chores_connection.channel()
+    chores_channel.queue_delete(queue=queue_name)
+    logger.info('Deleted "%s" chores queue.', chores_queue_name)
 
 
 @swpt_accounts.command("delete_queue")
