@@ -14,12 +14,7 @@ from flask_sqlalchemy.model import Model
 from swpt_pythonlib.utils import ShardingRealm
 from swpt_accounts import procedures
 from swpt_accounts.extensions import db
-from swpt_accounts.models import (
-    Account,
-    PendingBalanceChange,
-    SECONDS_IN_DAY,
-    is_valid_account,
-)
+from swpt_accounts.models import SECONDS_IN_DAY, is_valid_account
 from swpt_pythonlib.multiproc_utils import (
     ThreadPoolProcessor,
     spawn_worker_processes,
@@ -321,6 +316,7 @@ def verify_shard_content():
     record has been found that does not belong to the shard, the exit
     code will be 1.
     """
+    import swpt_accounts.models as m
 
     class InvalidRecord(Exception):
         """The record does not belong the shard."""
@@ -342,11 +338,65 @@ def verify_shard_content():
     with db.engine.connect() as conn:
         logger = logging.getLogger(__name__)
         try:
-            verify_table(conn, Account.debtor_id, Account.creditor_id)
             verify_table(
                 conn,
-                PendingBalanceChange.debtor_id,
-                PendingBalanceChange.creditor_id,
+                m.Account.debtor_id,
+                m.Account.creditor_id,
+            )
+            verify_table(
+                conn,
+                m.TransferRequest.debtor_id,
+                m.TransferRequest.sender_creditor_id,
+            )
+            verify_table(
+                conn,
+                m.FinalizationRequest.debtor_id,
+                m.FinalizationRequest.sender_creditor_id,
+            )
+            verify_table(
+                conn,
+                m.PendingBalanceChange.debtor_id,
+                m.PendingBalanceChange.creditor_id,
+            )
+            verify_table(
+                conn,
+                m.RejectedTransferSignal.debtor_id,
+                m.RejectedTransferSignal.sender_creditor_id,
+            )
+            verify_table(
+                conn,
+                m.PreparedTransferSignal.debtor_id,
+                m.PreparedTransferSignal.sender_creditor_id,
+            )
+            verify_table(
+                conn,
+                m.FinalizedTransferSignal.debtor_id,
+                m.FinalizedTransferSignal.sender_creditor_id,
+            )
+            verify_table(
+                conn,
+                m.AccountTransferSignal.debtor_id,
+                m.AccountTransferSignal.creditor_id,
+            )
+            verify_table(
+                conn,
+                m.AccountUpdateSignal.debtor_id,
+                m.AccountUpdateSignal.creditor_id,
+            )
+            verify_table(
+                conn,
+                m.AccountPurgeSignal.debtor_id,
+                m.AccountPurgeSignal.creditor_id,
+            )
+            verify_table(
+                conn,
+                m.RejectedConfigSignal.debtor_id,
+                m.RejectedConfigSignal.creditor_id,
+            )
+            verify_table(
+                conn,
+                m.PendingBalanceChangeSignal.debtor_id,
+                m.PendingBalanceChangeSignal.creditor_id,
             )
         except InvalidRecord:
             logger.error(
