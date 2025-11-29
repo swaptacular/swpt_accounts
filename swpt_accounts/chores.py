@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from marshmallow import ValidationError
 from flask import current_app
 from swpt_pythonlib import rabbitmq
+from swpt_accounts.extensions import db
 from swpt_accounts.models import SECONDS_IN_DAY, is_valid_account
 from swpt_accounts import procedures
 from swpt_accounts import schemas
@@ -177,6 +178,7 @@ class ChoresConsumer(rabbitmq.Consumer):
             #       for example, an interest payment could be performed
             #       twice, on both children shards.
             actor(**message_content)
+            db.session.close()
 
         return True
 

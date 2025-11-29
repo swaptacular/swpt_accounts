@@ -6,6 +6,7 @@ from marshmallow import ValidationError
 from swpt_pythonlib import rabbitmq
 from swpt_pythonlib.utils import u64_to_i64
 import swpt_pythonlib.protocol_schemas as ps
+from swpt_accounts.extensions import db
 from swpt_accounts.models import (
     T_INFINITY,
     SECONDS_IN_DAY,
@@ -259,4 +260,5 @@ class SmpConsumer(rabbitmq.Consumer):
             )  # pragma: no cover
 
         actor(**message_content)
+        db.session.close()
         return True
