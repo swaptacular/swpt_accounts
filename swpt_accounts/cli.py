@@ -483,13 +483,19 @@ def process_balance_changes(threads, wait, quit_early):
             max_count=max_count
         )
 
+    def process_func(*args):
+        try:
+            procedures.process_pending_balance_changes(*args)
+        finally:
+            db.session.close()
+
     logger = logging.getLogger(__name__)
     logger.info("Started balance changes processor.")
 
     ThreadPoolProcessor(
         threads,
         get_args_collection=get_args_collection,
-        process_func=procedures.process_pending_balance_changes,
+        process_func=process_func,
         wait_seconds=wait,
         max_count=max_count,
     ).run(quit_early=quit_early)
@@ -554,10 +560,16 @@ def process_transfer_requests(threads, wait, quit_early):
             for debtor_id, creditor_id in rows
         ]
 
+    def process_func(*args):
+        try:
+            procedures.process_transfer_requests(*args)
+        finally:
+            db.session.close()
+
     ThreadPoolProcessor(
         threads,
         get_args_collection=get_args_collection,
-        process_func=procedures.process_transfer_requests,
+        process_func=process_func,
         wait_seconds=wait,
         max_count=max_count,
     ).run(quit_early=quit_early)
@@ -637,13 +649,19 @@ def process_finalization_requests(threads, wait, quit_early):
             for debtor_id, creditor_id in rows
         ]
 
+    def process_func(*args):
+        try:
+            procedures.process_finalization_requests(*args)
+        finally:
+            db.session.close()
+
     logger = logging.getLogger(__name__)
     logger.info("Started finalization requests processor.")
 
     ThreadPoolProcessor(
         threads,
         get_args_collection=get_args_collection,
-        process_func=procedures.process_finalization_requests,
+        process_func=process_func,
         wait_seconds=wait,
         max_count=max_count,
     ).run(quit_early=quit_early)
