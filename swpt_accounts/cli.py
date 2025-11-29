@@ -454,10 +454,7 @@ def process_balance_changes(threads, wait, quit_early):
     variable PROCESS_BALANCE_CHANGES_THREADS is taken. If it is not
     set, the default number of threads is 1.
 
-    If --wait is not specified, the value of the configuration
-    variable APP_PROCESS_BALANCE_CHANGES_WAIT is taken. If it is not
-    set, the default number of seconds is 2.
-
+    If --wait is not specified, the default is 2 seconds.
     """
 
     # TODO: Consider allowing load-sharing between multiple processes
@@ -529,10 +526,7 @@ def process_transfer_requests(threads, wait, quit_early):
     variable PROCESS_TRANSFER_REQUESTS_THREADS is taken. If it is not
     set, the default number of threads is 1.
 
-    If --wait is not specified, the value of the configuration
-    variable APP_PROCESS_TRANSFER_REQUESTS_WAIT is taken. If it is not
-    set, the default number of seconds is 2.
-
+    If --wait is not specified, the default is 2 seconds.
     """
 
     threads = threads or int(
@@ -603,10 +597,7 @@ def process_finalization_requests(threads, wait, quit_early):
     variable PROCESS_FINALIZATION_REQUESTS_THREADS is taken. If it is
     not set, the default number of threads is 1.
 
-    If --wait is not specified, the value of the configuration
-    variable APP_PROCESS_FINALIZATION_REQUESTS_WAIT is taken. If it is
-    not set, the default number of seconds is 2.
-
+    If --wait is not specified, the default is 2 seconds.
     """
 
     threads = (
@@ -682,10 +673,7 @@ def scan_accounts(hours, quit_early):
 
     The specified number of hours determines the intended duration of
     a single pass through the accounts table. If the number of hours
-    is not specified, the value of the environment variable
-    APP_ACCOUNTS_SCAN_HOURS is taken. If it is not set, the default
-    number of hours is 8.
-
+    is not specified, the default is 8 hours.
     """
 
     from swpt_accounts.table_scanners import AccountScanner
@@ -712,10 +700,7 @@ def scan_prepared_transfers(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the accounts table. If the number of days is
-    not specified, the value of the environment variable
-    APP_PREPARED_TRANSFERS_SCAN_DAYS is taken. If it is not set, the
-    default number of days is 1.
-
+    not specified, the default is 1 day.
     """
 
     from swpt_accounts.table_scanners import PreparedTransferScanner
@@ -742,10 +727,7 @@ def scan_registered_balance_changes(days, quit_early):
 
     The specified number of days determines the intended duration of a
     single pass through the registered balance changes table. If the
-    number of days is not specified, the value of the environment
-    variable APP_REGISTERED_BALANCE_CHANGES_SCAN_DAYS is taken. If it
-    is not set, the default number of days is 7.
-
+    number of days is not specified, the default is 7 days.
     """
 
     from swpt_accounts.table_scanners import RegisteredBalanceChangeScanner
