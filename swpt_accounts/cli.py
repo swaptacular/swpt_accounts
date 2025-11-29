@@ -4,6 +4,7 @@ import time
 import sys
 import click
 import signal
+import random
 import pika
 from typing import Optional, Any
 from datetime import timedelta
@@ -1019,6 +1020,8 @@ def flush_messages(
 
         with app.app_context():
             signalbus: SignalBus = current_app.extensions["signalbus"]
+            time.sleep(wait * random.random())
+
             while not stopped:
                 started_at = time.time()
                 try:
