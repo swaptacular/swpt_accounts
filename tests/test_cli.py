@@ -87,6 +87,7 @@ def test_process_transfers_transfer_requests(app, db_session):
     )
     assert result.exit_code == 0
     assert not result.output
+    db_session.close()
     assert len(RejectedTransferSignal.query.all()) == 1
     assert len(TransferRequest.query.all()) == 0
 
@@ -120,6 +121,7 @@ def test_process_transfers_finalization_requests(app, db_session):
     )
     assert result.exit_code == 0
     assert not result.output
+    db_session.close()
     assert len(FinalizedTransferSignal.query.all()) == 1
     assert len(FinalizationRequest.query.all()) == 0
 
@@ -156,6 +158,7 @@ def test_ignore_transfers_finalization_requests(app, db_session):
     )
     assert result.exit_code == 0
     assert not result.output
+    db_session.close()
     assert len(FinalizedTransferSignal.query.all()) == 0
     assert len(FinalizationRequest.query.all()) == 0
     app.config["DELETE_PARENT_SHARD_RECORDS"] = False
