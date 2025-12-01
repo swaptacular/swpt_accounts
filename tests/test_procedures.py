@@ -395,10 +395,10 @@ def test_make_debtor_interest_payment(db_session, current_ts, amount):
 def test_process_pending_balance_changes(db_session, current_ts):
     p.configure_account(D_ID, C_ID, current_ts, 0)
     _flush_balance_change_signals()
-    assert len(p.get_accounts_with_pending_balance_changes()) == 0
+    assert len(list(p.iter_accounts_with_pending_balance_changes(1000))) == 0
     p.make_debtor_payment("test", D_ID, C_ID, 10000)
     _flush_balance_change_signals()
-    assert len(p.get_accounts_with_pending_balance_changes()) == 1
+    assert len(list(p.iter_accounts_with_pending_balance_changes(100))[0]) == 1
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID) is None
     _flush_balance_change_signals()
     p.process_pending_balance_changes(D_ID, p.ROOT_CREDITOR_ID)
@@ -409,7 +409,7 @@ def test_process_pending_balance_changes(db_session, current_ts):
         principal=10000,
     ).one_or_none()
     _flush_balance_change_signals()
-    assert len(p.get_accounts_with_pending_balance_changes()) == 0
+    assert len(list(p.iter_accounts_with_pending_balance_changes(1000))) == 0
     assert p.get_account(D_ID, p.ROOT_CREDITOR_ID).principal == -10000
 
 

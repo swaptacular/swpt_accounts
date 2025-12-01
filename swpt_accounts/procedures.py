@@ -1,10 +1,10 @@
 import math
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import TypeVar, Iterable, Tuple, Union, Optional, Callable
+from typing import TypeVar, Iterable, Tuple, List, Union, Optional, Callable
 from decimal import Decimal
 from flask import current_app
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
 from swpt_pythonlib.utils import Seqnum, increment_seqnum
@@ -454,17 +454,19 @@ def try_to_delete_account(debtor_id: int, creditor_id: int) -> None:
             _mark_account_as_deleted(account, current_ts)
 
 
-@atomic
-def get_accounts_with_transfer_requests(
-    max_count: int = None,
-) -> Iterable[Tuple[int, int]]:
-    query = db.session.query(
-        TransferRequest.debtor_id, TransferRequest.sender_creditor_id
-    ).distinct()
-    if max_count is not None:
-        query = query.limit(max_count)
-
-    return query.all()
+def iter_accounts_with_transfer_requests(
+        yield_per: int,
+) -> Iterable[List[Tuple[int, int]]]:
+    with db.engine.connect() as conn:
+        with conn.execution_options(yield_per=yield_per).execute(
+                select(
+                    TransferRequest.debtor_id,
+                    TransferRequest.sender_creditor_id
+                )
+                .distinct()
+        ) as result:
+            for rows in result.partitions():
+                yield rows
 
 
 @atomic
@@ -517,17 +519,19 @@ def process_transfer_requests(
         )
 
 
-@atomic
-def get_accounts_with_finalization_requests(
-    max_count: int = None,
-) -> Iterable[Tuple[int, int]]:
-    query = db.session.query(
-        FinalizationRequest.debtor_id, FinalizationRequest.sender_creditor_id
-    ).distinct()
-    if max_count is not None:
-        query = query.limit(max_count)
-
-    return query.all()
+def iter_accounts_with_finalization_requests(
+    yield_per: int = None,
+) -> Iterable[List[Tuple[int, int]]]:
+    with db.engine.connect() as conn:
+        with conn.execution_options(yield_per=yield_per).execute(
+                select(
+                    FinalizationRequest.debtor_id,
+                    FinalizationRequest.sender_creditor_id
+                )
+                .distinct()
+        ) as result:
+            for rows in result.partitions():
+                yield rows
 
 
 @atomic
@@ -607,17 +611,19 @@ def process_finalization_requests(
         )
 
 
-@atomic
-def get_accounts_with_pending_balance_changes(
-    max_count: int = None,
-) -> Iterable[Tuple[int, int]]:
-    query = db.session.query(
-        PendingBalanceChange.debtor_id, PendingBalanceChange.creditor_id
-    ).distinct()
-    if max_count is not None:
-        query = query.limit(max_count)
-
-    return query.all()
+def iter_accounts_with_pending_balance_changes(
+    yield_per: int,
+) -> Iterable[List[Tuple[int, int]]]:
+    with db.engine.connect() as conn:
+        with conn.execution_options(yield_per=yield_per).execute(
+                select(
+                    PendingBalanceChange.debtor_id,
+                    PendingBalanceChange.creditor_id
+                )
+                .distinct()
+        ) as result:
+            for rows in result.partitions():
+                yield rows
 
 
 @atomic

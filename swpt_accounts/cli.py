@@ -476,9 +476,9 @@ def process_balance_changes(threads, wait, quit_early):
     )
     max_count = current_app.config["APP_PROCESS_BALANCE_CHANGES_MAX_COUNT"]
 
-    def get_args_collection():
-        return procedures.get_accounts_with_pending_balance_changes(
-            max_count=max_count
+    def iter_args_collections():
+        return procedures.iter_accounts_with_pending_balance_changes(
+            yield_per=max_count
         )
 
     def process_func(*args):
@@ -492,10 +492,9 @@ def process_balance_changes(threads, wait, quit_early):
 
     ThreadPoolProcessor(
         threads,
-        get_args_collection=get_args_collection,
+        iter_args_collections=iter_args_collections,
         process_func=process_func,
         wait_seconds=wait,
-        max_count=max_count,
     ).run(quit_early=quit_early)
 
 
@@ -546,14 +545,14 @@ def process_transfer_requests(threads, wait, quit_early):
     logger = logging.getLogger(__name__)
     logger.info("Started transfer requests processor.")
 
-    def get_args_collection():
-        rows = procedures.get_accounts_with_transfer_requests(
-            max_count=max_count
-        )
-        return [
-            (debtor_id, creditor_id, commit_period)
-            for debtor_id, creditor_id in rows
-        ]
+    def iter_args_collections():
+        for rows in procedures.iter_accounts_with_transfer_requests(
+            yield_per=max_count
+        ):
+            yield [
+                (debtor_id, creditor_id, commit_period)
+                for debtor_id, creditor_id in rows
+            ]
 
     def process_func(*args):
         try:
@@ -563,10 +562,9 @@ def process_transfer_requests(threads, wait, quit_early):
 
     ThreadPoolProcessor(
         threads,
-        get_args_collection=get_args_collection,
+        iter_args_collections=iter_args_collections,
         process_func=process_func,
         wait_seconds=wait,
-        max_count=max_count,
     ).run(quit_early=quit_early)
 
 
@@ -628,18 +626,18 @@ def process_finalization_requests(threads, wait, quit_early):
             )  # pragma: no cover
         return False
 
-    def get_args_collection():
-        rows = procedures.get_accounts_with_finalization_requests(
-            max_count=max_count
-        )
-        return [
-            (
-                debtor_id,
-                creditor_id,
-                should_ignore_requests(debtor_id, creditor_id),
-            )
-            for debtor_id, creditor_id in rows
-        ]
+    def iter_args_collections():
+        for rows in procedures.iter_accounts_with_finalization_requests(
+            yield_per=max_count
+        ):
+            yield [
+                (
+                    debtor_id,
+                    creditor_id,
+                    should_ignore_requests(debtor_id, creditor_id),
+                )
+                for debtor_id, creditor_id in rows
+            ]
 
     def process_func(*args):
         try:
@@ -652,10 +650,9 @@ def process_finalization_requests(threads, wait, quit_early):
 
     ThreadPoolProcessor(
         threads,
-        get_args_collection=get_args_collection,
+        iter_args_collections=iter_args_collections,
         process_func=process_func,
         wait_seconds=wait,
-        max_count=max_count,
     ).run(quit_early=quit_early)
 
 
