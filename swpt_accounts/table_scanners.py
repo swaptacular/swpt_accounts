@@ -4,6 +4,7 @@ from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from swpt_pythonlib.scan_table import TableScanner
 from sqlalchemy.sql.expression import true, tuple_, or_
+from sqlalchemy.orm import load_only
 from flask import current_app
 from swpt_accounts.extensions import db, chores_publisher
 from swpt_accounts.models import (
@@ -31,6 +32,26 @@ class AccountScanner(TableScanner):
 
     table = Account.__table__
     pk = tuple_(Account.debtor_id, Account.creditor_id)
+    columns = [
+        Account.debtor_id,
+        Account.creditor_id,
+        Account.status_flags,
+        Account.last_change_ts,
+        Account.creation_date,
+        Account.last_heartbeat_ts,
+        Account.pending_account_update,
+        Account.last_deletion_attempt_ts,
+        Account.config_flags,
+        Account.negligible_amount,
+        Account.principal,
+        Account.interest,
+        Account.interest_rate,
+        Account.last_interest_capitalization_ts,
+        Account.last_interest_rate_change_ts,
+        Account.debtor_info_iri,
+        Account.debtor_info_content_type,
+        Account.debtor_info_sha256,
+    ]
 
     def __init__(self):
         super().__init__()
@@ -111,7 +132,9 @@ class AccountScanner(TableScanner):
         ]
         if pks_to_delete:
             to_delete = (
-                Account.query.filter(self.pk.in_(pks_to_delete))
+                Account.query
+                .options(load_only(Account.creditor_id))
+                .filter(self.pk.in_(pks_to_delete))
                 .with_for_update(skip_locked=True)
                 .all()
             )
@@ -123,6 +146,11 @@ class AccountScanner(TableScanner):
 
     def _purge_accounts(self, rows, current_ts):
         c = self.table.c
+        c_debtor_id = c.debtor_id
+        c_creditor_id = c.creditor_id
+        c_status_flags = c.status_flags
+        c_last_change_ts = c.last_change_ts
+        c_creation_date = c.creation_date
         deleted_flag = Account.STATUS_DELETED_FLAG
         date_few_days_ago = (current_ts - self.few_days_interval).date()
         purge_cutoff_ts = current_ts - self.account_purge_delay
@@ -132,13 +160,13 @@ class AccountScanner(TableScanner):
         # the same as the `creation_date` of the old account. We need
         # to make sure this never happens.
         pks_to_purge = [
-            (row[c.debtor_id], row[c.creditor_id])
+            (row[c_debtor_id], row[c_creditor_id])
             for row in rows
             if (
-                row[c.status_flags] & deleted_flag
-                and row[c.last_change_ts] < purge_cutoff_ts
-                and row[c.creation_date] < date_few_days_ago
-                and is_valid_account(row[c.debtor_id], row[c.creditor_id])
+                row[c_status_flags] & deleted_flag
+                and row[c_last_change_ts] < purge_cutoff_ts
+                and row[c_creation_date] < date_few_days_ago
+                and is_valid_account(row[c_debtor_id], row[c_creditor_id])
             )
         ]
 
@@ -184,19 +212,24 @@ class AccountScanner(TableScanner):
 
     def _send_heartbeats(self, rows, current_ts):
         c = self.table.c
+        c_debtor_id = c.debtor_id
+        c_creditor_id = c.creditor_id
+        c_status_flags = c.status_flags
+        c_last_heartbeat_ts = c.last_heartbeat_ts
+        c_pending_account_update = c.pending_account_update
         deleted_flag = Account.STATUS_DELETED_FLAG
         heartbeat_cutoff_ts = current_ts - self.account_heartbeat_interval
 
         pks_to_heartbeat = [
-            (row[c.debtor_id], row[c.creditor_id])
+            (row[c_debtor_id], row[c_creditor_id])
             for row in rows
             if (
-                not row[c.status_flags] & deleted_flag
+                not row[c_status_flags] & deleted_flag
                 and (
-                    row[c.last_heartbeat_ts] < heartbeat_cutoff_ts
-                    or row[c.pending_account_update]
+                    row[c_last_heartbeat_ts] < heartbeat_cutoff_ts
+                    or row[c_pending_account_update]
                 )
-                and is_valid_account(row[c.debtor_id], row[c.creditor_id])
+                and is_valid_account(row[c_debtor_id], row[c_creditor_id])
             )
         ]
 
