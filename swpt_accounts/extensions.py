@@ -2,6 +2,8 @@ import warnings
 import asyncio
 import requests
 import aiohttp
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SAWarning
 from werkzeug.local import Local, LocalProxy
 from flask import current_app
@@ -73,6 +75,14 @@ def get_requests_session():
         _local.requests_session = session
 
     return _local.requests_session
+
+
+@event.listens_for(Engine, "connect")
+def set_postgres_parametes(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute("SET SESSION enable_seqscan = off")
+    cursor.close()
+    dbapi_connection.commit()
 
 
 db = CustomAlchemy()
