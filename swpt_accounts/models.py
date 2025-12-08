@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from marshmallow import Schema, fields
 from flask import current_app
+from sqlalchemy import text
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import func, null, or_, and_
 from swpt_pythonlib.utils import (
@@ -42,6 +43,7 @@ IRI_MAX_LENGTH = 200
 CONTENT_TYPE_MAX_BYTES = 100
 CREDITOR_SUBNET_MASK = 0xffffff0000000000
 DEBTOR_INFO_SHA256_REGEX = r"^([0-9A-F]{64}|[0-9a-f]{64})?$"
+SET_SEQSCAN_ON = text("SET LOCAL enable_seqscan = on")
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and

@@ -15,7 +15,11 @@ from flask_sqlalchemy.model import Model
 from swpt_pythonlib.utils import ShardingRealm
 from swpt_accounts import procedures
 from swpt_accounts.extensions import db
-from swpt_accounts.models import SECONDS_IN_DAY, is_valid_account
+from swpt_accounts.models import (
+    SET_SEQSCAN_ON,
+    SECONDS_IN_DAY,
+    is_valid_account,
+)
 from swpt_pythonlib.multiproc_utils import (
     ThreadPoolProcessor,
     spawn_worker_processes,
@@ -337,6 +341,7 @@ def verify_shard_content():
                     raise InvalidRecord
 
     with db.engine.connect() as conn:
+        conn.execute(SET_SEQSCAN_ON)
         logger = logging.getLogger(__name__)
         try:
             verify_table(
