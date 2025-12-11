@@ -309,9 +309,7 @@ def update_debtor_info(
     if is_old_request:
         return
 
-    account = get_account(
-        debtor_id, creditor_id, lock=True, defer_toasted=False
-    )
+    account = get_account(debtor_id, creditor_id, lock=True)
     if account:
         old_info = (
             account.debtor_info_iri,
@@ -403,8 +401,9 @@ def capitalize_interest(
 ) -> None:
     current_ts = datetime.now(tz=timezone.utc)
     capitalization_cutoff_ts = current_ts - min_capitalization_interval
-    account = get_account(debtor_id, creditor_id, lock=True)
-
+    account = get_account(
+        debtor_id, creditor_id, lock=True, defer_toasted=True
+    )
     if (
         account
         and account.last_interest_capitalization_ts <= capitalization_cutoff_ts
@@ -504,7 +503,9 @@ def process_transfer_requests(
     )
 
     if transfer_requests:
-        sender_account = get_account(debtor_id, creditor_id, lock=True)
+        sender_account = get_account(
+            debtor_id, creditor_id, lock=True, defer_toasted=True
+        )
         rejected_transfer_signals = []
         prepared_transfer_signals = []
 
@@ -575,7 +576,9 @@ def process_finalization_requests(
         principal_delta = 0
         pending_balance_change_signals = []
 
-        sender_account = get_account(debtor_id, sender_creditor_id, lock=True)
+        sender_account = get_account(
+            debtor_id, sender_creditor_id, lock=True, defer_toasted=True
+        )
         if sender_account:
             starting_balance = math.floor(
                 sender_account.calc_current_balance(current_ts)
@@ -709,7 +712,7 @@ def get_account(
     debtor_id: int,
     creditor_id: int,
     lock: bool = False,
-    defer_toasted: bool = True,
+    defer_toasted: bool = False,
 ) -> Optional[Account]:
     account = _get_account_instance(
         debtor_id, creditor_id, lock=lock, defer_toasted=defer_toasted
@@ -724,7 +727,7 @@ def get_account(
 def get_available_amount(debtor_id: int, creditor_id: int) -> Optional[int]:
     current_ts = datetime.now(tz=timezone.utc)
 
-    account = get_account(debtor_id, creditor_id)
+    account = get_account(debtor_id, creditor_id, defer_toasted=True)
     if account:
         return _get_available_amount(account, current_ts)
 
@@ -859,7 +862,7 @@ def _get_account_instance(
     debtor_id: int,
     creditor_id: int,
     lock: bool = False,
-    defer_toasted: bool = True,
+    defer_toasted: bool = False,
 ) -> Optional[Account]:
     query = Account.query.filter_by(
         debtor_id=debtor_id, creditor_id=creditor_id
@@ -875,7 +878,9 @@ def _get_account_instance(
 def _lock_or_create_account(
     debtor_id: int, creditor_id: int, current_ts: datetime
 ) -> Account:
-    account = _get_account_instance(debtor_id, creditor_id, lock=True)
+    account = _get_account_instance(
+        debtor_id, creditor_id, lock=True, defer_toasted=True
+    )
     if account is None:
         account = _create_account(debtor_id, creditor_id, current_ts)
         _insert_account_update_signal(account, current_ts)

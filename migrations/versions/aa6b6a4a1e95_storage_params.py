@@ -29,12 +29,10 @@ def reset_storage_params(table, param_names):
 
 def upgrade():
     op.execute("ALTER TABLE account ALTER COLUMN config_data SET STORAGE EXTERNAL")
-    op.execute("ALTER TABLE account ALTER COLUMN debtor_info_iri SET STORAGE EXTERNAL")
-    op.execute("ALTER TABLE account ALTER COLUMN debtor_info_content_type SET STORAGE EXTERNAL")
-    op.execute("ALTER TABLE account ALTER COLUMN debtor_info_sha256 SET STORAGE EXTERNAL")
 
     set_storage_params(
         'account',
+        toast_tuple_target=420,
         fillfactor=80,
         autovacuum_vacuum_scale_factor=0.08,
         autovacuum_vacuum_insert_scale_factor=0.2,
@@ -137,13 +135,11 @@ def upgrade():
 
 def downgrade():
     op.execute("ALTER TABLE account ALTER COLUMN config_data SET STORAGE DEFAULT")
-    op.execute("ALTER TABLE account ALTER COLUMN debtor_info_iri SET STORAGE DEFAULT")
-    op.execute("ALTER TABLE account ALTER COLUMN debtor_info_content_type SET STORAGE DEFAULT")
-    op.execute("ALTER TABLE account ALTER COLUMN debtor_info_sha256 SET STORAGE DEFAULT")
 
     reset_storage_params(
         'account',
         [
+            'toast_tuple_target',
             'fillfactor',
             'autovacuum_vacuum_scale_factor',
             'autovacuum_vacuum_insert_scale_factor',
