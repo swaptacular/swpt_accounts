@@ -5,6 +5,7 @@ from typing import TypeVar, Iterable, Tuple, List, Union, Optional, Callable
 from decimal import Decimal
 from flask import current_app
 from sqlalchemy import select, text
+from sqlalchemy.orm import defer
 from sqlalchemy.sql.expression import tuple_, and_
 from sqlalchemy.exc import IntegrityError
 from swpt_pythonlib.utils import Seqnum, increment_seqnum
@@ -84,6 +85,12 @@ CALL_PROCESS_FINALIZATION_REQUESTS = text(
 CALL_PENDING_BALANCE_CHANGES = text(
     "SELECT process_pending_balance_changes(:debtor_id, :creditor_id)"
 )
+DEFER_ACCOUNT_TOASTED_COLUMNS = [
+    defer(Account.config_data),
+    defer(Account.debtor_info_iri),
+    defer(Account.debtor_info_sha256),
+    defer(Account.debtor_info_content_type),
+]
 
 
 @atomic
@@ -302,7 +309,9 @@ def update_debtor_info(
     if is_old_request:
         return
 
-    account = get_account(debtor_id, creditor_id, lock=True)
+    account = get_account(
+        debtor_id, creditor_id, lock=True, defer_toasted=False
+    )
     if account:
         old_info = (
             account.debtor_info_iri,
@@ -697,9 +706,14 @@ def process_pending_balance_changes(debtor_id: int, creditor_id: int) -> None:
 
 @atomic
 def get_account(
-    debtor_id: int, creditor_id: int, lock: bool = False
+    debtor_id: int,
+    creditor_id: int,
+    lock: bool = False,
+    defer_toasted: bool = True,
 ) -> Optional[Account]:
-    account = _get_account_instance(debtor_id, creditor_id, lock=lock)
+    account = _get_account_instance(
+        debtor_id, creditor_id, lock=lock, defer_toasted=defer_toasted
+    )
     if account and not account.status_flags & Account.STATUS_DELETED_FLAG:
         return account
 
@@ -842,11 +856,16 @@ def _create_account(
 
 
 def _get_account_instance(
-    debtor_id: int, creditor_id: int, lock: bool = False
+    debtor_id: int,
+    creditor_id: int,
+    lock: bool = False,
+    defer_toasted: bool = True,
 ) -> Optional[Account]:
     query = Account.query.filter_by(
         debtor_id=debtor_id, creditor_id=creditor_id
     )
+    if defer_toasted:
+        query = query.options(*DEFER_ACCOUNT_TOASTED_COLUMNS)
     if lock:
         query = query.with_for_update(key_share=True)
 
