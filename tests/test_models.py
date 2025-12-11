@@ -221,3 +221,33 @@ def test_are_managed_by_same_agent(app):
         0xffffff0000000000, 0xefffff0000000000
     )
     assert not m.are_managed_by_same_agent(-1, -1 - 0x0000010000000000)
+
+
+def test_account_tuple_size(app, db_session):
+    from datetime import datetime, timezone
+    from sqlalchemy import text
+    from swpt_accounts import models as m
+
+    current_ts = datetime.now(tz=timezone.utc)
+    db_session.add(
+        m.Account(
+            debtor_id=1,
+            creditor_id=2,
+            creation_date=current_ts.date(),
+            debtor_info_iri=(
+                "www.swaptacular.org/debtors/12345678901234567890/"
+                "documents/12345678901234567890/public",
+            ),
+            debtor_info_content_type=(
+                "application/vnd.swaptacular.coin-info+json"
+            ),
+            debtor_info_sha256=32 * b'0'
+        )
+    )
+    db_session.flush()
+    tuple_byte_size = db_session.execute(
+        text("SELECT pg_column_size(account.*) FROM account;")
+    ).scalar()
+    toast_tuple_target = 420
+    some_extra_bytes = 40
+    assert tuple_byte_size + some_extra_bytes <= toast_tuple_target
