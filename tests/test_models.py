@@ -235,7 +235,7 @@ def test_account_tuple_size(app, db_session):
             creditor_id=2,
             creation_date=current_ts.date(),
             debtor_info_iri=(
-                "www.swaptacular.org/debtors/12345678901234567890/"
+                "https://www.swaptacular.org/debtors/12345678901234567890/"
                 "documents/12345678901234567890/public",
             ),
             debtor_info_content_type=(
