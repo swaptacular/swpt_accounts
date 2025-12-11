@@ -192,7 +192,7 @@ def test_update_debtor_info(db_session, current_ts):
     p.update_debtor_info(
         D_ID, C_ID, "http://example.com", 32 * b"a", "text/plain", current_ts
     )
-    a = p.get_account(D_ID, C_ID)
+    a = p.get_account(D_ID, C_ID, defer_toasted=False)
     assert a.debtor_info_iri == "http://example.com"
     assert a.debtor_info_sha256 == 32 * b"a"
     assert a.debtor_info_content_type == "text/plain"
