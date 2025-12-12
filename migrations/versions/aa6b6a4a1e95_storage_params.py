@@ -45,8 +45,8 @@ def upgrade():
     )
     set_storage_params(
         'registered_balance_change',
-        fillfactor=50,
-        autovacuum_vacuum_scale_factor=0.1,
+        fillfactor=100,
+        autovacuum_vacuum_scale_factor=0.2,
         autovacuum_vacuum_insert_threshold=-1,
         autovacuum_analyze_threshold=2000000000,
     )
