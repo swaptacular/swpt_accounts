@@ -246,7 +246,7 @@ def test_account_tuple_size(app, db_session):
     )
     db_session.flush()
     tuple_byte_size = db_session.execute(
-        text("SELECT pg_column_size(account.*) FROM account;")
+        text("SELECT pg_column_size(account.*) FROM account")
     ).scalar()
     toast_tuple_target = 420
     some_extra_bytes = 40
