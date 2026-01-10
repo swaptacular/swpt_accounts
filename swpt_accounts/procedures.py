@@ -265,12 +265,11 @@ def is_reachable_account(debtor_id: int, creditor_id: int) -> bool:
 
     account_query = (
         Account.query.filter_by(debtor_id=debtor_id, creditor_id=creditor_id)
-        .filter(Account.status_flags.op("&")(Account.STATUS_DELETED_FLAG) == 0)
         .filter(
+            Account.status_flags.op("&")(Account.STATUS_DELETED_FLAG) == 0,
             Account.config_flags.op("&")(
                 Account.CONFIG_SCHEDULED_FOR_DELETION_FLAG
-            )
-            == 0
+            ) == 0,
         )
     )
 
@@ -666,6 +665,15 @@ def process_pending_balance_changes(debtor_id: int, creditor_id: int) -> None:
         interest_delta = 0.0
         account = _lock_or_create_account(debtor_id, creditor_id, current_ts)
 
+        def update_registered_balance_changes():
+            RegisteredBalanceChange.query.filter(
+                REGISTERED_BALANCE_CHANGE_PK.in_(applied_change_pks)
+            ).update(
+                {RegisteredBalanceChange.is_applied: True},
+                synchronize_session=False,
+            )
+            applied_change_pks.clear()
+
         for change in changes:
             principal_delta += change.principal_delta
 
@@ -693,18 +701,16 @@ def process_pending_balance_changes(debtor_id: int, creditor_id: int) -> None:
             applied_change_pks.append(
                 (change.debtor_id, change.other_creditor_id, change.change_id)
             )
+            if len(applied_change_pks) >= 1000:  # pragma: no cover
+                update_registered_balance_changes()
+
             db.session.delete(change)
 
         _apply_account_change(
             account, principal_delta, interest_delta, current_ts
         )
-
-        RegisteredBalanceChange.query.filter(
-            REGISTERED_BALANCE_CHANGE_PK.in_(applied_change_pks)
-        ).update(
-            {RegisteredBalanceChange.is_applied: True},
-            synchronize_session=False,
-        )
+        if applied_change_pks:
+            update_registered_balance_changes()
 
 
 @atomic
