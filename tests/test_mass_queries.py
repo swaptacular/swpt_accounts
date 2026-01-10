@@ -1,11 +1,13 @@
 import pytest
 from datetime import datetime, timezone, timedelta
 from swpt_accounts.extensions import db
+from sqlalchemy.inspection import inspect
 from sqlalchemy.sql.expression import tuple_, null, true, or_
 from swpt_accounts.models import (
     Account,
     PreparedTransfer,
     RegisteredBalanceChange,
+    AccountTransferSignal,
 )
 
 
@@ -156,3 +158,26 @@ def test_account_mass_update(db_session, current_ts):
         .filter(Account.pending_account_update == true())
         .all()
     ) == 0
+
+
+@pytest.mark.skip
+def test_account_transfer_signal_mass_select(db_session, current_ts):
+    n = 7500
+    model_cls = AccountTransferSignal
+    mapper = inspect(model_cls)
+    pk_attrs = [
+        mapper.get_property_by_column(c).class_attribute
+        for c in mapper.primary_key
+    ]
+    pk = tuple_(*pk_attrs)
+    session = db.session
+    query = (
+        session.query(model_cls)
+        .with_for_update(skip_locked=True)
+    )
+    primary_keys = [
+        (-i, i, current_ts.date(), 2 * i) for i in range(n)
+    ]
+    signals = query.filter(pk.in_(primary_keys)).all()
+    db.session.commit()
+    assert len(signals) == 0
