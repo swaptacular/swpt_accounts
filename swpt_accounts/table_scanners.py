@@ -177,12 +177,12 @@ class AccountScanner(TableScanner):
                     Account.creditor_id,
                     Account.creation_date,
                 )
-                .filter(self.pk.in_(pks_to_purge))
                 .filter(
-                    Account.status_flags.op("&")(deleted_flag) == deleted_flag
+                    self.pk.in_(pks_to_purge),
+                    Account.status_flags.op("&")(deleted_flag) == deleted_flag,
+                    Account.last_change_ts < purge_cutoff_ts,
+                    Account.creation_date < date_few_days_ago,
                 )
-                .filter(Account.last_change_ts < purge_cutoff_ts)
-                .filter(Account.creation_date < date_few_days_ago)
                 .with_for_update(skip_locked=True)
                 .all()
             )
@@ -235,13 +235,14 @@ class AccountScanner(TableScanner):
 
         if pks_to_heartbeat:
             to_heartbeat = (
-                Account.query.filter(self.pk.in_(pks_to_heartbeat))
-                .filter(Account.status_flags.op("&")(deleted_flag) == 0)
+                Account.query
                 .filter(
+                    self.pk.in_(pks_to_heartbeat),
+                    Account.status_flags.op("&")(deleted_flag) == 0,
                     or_(
                         Account.last_heartbeat_ts < heartbeat_cutoff_ts,
                         Account.pending_account_update == true(),
-                    )
+                    ),
                 )
                 .with_for_update(skip_locked=True, key_share=True)
                 .all()
