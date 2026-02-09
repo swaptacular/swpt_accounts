@@ -264,7 +264,8 @@ def is_reachable_account(debtor_id: int, creditor_id: int) -> bool:
         return True
 
     account_query = (
-        Account.query.filter_by(debtor_id=debtor_id, creditor_id=creditor_id)
+        Account.query
+        .filter_by(debtor_id=debtor_id, creditor_id=creditor_id)
         .filter(
             Account.status_flags.op("&")(Account.STATUS_DELETED_FLAG) == 0,
             Account.config_flags.op("&")(
@@ -272,17 +273,18 @@ def is_reachable_account(debtor_id: int, creditor_id: int) -> bool:
             ) == 0,
         )
     )
-
     return db.session.query(account_query.exists()).scalar()
 
 
 @atomic
 def get_account_config_data(debtor_id: int, creditor_id: int) -> Optional[str]:
-    return (
-        db.session.query(Account.config_data)
-        .filter_by(debtor_id=debtor_id, creditor_id=creditor_id)
-        .scalar()
-    )
+    return db.session.execute(
+        select(Account.config_data)
+        .where(
+            Account.debtor_id == debtor_id,
+            Account.creditor_id == creditor_id,
+        )
+    ).scalar()
 
 
 @atomic
