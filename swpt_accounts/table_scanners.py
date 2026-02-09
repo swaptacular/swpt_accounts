@@ -3,6 +3,7 @@ from base64 import b16encode
 from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from swpt_pythonlib.scan_table import TableScanner
+from sqlalchemy import insert, update, select, delete
 from sqlalchemy.sql.expression import true, tuple_, or_
 from sqlalchemy.orm import load_only
 from flask import current_app
@@ -25,6 +26,7 @@ from swpt_accounts.chores import create_chore_message
 
 T = TypeVar("T")
 atomic: Callable[[T], T] = db.atomic
+INSERT_BATCH_SIZE = 5000
 
 
 class AccountScanner(TableScanner):
@@ -131,10 +133,11 @@ class AccountScanner(TableScanner):
             if belongs_to_parent_shard(row)
         ]
         if pks_to_delete:
+            chosen = Account.choose_rows(pks_to_delete)
             to_delete = (
                 Account.query
                 .options(load_only(Account.creditor_id))
-                .filter(self.pk.in_(pks_to_delete))
+                .join(chosen, self.pk == tuple_(*chosen.c))
                 .with_for_update(skip_locked=True)
                 .all()
             )
@@ -171,14 +174,12 @@ class AccountScanner(TableScanner):
         ]
 
         if pks_to_purge:
+            chosen = Account.choose_rows(pks_to_purge)
             to_purge = (
-                db.session.query(
-                    Account.debtor_id,
-                    Account.creditor_id,
-                    Account.creation_date,
-                )
+                Account.query
+                .options(load_only(Account.creation_date))
+                .join(chosen, self.pk == tuple_(*chosen.c))
                 .filter(
-                    self.pk.in_(pks_to_purge),
                     Account.status_flags.op("&")(deleted_flag) == deleted_flag,
                     Account.last_change_ts < purge_cutoff_ts,
                     Account.creation_date < date_few_days_ago,
@@ -188,24 +189,24 @@ class AccountScanner(TableScanner):
             )
 
             if to_purge:
-                pks_to_purge = [
-                    (debtor_id, creditor_id)
-                    for debtor_id, creditor_id, _ in to_purge
-                ]
-                Account.query.filter(self.pk.in_(pks_to_purge)).delete(
-                    synchronize_session=False
-                )
+                to_insert = []
+                for account in to_purge:
+                    to_insert.append(
+                        {
+                            "debtor_id": account.debtor_id,
+                            "creditor_id": account.creditor_id,
+                            "creation_date": account.creation_date,
+                        }
+                    )
+                    db.session.delete(account)
 
-                db.session.bulk_insert_mappings(
-                    AccountPurgeSignal,
-                    [
-                        dict(
-                            debtor_id=debtor_id,
-                            creditor_id=creditor_id,
-                            creation_date=creation_date,
-                        )
-                        for debtor_id, creditor_id, creation_date in to_purge
-                    ],
+                db.session.execute(
+                    insert(AccountPurgeSignal)
+                    .execution_options(
+                        insertmanyvalues_page_size=INSERT_BATCH_SIZE,
+                        synchronize_session=False,
+                    ),
+                    to_insert,
                 )
 
             db.session.commit()
@@ -234,10 +235,11 @@ class AccountScanner(TableScanner):
         ]
 
         if pks_to_heartbeat:
+            chosen = Account.choose_rows(pks_to_heartbeat)
             to_heartbeat = (
                 Account.query
+                .join(chosen, self.pk == tuple_(*chosen.c))
                 .filter(
-                    self.pk.in_(pks_to_heartbeat),
                     Account.status_flags.op("&")(deleted_flag) == 0,
                     or_(
                         Account.last_heartbeat_ts < heartbeat_cutoff_ts,
@@ -253,16 +255,23 @@ class AccountScanner(TableScanner):
                     (account.debtor_id, account.creditor_id)
                     for account in to_heartbeat
                 ]
-                Account.query.filter(self.pk.in_(pks_to_remind)).update(
-                    {
-                        Account.last_heartbeat_ts: current_ts,
-                        Account.pending_account_update: False,
-                    },
-                    synchronize_session=False,
+                to_update = Account.choose_rows(pks_to_remind)
+                db.session.execute(
+                    update(Account)
+                    .execution_options(synchronize_session=False)
+                    .where(self.pk == tuple_(*to_update.c))
+                    .values(
+                        last_heartbeat_ts=current_ts,
+                        pending_account_update=False,
+                    )
                 )
 
-                db.session.bulk_insert_mappings(
-                    AccountUpdateSignal,
+                db.session.execute(
+                    insert(AccountUpdateSignal)
+                    .execution_options(
+                        insertmanyvalues_page_size=INSERT_BATCH_SIZE,
+                        synchronize_session=False,
+                    ),
                     [
                         dict(
                             debtor_id=account.debtor_id,
@@ -578,31 +587,36 @@ class PreparedTransferScanner(TableScanner):
                 )
 
         if prepared_transfer_signal_mappings:
-            pks_to_remind = prepared_transfer_signal_mappings.keys()
-            to_update = (
-                db.session.query(
-                    PreparedTransfer.debtor_id,
-                    PreparedTransfer.sender_creditor_id,
-                    PreparedTransfer.transfer_id,
-                )
-                .filter(self.pk.in_(pks_to_remind))
-                .with_for_update(skip_locked=True, key_share=True)
-                .all()
+            chosen = PreparedTransfer.choose_rows(
+                list(prepared_transfer_signal_mappings.keys())
             )
-
-            if to_update:
-                pks_to_update = {pk for pk in to_update}
-                PreparedTransfer.query.filter(
-                    self.pk.in_(pks_to_update)
-                ).update(
-                    {
-                        PreparedTransfer.last_reminder_ts: current_ts,
-                    },
-                    synchronize_session=False,
+            pks_to_update = {
+                (pt.debtor_id, pt.sender_creditor_id, pt.transfer_id)
+                for pt in db.session.execute(
+                        select(
+                            PreparedTransfer.debtor_id,
+                            PreparedTransfer.sender_creditor_id,
+                            PreparedTransfer.transfer_id,
+                        )
+                        .select_from(PreparedTransfer)
+                        .join(chosen, self.pk == tuple_(*chosen.c))
+                        .with_for_update(skip_locked=True, key_share=True)
+                ).all()
+            }
+            if pks_to_update:
+                to_update = PreparedTransfer.choose_rows(list(pks_to_update))
+                db.session.execute(
+                    update(PreparedTransfer)
+                    .execution_options(synchronize_session=False)
+                    .where(self.pk == tuple_(*to_update.c))
+                    .values(last_reminder_ts=current_ts)
                 )
-
-                db.session.bulk_insert_mappings(
-                    PreparedTransferSignal,
+                db.session.execute(
+                    insert(PreparedTransferSignal)
+                    .execution_options(
+                        insertmanyvalues_page_size=INSERT_BATCH_SIZE,
+                        synchronize_session=False,
+                    ),
                     [
                         v
                         for k, v in prepared_transfer_signal_mappings.items()
@@ -657,7 +671,10 @@ class RegisteredBalanceChangeScanner(TableScanner):
             if (row[c_committed_at] < cutoff_ts and row[c_is_applied])
         ]
         if pks_to_delete:
+            chosen = RegisteredBalanceChange.choose_rows(pks_to_delete)
             db.session.execute(
-                self.table.delete().where(self.pk.in_(pks_to_delete))
+                delete(RegisteredBalanceChange)
+                .execution_options(synchronize_session=False)
+                .where(self.pk == tuple_(*chosen.c))
             )
             db.session.commit()
