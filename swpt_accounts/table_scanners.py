@@ -1,6 +1,5 @@
 import math
 from base64 import b16encode
-from typing import TypeVar, Callable
 from datetime import datetime, timedelta, timezone
 from swpt_pythonlib.scan_table import TableScanner
 from sqlalchemy import insert, update, select, delete
@@ -24,8 +23,6 @@ from swpt_accounts.models import (
 from swpt_accounts.fetch_api_client import get_root_config_data_dict
 from swpt_accounts.chores import create_chore_message
 
-T = TypeVar("T")
-atomic: Callable[[T], T] = db.atomic
 INSERT_BATCH_SIZE = 5000
 
 
@@ -104,7 +101,6 @@ class AccountScanner(TableScanner):
     def target_beat_duration(self) -> int:
         return current_app.config["APP_ACCOUNTS_SCAN_BEAT_MILLISECS"]
 
-    @atomic
     def process_rows(self, rows):
         current_ts = datetime.now(tz=timezone.utc)
         if current_app.config["DELETE_PARENT_SHARD_RECORDS"]:
@@ -114,6 +110,7 @@ class AccountScanner(TableScanner):
         self._delete_accounts(rows, current_ts)
         self._capitalize_interests(rows, current_ts)
         self._change_debtor_settings(rows, current_ts)
+        db.session.close()
 
     def _delete_parent_shard_accounts(self, rows, current_ts):
         c = self.table.c
@@ -539,7 +536,6 @@ class PreparedTransferScanner(TableScanner):
     def target_beat_duration(self) -> int:
         return current_app.config["APP_PREPARED_TRANSFERS_SCAN_BEAT_MILLISECS"]
 
-    @atomic
     def process_rows(self, rows):
         c = self.table.c
         c_debtor_id = c.debtor_id
@@ -625,6 +621,7 @@ class PreparedTransferScanner(TableScanner):
                 )
 
             db.session.commit()
+            db.session.close()
 
 
 class RegisteredBalanceChangeScanner(TableScanner):
@@ -655,7 +652,6 @@ class RegisteredBalanceChangeScanner(TableScanner):
             "APP_REGISTERED_BALANCE_CHANGES_SCAN_BEAT_MILLISECS"
         ]
 
-    @atomic
     def process_rows(self, rows):
         c = self.table.c
         c_debtor_id = c.debtor_id
@@ -678,3 +674,4 @@ class RegisteredBalanceChangeScanner(TableScanner):
                 .where(self.pk == tuple_(*chosen.c))
             )
             db.session.commit()
+            db.session.close()
