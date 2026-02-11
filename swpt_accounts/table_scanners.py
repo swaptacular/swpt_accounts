@@ -19,6 +19,8 @@ from swpt_accounts.models import (
     is_negligible_balance,
     contain_principal_overflow,
     is_valid_account,
+    SET_INDEXSCAN_ON,
+    SET_INDEXSCAN_OFF,
 )
 from swpt_accounts.fetch_api_client import get_root_config_data_dict
 from swpt_accounts.chores import create_chore_message
@@ -130,6 +132,7 @@ class AccountScanner(TableScanner):
             if belongs_to_parent_shard(row)
         ]
         if pks_to_delete:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = Account.choose_rows(pks_to_delete)
             to_delete = (
                 Account.query
@@ -138,6 +141,7 @@ class AccountScanner(TableScanner):
                 .with_for_update(skip_locked=True)
                 .all()
             )
+            db.session.execute(SET_INDEXSCAN_ON)
 
             for account in to_delete:
                 db.session.delete(account)
@@ -171,6 +175,7 @@ class AccountScanner(TableScanner):
         ]
 
         if pks_to_purge:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = Account.choose_rows(pks_to_purge)
             to_purge = (
                 Account.query
@@ -184,6 +189,7 @@ class AccountScanner(TableScanner):
                 .with_for_update(skip_locked=True)
                 .all()
             )
+            db.session.execute(SET_INDEXSCAN_ON)
 
             if to_purge:
                 to_insert = []
@@ -232,6 +238,7 @@ class AccountScanner(TableScanner):
         ]
 
         if pks_to_heartbeat:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = Account.choose_rows(pks_to_heartbeat)
             to_heartbeat = (
                 Account.query
@@ -583,6 +590,7 @@ class PreparedTransferScanner(TableScanner):
                 )
 
         if prepared_transfer_signal_mappings:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = PreparedTransfer.choose_rows(
                 list(prepared_transfer_signal_mappings.keys())
             )
@@ -667,6 +675,7 @@ class RegisteredBalanceChangeScanner(TableScanner):
             if (row[c_committed_at] < cutoff_ts and row[c_is_applied])
         ]
         if pks_to_delete:
+            db.session.execute(SET_INDEXSCAN_OFF)
             chosen = RegisteredBalanceChange.choose_rows(pks_to_delete)
             db.session.execute(
                 delete(RegisteredBalanceChange)
