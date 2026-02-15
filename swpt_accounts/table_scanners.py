@@ -19,16 +19,35 @@ from swpt_accounts.models import (
     is_negligible_balance,
     contain_principal_overflow,
     is_valid_account,
-    SET_MERGEJOIN_OFF,
-    SET_HASHJOIN_OFF,
+    DISCARD_PLANS,
 )
 from swpt_accounts.fetch_api_client import get_root_config_data_dict
 from swpt_accounts.chores import create_chore_message
 
 INSERT_BATCH_SIZE = 5000
+PLANS_DISCARD_INTERVAL = timedelta(seconds=10.0)
 
 
-class AccountScanner(TableScanner):
+class PlansDiscardingTableScanner(TableScanner):
+    def __init__(self):
+        super().__init__()
+        self.latest_plans_discard_ts = datetime.now(tz=timezone.utc)
+
+    def _process_rows_done(self):
+        db.session.expunge_all()
+        current_ts = datetime.now(tz=timezone.utc)
+        if (
+                current_ts - self.latest_plans_discard_ts
+                >= PLANS_DISCARD_INTERVAL
+        ):  # pragma: no cover
+            # Discard possibly outdated execution plans.
+            db.session.execute(DISCARD_PLANS)
+            db.session.commit()
+            db.session.close()
+            self.latest_plans_discard_ts = current_ts
+
+
+class AccountScanner(PlansDiscardingTableScanner):
     """Sends account heartbeat signals, purge deleted accounts."""
 
     table = Account.__table__
@@ -112,7 +131,7 @@ class AccountScanner(TableScanner):
         self._delete_accounts(rows, current_ts)
         self._capitalize_interests(rows, current_ts)
         self._change_debtor_settings(rows, current_ts)
-        db.session.close()
+        self._process_rows_done()
 
     def _delete_parent_shard_accounts(self, rows, current_ts):
         c = self.table.c
@@ -132,8 +151,6 @@ class AccountScanner(TableScanner):
             if belongs_to_parent_shard(row)
         ]
         if pks_to_delete:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = Account.choose_rows(pks_to_delete)
             to_delete = (
                 Account.query
@@ -175,8 +192,6 @@ class AccountScanner(TableScanner):
         ]
 
         if pks_to_purge:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = Account.choose_rows(pks_to_purge)
             to_purge = (
                 Account.query
@@ -238,8 +253,6 @@ class AccountScanner(TableScanner):
         ]
 
         if pks_to_heartbeat:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = Account.choose_rows(pks_to_heartbeat)
             to_heartbeat = (
                 Account.query
@@ -511,7 +524,7 @@ class AccountScanner(TableScanner):
         chores_publisher.publish_messages(chores)
 
 
-class PreparedTransferScanner(TableScanner):
+class PreparedTransferScanner(PlansDiscardingTableScanner):
     """Attempts to finalize staled prepared transfers."""
 
     table = PreparedTransfer.__table__
@@ -591,8 +604,6 @@ class PreparedTransferScanner(TableScanner):
                 )
 
         if prepared_transfer_signal_mappings:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = PreparedTransfer.choose_rows(
                 list(prepared_transfer_signal_mappings.keys())
             )
@@ -631,10 +642,11 @@ class PreparedTransferScanner(TableScanner):
                 )
 
             db.session.commit()
-            db.session.close()
+
+        self._process_rows_done()
 
 
-class RegisteredBalanceChangeScanner(TableScanner):
+class RegisteredBalanceChangeScanner(PlansDiscardingTableScanner):
     """Attempts to delete stale registered balance changes."""
 
     table = RegisteredBalanceChange.__table__
@@ -677,8 +689,6 @@ class RegisteredBalanceChangeScanner(TableScanner):
             if (row[c_committed_at] < cutoff_ts and row[c_is_applied])
         ]
         if pks_to_delete:
-            db.session.execute(SET_HASHJOIN_OFF)
-            db.session.execute(SET_MERGEJOIN_OFF)
             chosen = RegisteredBalanceChange.choose_rows(pks_to_delete)
             db.session.execute(
                 delete(RegisteredBalanceChange)
@@ -686,4 +696,5 @@ class RegisteredBalanceChangeScanner(TableScanner):
                 .where(self.pk == tuple_(*chosen.c))
             )
             db.session.commit()
-            db.session.close()
+
+        self._process_rows_done()
