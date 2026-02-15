@@ -7,6 +7,7 @@ from decimal import Decimal
 from marshmallow import Schema, fields
 from flask import current_app
 from sqlalchemy import text
+from sqlalchemy.inspection import inspect
 from sqlalchemy.dialects import postgresql as pg
 from sqlalchemy.sql.expression import func, null, or_, and_
 from swpt_pythonlib.utils import (
@@ -44,6 +45,7 @@ CONTENT_TYPE_MAX_BYTES = 100
 CREDITOR_SUBNET_MASK = 0xffffff0000000000
 DEBTOR_INFO_SHA256_REGEX = r"^([0-9A-F]{64}|[0-9a-f]{64})?$"
 SET_SEQSCAN_ON = text("SET LOCAL enable_seqscan = on")
+DISCARD_PLANS = text("DISCARD PLANS")
 
 # The account `(debtor_id, ROOT_CREDITOR_ID)` is special. This is the
 # debtor's account. It issuers all the money. Also, all interest and
@@ -82,6 +84,19 @@ class classproperty(object):
 
     def __get__(self, obj, owner):
         return self.f(owner)
+
+
+class ChooseRowsMixin:
+    @classmethod
+    def choose_rows(cls, primary_keys: list[tuple], name: str = "chosen"):
+        pktype_name = f"{cls.__table__.name}_pktype"
+        bindparam_name = f"{name}_rows"
+        return (
+            text(f"SELECT * FROM unnest(:{bindparam_name} :: {pktype_name}[])")
+            .bindparams(**{bindparam_name: primary_keys})
+            .columns(**{c.key: c.type for c in inspect(cls).primary_key})
+            .cte(name=name)
+        )
 
 
 def get_now_utc() -> datetime:
@@ -150,7 +165,7 @@ def are_managed_by_same_agent(
     )
 
 
-class Account(db.Model):
+class Account(db.Model, ChooseRowsMixin):
     CONFIG_SCHEDULED_FOR_DELETION_FLAG = 1 << 0
 
     STATUS_DELETED_FLAG = 1 << 0
@@ -405,7 +420,7 @@ class FinalizationRequest(db.Model):
     )
 
 
-class PreparedTransfer(db.Model):
+class PreparedTransfer(db.Model, ChooseRowsMixin):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     sender_creditor_id = db.Column(db.BigInteger, primary_key=True)
     transfer_id = db.Column(db.BigInteger, primary_key=True)
@@ -501,7 +516,7 @@ class PreparedTransfer(db.Model):
         return SC_OK
 
 
-class RegisteredBalanceChange(db.Model):
+class RegisteredBalanceChange(db.Model, ChooseRowsMixin):
     debtor_id = db.Column(db.BigInteger, primary_key=True)
     other_creditor_id = db.Column(db.BigInteger, primary_key=True)
     change_id = db.Column(db.BigInteger, primary_key=True)
@@ -562,7 +577,7 @@ class PendingBalanceChange(db.Model):
     )
 
 
-class Signal(db.Model):
+class Signal(db.Model, ChooseRowsMixin):
     """A pending message that needs to be send to the RabbitMQ server."""
 
     __abstract__ = True
