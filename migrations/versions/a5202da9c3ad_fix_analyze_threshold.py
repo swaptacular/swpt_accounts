@@ -31,6 +31,7 @@ def upgrade():
     reset_storage_params(
         'registered_balance_change',
         [
+            'autovacuum_vacuum_insert_threshold',
             'autovacuum_analyze_threshold',
         ]
     )
@@ -109,6 +110,7 @@ def upgrade():
 def downgrade():
     set_storage_params(
         'registered_balance_change',
+        autovacuum_vacuum_insert_threshold=-1,
         autovacuum_analyze_threshold=2000000000,
     )
 
