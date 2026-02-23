@@ -688,8 +688,8 @@ class RejectedTransferSignal(Signal):
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_REJECTED_TRANSFERS_BURST_COUNT"]
 
-    @classmethod
-    def get_exchange_name(cls, obj):
+    @staticmethod
+    def get_exchange_name(obj):
         return TO_COORDINATORS_EXCHANGE
 
     @staticmethod
@@ -738,8 +738,8 @@ class PreparedTransferSignal(Signal):
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_PREPARED_TRANSFERS_BURST_COUNT"]
 
-    @classmethod
-    def get_exchange_name(cls, obj):
+    @staticmethod
+    def get_exchange_name(obj):
         return TO_COORDINATORS_EXCHANGE
 
     @staticmethod
@@ -780,8 +780,8 @@ class FinalizedTransferSignal(Signal):
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_FINALIZED_TRANSFERS_BURST_COUNT"]
 
-    @classmethod
-    def get_exchange_name(cls, obj):
+    @staticmethod
+    def get_exchange_name(obj):
         return TO_COORDINATORS_EXCHANGE
 
     @staticmethod
@@ -843,8 +843,8 @@ class AccountTransferSignal(Signal):
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_ACCOUNT_TRANSFERS_BURST_COUNT"]
 
-    @classmethod
-    def get_exchange_name(cls, obj):
+    @staticmethod
+    def get_exchange_name(obj):
         return (
             TO_DEBTORS_EXCHANGE
             if obj.creditor_id == ROOT_CREDITOR_ID
@@ -938,8 +938,8 @@ class AccountUpdateSignal(Signal):
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_ACCOUNT_UPDATES_BURST_COUNT"]
 
-    @classmethod
-    def get_exchange_name(cls, obj):
+    @staticmethod
+    def get_exchange_name(obj):
         return (
             TO_DEBTORS_EXCHANGE
             if obj.creditor_id == ROOT_CREDITOR_ID
@@ -969,8 +969,8 @@ class AccountPurgeSignal(Signal):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     creation_date = db.Column(db.DATE, primary_key=True)
 
-    @classmethod
-    def get_exchange_name(cls, obj):
+    @staticmethod
+    def get_exchange_name(obj):
         return (
             TO_DEBTORS_EXCHANGE
             if obj.creditor_id == ROOT_CREDITOR_ID
@@ -1015,8 +1015,8 @@ class RejectedConfigSignal(Signal):
     negligible_amount = db.Column(db.REAL, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
 
-    @classmethod
-    def get_exchange_name(cls, obj):
+    @staticmethod
+    def get_exchange_name(obj):
         return (
             TO_DEBTORS_EXCHANGE
             if obj.creditor_id == ROOT_CREDITOR_ID
@@ -1061,8 +1061,8 @@ class PendingBalanceChangeSignal(Signal):
     committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     principal_delta = db.Column(db.BigInteger, nullable=False)
 
-    @classmethod
-    def get_exchange_name(cls, obj):
+    @staticmethod
+    def get_exchange_name(obj):
         return ACCOUNTS_IN_EXCHANGE
 
     @staticmethod
