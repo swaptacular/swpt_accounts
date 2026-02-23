@@ -584,15 +584,17 @@ class Signal(db.Model, ChooseRowsMixin):
 
     @classmethod
     def send_signalbus_messages(cls, objects):
-        assert all(isinstance(obj, cls) for obj in objects)
-        messages = (obj._create_message() for obj in objects)
+        create_message = cls._create_message
+        messages = (create_message(obj) for obj in objects)
         publisher.publish_messages([m for m in messages if m is not None])
 
-    def send_signalbus_message(self):
-        self.send_signalbus_messages([self])
+    @classmethod
+    def send_signalbus_message(cls, obj):
+        cls.send_signalbus_messages([obj])
 
-    def _create_message(self):
-        data = self.__marshmallow_schema__.dump(self)
+    @classmethod
+    def _create_message(cls, obj):
+        data = cls.__marshmallow_schema__.dump(obj)
         message_type = data["type"]
         creditor_id = data["creditor_id"]
         debtor_id = data["debtor_id"]
@@ -636,8 +638,8 @@ class Signal(db.Model, ChooseRowsMixin):
         ).encode("utf8")
 
         return rabbitmq.Message(
-            exchange=self.exchange_name,
-            routing_key=self.routing_key,
+            exchange=cls.get_exchange_name(obj),
+            routing_key=cls.get_routing_key(obj),
             body=body,
             properties=properties,
             mandatory=not (
@@ -660,8 +662,6 @@ class Signal(db.Model, ChooseRowsMixin):
 
 
 class RejectedTransferSignal(Signal):
-    exchange_name = TO_COORDINATORS_EXCHANGE
-
     class __marshmallow__(Schema):
         type = fields.Constant("RejectedTransfer")
         coordinator_type = fields.String()
@@ -688,14 +688,16 @@ class RejectedTransferSignal(Signal):
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_REJECTED_TRANSFERS_BURST_COUNT"]
 
-    @property
-    def routing_key(self):
-        return i64_to_hex_routing_key(self.coordinator_id)
+    @classmethod
+    def get_exchange_name(cls, obj):
+        return TO_COORDINATORS_EXCHANGE
+
+    @staticmethod
+    def get_routing_key(obj):
+        return i64_to_hex_routing_key(obj.coordinator_id)
 
 
 class PreparedTransferSignal(Signal):
-    exchange_name = TO_COORDINATORS_EXCHANGE
-
     class __marshmallow__(Schema):
         type = fields.Constant("PreparedTransfer")
         debtor_id = fields.Integer()
@@ -736,14 +738,16 @@ class PreparedTransferSignal(Signal):
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_PREPARED_TRANSFERS_BURST_COUNT"]
 
-    @property
-    def routing_key(self):
-        return i64_to_hex_routing_key(self.coordinator_id)
+    @classmethod
+    def get_exchange_name(cls, obj):
+        return TO_COORDINATORS_EXCHANGE
+
+    @staticmethod
+    def get_routing_key(obj):
+        return i64_to_hex_routing_key(obj.coordinator_id)
 
 
 class FinalizedTransferSignal(Signal):
-    exchange_name = TO_COORDINATORS_EXCHANGE
-
     class __marshmallow__(Schema):
         type = fields.Constant("FinalizedTransfer")
         debtor_id = fields.Integer()
@@ -776,9 +780,13 @@ class FinalizedTransferSignal(Signal):
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_FINALIZED_TRANSFERS_BURST_COUNT"]
 
-    @property
-    def routing_key(self):
-        return i64_to_hex_routing_key(self.coordinator_id)
+    @classmethod
+    def get_exchange_name(cls, obj):
+        return TO_COORDINATORS_EXCHANGE
+
+    @staticmethod
+    def get_routing_key(obj):
+        return i64_to_hex_routing_key(obj.coordinator_id)
 
 
 class AccountTransferSignal(Signal):
@@ -796,10 +804,18 @@ class AccountTransferSignal(Signal):
         principal = fields.Integer()
         previous_transfer_number = fields.Integer()
         sender = fields.Function(
-            lambda obj: str(i64_to_u64(obj.sender_creditor_id))
+            lambda obj: str(i64_to_u64(
+                obj.other_creditor_id
+                if obj.acquired_amount >= 0
+                else obj.creditor_id
+            ))
         )
         recipient = fields.Function(
-            lambda obj: str(i64_to_u64(obj.recipient_creditor_id))
+            lambda obj: str(i64_to_u64(
+                obj.other_creditor_id
+                if obj.acquired_amount < 0
+                else obj.creditor_id
+            ))
         )
         inserted_at = fields.DateTime(data_key="ts")
 
@@ -827,36 +843,20 @@ class AccountTransferSignal(Signal):
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_ACCOUNT_TRANSFERS_BURST_COUNT"]
 
-    @property
-    def exchange_name(self):
+    @classmethod
+    def get_exchange_name(cls, obj):
         return (
             TO_DEBTORS_EXCHANGE
-            if self.creditor_id == ROOT_CREDITOR_ID
+            if obj.creditor_id == ROOT_CREDITOR_ID
             else TO_CREDITORS_EXCHANGE
         )
 
-    @property
-    def routing_key(self):
+    @staticmethod
+    def get_routing_key(obj):
         return i64_to_hex_routing_key(
-            self.debtor_id
-            if self.creditor_id == ROOT_CREDITOR_ID
-            else self.creditor_id
-        )
-
-    @property
-    def sender_creditor_id(self):
-        return (
-            self.other_creditor_id
-            if self.acquired_amount >= 0
-            else self.creditor_id
-        )
-
-    @property
-    def recipient_creditor_id(self):
-        return (
-            self.other_creditor_id
-            if self.acquired_amount < 0
-            else self.creditor_id
+            obj.debtor_id
+            if obj.creditor_id == ROOT_CREDITOR_ID
+            else obj.creditor_id
         )
 
 
@@ -872,7 +872,6 @@ class AccountUpdateSignal(Signal):
         interest_rate = fields.Float()
         transfer_note_max_bytes = fields.Constant(TRANSFER_NOTE_MAX_BYTES)
         demurrage_rate = fields.Constant(INTEREST_RATE_FLOOR)
-        commit_period = fields.Integer()
         last_interest_rate_change_ts = fields.DateTime()
         last_transfer_number = fields.Integer()
         last_transfer_committed_at = fields.DateTime()
@@ -883,7 +882,18 @@ class AccountUpdateSignal(Signal):
         config_data = fields.String()
         config_flags = fields.Integer()
         inserted_at = fields.DateTime(data_key="ts")
-        ttl = fields.Integer()
+        ttl = fields.Function(
+            lambda obj: int(
+                current_app.config["APP_MESSAGE_MAX_DELAY_DAYS"]
+                * SECONDS_IN_DAY
+            )
+        )
+        commit_period = fields.Function(
+            lambda obj: int(
+                current_app.config["APP_PREPARED_TRANSFER_MAX_DELAY_DAYS"]
+                * SECONDS_IN_DAY
+            )
+        )
         account_id = fields.Function(
             lambda obj: str(i64_to_u64(obj.creditor_id))
         )
@@ -928,33 +938,20 @@ class AccountUpdateSignal(Signal):
     def signalbus_burst_count(self):
         return current_app.config["APP_FLUSH_ACCOUNT_UPDATES_BURST_COUNT"]
 
-    @property
-    def exchange_name(self):
+    @classmethod
+    def get_exchange_name(cls, obj):
         return (
             TO_DEBTORS_EXCHANGE
-            if self.creditor_id == ROOT_CREDITOR_ID
+            if obj.creditor_id == ROOT_CREDITOR_ID
             else TO_CREDITORS_EXCHANGE
         )
 
-    @property
-    def routing_key(self):
+    @staticmethod
+    def get_routing_key(obj):
         return i64_to_hex_routing_key(
-            self.debtor_id
-            if self.creditor_id == ROOT_CREDITOR_ID
-            else self.creditor_id
-        )
-
-    @property
-    def ttl(self):
-        return int(
-            current_app.config["APP_MESSAGE_MAX_DELAY_DAYS"] * SECONDS_IN_DAY
-        )
-
-    @property
-    def commit_period(self):
-        return int(
-            current_app.config["APP_PREPARED_TRANSFER_MAX_DELAY_DAYS"]
-            * SECONDS_IN_DAY
+            obj.debtor_id
+            if obj.creditor_id == ROOT_CREDITOR_ID
+            else obj.creditor_id
         )
 
 
@@ -972,20 +969,20 @@ class AccountPurgeSignal(Signal):
     creditor_id = db.Column(db.BigInteger, primary_key=True)
     creation_date = db.Column(db.DATE, primary_key=True)
 
-    @property
-    def exchange_name(self):
+    @classmethod
+    def get_exchange_name(cls, obj):
         return (
             TO_DEBTORS_EXCHANGE
-            if self.creditor_id == ROOT_CREDITOR_ID
+            if obj.creditor_id == ROOT_CREDITOR_ID
             else TO_CREDITORS_EXCHANGE
         )
 
-    @property
-    def routing_key(self):
+    @staticmethod
+    def get_routing_key(obj):
         return i64_to_hex_routing_key(
-            self.debtor_id
-            if self.creditor_id == ROOT_CREDITOR_ID
-            else self.creditor_id
+            obj.debtor_id
+            if obj.creditor_id == ROOT_CREDITOR_ID
+            else obj.creditor_id
         )
 
     @classproperty
@@ -1018,20 +1015,20 @@ class RejectedConfigSignal(Signal):
     negligible_amount = db.Column(db.REAL, nullable=False)
     rejection_code = db.Column(db.String(30), nullable=False)
 
-    @property
-    def exchange_name(self):
+    @classmethod
+    def get_exchange_name(cls, obj):
         return (
             TO_DEBTORS_EXCHANGE
-            if self.creditor_id == ROOT_CREDITOR_ID
+            if obj.creditor_id == ROOT_CREDITOR_ID
             else TO_CREDITORS_EXCHANGE
         )
 
-    @property
-    def routing_key(self):
+    @staticmethod
+    def get_routing_key(obj):
         return i64_to_hex_routing_key(
-            self.debtor_id
-            if self.creditor_id == ROOT_CREDITOR_ID
-            else self.creditor_id
+            obj.debtor_id
+            if obj.creditor_id == ROOT_CREDITOR_ID
+            else obj.creditor_id
         )
 
     @classproperty
@@ -1040,8 +1037,6 @@ class RejectedConfigSignal(Signal):
 
 
 class PendingBalanceChangeSignal(Signal):
-    exchange_name = ACCOUNTS_IN_EXCHANGE
-
     class __marshmallow__(Schema):
         type = fields.Constant("PendingBalanceChange")
         debtor_id = fields.Integer()
@@ -1066,9 +1061,13 @@ class PendingBalanceChangeSignal(Signal):
     committed_at = db.Column(db.TIMESTAMP(timezone=True), nullable=False)
     principal_delta = db.Column(db.BigInteger, nullable=False)
 
-    @property
-    def routing_key(self):
-        return calc_bin_routing_key(self.debtor_id, self.creditor_id)
+    @classmethod
+    def get_exchange_name(cls, obj):
+        return ACCOUNTS_IN_EXCHANGE
+
+    @staticmethod
+    def get_routing_key(obj):
+        return calc_bin_routing_key(obj.debtor_id, obj.creditor_id)
 
     @classproperty
     def signalbus_burst_count(self):
