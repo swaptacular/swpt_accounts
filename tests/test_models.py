@@ -33,7 +33,7 @@ def test_send_signalbus_message(app, mocker):
         total_locked_amount=0,
         inserted_at=current_ts,
     )
-    s.send_signalbus_message()
+    s.send_signalbus_message(s)
     publisher.publish_messages.assert_called_once()
     args, kwargs = publisher.publish_messages.call_args
     assert len(args) == 1
@@ -60,7 +60,7 @@ def test_send_signalbus_message(app, mocker):
         total_locked_amount=0,
         inserted_at=current_ts,
     )
-    m.AccountUpdateSignal(
+    aus = m.AccountUpdateSignal(
         debtor_id=1,
         creditor_id=m.ROOT_CREDITOR_ID,
         last_change_ts=m.T0,
@@ -80,7 +80,8 @@ def test_send_signalbus_message(app, mocker):
         debtor_info_iri=None,
         debtor_info_content_type=None,
         debtor_info_sha256=None,
-    ).send_signalbus_message()
+    )
+    aus.send_signalbus_message(aus)
 
 
 def test_send_signalbus_message_wrong_shard(app, mocker):
@@ -102,7 +103,7 @@ def test_send_signalbus_message_wrong_shard(app, mocker):
         total_locked_amount=0,
         inserted_at=current_ts,
     )
-    s.send_signalbus_message()
+    s.send_signalbus_message(s)
     publisher.publish_messages.assert_called_once()
     args, kwargs = publisher.publish_messages.call_args
     assert len(args) == 1
@@ -123,44 +124,47 @@ def test_properties(app):
     )
 
     s = m.RejectedTransferSignal(coordinator_id=1)
-    assert s.exchange_name == TO_COORDINATORS_EXCHANGE
-    assert s.routing_key == "00.00.00.00.00.00.00.01"
+    assert s.get_exchange_name(s) == TO_COORDINATORS_EXCHANGE
+    assert s.get_routing_key(s) == "00.00.00.00.00.00.00.01"
 
     s = m.PreparedTransferSignal(coordinator_id=1)
-    assert s.exchange_name == TO_COORDINATORS_EXCHANGE
-    assert s.routing_key == "00.00.00.00.00.00.00.01"
+    assert s.get_exchange_name(s) == TO_COORDINATORS_EXCHANGE
+    assert s.get_routing_key(s) == "00.00.00.00.00.00.00.01"
 
     s = m.FinalizedTransferSignal(coordinator_id=1)
-    assert s.exchange_name == TO_COORDINATORS_EXCHANGE
-    assert s.routing_key == "00.00.00.00.00.00.00.01"
+    assert s.get_exchange_name(s) == TO_COORDINATORS_EXCHANGE
+    assert s.get_routing_key(s) == "00.00.00.00.00.00.00.01"
 
     s = m.AccountTransferSignal(creditor_id=1)
-    assert s.exchange_name == TO_CREDITORS_EXCHANGE
-    assert s.routing_key == "00.00.00.00.00.00.00.01"
+    assert s.get_exchange_name(s) == TO_CREDITORS_EXCHANGE
+    assert s.get_routing_key(s) == "00.00.00.00.00.00.00.01"
 
     s = m.AccountTransferSignal(debtor_id=2, creditor_id=0)
-    assert s.exchange_name == TO_DEBTORS_EXCHANGE
-    assert s.routing_key == "00.00.00.00.00.00.00.02"
+    assert s.get_exchange_name(s) == TO_DEBTORS_EXCHANGE
+    assert s.get_routing_key(s) == "00.00.00.00.00.00.00.02"
 
     s = m.AccountUpdateSignal(creditor_id=1)
-    assert s.exchange_name == TO_CREDITORS_EXCHANGE
-    assert s.routing_key == "00.00.00.00.00.00.00.01"
+    assert s.get_exchange_name(s) == TO_CREDITORS_EXCHANGE
+    assert s.get_routing_key(s) == "00.00.00.00.00.00.00.01"
 
     s = m.AccountPurgeSignal(creditor_id=1)
-    assert s.exchange_name == TO_CREDITORS_EXCHANGE
-    assert s.routing_key == "00.00.00.00.00.00.00.01"
+    assert s.get_exchange_name(s) == TO_CREDITORS_EXCHANGE
+    assert s.get_routing_key(s) == "00.00.00.00.00.00.00.01"
 
     s = m.RejectedConfigSignal(creditor_id=1)
-    assert s.exchange_name == TO_CREDITORS_EXCHANGE
-    assert s.routing_key == "00.00.00.00.00.00.00.01"
+    assert s.get_exchange_name(s) == TO_CREDITORS_EXCHANGE
+    assert s.get_routing_key(s) == "00.00.00.00.00.00.00.01"
 
     s = m.RejectedConfigSignal(debtor_id=2, creditor_id=0)
-    assert s.exchange_name == TO_DEBTORS_EXCHANGE
-    assert s.routing_key == "00.00.00.00.00.00.00.02"
+    assert s.get_exchange_name(s) == TO_DEBTORS_EXCHANGE
+    assert s.get_routing_key(s) == "00.00.00.00.00.00.00.02"
 
     s = m.PendingBalanceChangeSignal(debtor_id=2, creditor_id=1)
-    assert s.exchange_name == ACCOUNTS_IN_EXCHANGE
-    assert s.routing_key == "1.1.1.1.1.0.0.0.1.1.0.1.0.0.1.1.1.0.1.1.0.1.0.1"
+    assert s.get_exchange_name(s) == ACCOUNTS_IN_EXCHANGE
+    assert (
+        s.get_routing_key(s)
+        == "1.1.1.1.1.0.0.0.1.1.0.1.0.0.1.1.1.0.1.1.0.1.0.1"
+    )
 
 
 def test_configure_account():
