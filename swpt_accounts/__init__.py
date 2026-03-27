@@ -3,6 +3,7 @@ __version__ = "0.1.0"
 import logging
 import json
 import sys
+import signal
 import os
 import os.path
 from typing import List
@@ -23,6 +24,12 @@ def _parse_dict(s: str) -> dict:
         return json.loads(s)
     except ValueError:  # pragma: no cover
         raise ValueError(f"Invalid JSON configuration value: {s}")
+
+
+def _raise_keyboard_interrupt(signum, frame):  # pragma: no cover
+    logger = logging.getLogger(__name__)
+    logger.warning("Received %s signal. Exiting...", signal.strsignal(signum))
+    raise KeyboardInterrupt()
 
 
 def _excepthook(exc_type, exc_value, traceback):  # pragma: nocover
@@ -382,3 +389,5 @@ configure_logging(
     associated_loggers=os.environ.get("APP_ASSOCIATED_LOGGERS", "").split(),
 )
 sys.excepthook = _excepthook
+signal.signal(signal.SIGTERM, _raise_keyboard_interrupt)
+signal.signal(signal.SIGINT, _raise_keyboard_interrupt)
