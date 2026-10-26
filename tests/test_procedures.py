@@ -1176,6 +1176,31 @@ def test_root_config_issuing_limit(db_session, current_ts):
     assert len(PreparedTransfer.query.all()) == 0
 
 
+@pytest.mark.parametrize("amount, is_prepared", [(100, True), (101, False)])
+def test_root_config_fractional_issuing_limit(
+    db_session, current_ts, amount, is_prepared
+):
+    # The fractional issuing limit must be truncated (not rounded),
+    # both by the Python implementation, and by the PL/pgSQL one.
+    cfg = '{"limit": 100.5}'
+    p.configure_account(D_ID, 1234, current_ts, 0)
+    p.configure_account(D_ID, ROOT_CREDITOR_ID, current_ts, 0, 1e30, 0, cfg)
+    p.prepare_transfer(
+        coordinator_type="issuing",
+        coordinator_id=1,
+        coordinator_request_id=2,
+        min_locked_amount=amount,
+        max_locked_amount=amount,
+        debtor_id=D_ID,
+        creditor_id=ROOT_CREDITOR_ID,
+        recipient_creditor_id=1234,
+        ts=current_ts,
+    )
+    p.process_transfer_requests(D_ID, ROOT_CREDITOR_ID)
+    assert len(PreparedTransfer.query.all()) == (1 if is_prepared else 0)
+    assert len(RejectedTransferSignal.query.all()) == (0 if is_prepared else 1)
+
+
 def test_negligible_amount_issuing_limit(db_session, current_ts):
     p.configure_account(D_ID, 1234, current_ts, 0)
     p.configure_account(D_ID, ROOT_CREDITOR_ID, current_ts, 0, 100.0)
