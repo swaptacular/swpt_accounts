@@ -69,6 +69,35 @@ def test_prepare_transfer(db_session, actors):
         assert rts.coordinator_request_id == 2
 
 
+def test_prepare_agent_transfer_invalid_coordinator(db_session, actors):
+    consumer = actors.SmpConsumer()
+    props = MessageProperties(
+        content_type="application/json", type="PrepareTransfer"
+    )
+    body = b"""
+    {
+      "type": "PrepareTransfer",
+      "coordinator_type": "agent",
+      "coordinator_id": 2199023255553,
+      "coordinator_request_id": 2,
+      "min_locked_amount": 1,
+      "max_locked_amount": 200,
+      "debtor_id": -1,
+      "creditor_id": 1099511627778,
+      "recipient": "1099511627779",
+      "final_interest_rate_ts": "9999-12-31T23:59:59+00:00",
+      "max_commit_delay": 1000000,
+      "ts": "2099-12-31T00:00:00+00:00"
+    }
+    """
+
+    # The coordinator is managed by a different agent. The message
+    # must be consumed (not raise), and must be ignored.
+    assert consumer.process_message(body, props) is True
+    p.process_transfer_requests(-1, 1099511627778)
+    assert RejectedTransferSignal.query.all() == []
+
+
 def test_finalize_transfer(db_session, actors):
     actors._on_finalize_transfer_signal(
         debtor_id=D_ID,

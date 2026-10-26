@@ -70,9 +70,15 @@ def _on_prepare_transfer_signal(
     else:
         if coordinator_type == CT_AGENT:
             if not are_managed_by_same_agent(creditor_id, coordinator_id):
-                raise RuntimeError(
-                    "Invalid coordinator ID for agent transfer."
-                )  # pragma: no cover
+                # NOTE: Raising an exception here would stop the
+                # consumer, and the message would be redelivered
+                # forever, blocking the processing of all other
+                # messages. Therefore, we just ignore the message.
+                _LOGGER.error(
+                    "Invalid coordinator ID for agent transfer: %i",
+                    coordinator_id,
+                )
+                return
             is_reachable = True
         else:
             is_reachable = get_if_account_is_reachable(
