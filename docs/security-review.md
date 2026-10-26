@@ -14,10 +14,10 @@ review notes.
 
 | ID | Severity | Finding | Status |
 |---|---|---|---|
-| SEC-1 | Medium | One malformed `PrepareTransfer` message stops message processing for the whole shard | Fixed |
+| SEC-1 | Low | One malformed `PrepareTransfer` message stops message processing for the whole shard | Fixed |
 | BUG-1 | Low | PL/pgSQL rounds a fractional issuing limit up; Python truncates it | Fixed |
 
-## SEC-1: Poison `PrepareTransfer` message halts the consumer (Medium, fixed)
+## SEC-1: Poison `PrepareTransfer` message halts the consumer (Low, fixed)
 
 **Where:** `swpt_accounts/actors.py`, `_on_prepare_transfer_signal`.
 
@@ -34,6 +34,13 @@ The message is never acknowledged, so RabbitMQ redelivers it after the
 restart, and the consumer stops again. A single message therefore
 blocks the processing of every other message in the queue: transfers,
 configurations and balance changes for all accounts of the shard.
+
+**Reachability.** `swpt_stomp` checks that an `agent` transfer's
+`coordinator_id` belongs to the sending peer's creditors subnet. With
+the standard 24-bit creditors-agent subnets, that check blocks such
+messages from remote peers. It remains reachable for a peer configured
+with a wider subnet, or through any local component that publishes to
+the accounts queue, so this is a defence-in-depth fix.
 
 **Reproduction.** A schema-valid message with
 `"coordinator_type": "agent"`, `"creditor_id": 1099511627778`
